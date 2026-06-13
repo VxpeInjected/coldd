@@ -8,14 +8,18 @@
     * `legal.coldd.dev/terms/resell`
 * `legal.coldd.dev/guidelines`
 * `legal.coldd.dev/gdpr` (We will outline their rights here)
-* `legal.coldd.dev/gdpr/compliance` (We will outline how we will work with their rights)
-* `legal.coldd.dev/gdpr/right-to-be-informed` (Further information on the specific right, along with a button to view where it is (it's in legal.coldd.dev/privacy))
-* `legal.coldd.dev/gdpr/right-of-access` (Further information on the specific right, along with a button to view how to fulfill their right.)
-* `legal.coldd.dev/gdpr/right-to-rectification` (Further information on the specific right, along with a button to view how to fulfill their right.)
-* `legal.coldd.dev/gdpr/right-to-restrict-processing` (Further information on the specific right, along with a button to view how to fulfill their right.)
-* `legal.coldd.dev/gdpr/right-to-data-portability` (Further information on the specific right, along with a button to view how to fulfill their right.)
-* `legal.coldd.dev/gdpr/right-to-object` (Further information on the specific right, along with a button to view how to fulfill their right.)
-* `legal.coldd.dev/gdpr/rights-related-to-automated-decision-making-and-profiling` (Further information on the specific right, along with a button to view how to fulfill their right.)
+   * `legal.coldd.dev/gdpr/compliance` (We will outline how we will work with their GDPR rights)
+   * `legal.coldd.dev/gdpr/right-to-be-informed` (Further information on the specific right, along with a button to view where it is (it's in legal.coldd.dev/privacy))
+   * `legal.coldd.dev/gdpr/right-of-access` (Further information on the specific right, along with a button to view how to fulfill their right.)
+   * `legal.coldd.dev/gdpr/right-to-rectification` (Further information on the specific right, along with a button to view how to fulfill their right.)
+   * `legal.coldd.dev/gdpr/right-to-restrict-processing` (Further information on the specific right, along with a button to view how to fulfill their right.)
+   * `legal.coldd.dev/gdpr/right-to-data-portability` (Further information on the specific right, along with a button to view how to fulfill their right.)
+   * `legal.coldd.dev/gdpr/right-to-object` (Further information on the specific right, along with a button to view how to fulfill their right.)
+   * `legal.coldd.dev/gdpr/rights-related-to-automated-decision-making-and-profiling` (Further information on the specific right, along with a button to view how to fulfill their right.)
+   * `legal.coldd.dev/gdpr/right-to-be-forgotten` (Further information on the specific right, along with a button to view how to fulfill their right.)
+
+      **All the above rights lead here.**
+      * `legal.coldd.dev/gdpr/compliance/userverification` (Will ask for the user's location on their device, and if granted and it says they are in the EU, it allows them to continue.)
 
 `staff.coldd.dev`
 * `staff.coldd.dev/portal`

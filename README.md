@@ -2,7 +2,6 @@
 ### List of Required Domains:
 ---
 `legal.coldd.dev`
-* `legal.coldd.dev/home`
 * `legal.coldd.dev/privacy`
 * `legal.coldd.dev/terms`
     * `legal.coldd.dev/terms/resell`
@@ -19,10 +18,11 @@
    * `legal.coldd.dev/gdpr/right-to-be-forgotten` (Further information on the specific right, along with a button to view how to fulfill their right.)
 
       **All the above rights lead here.**
-      * `legal.coldd.dev/gdpr/compliance/verification` (Will ask for the user's location on their device, and if granted and it says they are in the EU, it allows them to continue.)
+      * `legal.coldd.dev/gdpr/compliance/verification/step/a` (Will ask the user to turn off any VPN they may be using.)
+      * `legal.coldd.dev/gdpr/compliance/verification/step/b` (Will ask for the user's location on their device (one-time), and if granted and it says they are in the EU, it allows them to continue.)
       * `legal.coldd.dev/gdpr/compliance/notification` (Tell the user their right will be fulfilled within 31 days and ask how they'd like to be notified when it is done (e.g., discord, email (they will get a notification on the website though).)
       * `legal.coldd.dev/gdpr/compliance/rightfulfillment/right-of-access/{authCode}` (Solely for right of access, ask them how they want their data; email, discord, etc.)
-      * `legal.coldd.dev/gdpr/compliance/rightfulfillment/right-of-access/notification/{authCode}` (Tell the user their right will be fulfilled within 31 days.)
+      * `legal.coldd.dev/gdpr/compliance/rightfulfillment/roa/verified/{authCode}` (Tell the user their right will be fulfilled within 31 days.)
 
 
 `staff.coldd.dev`

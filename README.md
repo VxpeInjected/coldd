@@ -1,50 +1,57 @@
 # coldd
-### List of Required Domains:
----
-`legal.coldd.dev`
-* `legal.coldd.dev/privacy`
-* `legal.coldd.dev/terms`
-    * `legal.coldd.dev/terms/resell`
-* `legal.coldd.dev/guidelines`
-* `legal.coldd.dev/gdpr` (We will outline their rights here)
-   * `legal.coldd.dev/gdpr/compliance` (We will outline how we will work with their GDPR rights)
-   * `legal.coldd.dev/gdpr/right-to-be-informed` (Further information on the specific right, along with a button to view where it is (it's in legal.coldd.dev/privacy))
-   * `legal.coldd.dev/gdpr/right-of-access` (Further information on the specific right, along with a button to view how to fulfill their right.)
-   * `legal.coldd.dev/gdpr/right-to-rectification` (Further information on the specific right, along with a button to view how to fulfill their right.)
-   * `legal.coldd.dev/gdpr/right-to-restrict-processing` (Further information on the specific right, along with a button to view how to fulfill their right.)
-   * `legal.coldd.dev/gdpr/right-to-data-portability` (Further information on the specific right, along with a button to view how to fulfill their right.)
-   * `legal.coldd.dev/gdpr/right-to-object` (Further information on the specific right, along with a button to view how to fulfill their right.)
-   * `legal.coldd.dev/gdpr/rights-related-to-automated-decision-making-and-profiling` (Further information on the specific right, along with a button to view how to fulfill their right.)
-   * `legal.coldd.dev/gdpr/right-to-be-forgotten` (Further information on the specific right, along with a button to view how to fulfill their right.)
 
-      **All the above rights lead here.**
-      * `legal.coldd.dev/gdpr/compliance/verification/step/a` (Will ask the user to turn off any VPN they may be using.)
-      * `legal.coldd.dev/gdpr/compliance/verification/step/b` (Will ask for the user's location on their device (one-time), and if granted and it says they are in the EU, it allows them to continue.)
-      * `legal.coldd.dev/gdpr/compliance/notification` (Tell the user their right will be fulfilled within 31 days and ask how they'd like to be notified when it is done (e.g., discord, email (they will get a notification on the website though).)
-      * `legal.coldd.dev/gdpr/compliance/rightfulfillment/right-of-access/{authCode}` (Solely for right of access, ask them how they want their data; email, discord, etc.)
-      * `legal.coldd.dev/gdpr/compliance/rightfulfillment/roa/verified/{authCode}` (Tell the user their right will be fulfilled within 31 days.)
+Marketing + storefront site for **coldd**, a Roblox & Minecraft development studio.
 
+Static site — no build step required to host. Just upload these files to the repo root
+and turn on GitHub Pages.
 
-`staff.coldd.dev`
-* `staff.coldd.dev/portal`
-* `staff.coldd.dev/dashboard`
-  * `staff.coldd.dev/dashboard/home`
-  * `staff.coldd.dev/dashboard/staff/directory` (View stafflist, syncs with discord)
-  * `staff.coldd.dev/dashboard/staff/payment` (View base payment, editable per role)
-* `staff.coldd.dev/management` (Home page for us)
-  * `staff.coldd.dev/management/analytics`
-  * `staff.coldd.dev/management/dashboard-access` (Control people's access, add/remove/change user's permissions.)
-  * `staff.coldd.dev/management/gdpr` (Overview of all the rights, short-ish)
-  * `staff.coldd.dev/management/gdpr/requests` (GDPR Requests
-  * `staff.coldd.dev/management/products`
-    * `staff.coldd.dev/management/products/uploading`
----
-### List of Requried E-Mails:
----
-* `ownership@coldd.dev`
-* `frchrono@coldd.dev`
-* `vxpeinjected@coldd.dev`
-* `legal@coldd.dev`
-* `noreply@coldd.dev`
-* `billing@coldd.dev`
-* `marketing@coldd.dev`
+## Deploy on GitHub Pages
+
+1. Upload everything in this folder to your repository (keep it at the **root**, not in a subfolder).
+2. Repo **Settings → Pages → Build and deployment → Source: Deploy from a branch**.
+3. Choose your branch and the **/ (root)** folder, then **Save**.
+4. Your site goes live at `https://<username>.github.io/<repo>/`.
+
+> The `.nojekyll` file is required — it tells GitHub Pages to serve the files as-is.
+> Keep it in the upload.
+
+## Files
+
+| File | What it is |
+|------|------------|
+| `index.html` | Home page |
+| `assets.html` | Roblox catalog (with category filters) |
+| `minecraft.html` | Minecraft catalog |
+| `about.html` | About page |
+| `styles.css` | All styling |
+| `app.js` | All behavior (nav, search, cart, product modal, payment picker) |
+| `catalog.js` | Auto-generated search index of products + categories |
+| `*.jpg`, `*.png` | Images |
+| `.nojekyll` | Required for GitHub Pages |
+| `build.py` | Dev helper (optional) — see below |
+
+## Editing products
+
+Products live as `<article class="product" data-cat="...">` blocks inside
+`assets.html` (Roblox) and `minecraft.html` (Minecraft). Edit the name, price
+(`.p-price`), and thumbnail there.
+
+After changing products, regenerate the search index:
+
+```bash
+python3 build.py
+```
+
+This rewrites `catalog.js` (so search stays in sync) and the single-file preview
+`coldd-site.html` (handy for previewing locally — **do not** rely on it for hosting).
+`build.py` needs Python 3 and Pillow (`pip install Pillow`) only if you re-optimize images.
+
+## Things to wire up before launch
+
+- **Discord invite** — replace the `https://discord.gg/coldd` links with your real invite.
+- **Checkout / Buy Now** — currently both the USD and Robux options hand off to Discord.
+  Swap in your real payment links (e.g. Stripe for USD, a Roblox gamepass/group product
+  for Robux) in `app.js`.
+- **Robux rate** — `ROBUX_PER_USD` in `app.js` (currently 80) sets the USD→Robux conversion.
+
+> Not affiliated with Roblox Corporation or Mojang/Microsoft.

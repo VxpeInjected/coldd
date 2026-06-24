@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>coldd Development Roblox</title>
+  <title>coldd Development About</title>
   <link rel="icon" type="image/png" href="logo.png" />
   <meta name="description" content="coldd is a Roblox development studio. Scripting, environments, modeling, and VFX, building and shipping polished experiences." />
 
@@ -32,7 +32,7 @@
       </a>
       <nav class="nav-links" aria-label="Primary">
         <span class="nav-set">
-          <a href="index.html">Home</a><a href="assets.html" id="assetsLink" class="active" aria-current="page">Roblox</a><a href="minecraft.html" id="minecraftLink">Minecraft</a><a href="about.html" id="aboutLink">About Us</a>
+          <a href="index.html">Home</a><a href="assets.html" id="assetsLink">Roblox</a><a href="minecraft.html" id="minecraftLink">Minecraft</a><a href="about.html" id="aboutLink" class="active" aria-current="page">About Us</a>
         </span>
         <span class="nav-search-wrap">
           <button class="nav-search" id="searchBtn" type="button" aria-label="Search"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg></button>
@@ -77,148 +77,88 @@
     </div>
   </div>
 
-  <div class="search-panel" id="searchPanel" aria-hidden="true">
-    <div class="search-panel-inner glass">
-      <div class="search-list" id="searchList"></div>
-    </div>
-  </div>
-
-  <main class="page">
+    <main class="page about">
     <section class="page-head">
       <div class="wrap">
-        <h1>Our Assets</h1>
-        <p>Ready-to-use templates, maps, scripts, UI, and more, built and battle-tested by coldd.</p>
-      </div>
-    </section>
-    <section class="shop" data-page="assets.html">
-      <div class="wrap">
-        <div class="filters" id="filters">
-        <button class="chip active" data-cat="all">All</button>
-        <button class="chip" data-cat="game-templates">Finished Games &amp; Templates</button>
-        <button class="chip" data-cat="maps">Maps</button>
-        <button class="chip" data-cat="scripts-ui">Scripts &amp; UI</button>
-        <button class="chip" data-cat="graphics">Graphics</button>
-        <button class="chip" data-cat="buildings">Buildings</button>
-        <button class="chip" data-cat="assets">Assets</button>
-        <button class="chip" data-cat="uniforms-gear">Uniforms &amp; Gear</button>
-        <button class="chip" data-cat="boats">Boats</button>
-        <button class="chip" data-cat="weapons">Weapons</button>
-        <button class="chip" data-cat="vehicles">Vehicles</button>
-        <button class="chip" data-cat="animations-vfx">Animations &amp; VFX</button>
-        </div>
-        <div class="product-grid" id="grid">
-          <article class="product" data-cat="game-templates">
-            <div class="p-thumb" style="background-image:url('premade.jpg')"><span class="p-tag">Finished Games &amp; Templates</span></div>
-            <div class="p-body"><h3>ALL BRAWL Full Game</h3><div class="p-meta"><span class="p-price">$89</span><span class="p-btn">View</span></div></div>
-          </article>
-          <article class="product" data-cat="game-templates">
-            <div class="p-thumb" style="background-image:url('new-release.jpg')"><span class="p-tag">Finished Games &amp; Templates</span></div>
-            <div class="p-body"><h3>Frostline Survival Kit</h3><div class="p-meta"><span class="p-price">$129</span><span class="p-btn">View</span></div></div>
-          </article>
-          <article class="product" data-cat="maps">
-            <div class="p-thumb" style="background-image:url('new-release.jpg')"><span class="p-tag">Maps</span></div>
-            <div class="p-body"><h3>Cyberpunk District</h3><div class="p-meta"><span class="p-price">$45</span><span class="p-btn">View</span></div></div>
-          </article>
-          <article class="product" data-cat="maps">
-            <div class="p-thumb" style="background-image:url('builds.jpg')"><span class="p-tag">Maps</span></div>
-            <div class="p-body"><h3>Containment Site</h3><div class="p-meta"><span class="p-price">$38</span><span class="p-btn">View</span></div></div>
-          </article>
-          <article class="product" data-cat="buildings">
-            <div class="p-thumb" style="background-image:url('builds.jpg')"><span class="p-tag">Buildings</span></div>
-            <div class="p-body"><h3>SCP Courtroom</h3><div class="p-meta"><span class="p-price">$25</span><span class="p-btn">View</span></div></div>
-          </article>
-          <article class="product" data-cat="buildings">
-            <div class="p-thumb" style="background-image:url('products.jpg')"><span class="p-tag">Buildings</span></div>
-            <div class="p-body"><h3>Industrial Refinery</h3><div class="p-meta"><span class="p-price">$32</span><span class="p-btn">View</span></div></div>
-          </article>
-          <article class="product" data-cat="buildings">
-            <div class="p-thumb" style="background-image:url('cta-bg.jpg')"><span class="p-tag">Buildings</span></div>
-            <div class="p-body"><h3>Ancient Temple</h3><div class="p-meta"><span class="p-price">$28</span><span class="p-btn">View</span></div></div>
-          </article>
-          <article class="product" data-cat="scripts-ui">
-            <div class="p-thumb" style="background-image:url('scripts.jpg')"><span class="p-tag">Scripts &amp; UI</span></div>
-            <div class="p-body"><h3>Tic Tac Toe System</h3><div class="p-meta"><span class="p-price">$12</span><span class="p-btn">View</span></div></div>
-          </article>
-          <article class="product" data-cat="scripts-ui">
-            <div class="p-thumb" style="background-image:url('banner.jpg')"><span class="p-tag">Scripts &amp; UI</span></div>
-            <div class="p-body"><h3>Combat HUD Kit</h3><div class="p-meta"><span class="p-price">$18</span><span class="p-btn">View</span></div></div>
-          </article>
-          <article class="product" data-cat="scripts-ui">
-            <div class="p-thumb" style="background-image:url('scripts.jpg')"><span class="p-tag">Scripts &amp; UI</span></div>
-            <div class="p-body"><h3>Inventory UI Pack</h3><div class="p-meta"><span class="p-price">$16</span><span class="p-btn">View</span></div></div>
-          </article>
-          <article class="product" data-cat="animations-vfx">
-            <div class="p-thumb" style="background-image:url('banner.jpg')"><span class="p-tag">Animations &amp; VFX</span></div>
-            <div class="p-body"><h3>VFX Starter Pack</h3><div class="p-meta"><span class="p-price">$22</span><span class="p-btn">View</span></div></div>
-          </article>
-          <article class="product" data-cat="animations-vfx">
-            <div class="p-thumb" style="background-image:url('team-bg.jpg')"><span class="p-tag">Animations &amp; VFX</span></div>
-            <div class="p-body"><h3>Emote Animation Set</h3><div class="p-meta"><span class="p-price">$19</span><span class="p-btn">View</span></div></div>
-          </article>
-          <article class="product" data-cat="uniforms-gear">
-            <div class="p-thumb" style="background-image:url('team-bg.jpg')"><span class="p-tag">Uniforms &amp; Gear</span></div>
-            <div class="p-body"><h3>Tactical Uniforms</h3><div class="p-meta"><span class="p-price">$15</span><span class="p-btn">View</span></div></div>
-          </article>
-          <article class="product" data-cat="boats">
-            <div class="p-thumb" style="background-image:url('products.jpg')"><span class="p-tag">Boats</span></div>
-            <div class="p-body"><h3>Naval Boat Pack</h3><div class="p-meta"><span class="p-price">$35</span><span class="p-btn">View</span></div></div>
-          </article>
-          <article class="product" data-cat="weapons">
-            <div class="p-thumb" style="background-image:url('builds.jpg')"><span class="p-tag">Weapons</span></div>
-            <div class="p-body"><h3>Weapon Pack Vol.1</h3><div class="p-meta"><span class="p-price">$24</span><span class="p-btn">View</span></div></div>
-          </article>
-          <article class="product" data-cat="vehicles">
-            <div class="p-thumb" style="background-image:url('new-release.jpg')"><span class="p-tag">Vehicles</span></div>
-            <div class="p-body"><h3>Drift Vehicle Pack</h3><div class="p-meta"><span class="p-price">$42</span><span class="p-btn">View</span></div></div>
-          </article>
-          <article class="product" data-cat="graphics">
-            <div class="p-thumb" style="background-image:url('frostline.jpg')"><span class="p-tag">Graphics</span></div>
-            <div class="p-body"><h3>Thumbnail Bundle</h3><div class="p-meta"><span class="p-price">$25</span><span class="p-btn">View</span></div></div>
-          </article>
-          <article class="product" data-cat="graphics">
-            <div class="p-thumb" style="background-image:url('banner.jpg')"><span class="p-tag">Graphics</span></div>
-            <div class="p-body"><h3>Logo &amp; Icon Kit</h3><div class="p-meta"><span class="p-price">$20</span><span class="p-btn">View</span></div></div>
-          </article>
-          <article class="product" data-cat="assets">
-            <div class="p-thumb" style="background-image:url('premade.jpg')"><span class="p-tag">Assets</span></div>
-            <div class="p-body"><h3>Asset Mega Bundle</h3><div class="p-meta"><span class="p-price">$150</span><span class="p-btn">View</span></div></div>
-          </article>
-        </div>
-        <div class="shop-empty" id="shopEmpty" hidden>No assets in this category yet, check back soon.</div>
+        <h1>About coldd</h1>
+        <p>A Roblox and Minecraft studio, scripting, building, UI, and VFX, all in-house. We make the templates, hubs, and systems behind games people actually play.</p>
       </div>
     </section>
 
-    <section class="section-pad free-section">
+    <section class="section-pad" style="padding-top: 6px;">
+      <div class="wrap">
+        <div class="glass about-info reveal">
+          <div class="about-info-head">
+            <h2>We make the parts other studios buy.</h2>
+          </div>
+          <div class="about-info-body">
+            <p>coldd started the way most good things do, a few people in a Discord, trading builds late at night because what was for sale just wasn't good enough.</p>
+            <p>That bar never moved. Today we're a full studio shipping <strong>800+ Roblox assets</strong> and a fast-growing Minecraft catalog, with work running inside <strong>100k+ creators'</strong> games. Scripting, building, UI, and VFX, all handled in-house, by the same people who started it.</p>
+            <p>We build what we'd actually want to buy, deliver it the second you check out, and stick around when you need a hand. No outsourcing, no filler, no disappearing after the sale.</p>
+          </div>
+        </div>
+
+        <div class="glass about-figures reveal d1">
+          <div class="fig"><div class="fn">800+</div><div class="fl">Roblox assets shipped</div></div>
+          <div class="fig"><div class="fn">50+</div><div class="fl">Minecraft drops &amp; growing</div></div>
+          <div class="fig"><div class="fn">100k+</div><div class="fl">Products sold to creators</div></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section-pad" style="padding-top: 0;">
+      <div class="wrap">
+        <div class="glass about-info reveal">
+          <div class="about-info-head">
+            <span class="eyebrow"><span class="dot"></span> What we do</span>
+            <h2>Everything that goes into a game.</h2>
+          </div>
+          <div class="about-info-body">
+            <p>From a single script to a launch-ready hub. If it ships inside a Roblox or Minecraft experience, there's a good chance we make it, and a better chance we've already made it well.</p>
+            <div class="about-tags">
+              <span>Game Templates</span><span>Maps &amp; Environments</span><span>Scripts &amp; Systems</span>
+              <span>UI / UX</span><span>Graphics</span><span>Builds</span><span>Hubs &amp; Lobbies</span>
+              <span>Plugins</span><span>Uniforms &amp; Gear</span><span>VFX &amp; Animations</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section-pad" style="padding-top: 0;">
       <div class="wrap">
         <div class="sec-head reveal">
-          <h2>Free this month.</h2>
-          <p>Free Roblox drops, members only. Join our Discord to unlock the files, new picks every month.</p>
+          <h2>One studio, two worlds.</h2>
+          <p>Same standard on both, pick your platform.</p>
         </div>
-        <div class="free-grid">
-          <article class="glass free-card reveal d1">
-            <div class="free-thumb" style="background-image:url('scripts.jpg')"><span class="free-badge">Free</span></div>
-            <div class="free-body">
-              <h3>Combat HUD Lite</h3>
-              <p>A stripped-down build of our Combat HUD: health, ammo, and hitmarkers, drop-in ready.</p>
-              <a class="btn btn-ghost free-btn" href="https://discord.gg/coldd" target="_blank" rel="noopener">Join Discord to unlock</a>
+        <div class="asset-duo">
+          <a class="glass asset-visual reveal d1" href="assets.html">
+            <div class="v" style="background: linear-gradient(180deg, rgba(8,9,12,0.12) 0%, rgba(8,9,12,0.55) 52%, rgba(8,9,12,0.93) 100%), url('builds.jpg') center / cover no-repeat, #100d0f;">
+              <span class="tag">Roblox</span>
+              <h3>Roblox</h3>
+              <p>Game templates, maps, scripts, UI, and VFX, 800+ drops and counting.</p>
             </div>
-          </article>
-          <article class="glass free-card reveal d2">
-            <div class="free-thumb" style="background-image:url('builds.jpg')"><span class="free-badge">Free</span></div>
-            <div class="free-body">
-              <h3>Starter Spawn</h3>
-              <p>A clean, neutral lobby spawn to get a new game off the ground in minutes.</p>
-              <a class="btn btn-ghost free-btn" href="https://discord.gg/coldd" target="_blank" rel="noopener">Join Discord to unlock</a>
+          </a>
+          <a class="glass asset-visual reveal d2" href="minecraft.html">
+            <div class="v" style="background: linear-gradient(180deg, rgba(8,9,12,0.12) 0%, rgba(8,9,12,0.55) 52%, rgba(8,9,12,0.93) 100%), url('minecraft.jpg') center / cover no-repeat, #100d0f;">
+              <span class="tag">Minecraft</span>
+              <h3>Minecraft</h3>
+              <p>Hubs, lobbies, plugins, and full server setups, built to launch.</p>
             </div>
-          </article>
-          <article class="glass free-card reveal d3">
-            <div class="free-thumb" style="background-image:url('products.jpg')"><span class="free-badge">Free</span></div>
-            <div class="free-body">
-              <h3>UI Sound Pack</h3>
-              <p>20 clicks, hovers, and ambient cues we use in our own builds. Royalty-free.</p>
-              <a class="btn btn-ghost free-btn" href="https://discord.gg/coldd" target="_blank" rel="noopener">Join Discord to unlock</a>
-            </div>
-          </article>
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <section id="join" class="section-pad" style="padding-top: 0;">
+      <div class="wrap">
+        <div class="glass cta reveal">
+          <h2>Join the coldd community.</h2>
+          <p>Builders, scripters, and players all hang out in our Discord, swapping work, helping each other out, and catching new drops and sales first. Pull up a seat and come hang with us.</p>
+          <div class="hero-cta" style="margin-top:28px;">
+            <a class="btn btn-primary" href="https://discord.gg/coldd" target="_blank" rel="noopener">Join the Discord</a>
+            <a class="btn btn-ghost" href="assets.html">Explore assets</a>
+          </div>
         </div>
       </div>
     </section>

@@ -1,10 +1,4 @@
 #!/usr/bin/env python3
-"""Build a single-file preview (coldd-site.html) from the multi-page source.
-
-Inlines styles.css, app.js + a tiny view-router, and base64-embeds every image so
-the whole site previews from one double-clickable file. The real GitHub Pages site
-uses the separate index.html / assets.html / styles.css / app.js files unchanged.
-"""
 import base64
 import mimetypes
 import re
@@ -13,20 +7,16 @@ from pathlib import Path
 ROOT = Path(__file__).parent
 IMG_EXT = ('.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg')
 
-
 def b64_data_uri(path: Path) -> str:
     mime = mimetypes.guess_type(path.name)[0] or 'application/octet-stream'
     data = base64.b64encode(path.read_bytes()).decode('ascii')
     return f'data:{mime};base64,{data}'
 
-
-# Pre-encode every local image once.
 DATA_URIS = {
     p.name: b64_data_uri(p)
     for p in ROOT.iterdir()
     if p.suffix.lower() in IMG_EXT
 }
-
 
 def inline_images(text: str) -> str:
     """Replace url('foo.jpg'), url(foo.jpg) and src="foo.png" with data URIs."""
@@ -44,15 +34,12 @@ def inline_images(text: str) -> str:
     text = re.sub(r'src="(?P<name>[^"]+)"', repl_src, text)
     return text
 
-
 def extract_main(html: str) -> str:
     m = re.search(r'<main\b[^>]*>.*?</main>', html, re.S)
     return m.group(0)
 
-
 def humanize(slug: str) -> str:
     return slug.replace('-', ' ').replace(' ui', ' UI').title().replace(' And ', ' & ').replace('Ui', 'UI').replace('Vfx', 'VFX')
-
 
 def parse_categories(html: str, platform: str, page: str):
     """Pull the filter chips into a separate, searchable category index."""
@@ -63,7 +50,6 @@ def parse_categories(html: str, platform: str, page: str):
         cats.append({'label': label.replace('&amp;', '&').strip(), 'slug': slug,
                      'platform': platform, 'page': page})
     return cats
-
 
 def parse_catalog(html: str, platform: str, page: str):
     """Pull every product card into a search-index entry."""
@@ -88,11 +74,12 @@ def parse_catalog(html: str, platform: str, page: str):
         })
     return items
 
-
 index_html = (ROOT / 'index.html').read_text()
 assets_html = (ROOT / 'assets.html').read_text()
 minecraft_html = (ROOT / 'minecraft.html').read_text()
 about_html = (ROOT / 'about.html').read_text()
+dashboard_html = (ROOT / 'dashboard.html').read_text()
+checkout_html = (ROOT / 'checkout.html').read_text()
 css = (ROOT / 'styles.css').read_text()
 app_js = (ROOT / 'app.js').read_text()
 
@@ -104,17 +91,23 @@ minecraft_main = re.sub(r'<main\b[^>]*>', '<main class="page" id="view-minecraft
                         extract_main(minecraft_html), count=1)
 about_main = re.sub(r'<main\b[^>]*>', '<main class="page about" id="view-about" hidden>',
                     extract_main(about_html), count=1)
+dashboard_main = re.sub(r'<main\b[^>]*>', '<main class="page dash-page" id="view-dashboard" hidden>',
+                        extract_main(dashboard_html), count=1)
+checkout_main = re.sub(r'<main\b[^>]*>', '<main class="page checkout-page" id="view-checkout" hidden>',
+                       extract_main(checkout_html), count=1)
 
 ROUTER = r"""
-    // ---- Single-file view router (preview only): lightweight composited fade ----
     (function () {
       var views = {
         home: document.getElementById('view-home'),
         assets: document.getElementById('view-assets'),
         minecraft: document.getElementById('view-minecraft'),
-        about: document.getElementById('view-about')
+        about: document.getElementById('view-about'),
+        dashboard: document.getElementById('view-dashboard'),
+        checkout: document.getElementById('view-checkout')
       };
       if (!views.home) return;
+      window.__go = swap;
       var megas = [document.getElementById('navMega')].filter(Boolean);
       var reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
       var animating = false, current = 'home';
@@ -125,7 +118,7 @@ ROUTER = r"""
       }
       function swap(name, cat) {
         var inEl = views[name]; if (!inEl) return;
-        if (name === current) { applyCatTo(inEl, cat); return; } // same view → just refilter
+        if (name === current) { applyCatTo(inEl, cat); return; }
         var outEl = views[current];
         megas.forEach(function (m) { m.classList.remove('open'); });
         var finish = function () {
@@ -152,6 +145,8 @@ ROUTER = r"""
         else if (href === 'minecraft.html') { e.preventDefault(); swap('minecraft', 'all'); }
         else if (href.indexOf('minecraft.html?cat=') === 0) { e.preventDefault(); swap('minecraft', href.split('=')[1]); }
         else if (href === 'about.html') { e.preventDefault(); swap('about'); }
+        else if (href === 'dashboard.html') { e.preventDefault(); swap('dashboard'); }
+        else if (href === 'checkout.html') { e.preventDefault(); swap('checkout'); }
         else if (href.charAt(0) === '#' && href.length > 1 && current === 'home') {
           e.preventDefault();
           var t = document.querySelector(href);
@@ -161,33 +156,31 @@ ROUTER = r"""
     })();
 """
 
-# Build the product + category search indexes from the shop pages.
 import json
 catalog = parse_catalog(assets_html, 'Roblox', 'assets.html') + \
           parse_catalog(minecraft_html, 'Minecraft', 'minecraft.html')
 categories = parse_categories(assets_html, 'Roblox', 'assets.html')
 cats_js = 'window.__CATEGORIES = ' + json.dumps(categories, ensure_ascii=False) + ';\n'
-# Standalone catalog.js (image = filename, resolved relative to the page).
+
 (ROOT / 'catalog.js').write_text(
     'window.__CATALOG = ' + json.dumps(catalog, ensure_ascii=False) + ';\n' + cats_js)
 print('Wrote catalog.js  (%d products, %d categories)' % (len(catalog), len(categories)))
 
-# Preview catalog: swap image filenames for data URIs so thumbnails work in one file.
 catalog_inline = [dict(it, image=DATA_URIS.get(it['image'], it['image'])) for it in catalog]
 catalog_js = 'window.__CATALOG = ' + json.dumps(catalog_inline, ensure_ascii=False) + ';\n' + cats_js
 
 combined_script = 'window.__singleFile = true;\n' + catalog_js + app_js + '\n' + ROUTER
 
-# Assemble: start from index.html, drop its <main>, splice all views in, inline assets.
 out = index_html
 out = out.replace(orig_home_main,
-                  home_main + '\n  ' + assets_main + '\n  ' + minecraft_main + '\n  ' + about_main, 1)
+                  home_main + '\n  ' + assets_main + '\n  ' + minecraft_main + '\n  ' + about_main + '\n  ' + dashboard_main + '\n  ' + checkout_main, 1)
 out = out.replace('<link rel="stylesheet" href="styles.css" />',
                   '<style>\n' + css + '\n</style>')
-out = out.replace('  <script src="catalog.js"></script>\n', '')  # inlined into combined script below
+out = out.replace('  <script src="catalog.js"></script>\n', '')
 out = out.replace('<script src="app.js"></script>',
                   '<script>\n' + combined_script + '\n</script>')
 out = inline_images(out)
+out = out.replace('href="logo.png"', 'href="' + DATA_URIS['logo.png'] + '"')
 
 (ROOT / 'coldd-site.html').write_text(out)
 print('Wrote coldd-site.html  (%.1f KB)' % ((ROOT / 'coldd-site.html').stat().st_size / 1024))

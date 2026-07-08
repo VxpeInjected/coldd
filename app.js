@@ -164,45 +164,21 @@
       const bar = document.getElementById('announce');
       if (!bar) return;
       function hide() { document.documentElement.setAttribute('data-ann', 'off'); window.dispatchEvent(new Event('resize')); }
-      bar.addEventListener('click', function (e) {
-        if (e.target.closest('.announce-link')) return;
-        hide();
-      });
-      bar.addEventListener('keydown', function (e) {
-        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); hide(); }
-      });
+      const x = document.getElementById('announceX');
+      if (x) x.addEventListener('click', hide);
     })();
 
     const nav = document.getElementById('nav');
     const backdrop = document.querySelector('.backdrop');
-    const bar = document.querySelector('.cscroll');
-    const thumb = document.querySelector('.cscroll-thumb');
     const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-    let winH = window.innerHeight, docH = document.documentElement.scrollHeight, barH = window.innerHeight;
-    function measure() {
-      winH = window.innerHeight;
-      docH = document.documentElement.scrollHeight;
-      barH = bar ? bar.clientHeight : winH;
-      if (bar) bar.style.display = (docH <= winH + 4) ? 'none' : 'block';
-      render();
-    }
+    let winH = window.innerHeight;
+    function measure() { winH = window.innerHeight; render(); }
     let ticking = false;
     function onScroll() { if (!ticking) { ticking = true; requestAnimationFrame(render); } }
     function render() {
       ticking = false;
-      const y = window.scrollY;
-      nav.classList.toggle('scrolled', y > 12);
-      if (backdrop && !reduceMotion) {
-        const py = Math.min(y * 0.3, winH * 0.18);
-        backdrop.style.transform = 'translate3d(0,' + (-py) + 'px,0)';
-      }
-      if (bar && thumb && docH > winH) {
-        const trackH = barH - 36;
-        const th = Math.max(trackH * (winH / docH), 44);
-        thumb.style.height = th + 'px';
-        thumb.style.top = (18 + (y / (docH - winH)) * (trackH - th)) + 'px';
-      }
+      nav.classList.toggle('scrolled', window.scrollY > 12);
     }
     window.addEventListener('scroll', onScroll, { passive: true });
     window.addEventListener('resize', measure);
@@ -407,34 +383,6 @@
       window.addEventListener('currencychange', function () { if (panel && panel.classList.contains('open')) runSearch(); });
     })();
 
-    if (thumb) {
-      let dragging = false, startY = 0, startScroll = 0, pendingY = 0, dragRaf = 0;
-      function dragStep() {
-        dragRaf = 0;
-        const trackH = barH - 36;
-        const th = Math.max(trackH * (winH / docH), 44);
-        const maxScroll = docH - winH;
-        if (maxScroll <= 0) return;
-        let target = startScroll + ((pendingY - startY) / (trackH - th)) * maxScroll;
-        target = Math.max(0, Math.min(target, maxScroll));
-
-        thumb.style.top = (18 + (target / maxScroll) * (trackH - th)) + 'px';
-        window.scrollTo(0, target);
-      }
-      thumb.addEventListener('mousedown', e => {
-        dragging = true; startY = e.clientY; startScroll = window.scrollY;
-        thumb.style.cursor = 'grabbing'; document.body.style.userSelect = 'none'; e.preventDefault();
-      });
-      window.addEventListener('mousemove', e => {
-        if (!dragging) return;
-        pendingY = e.clientY;
-        if (!dragRaf) dragRaf = requestAnimationFrame(dragStep);
-      }, { passive: true });
-      window.addEventListener('mouseup', () => {
-        dragging = false; thumb.style.cursor = 'grab'; document.body.style.userSelect = '';
-      });
-    }
-
     (function () {
       const trigger = document.getElementById('assetsLink');
       const mega = document.getElementById('navMega');
@@ -465,33 +413,101 @@
       const shops = document.querySelectorAll('.shop');
       if (!shops.length) return;
       shops.forEach(function (shop) {
-        const filters = shop.querySelector('.filters');
         const grid = shop.querySelector('.product-grid');
-        if (!filters || !grid) return;
+        if (!grid) return;
+        const chips = shop.querySelector('.filters');
+        const sideCats = shop.querySelector('.fc-cats');
+        const searchEl = shop.querySelector('.shop-search');
+        const prMin = shop.querySelector('.pr-min');
+        const prMax = shop.querySelector('.pr-max');
+        const prFill = shop.querySelector('.pr-fill');
+        const prMinVal = shop.querySelector('.pr-minval');
+        const prMaxVal = shop.querySelector('.pr-maxval');
         const empty = shop.querySelector('.shop-empty');
-        const products = Array.prototype.slice.call(grid.querySelectorAll('.product'));
+        const pager = shop.querySelector('.shop-pager');
         const base = shop.getAttribute('data-page') || (location.pathname.split('/').pop() || 'assets.html');
-        function apply(cat) {
-          let shown = 0;
-          products.forEach(function (p) {
-            const ok = cat === 'all' || p.getAttribute('data-cat') === cat;
-            p.style.display = ok ? '' : 'none';
-            if (ok) shown++;
-          });
-          filters.querySelectorAll('.chip').forEach(function (c) {
-            c.classList.toggle('active', c.getAttribute('data-cat') === cat);
-          });
-          if (empty) empty.hidden = shown > 0;
+        const products = Array.prototype.slice.call(grid.querySelectorAll('.product'));
+        const PER_PAGE = 12;
+        let page = 1;
+
+        let maxPrice = 0;
+        products.forEach(function (p) { maxPrice = Math.max(maxPrice, parseFloat(p.getAttribute('data-price')) || 0); });
+        maxPrice = Math.max(10, Math.ceil(maxPrice / 10) * 10);
+        if (prMin && prMax) { prMin.max = prMax.max = maxPrice; prMin.value = 0; prMax.value = maxPrice; }
+        let curCat = 'all', query = '', lo = 0, hi = maxPrice;
+
+        function money(n) { return window.__money ? window.__money(n) : ('$' + n); }
+        function paintRange() {
+          if (prFill) { prFill.style.left = (lo / maxPrice * 100) + '%'; prFill.style.width = ((hi - lo) / maxPrice * 100) + '%'; }
+          if (prMinVal) prMinVal.textContent = money(lo);
+          if (prMaxVal) prMaxVal.textContent = money(hi);
         }
-        shop.__applyCat = apply;
-        filters.addEventListener('click', function (e) {
+        function syncCats() {
+          if (chips) chips.querySelectorAll('.chip').forEach(function (c) { c.classList.toggle('active', c.getAttribute('data-cat') === curCat); });
+          if (sideCats) sideCats.querySelectorAll('.fc-cat').forEach(function (c) { c.classList.toggle('active', c.getAttribute('data-cat') === curCat); });
+        }
+        function matches(p) {
+          const price = parseFloat(p.getAttribute('data-price')) || 0;
+          const nameEl = p.querySelector('.p-name') || p.querySelector('h3');
+          const title = (nameEl ? nameEl.textContent : '').toLowerCase();
+          return (curCat === 'all' || p.getAttribute('data-cat') === curCat)
+              && (!query || title.indexOf(query) >= 0)
+              && price >= lo && price <= hi;
+        }
+        function renderPager(pages) {
+          if (!pager) return;
+          pager.innerHTML = '';
+          if (pages <= 1) return;
+          function btn(label, target, opts) {
+            const b = document.createElement('button'); b.type = 'button'; b.textContent = label;
+            if (opts && opts.disabled) b.disabled = true;
+            if (opts && opts.active) b.classList.add('active');
+            else b.addEventListener('click', function () {
+              page = target; refilter(false);
+              try { window.scrollTo({ top: Math.max(0, shop.getBoundingClientRect().top + window.scrollY - 90), behavior: 'smooth' }); } catch (_) {}
+            });
+            return b;
+          }
+          pager.appendChild(btn('‹', page - 1, { disabled: page === 1 }));
+          for (let i = 1; i <= pages; i++) pager.appendChild(btn(String(i), i, { active: i === page }));
+          pager.appendChild(btn('›', page + 1, { disabled: page === pages }));
+        }
+        function refilter(resetPage) {
+          if (resetPage) page = 1;
+          const matched = products.filter(matches);
+          const pages = Math.max(1, Math.ceil(matched.length / PER_PAGE));
+          if (page > pages) page = pages;
+          const start = (page - 1) * PER_PAGE;
+          products.forEach(function (p) { p.style.display = 'none'; });
+          matched.slice(start, start + PER_PAGE).forEach(function (p) { p.style.display = ''; });
+          if (empty) empty.hidden = matched.length > 0;
+          renderPager(pages);
+        }
+        function setCat(cat) { curCat = cat; syncCats(); refilter(true); }
+        shop.__applyCat = setCat;
+
+        if (chips) chips.addEventListener('click', function (e) {
           const c = e.target.closest('.chip'); if (!c) return;
-          const cat = c.getAttribute('data-cat');
-          apply(cat);
-          try { history.replaceState(null, '', cat === 'all' ? base : (base + '?cat=' + cat)); } catch (_) {}
+          setCat(c.getAttribute('data-cat'));
+          try { history.replaceState(null, '', curCat === 'all' ? base : (base + '?cat=' + curCat)); } catch (_) {}
         });
+        if (sideCats) sideCats.addEventListener('click', function (e) {
+          const c = e.target.closest('.fc-cat'); if (!c) return;
+          setCat(c.getAttribute('data-cat'));
+        });
+        if (searchEl) searchEl.addEventListener('input', function () { query = searchEl.value.trim().toLowerCase(); refilter(true); });
+        function onRange() {
+          lo = Math.min(+prMin.value, +prMax.value);
+          hi = Math.max(+prMin.value, +prMax.value);
+          paintRange(); refilter(true);
+        }
+        if (prMin && prMax) { prMin.addEventListener('input', onRange); prMax.addEventListener('input', onRange); }
+        window.addEventListener('currencychange', paintRange);
+
+        paintRange();
         const initial = new URLSearchParams(location.search).get('cat');
-        apply(initial && filters.querySelector('.chip[data-cat="' + initial + '"]') ? initial : 'all');
+        const hasInit = initial && ((chips && chips.querySelector('.chip[data-cat="' + initial + '"]')) || (sideCats && sideCats.querySelector('.fc-cat[data-cat="' + initial + '"]')));
+        setCat(hasInit ? initial : 'all');
       });
     })();
 
@@ -659,31 +675,51 @@
       var pmBuy = document.getElementById('pmBuy');
       var active = null;
 
-      var pmImg = null;
+      var pmImg = null, pmThumbs = document.getElementById('pmThumbs');
       if (pmMedia) {
         pmImg = document.createElement('img');
         pmImg.className = 'pm-img'; pmImg.alt = ''; pmImg.decoding = 'async';
         pmMedia.appendChild(pmImg);
-        pmImg.addEventListener('load', sizeMedia);
       }
 
-      function sizeMedia() {
-        if (!pmMedia || !pmImg || !pmImg.naturalWidth || !pmImg.naturalHeight) return;
-        var modal = pmMedia.closest('.pm-modal');
-        var ratio = pmImg.naturalWidth / pmImg.naturalHeight;
-        var maxW = Math.min(window.innerWidth * 0.94, 580);
-        var maxImgH = Math.min(window.innerHeight * 0.42, 360);
-        var w = maxW, imgH = w / ratio;
-        if (imgH > maxImgH) { imgH = maxImgH; w = imgH * ratio; }
-        if (modal) modal.style.width = Math.round(w) + 'px';
-        pmMedia.style.height = Math.round(imgH) + 'px';
+      // Build a small gallery: the product image plus a few others from the catalog,
+      // so the modal shows multiple images you can scroll through. Fixed media size
+      // (cover-cropped) keeps every modal the same width.
+      function buildGallery(main) {
+        var imgs = main ? [main] : [];
+        var cat = window.__CATALOG || [];
+        for (var i = 0; i < cat.length && imgs.length < 5; i++) {
+          var im = cat[i].image;
+          if (im && imgs.indexOf(im) < 0) imgs.push(im);
+        }
+        return imgs;
+      }
+      function setMainImage(src) {
+        if (pmImg) pmImg.src = src || '';
+        if (pmThumbs) pmThumbs.querySelectorAll('.pm-thumb').forEach(function (t) {
+          t.classList.toggle('active', t.getAttribute('data-src') === src);
+        });
+      }
+      function renderThumbs(imgs) {
+        if (!pmThumbs) return;
+        pmThumbs.innerHTML = '';
+        pmThumbs.hidden = imgs.length < 2;
+        if (imgs.length < 2) return;
+        imgs.forEach(function (src) {
+          var t = document.createElement('button'); t.type = 'button'; t.className = 'pm-thumb';
+          t.setAttribute('data-src', src); t.setAttribute('aria-label', 'View image');
+          t.style.backgroundImage = "url('" + src + "')";
+          t.addEventListener('click', function () { setMainImage(src); });
+          pmThumbs.appendChild(t);
+        });
       }
 
       function readCard(card) {
-        var titleEl = card.querySelector('.p-body h3');
+        var titleEl = card.querySelector('.p-name') || card.querySelector('.p-body h3');
         var priceEl = card.querySelector('.p-price');
         var thumb = card.querySelector('.p-thumb');
-        var tagEl = card.querySelector('.p-tag');
+        var descEl = card.querySelector('.p-sum') || card.querySelector('.p-desc');
+        var tag = card.getAttribute('data-catlabel') || (card.querySelector('.p-cat') ? card.querySelector('.p-cat').textContent.trim() : '');
         var bg = thumb ? (thumb.style.backgroundImage || getComputedStyle(thumb).backgroundImage) : '';
         var m = bg && bg.match(/url\(["']?([^"')]+)["']?\)/);
         var title = titleEl ? titleEl.textContent.trim() : 'Product';
@@ -693,7 +729,8 @@
           price = du != null ? (parseFloat(du) || 0) : (parseFloat(priceEl.textContent.replace(/[^0-9.]/g, '')) || 0);
         }
         return { id: title.toLowerCase().replace(/[^a-z0-9]+/g, '-'), title: title, price: price,
-                 image: m ? m[1] : '', tag: tagEl ? tagEl.textContent.trim() : '' };
+                 image: m ? m[1] : '', tag: tag,
+                 desc: descEl ? descEl.textContent.trim() : '' };
       }
       var RESELL_MULT = 3;
       var licBtns = document.querySelectorAll('#pmLicence .pm-lic');
@@ -723,17 +760,17 @@
       function openModal(data) {
         data.basePrice = data.price; data.licence = 'standard';
         active = data;
-        if (pmImg) { pmMedia.style.height = ''; pmImg.src = data.image || ''; }
+        var gallery = buildGallery(data.image);
+        renderThumbs(gallery);
+        setMainImage(gallery[0] || '');
         if (pmTitle) pmTitle.textContent = data.title;
         if (pmPrice) pmPrice.textContent = money(data.price);
         refreshLicPrices();
         licBtns.forEach(function (b) { b.classList.toggle('active', b.getAttribute('data-lic') === 'standard'); });
         if (pmTag) { pmTag.textContent = data.tag; pmTag.hidden = !data.tag; }
-        if (pmDesc) pmDesc.textContent = 'A ready-to-use coldd asset, instant delivery with full files and setup support from our team.';
+        if (pmDesc) pmDesc.textContent = data.desc || 'A ready-to-use coldd asset, instant delivery with full files and setup support from our team.';
         if (pmOverlay) pmOverlay.hidden = false;
         document.body.classList.add('no-scroll');
-
-        if (pmImg && pmImg.complete) requestAnimationFrame(sizeMedia);
       }
       function closeModal() { if (pmOverlay) pmOverlay.hidden = true;
         document.body.classList.remove('no-scroll'); active = null; }
@@ -751,7 +788,10 @@
       document.addEventListener('click', function (e) {
         if (e.target.closest('.cart-drawer') || e.target.closest('.pm-modal') || e.target.closest('.search-panel')) return;
         var card = e.target.closest('.product');
-        if (card) { e.preventDefault(); openModal(readCard(card)); }
+        if (!card) return;
+        e.preventDefault();
+        if (e.target.closest('.p-add')) { add(readCard(card)); openCart(); }   // quick add, open cart
+        else openModal(readCard(card));                                          // anywhere else opens the product
       });
       var pmCloseBtn = document.getElementById('pmClose');
       if (pmCloseBtn) pmCloseBtn.addEventListener('click', closeModal);
@@ -1074,4 +1114,31 @@
 
       window.addEventListener('currencychange', function () { renderTotals(); renderItems(); buildSuggestions(); });
       render(); buildSuggestions();
+    })();
+
+    (function () {
+      var loader = document.getElementById('pageLoader');
+      if (!loader) return;
+      var DELAY = 2500;
+      document.addEventListener('click', function (e) {
+        var tile = e.target.closest('.bento .tile');
+        if (!tile) return;
+        var href = tile.getAttribute('href');
+        if (!href) return;
+        e.preventDefault();
+        e.stopPropagation();
+        loader.hidden = false;
+        requestAnimationFrame(function () { loader.classList.add('show'); });
+        var base = href.split('?')[0];
+        var view = base === 'index.html' ? 'home' : base.replace('.html', '');
+        setTimeout(function () {
+          if (window.__go) {
+            window.__go(view, 'all');
+            loader.classList.remove('show');
+            setTimeout(function () { loader.hidden = true; }, 320);
+          } else {
+            window.location.href = href;
+          }
+        }, DELAY);
+      }, true);
     })();

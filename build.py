@@ -44,7 +44,7 @@ def humanize(slug: str) -> str:
 def parse_categories(html: str, platform: str, page: str):
     """Pull the filter chips into a separate, searchable category index."""
     cats = []
-    for slug, label in re.findall(r'<button class="chip[^"]*" data-cat="([^"]+)">(.*?)</button>', html):
+    for slug, label in re.findall(r'<button class="fc-cat[^"]*" data-cat="([^"]+)"><span>(.*?)</span>', html):
         if slug == 'all':
             continue
         cats.append({'label': label.replace('&amp;', '&').strip(), 'slug': slug,
@@ -57,13 +57,13 @@ def parse_catalog(html: str, platform: str, page: str):
     for block in re.findall(r'<article class="product".*?</article>', html, re.S):
         cat_m = re.search(r'data-cat="([^"]+)"', block)
         img_m = re.search(r"background-image:url\('([^']+)'\)", block)
-        title_m = re.search(r'<h3>(.*?)</h3>', block, re.S)
+        title_m = re.search(r'<h3[^>]*>(.*?)</h3>', block, re.S)
         price_m = re.search(r'p-price">(.*?)</span>', block, re.S)
-        tag_m = re.search(r'p-tag">(.*?)</span>', block, re.S)
+        catlabel_m = re.search(r'data-catlabel="([^"]+)"', block)
         if not (title_m and price_m):
             continue
         unesc = lambda s: s.replace('&amp;', '&').strip()
-        cat_label = unesc(tag_m.group(1)) if tag_m else (humanize(cat_m.group(1)) if cat_m else '')
+        cat_label = unesc(catlabel_m.group(1)) if catlabel_m else (humanize(cat_m.group(1)) if cat_m else '')
         items.append({
             'title': unesc(title_m.group(1)),
             'price': unesc(price_m.group(1)),

@@ -19,10 +19,20 @@
   <div class="scrim"></div>
   <div class="grain"></div>
 
-  <div class="announce" id="announce" role="button" tabindex="0" aria-label="Dismiss announcement">
+  <div class="page-loader" id="pageLoader" hidden>
+    <div class="pl-box">
+      <span class="pl-ring"></span>
+      <span class="pl-ring two"></span>
+      <img class="pl-logo" src="logo.png" alt="" />
+      <span class="pl-text">Loading</span>
+    </div>
+  </div>
+
+  <div class="announce" id="announce">
     <div class="announce-inner">
       <p class="announce-msg">Spring Sale is live — <strong>30% off</strong> every Roblox template through Sunday. <a class="announce-link" href="assets.html">Shop the sale →</a></p>
     </div>
+    <button class="announce-x" id="announceX" type="button" aria-label="Dismiss announcement"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
   </div>
 
   <header class="nav" id="nav">
@@ -86,38 +96,34 @@
   <main>
 
     <section class="hero" id="home">
-      <h1 class="sr-only">coldd Roblox Development Studio</h1>
-      <div class="wrap hero-body">
-        <div class="bento">
-          <a class="glass tile t-featured reveal d1" href="assets.html" aria-label="New release, browse assets">
-            <div class="scene">
-              <div class="nr-carousel" aria-hidden="true">
-                <div class="nr-track" id="nrTrack">
-                  <div class="nr-slide" style="background-image:url('new-release.jpg')"></div>
-                  <div class="nr-slide" style="background-image:url('new-release.jpg')"></div>
-                  <div class="nr-slide" style="background-image:url('new-release.jpg')"></div>
-                </div>
-              </div>
-              <span class="chip">Featured · New</span>
-              <div class="title">New Release</div>
-              <div class="row">
-                <span><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 1.9 5.8a2 2 0 0 0 1.3 1.3L21 12l-5.8 1.9a2 2 0 0 0-1.3 1.3L12 21l-1.9-5.8a2 2 0 0 0-1.3-1.3L3 12l5.8-1.9a2 2 0 0 0 1.3-1.3z"/></svg> Just dropped</span>
-                <span><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg> Available now</span>
-              </div>
-              <div class="nr-dots" id="nrDots" aria-hidden="true"><span class="nr-dot"></span><span class="nr-dot"></span><span class="nr-dot"></span></div>
-            </div>
-          </a>
-          <a class="glass tile t-builds reveal d2" href="assets.html"><span class="label">Roblox</span><div class="grow"></div><div class="big">800+</div><div class="sub">ready to use</div></a>
-          <a class="glass tile t-scripts reveal d3" href="minecraft.html"><span class="label">Minecraft</span><div class="grow"></div><div class="big">50+</div><div class="sub">available</div></a>
-          <a class="glass tile t-community t-products reveal d2" href="assets.html">
-            <div><span class="label">Products sold</span><div class="big" style="font-size:34px; margin-top:8px;">100k+</div><div class="sub">assets &amp; scripts</div></div>
-            <div class="grow"></div>
-            <div class="ico-chip" style="width:52px;height:52px;border-radius:16px;" aria-hidden="true">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
-            </div>
-          </a>
+      <div class="wrap hero-grid">
+        <div class="hero-copy reveal d1">
+          <h1 class="hero-h1">Premium assets that <span class="hl">ship games</span>.</h1>
+          <p class="hero-sub">Templates, maps, scripts, UI, and full builds, battle-tested by coldd and ready to drop into your game today.</p>
+          <div class="hero-cta">
+            <a class="btn btn-primary" href="assets.html">Roblox</a>
+            <a class="btn btn-ghost" href="minecraft.html">Minecraft</a>
+          </div>
+          <div class="hero-stats">
+            <div class="hstat"><span class="hn">850+</span><span class="hl2">Products</span></div>
+            <div class="hstat"><span class="hn">100k+</span><span class="hl2">Sales</span></div>
+            <div class="hstat"><span class="hn">12.4k</span><span class="hl2">Discord</span></div>
+          </div>
         </div>
-
+        <div class="hero-show reveal d2">
+          <a class="hero-card" href="assets.html" aria-label="Featured: ALL BRAWL">
+            <div class="hsc-img" style="background-image:url('new-release.jpg')"></div>
+            <span class="hsc-chip">Featured &middot; New</span>
+            <div class="hsc-foot">
+              <div><span class="hsc-cat">Finished Game</span><span class="hsc-title">ALL BRAWL</span></div>
+              <span class="hsc-price">$89</span>
+            </div>
+          </a>
+          <a class="hero-mini hm1" href="minecraft.html" style="background-image:url('minecraft.jpg')"><span>Minecraft hubs</span></a>
+          <a class="hero-mini hm2" href="assets.html?cat=maps" style="background-image:url('builds.jpg')"><span>Maps &amp; builds</span></a>
+        </div>
+      </div>
+      <div class="wrap hero-cap">
         <div class="glass cap-strip reveal d2">
           <div class="item"><span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m18 16 4-4-4-4"/><path d="m6 8-4 4 4 4"/><path d="m14.5 4-5 16"/></svg></span><span class="t">Scripting</span></div>
           <div class="item"><span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg></span><span class="t">UI Designing</span></div>
@@ -164,16 +170,16 @@
         </div>
         <div class="deal-grid">
           <article class="product deal reveal d1" data-cat="game-templates">
-            <div class="p-thumb" style="background-image:url('new-release.jpg')"><span class="deal-off">−31%</span></div>
-            <div class="p-body"><h3>Frostline Survival Kit</h3><div class="p-meta"><span class="p-prices"><span class="p-was">$129</span><span class="p-price">$89</span></span><span class="p-btn">View</span></div></div>
+            <div class="p-thumb" style="background-image:url('new-release.jpg')"><span class="deal-off">−32%</span></div>
+            <div class="p-body"><h3>Frostline Survival Kit</h3><div class="p-meta"><span class="p-prices"><span class="p-was">$189</span><span class="p-price">$129</span></span><span class="p-btn">View</span></div></div>
           </article>
           <article class="product deal reveal d2" data-cat="maps">
-            <div class="p-thumb" style="background-image:url('new-release.jpg')"><span class="deal-off">−36%</span></div>
-            <div class="p-body"><h3>Cyberpunk District</h3><div class="p-meta"><span class="p-prices"><span class="p-was">$45</span><span class="p-price">$29</span></span><span class="p-btn">View</span></div></div>
+            <div class="p-thumb" style="background-image:url('new-release.jpg')"><span class="deal-off">−35%</span></div>
+            <div class="p-body"><h3>Cyberpunk District</h3><div class="p-meta"><span class="p-prices"><span class="p-was">$69</span><span class="p-price">$45</span></span><span class="p-btn">View</span></div></div>
           </article>
           <article class="product deal reveal d3" data-cat="scripts-ui">
             <div class="p-thumb" style="background-image:url('scripts.jpg')"><span class="deal-off">−33%</span></div>
-            <div class="p-body"><h3>Combat HUD Kit</h3><div class="p-meta"><span class="p-prices"><span class="p-was">$18</span><span class="p-price">$12</span></span><span class="p-btn">View</span></div></div>
+            <div class="p-body"><h3>Combat HUD Kit</h3><div class="p-meta"><span class="p-prices"><span class="p-was">$27</span><span class="p-price">$18</span></span><span class="p-btn">View</span></div></div>
           </article>
         </div>
       </div>
@@ -228,6 +234,7 @@
       </div>
     </section>
 
+
     <section id="join" class="section-pad" style="padding-top:0;">
       <div class="wrap">
         <div class="glass cta reveal">
@@ -240,9 +247,17 @@
         </div>
       </div>
     </section>
+
+    <section class="section-pad pay-sec">
+      <div class="wrap">
+        <p class="pay-label">Trusted checkout · accepted everywhere</p>
+        <div class="pay-marquee">
+          <div class="pay-track"><span class="pay-logo pl-visa"><span class="pay-name">VISA</span></span><span class="pay-logo"><svg class="pl-ic" width="30" height="20" viewBox="0 0 30 20" aria-hidden="true"><circle cx="12" cy="10" r="8" fill="currentColor" fill-opacity="0.5"/><circle cx="18" cy="10" r="8" fill="currentColor" fill-opacity="0.85"/></svg><span class="pay-name">Mastercard</span></span><span class="pay-logo"><span class="pay-name">PayPal</span></span><span class="pay-logo"><span class="pay-name">R$ Robux</span></span><span class="pay-logo"><span class="pay-name">AMEX</span></span><span class="pay-logo"><svg class="pl-ic" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.05 12.04c-.03-2.6 2.12-3.85 2.22-3.91-1.21-1.77-3.09-2.02-3.76-2.04-1.6-.16-3.12.94-3.93.94-.81 0-2.06-.92-3.39-.9-1.74.03-3.35 1.01-4.25 2.57-1.81 3.14-.46 7.78 1.3 10.32.86 1.24 1.88 2.64 3.22 2.59 1.29-.05 1.78-.83 3.34-.83 1.56 0 2 .83 3.37.81 1.39-.03 2.27-1.27 3.12-2.52.98-1.44 1.39-2.83 1.41-2.9-.03-.01-2.71-1.04-2.74-4.13zM14.6 4.6c.71-.86 1.19-2.06 1.06-3.25-1.02.04-2.26.68-2.99 1.54-.66.76-1.23 1.98-1.08 3.15 1.14.09 2.3-.58 3.01-1.44z"/></svg><span class="pay-name">Pay</span></span><span class="pay-logo"><span class="pay-name">G&nbsp;Pay</span></span><span class="pay-logo"><span class="pay-name">Stripe</span></span><span class="pay-logo pl-visa"><span class="pay-name">VISA</span></span><span class="pay-logo"><svg class="pl-ic" width="30" height="20" viewBox="0 0 30 20" aria-hidden="true"><circle cx="12" cy="10" r="8" fill="currentColor" fill-opacity="0.5"/><circle cx="18" cy="10" r="8" fill="currentColor" fill-opacity="0.85"/></svg><span class="pay-name">Mastercard</span></span><span class="pay-logo"><span class="pay-name">PayPal</span></span><span class="pay-logo"><span class="pay-name">R$ Robux</span></span><span class="pay-logo"><span class="pay-name">AMEX</span></span><span class="pay-logo"><svg class="pl-ic" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.05 12.04c-.03-2.6 2.12-3.85 2.22-3.91-1.21-1.77-3.09-2.02-3.76-2.04-1.6-.16-3.12.94-3.93.94-.81 0-2.06-.92-3.39-.9-1.74.03-3.35 1.01-4.25 2.57-1.81 3.14-.46 7.78 1.3 10.32.86 1.24 1.88 2.64 3.22 2.59 1.29-.05 1.78-.83 3.34-.83 1.56 0 2 .83 3.37.81 1.39-.03 2.27-1.27 3.12-2.52.98-1.44 1.39-2.83 1.41-2.9-.03-.01-2.71-1.04-2.74-4.13zM14.6 4.6c.71-.86 1.19-2.06 1.06-3.25-1.02.04-2.26.68-2.99 1.54-.66.76-1.23 1.98-1.08 3.15 1.14.09 2.3-.58 3.01-1.44z"/></svg><span class="pay-name">Pay</span></span><span class="pay-logo"><span class="pay-name">G&nbsp;Pay</span></span><span class="pay-logo"><span class="pay-name">Stripe</span></span></div>
+        </div>
+      </div>
+    </section>
   </main>
 
-  <div class="cscroll" aria-hidden="true"><div class="cscroll-track"></div><div class="cscroll-thumb"></div></div>
 
   <footer>
     <div class="wrap">
@@ -287,13 +302,10 @@
       </div>
 
       <div class="foot-bottom">
-        <span class="muted">© 2026 coldd Development · Not affiliated with Roblox Corporation.</span>
+        <span class="muted">© 2026 coldd Development · Not affiliated with Roblox Corporation or Mojang Studios · ABN: 00 000 000 000</span>
         <div class="foot-social">
           <a href="https://discord.gg/coldd" target="_blank" rel="noopener" aria-label="coldd on Discord"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.4189-2.1568 2.4189Z"/></svg></a>
           <a href="#" aria-label="coldd on X"><svg viewBox="0 0 24 24" width="17" height="17" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg></a>
-          <a href="#" aria-label="coldd on Instagram"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5.5"/><circle cx="12" cy="12" r="4"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg></a>
-          <a href="#" aria-label="coldd on Facebook"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M9.101 23.691v-7.98H6.627v-3.667h2.474v-1.58c0-4.085 1.848-5.978 5.858-5.978.401 0 .955.042 1.468.103a8.68 8.68 0 0 1 1.141.195v3.325a8.623 8.623 0 0 0-.653-.036 26.805 26.805 0 0 0-.733-.009c-.707 0-1.259.096-1.675.309a1.686 1.686 0 0 0-.679.622c-.258.42-.374.995-.374 1.752v1.297h3.919l-.386 2.103-.287 1.564h-3.246v8.245C19.396 23.238 24 18.179 24 12.044c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.628 3.874 10.35 9.101 11.647Z"/></svg></a>
-          <a href="#" aria-label="coldd on TikTok"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z"/></svg></a>
           <a href="#" aria-label="coldd on YouTube"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg></a>
         </div>
       </div>
@@ -308,15 +320,13 @@
       <div class="cur-list" id="curList"></div>
     </div>
   </div>
-
   <button class="cart-fab" id="cartFab" type="button" aria-label="View your cart">
-    <span class="cart-fab-icon">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
-      <span class="cart-fab-count" id="cartCount">0</span>
-    </span>
+    <span class="cart-fab-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg><span class="cart-fab-count" id="cartCount">0</span></span>
     <span class="cart-fab-sep"></span>
     <span class="cart-fab-total" id="cartFabTotal">$0</span>
   </button>
+
+
 
   <div class="cart-overlay" id="cartOverlay" hidden></div>
   <aside class="cart-drawer" id="cartDrawer" aria-hidden="true" aria-label="Shopping cart">
@@ -340,6 +350,7 @@
     <div class="pm-modal glass" role="dialog" aria-modal="true" aria-labelledby="pmTitle">
       <button class="pm-x" id="pmClose" type="button" aria-label="Close"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
       <div class="pm-media" id="pmMedia"></div>
+      <div class="pm-thumbs" id="pmThumbs"></div>
       <div class="pm-info">
         <span class="pm-tag" id="pmTag" hidden></span>
         <h3 id="pmTitle"></h3>
@@ -400,7 +411,7 @@
         <div class="auth-social">
           <button class="auth-oauth" type="button" data-provider="Google"><svg viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg> Continue with Google</button>
           <button class="auth-oauth" type="button" data-provider="Discord"><svg viewBox="0 0 24 24" fill="#5865F2"><path d="M20.317 4.3698a19.7913 19.7913 0 0 0-4.8851-1.5152.0741.0741 0 0 0-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 0 0-.0785-.037 19.7363 19.7363 0 0 0-4.8852 1.515.0699.0699 0 0 0-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 0 0 .0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 0 0 .0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 0 0-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 0 1-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 0 1 .0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 0 1 .0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 0 1-.0066.1276 12.2986 12.2986 0 0 1-1.873.8914.0766.0766 0 0 0-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 0 0 .0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 0 0 .0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 0 0-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.4189-2.1568 2.4189Z"/></svg> Continue with Discord</button>
-          <button class="auth-oauth" type="button" data-provider="Roblox"><svg viewBox="0 0 24 24" fill="#fff" fill-rule="evenodd" clip-rule="evenodd"><path d="M5.164 0 0 19.236 18.836 24 24 4.764 5.164 0Zm6.875 9.473 5.31 1.353-1.354 5.31-5.31-1.353 1.354-5.31z"/></svg> Continue with Roblox</button>
+          <button class="auth-oauth" type="button" data-provider="Roblox"><svg viewBox="0 0 24 24" fill="#fff" aria-hidden="true"><path fill-rule="evenodd" clip-rule="evenodd" d="M5.164 0 0 19.236 18.836 24 24 4.764 5.164 0Zm6.875 9.473 5.31 1.353-1.354 5.31-5.31-1.353 1.354-5.31z"/></svg> Continue with Roblox</button>
         </div>
         <div class="auth-divider"><span>or sign in with email</span></div>
         <form class="auth-form" id="form-signin" novalidate>
@@ -421,7 +432,7 @@
         <div class="auth-social">
           <button class="auth-oauth" type="button" data-provider="Google"><svg viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg> Continue with Google</button>
           <button class="auth-oauth" type="button" data-provider="Discord"><svg viewBox="0 0 24 24" fill="#5865F2"><path d="M20.317 4.3698a19.7913 19.7913 0 0 0-4.8851-1.5152.0741.0741 0 0 0-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 0 0-.0785-.037 19.7363 19.7363 0 0 0-4.8852 1.515.0699.0699 0 0 0-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 0 0 .0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 0 0 .0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 0 0-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 0 1-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 0 1 .0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 0 1 .0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 0 1-.0066.1276 12.2986 12.2986 0 0 1-1.873.8914.0766.0766 0 0 0-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 0 0 .0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 0 0 .0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 0 0-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.4189-2.1568 2.4189Z"/></svg> Continue with Discord</button>
-          <button class="auth-oauth" type="button" data-provider="Roblox"><svg viewBox="0 0 24 24" fill="#fff" fill-rule="evenodd" clip-rule="evenodd"><path d="M5.164 0 0 19.236 18.836 24 24 4.764 5.164 0Zm6.875 9.473 5.31 1.353-1.354 5.31-5.31-1.353 1.354-5.31z"/></svg> Continue with Roblox</button>
+          <button class="auth-oauth" type="button" data-provider="Roblox"><svg viewBox="0 0 24 24" fill="#fff" aria-hidden="true"><path fill-rule="evenodd" clip-rule="evenodd" d="M5.164 0 0 19.236 18.836 24 24 4.764 5.164 0Zm6.875 9.473 5.31 1.353-1.354 5.31-5.31-1.353 1.354-5.31z"/></svg> Continue with Roblox</button>
         </div>
         <div class="auth-divider"><span>or sign up with email</span></div>
         <form class="auth-form" id="form-signup" novalidate>

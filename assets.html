@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="en" data-ann="on">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>coldd Development Roblox</title>
+  <link rel="icon" type="image/png" href="logo.png" />
+  <meta name="description" content="coldd is a Roblox development studio. Scripting, environments, modeling, and VFX, building and shipping polished experiences." />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="backdrop"></div>
+  <div class="glow"></div>
+  <div class="scrim"></div>
+  <div class="grain"></div>
+
+  <div class="announce" id="announce">
+    <div class="announce-inner">
+      <p class="announce-msg">Spring Sale is live — <strong>30% off</strong> every Roblox template through Sunday. <a class="announce-link" href="assets.html">Shop the sale →</a></p>
+    </div>
+    <button class="announce-x" id="announceX" type="button" aria-label="Dismiss announcement"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+  </div>
+
+  <header class="nav" id="nav">
+    <div class="nav-inner">
+      <a class="brand" href="index.html" aria-label="coldd home">
+        <img class="logo" src="logo.png" alt="coldd" />
+      </a>
+      <nav class="nav-links" aria-label="Primary">
+        <span class="nav-set">
+          <a href="index.html">Home</a><a href="assets.html" id="assetsLink" class="active" aria-current="page">Roblox</a><a href="minecraft.html" id="minecraftLink">Minecraft</a><a href="about.html" id="aboutLink">About Us</a>
+        </span>
+        <span class="nav-search-wrap">
+          <button class="nav-search" id="searchBtn" type="button" aria-label="Search"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg></button>
+          <input class="nav-search-input" id="searchInput" type="text" placeholder="Start your search" aria-label="Search" />
+        </span>
+      </nav>
+      <div class="nav-cta">
+        <button class="nav-account" id="accountBtn" type="button" aria-label="Account / sign in">
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>
+        </button>
+
+        <a class="btn btn-primary" href="https://discord.gg/coldd" target="_blank" rel="noopener">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M20.317 4.3698a19.7913 19.7913 0 0 0-4.8851-1.5152.0741.0741 0 0 0-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 0 0-.0785-.037 19.7363 19.7363 0 0 0-4.8852 1.515.0699.0699 0 0 0-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 0 0 .0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 0 0 .0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 0 0-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 0 1-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 0 1 .0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 0 1 .0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 0 1-.0066.1276 12.2986 12.2986 0 0 1-1.873.8914.0766.0766 0 0 0-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 0 0 .0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 0 0 .0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 0 0-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.4189-2.1568 2.4189Z"/></svg>
+          <span class="txt">Join</span>
+        </a>
+        <button class="menu-btn" aria-label="Menu"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 12h18M3 6h18M3 18h18"/></svg></button>
+      </div>
+    </div>
+  </header>
+
+  <div class="nav-mega" id="navMega" aria-hidden="true">
+    <div class="nav-mega-inner glass">
+      <div class="nav-mega-cats">
+        <a href="assets.html?cat=game-templates">Finished Games &amp; Templates</a>
+        <a href="assets.html?cat=maps">Maps</a>
+        <a href="assets.html?cat=scripts-ui">Scripts &amp; UI</a>
+        <a href="assets.html?cat=graphics">Graphics</a>
+        <a href="assets.html?cat=buildings">Buildings</a>
+        <a href="assets.html?cat=assets">Assets</a>
+        <a href="assets.html?cat=uniforms-gear">Uniforms &amp; Gear</a>
+        <a href="assets.html?cat=boats">Boats</a>
+        <a href="assets.html?cat=weapons">Weapons</a>
+        <a href="assets.html?cat=vehicles">Vehicles</a>
+        <a href="assets.html?cat=animations-vfx">Animations &amp; VFX</a>
+      </div>
+      <a class="nav-mega-feature" href="assets.html">
+        <span class="nmf-img" style="background-image:url('new-release.jpg')"></span>
+        <span class="nmf-tag">New</span>
+        <span class="nmf-title">New Releases</span>
+        <span class="nmf-go">Browse all →</span>
+      </a>
+    </div>
+  </div>
+
+  <div class="search-panel" id="searchPanel" aria-hidden="true">
+    <div class="search-panel-inner glass">
+      <div class="search-list" id="searchList"></div>
+    </div>
+  </div>
+
+  <main class="page">
+    <section class="page-head">
+      <div class="wrap">
+        <h1>Our Assets</h1>
+        <p>Ready-to-use templates, maps, scripts, UI, and more, built and battle-tested by coldd.</p>
+      </div>
+    </section>
+    <section class="shop" data-page="assets.html">
+      <div class="wrap">
+        <div class="shop-searchbar"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg><input class="shop-search" type="text" placeholder="Search products…" aria-label="Search products" /></div>
+        <div class="shop-layout">
+          <div class="shop-main">
+            <div class="product-grid" id="grid">
+          <article class="product" data-cat="game-templates" data-price="89" data-reviews="214" data-rating="5" data-catlabel="Finished Games &amp; Templates" data-resell="yes" data-subcat="finished-games">
+            <div class="p-thumb" style="background-image:url('premade.jpg')"></div>
+            <div class="p-body">
+              <h3 class="p-name">ALL BRAWL Full Game</h3>
+              <div class="p-price-row"><span class="p-price">$89</span></div>
+              <div class="p-stars"><span class="st on">★</span><span class="st on">★</span><span class="st on">★</span><span class="st on">★</span><span class="st on">★</span><span class="p-rc">(214)</span></div>
+              <p class="p-sum">Complete fighting game, fully scripted and ready to launch.</p>
+              <button class="p-add" type="button">Add to Cart</button>
+            </div>
+          </article>
+          <article class="product" data-cat="game-templates" data-price="129" data-reviews="96" data-rating="5" data-was="189" data-catlabel="Finished Games &amp; Templates" data-resell="yes" data-subcat="finished-games">
+            <div class="p-thumb" style="background-image:url('new-release.jpg')"><span class="p-off">-32%</span></div>
+            <div class="p-body">
+              <h3 class="p-name">Frostline Survival Kit</h3>
+              <div class="p-price-row"><span class="p-was">$189</span><span class="p-price">$129</span></div>
+              <div class="p-stars"><span class="st on">★</span><span class="st on">★</span><span class="st on">★</span><span class="st on">★</span><span class="st on">★</span><span class="p-rc">(96)</span></div>
+              <p class="p-sum">Full survival game with crafting, biomes, and progression.</p>
+              <button class="p-add" type="button">Add to Cart</button>
+            </div>
+          </article>
+          <article class="product" data-cat="maps" data-price="45" data-reviews="142" data-rating="4" data-was="69" data-catlabel="Maps" data-resell="yes" data-subcat="cities-towns">
+            <div class="p-thumb" style="background-image:url('new-release.jpg')"><span class="p-off">-35%</span></div>
+            <div class="p-body">
+              <h3 class="p-name">Cyberpunk District</h3>
+              <div class="p-price-row"><span class="p-was">$69</span><span class="p-price">$45</span></div>
+              <div class="p-stars"><span class="st on">★</span><span class="st on">★</span><span class="st on">★</span><span class="st on">★</span><span class="st">★</span><span class="p-rc">(142)</span></div>
+              <p class="p-sum">Neon-lit city map with detailed streets and interiors.</p>
+              <button class="p-add" type="button">Add to Cart</button>
+            </div>
+          </article>
+          <article class="product" data-cat="maps" data-price="38" data-reviews="58" data-rating="4" data-catlabel="Maps" data-resell="yes" data-subcat="scpf">
+            <div class="p-thumb" style="background-image:url('builds.jpg')"></div>
+            <div class="p-body">
+              <h3 class="p-name">Containment Site</h3>
+              <div class="p-price-row"><span class="p-price">$38</span></div>
+              <div class="p-stars"><span class="st on">★</span><span class="st on">★</span><span class="st on">★</span><span class="st on">★</span><span class="st">★</span><span class="p-rc">(58)</span></div>
+              <p class="p-sum">Secure facility map built for roleplay and SCP games.</p>
+              <button class="p-add" type="button">Add to Cart</button>
+            </div>
+          </article>
+          <article class="product" data-cat="buildings" data-price="25" data-reviews="33" data-rating="5" data-catlabel="Buildings" data-resell="yes" data-subcat="scpf">
+            <div class="p-thumb" style="background-image:url('builds.jpg')"></div>
+            <div class="p-body">
+              <h3 class="p-name">SCP Courtroom</h3>
+              <div class="p-price-row"><span class="p-price">$25</span></div>
+              <div class="p-stars"><span class="st on">★</span><span class="st on">★</span><span class="st on">★</span><span class="st on">★</span><span class="st on">★</span><span class="p-rc">(33)</span></div>
+              <p class="p-sum">Detailed courtroom interior, drop-in ready.</p>
+              <button class="p-add" type="button">Add to Cart</button>
+            </div>
+          </article>
+          <article class="product" data-cat="buildings" data-price="32" data-reviews="21" data-rating="4" data-catlabel="Buildings" data-resell="yes" data-subcat="military">
+            <div class="p-thumb" style="background-image:url('products.jpg')"></div>
+            <div class="p-body">
+              <h3 class="p-name">Industrial Refinery</h3>
+              <div class="p-price-row"><span class="p-price">$32</span></div>
+              <div class="p-stars"><span class="st on">★</span><span class="st on">★</span><span class="st on">★</span><span class="st on">★</span><span class="st">★</span><span class="p-rc">(21)</span></div>
+              <p class="p-sum">Gritty industrial complex with pipes, tanks, and catwalks.</p>
+              <button class="p-add" type="button">Add to Cart</button>
+            </div>
+          </article>
+          <article class="product" data-cat="buildings" data-price="28" data-reviews="47" data-rating="4" data-catlabel="Buildings" data-subcat="medieval">
+            <div class="p-thumb" style="background-image:url('cta-bg.jpg')"></div>
+            <div class="p-body">
+              <h3 class="p-name">Ancient Temple</h3>
+              <div class="p-price-row"><span class="p-price">$28</span></div>
+              <div class="p-stars"><span class="st on">★</span><span class="st on">★</span><span class="st on">★</span><span class="st on">★</span><span class="st">★</span><span class="p-rc">(47)</span></div>
+              <p class="p-sum">Ruined stone temple with traps and hidden chambers.</p>
+              <button class="p-add" type="button">Add to Cart</button>
+            </div>
+          </article>
+          <article class="product" data-cat="scripts-ui" data-price="12" data-reviews="180" data-rating="5" data-catlabel="Scripts &amp; UI" data-subcat="scripted-systems">
+            <div class="p-thumb" style="background-image:url('scripts.jpg')"></div>
+            <div class="p-body">
+              <h3 class="p-name">Tic Tac Toe System</h3>
+              <div class="p-price-row"><span class="p-price">$12</span></div>
+              <div class="p-stars"><span class="st on">★</span><span class="st on">★</span><span class="st on">★</span><span class="st on">★</span><span class="st on">★</span><span class="p-rc">(180)</span></div>
+              <p class="p-sum">Plug-and-play Tic Tac Toe minigame with clean UI.</p>
+              <button class="p-add" type="button">Add to Cart</button>
+            </div>
+          </article>
+          <article class="product" data-cat="scripts-ui" data-price="18" data-reviews="260" data-rating="5" data-was="27" data-catlabel="Scripts &amp; UI" data-subcat="combat">
+            <div class="p-thumb" style="background-image:url('banner.jpg')"><span class="p-off">-33%</span></div>
+            <div class="p-body">
+              <h3 class="p-name">Combat HUD Kit</h3>
+              <div class="p-price-row"><span class="p-was">$27</span><span class="p-price">$18</span></div>
+              <div class="p-stars"><span class="st on">★</span><span class="st on">★</span><span class="st on">★</span><span class="st on">★</span><span class="st on">★</span><span class="p-rc">(260)</span></div>
+              <p class="p-sum">Health, ammo, and hitmarker HUD for combat games.</p>
+              <button class="p-add" type="button">Add to Cart</button>
+            </div>
+          </article>
+          <article class="product" data-cat="scripts-ui" data-price="16" data-reviews="77" data-rating="4" data-catlabel="Scripts &amp; UI" data-subcat="ui-packs">
+            <div class="p-thumb" style="background-image:url('scripts.jpg')"></div>
+            <div class="p-body">
+              <h3 class="p-name">Inventory UI Pack</h3>
+              <div class="p-price-row"><span class="p-price">$16</span></div>
+              <div class="p-stars"><span class="st on">★</span><span class="st on">★</span><span class="st on">★</span><span class="st on">★</span><span class="st">★</span><span class="p-rc">(77)</span></div>
+              <p class="p-sum">Slot-based inventory system with drag and drop.</p>
+              <button class="p-add" type="button">Add to Cart</button>
+            </div>
+          </article>
+          <article class="product" data-cat="animations-vfx" data-price="22" data-reviews="128" data-rating="5" data-catlabel="Animations &amp; VFX" data-subcat="vfx">
+            <div class="p-thumb" style="background-image:url('banner.jpg')"></div>
+            <div class="p-body">
+              <h3 class="p-name">VFX Starter Pack</h3>
+              <div class="p-price-row"><span class="p-price">$22</span></div>
+              <div class="p-stars"><span class="st on">★</span><span class="st on">★</span><span class="st on">★</span><span class="st on">★</span><span class="st on">★</span><span class="p-rc">(128)</span></div>
+              <p class="p-sum">20 ready-to-use particle and explosion effects.</p>
+              <button class="p-add" type="button">Add to Cart</button>
+            </div>
+          </article>
+          <article class="product" data-cat="animations-vfx" data-price="19" data-reviews="64" data-rating="4" data-catlabel="Animations &amp; VFX" data-subcat="animations">
+            <div class="p-thumb" style="background-image:url('team-bg.jpg')"></div>
+            <div class="p-body">
+              <h3 class="p-name">Emote Animation Set</h3>
+              <div class="p-price-row"><span class="p-price">$19</span></div>
+              <div class="p-stars"><span class="st on">★</span><span class="st on">★</span><span class="st on">★</span><span class="st on">★</span><span class="st">★</span><span class="p-rc">(64)</span></div>
+              <p class="p-sum">Smooth character emotes and idle animations.</p>
+              <button class="p-add" type="button">Add to Cart</button>
+            </div>
+          </article>
+          <article class="product" data-cat="uniforms-gear" data-price="15" data-reviews="39" data-rating="4" data-catlabel="Uniforms &amp; Gear" data-subcat="2d-uniforms">
+            <div class="p-thumb" style="background-image:url('team-bg.jpg')"></div>
+            <div class="p-body">
+              <h3 class="p-name">Tactical Uniforms</h3>
+              <div class="p-price-row"><span class="p-price">$15</span></div>
+              <div class="p-stars"><span class="st on">★</span><span class="st on">★</span><span class="st on">★</span><span class="st on">★</span><span class="st">★</span><span class="p-rc">(39)</span></div>
+              <p class="p-sum">Military-grade uniform set with gear attachments.</p>
+              <button class="p-add" type="button">Add to Cart</button>
+            </div>
+          </article>
+          <article class="product" data-cat="boats" data-price="35" data-reviews="0" data-rating="0" data-catlabel="Boats" data-subcat="military">
+            <div class="p-thumb" style="background-image:url('products.jpg')"></div>
+            <div class="p-body">
+              <h3 class="p-name">Naval Boat Pack</h3>
+              <div class="p-price-row"><span class="p-price">$35</span></div>
+              <p class="p-sum">Drivable boats with physics and detailed models.</p>
+              <button class="p-add" type="button">Add to Cart</button>
+            </div>
+          </article>
+          <article class="product" data-cat="weapons" data-price="24" data-reviews="112" data-rating="5" data-catlabel="Weapons" data-subcat="firearms">
+            <div class="p-thumb" style="background-image:url('builds.jpg')"></div>
+            <div class="p-body">
+              <h3 class="p-name">Weapon Pack Vol.1</h3>
+              <div class="p-price-row"><span class="p-price">$24</span></div>
+              <div class="p-stars"><span class="st on">★</span><span class="st on">★</span><span class="st on">★</span><span class="st on">★</span><span class="st on">★</span><span class="p-rc">(112)</span></div>
+              <p class="p-sum">Modeled weapon set with viewmodels and sounds.</p>
+              <button class="p-add" type="button">Add to Cart</button>
+            </div>
+          </article>
+          <article class="product" data-cat="vehicles" data-price="42" data-reviews="88" data-rating="4" data-catlabel="Vehicles" data-subcat="civilian">
+            <div class="p-thumb" style="background-image:url('new-release.jpg')"></div>
+            <div class="p-body">
+              <h3 class="p-name">Drift Vehicle Pack</h3>
+              <div class="p-price-row"><span class="p-price">$42</span></div>
+              <div class="p-stars"><span class="st on">★</span><span class="st on">★</span><span class="st on">★</span><span class="st on">★</span><span class="st">★</span><span class="p-rc">(88)</span></div>
+              <p class="p-sum">Tunable drift cars with working suspension.</p>
+              <button class="p-add" type="button">Add to Cart</button>
+            </div>
+          </article>
+          <article class="product" data-cat="graphics" data-price="25" data-reviews="150" data-rating="5" data-catlabel="Graphics" data-subcat="logos">
+            <div class="p-thumb" style="background-image:url('frostline.jpg')"></div>
+            <div class="p-body">
+              <h3 class="p-name">Thumbnail Bundle</h3>
+              <div class="p-price-row"><span class="p-price">$25</span></div>
+              <div class="p-stars"><span class="st on">★</span><span class="st on">★</span><span class="st on">★</span><span class="st on">★</span><span class="st on">★</span><span class="p-rc">(150)</span></div>
+              <p class="p-sum">High-quality thumbnails and icons for your store.</p>
+              <button class="p-add" type="button">Add to Cart</button>
+            </div>
+          </article>
+          <article class="product" data-cat="graphics" data-price="20" data-reviews="0" data-rating="0" data-catlabel="Graphics" data-subcat="logos">
+            <div class="p-thumb" style="background-image:url('banner.jpg')"></div>
+            <div class="p-body">
+              <h3 class="p-name">Logo &amp; Icon Kit</h3>
+              <div class="p-price-row"><span class="p-price">$20</span></div>
+              <p class="p-sum">Clean logo and icon templates, fully editable.</p>
+              <button class="p-add" type="button">Add to Cart</button>
+            </div>
+          </article>
+          <article class="product" data-cat="assets" data-price="150" data-reviews="420" data-rating="5" data-was="199" data-catlabel="Assets" data-resell="yes" data-subcat="asset-packs">
+            <div class="p-thumb" style="background-image:url('premade.jpg')"><span class="p-off">-25%</span></div>
+            <div class="p-body">
+              <h3 class="p-name">Asset Mega Bundle</h3>
+              <div class="p-price-row"><span class="p-was">$199</span><span class="p-price">$150</span></div>
+              <div class="p-stars"><span class="st on">★</span><span class="st on">★</span><span class="st on">★</span><span class="st on">★</span><span class="st on">★</span><span class="p-rc">(420)</span></div>
+              <p class="p-sum">Our biggest pack, hundreds of assets in one bundle.</p>
+              <button class="p-add" type="button">Add to Cart</button>
+            </div>
+          </article>
+            </div>
+            <div class="shop-empty" id="shopEmpty" hidden>No products match your filters.</div>
+            <div class="shop-pager" aria-label="Pagination"></div>
+          </div>
+          <aside class="shop-side">
+            <div class="filter-card">
+              <div class="fc-head"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"/></svg> <span>Filters</span></div>
+              <div class="fc-group">
+                <span class="fc-label">Price Range</span>
+                <div class="pr-slider">
+                  <div class="pr-rail"><div class="pr-fill"></div></div>
+                  <input class="pr-min" type="range" min="0" max="150" value="0" aria-label="Minimum price" />
+                  <input class="pr-max" type="range" min="0" max="150" value="150" aria-label="Maximum price" />
+                </div>
+                <div class="pr-vals"><span class="pr-box pr-minval">$0</span><span class="pr-sep">–</span><span class="pr-box pr-maxval">$150</span></div>
+              </div>
+              <div class="fc-group">
+                <span class="fc-label">Categories</span>
+                <div class="fc-cats">
+              <button class="fc-cat active" data-cat="all"><span>All</span></button>
+              <button class="fc-cat fc-cat-resell" data-cat="resell"><span>Resell License</span></button>
+              <div class="fc-cat-group">
+                <button class="fc-cat" data-cat="game-templates"><span>Finished Games &amp; Templates</span><svg class="fc-chev" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></button>
+                <div class="fc-subs" hidden>
+                  <button class="fc-sub" data-cat="game-templates" data-subcat="finished-games">Finished Games</button>
+                  <button class="fc-sub" data-cat="game-templates" data-subcat="game-templates">Game Templates</button>
+                </div>
+              </div>
+              <div class="fc-cat-group">
+                <button class="fc-cat" data-cat="maps"><span>Maps</span><svg class="fc-chev" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></button>
+                <div class="fc-subs" hidden>
+                  <button class="fc-sub" data-cat="maps" data-subcat="cities-towns">Cities &amp; Towns</button>
+                  <button class="fc-sub" data-cat="maps" data-subcat="houses-estates">Houses &amp; Estates</button>
+                  <button class="fc-sub" data-cat="maps" data-subcat="military-government">Military &amp; Government</button>
+                  <button class="fc-sub" data-cat="maps" data-subcat="nature-terrain">Nature &amp; Terrain</button>
+                  <button class="fc-sub" data-cat="maps" data-subcat="scpf">SCPF</button>
+                  <button class="fc-sub" data-cat="maps" data-subcat="sci-fi">Sci-Fi</button>
+                  <button class="fc-sub" data-cat="maps" data-subcat="airports-aviation">Airports &amp; Aviation</button>
+                  <button class="fc-sub" data-cat="maps" data-subcat="medieval">Medieval</button>
+                  <button class="fc-sub" data-cat="maps" data-subcat="lobby-spawns">Lobby &amp; Spawns</button>
+                  <button class="fc-sub" data-cat="maps" data-subcat="cafes-retail">Cafes &amp; Retail</button>
+                  <button class="fc-sub" data-cat="maps" data-subcat="ugc-showcase-homestores">UGC Showcase &amp; Homestores</button>
+                  <button class="fc-sub" data-cat="maps" data-subcat="combat">Combat</button>
+                  <button class="fc-sub" data-cat="maps" data-subcat="low-poly-simulator">Low Poly &amp; Simulator</button>
+                </div>
+              </div>
+              <div class="fc-cat-group">
+                <button class="fc-cat" data-cat="scripts-ui"><span>Scripts &amp; UI</span><svg class="fc-chev" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></button>
+                <div class="fc-subs" hidden>
+                  <button class="fc-sub" data-cat="scripts-ui" data-subcat="scripted-systems">Scripted Systems</button>
+                  <button class="fc-sub" data-cat="scripts-ui" data-subcat="non-scripted-ui">Non-Scripted UI</button>
+                  <button class="fc-sub" data-cat="scripts-ui" data-subcat="ui-packs">UI Packs</button>
+                  <button class="fc-sub" data-cat="scripts-ui" data-subcat="roleplay">Roleplay</button>
+                  <button class="fc-sub" data-cat="scripts-ui" data-subcat="military">Military</button>
+                  <button class="fc-sub" data-cat="scripts-ui" data-subcat="combat">Combat</button>
+                  <button class="fc-sub" data-cat="scripts-ui" data-subcat="economy">Economy</button>
+                </div>
+              </div>
+              <div class="fc-cat-group">
+                <button class="fc-cat" data-cat="graphics"><span>Graphics</span><svg class="fc-chev" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></button>
+                <div class="fc-subs" hidden>
+                  <button class="fc-sub" data-cat="graphics" data-subcat="military">Military</button>
+                  <button class="fc-sub" data-cat="graphics" data-subcat="scpf">SCPF</button>
+                  <button class="fc-sub" data-cat="graphics" data-subcat="logos">Logos</button>
+                </div>
+              </div>
+              <div class="fc-cat-group">
+                <button class="fc-cat" data-cat="buildings"><span>Buildings</span><svg class="fc-chev" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></button>
+                <div class="fc-subs" hidden>
+                  <button class="fc-sub" data-cat="buildings" data-subcat="filler">Filler</button>
+                  <button class="fc-sub" data-cat="buildings" data-subcat="furnished">Furnished</button>
+                  <button class="fc-sub" data-cat="buildings" data-subcat="roleplay">Roleplay</button>
+                  <button class="fc-sub" data-cat="buildings" data-subcat="building-packs">Building Packs</button>
+                  <button class="fc-sub" data-cat="buildings" data-subcat="military">Military</button>
+                  <button class="fc-sub" data-cat="buildings" data-subcat="houses-residential">Houses &amp; Residential</button>
+                  <button class="fc-sub" data-cat="buildings" data-subcat="government">Government</button>
+                  <button class="fc-sub" data-cat="buildings" data-subcat="medieval">Medieval</button>
+                  <button class="fc-sub" data-cat="buildings" data-subcat="scpf">SCPF</button>
+                  <button class="fc-sub" data-cat="buildings" data-subcat="sci-fi">Sci-Fi</button>
+                  <button class="fc-sub" data-cat="buildings" data-subcat="stores-commercial">Stores &amp; Commercial</button>
+                </div>
+              </div>
+              <div class="fc-cat-group">
+                <button class="fc-cat" data-cat="assets"><span>Assets</span><svg class="fc-chev" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></button>
+                <div class="fc-subs" hidden>
+                  <button class="fc-sub" data-cat="assets" data-subcat="asset-packs">Asset Packs</button>
+                  <button class="fc-sub" data-cat="assets" data-subcat="realistic">Realistic</button>
+                  <button class="fc-sub" data-cat="assets" data-subcat="medieval">Medieval</button>
+                  <button class="fc-sub" data-cat="assets" data-subcat="sci-fi">Sci-Fi</button>
+                  <button class="fc-sub" data-cat="assets" data-subcat="low-poly">Low Poly</button>
+                  <button class="fc-sub" data-cat="assets" data-subcat="aviation">Aviation</button>
+                  <button class="fc-sub" data-cat="assets" data-subcat="scpf">SCPF</button>
+                  <button class="fc-sub" data-cat="assets" data-subcat="furniture">Furniture</button>
+                  <button class="fc-sub" data-cat="assets" data-subcat="nature">Nature</button>
+                </div>
+              </div>
+              <div class="fc-cat-group">
+                <button class="fc-cat" data-cat="uniforms-gear"><span>Uniforms &amp; Gear</span><svg class="fc-chev" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></button>
+                <div class="fc-subs" hidden>
+                  <button class="fc-sub" data-cat="uniforms-gear" data-subcat="2d-uniforms">2D Uniforms</button>
+                  <button class="fc-sub" data-cat="uniforms-gear" data-subcat="3d-gear">3D Gear</button>
+                  <button class="fc-sub" data-cat="uniforms-gear" data-subcat="military-government">Military &amp; Government</button>
+                  <button class="fc-sub" data-cat="uniforms-gear" data-subcat="roleplay">Roleplay</button>
+                  <button class="fc-sub" data-cat="uniforms-gear" data-subcat="aviation">Aviation</button>
+                  <button class="fc-sub" data-cat="uniforms-gear" data-subcat="morphs">Morphs</button>
+                </div>
+              </div>
+              <div class="fc-cat-group">
+                <button class="fc-cat" data-cat="boats"><span>Boats</span><svg class="fc-chev" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></button>
+                <div class="fc-subs" hidden>
+                  <button class="fc-sub" data-cat="boats" data-subcat="military">Military</button>
+                  <button class="fc-sub" data-cat="boats" data-subcat="civilian">Civilian</button>
+                  <button class="fc-sub" data-cat="boats" data-subcat="commercial">Commercial</button>
+                </div>
+              </div>
+              <div class="fc-cat-group">
+                <button class="fc-cat" data-cat="weapons"><span>Weapons</span><svg class="fc-chev" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></button>
+                <div class="fc-subs" hidden>
+                  <button class="fc-sub" data-cat="weapons" data-subcat="military">Military</button>
+                  <button class="fc-sub" data-cat="weapons" data-subcat="medieval">Medieval</button>
+                  <button class="fc-sub" data-cat="weapons" data-subcat="scripted">Scripted</button>
+                  <button class="fc-sub" data-cat="weapons" data-subcat="firearms">Firearms</button>
+                  <button class="fc-sub" data-cat="weapons" data-subcat="melees">Melees</button>
+                </div>
+              </div>
+              <div class="fc-cat-group">
+                <button class="fc-cat" data-cat="vehicles"><span>Vehicles</span><svg class="fc-chev" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></button>
+                <div class="fc-subs" hidden>
+                  <button class="fc-sub" data-cat="vehicles" data-subcat="scripted">Scripted</button>
+                  <button class="fc-sub" data-cat="vehicles" data-subcat="military">Military</button>
+                  <button class="fc-sub" data-cat="vehicles" data-subcat="civilian">Civilian</button>
+                  <button class="fc-sub" data-cat="vehicles" data-subcat="trains-locomotives">Trains &amp; Locomotives</button>
+                  <button class="fc-sub" data-cat="vehicles" data-subcat="emergency-services">Emergency Services</button>
+                </div>
+              </div>
+              <div class="fc-cat-group">
+                <button class="fc-cat" data-cat="animations-vfx"><span>Animations &amp; VFX</span><svg class="fc-chev" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></button>
+                <div class="fc-subs" hidden>
+                  <button class="fc-sub" data-cat="animations-vfx" data-subcat="vfx">VFX</button>
+                  <button class="fc-sub" data-cat="animations-vfx" data-subcat="animations">Animations</button>
+                  <button class="fc-sub" data-cat="animations-vfx" data-subcat="vfx-packs">VFX Packs</button>
+                  <button class="fc-sub" data-cat="animations-vfx" data-subcat="combat">Combat</button>
+                  <button class="fc-sub" data-cat="animations-vfx" data-subcat="auras">Auras</button>
+                </div>
+              </div>
+              </div>
+            </div>
+          </div>
+          </aside>
+        </div>
+      </div>
+    </section>
+
+    <section class="section-pad free-section">
+      <div class="wrap">
+        <div class="sec-head reveal">
+          <h2>Free this month.</h2>
+          <p>Free Roblox drops, members only. Join our Discord to unlock the files, new picks every month.</p>
+        </div>
+        <div class="free-grid">
+          <article class="free-card reveal d1">
+            <div class="free-thumb" style="background-image:url('scripts.jpg')"><span class="free-badge">Free</span></div>
+            <div class="free-body">
+              <h3>Combat HUD Lite</h3>
+              <p>A stripped-down build of our Combat HUD: health, ammo, and hitmarkers, drop-in ready.</p>
+              <a class="btn btn-ghost free-btn" href="https://discord.gg/coldd" target="_blank" rel="noopener">Join Discord to unlock</a>
+            </div>
+          </article>
+          <article class="free-card reveal d2">
+            <div class="free-thumb" style="background-image:url('builds.jpg')"><span class="free-badge">Free</span></div>
+            <div class="free-body">
+              <h3>Starter Spawn</h3>
+              <p>A clean, neutral lobby spawn to get a new game off the ground in minutes.</p>
+              <a class="btn btn-ghost free-btn" href="https://discord.gg/coldd" target="_blank" rel="noopener">Join Discord to unlock</a>
+            </div>
+          </article>
+          <article class="free-card reveal d3">
+            <div class="free-thumb" style="background-image:url('products.jpg')"><span class="free-badge">Free</span></div>
+            <div class="free-body">
+              <h3>UI Sound Pack</h3>
+              <p>20 clicks, hovers, and ambient cues we use in our own builds. Royalty-free.</p>
+              <a class="btn btn-ghost free-btn" href="https://discord.gg/coldd" target="_blank" rel="noopener">Join Discord to unlock</a>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+  </main>
+
+
+  <footer>
+    <div class="wrap">
+      <div class="foot-grid">
+        <div class="foot-brand">
+          <a class="brand" href="index.html" aria-label="coldd home"><img class="logo" src="logo.png" alt="coldd" /></a>
+        </div>
+
+        <div class="foot-col">
+          <h4>Explore</h4>
+          <a href="index.html">Home</a>
+          <a href="#">Our Process</a>
+          <a href="assets.html">Products</a>
+          <a href="#">FAQ</a>
+        </div>
+
+        <div class="foot-col">
+          <h4>Our Assets</h4>
+          <a href="assets.html">Roblox</a>
+          <a href="minecraft.html">Minecraft</a>
+        </div>
+
+        <div class="foot-col">
+          <h4>Account</h4>
+          <a href="signin.html">Sign in</a>
+          <a href="signup.html">Create Account</a>
+          <a href="dashboard.html">Dashboard</a>
+        </div>
+
+        <div class="foot-col">
+          <h4>Contact</h4>
+          <a href="mailto:support@coldd.dev">support@coldd.dev</a>
+          <a href="https://discord.gg/coldd" target="_blank" rel="noopener">Discord</a>
+        </div>
+
+        <div class="foot-col">
+          <h4>Legal</h4>
+          <a href="#">Privacy Policy</a>
+          <a href="#">Terms of Service</a>
+          <a href="#">Refund Policy</a>
+        </div>
+      </div>
+
+      <div class="foot-bottom">
+        <span class="muted">© 2026 coldd Development · Not affiliated with Roblox Corporation or Mojang Studios · ABN: 34 127 589 633</span>
+        <div class="foot-social">
+          <a href="https://discord.gg/coldd" target="_blank" rel="noopener" aria-label="coldd on Discord"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.4189-2.1568 2.4189Z"/></svg></a>
+          <a href="#" aria-label="coldd on X"><svg viewBox="0 0 24 24" width="17" height="17" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg></a>
+          <a href="#" aria-label="coldd on YouTube"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg></a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <div class="tc" id="topControls">
+  <div class="cur-switch" id="curSwitch" role="group" aria-label="Currency">
+    <button type="button" class="cur-opt" id="curFiat" aria-haspopup="listbox" aria-expanded="false">USD <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></button>
+    <button type="button" class="cur-opt" id="curRobux">Robux</button>
+    <div class="cur-menu" id="curMenu" hidden role="listbox" aria-label="Choose currency">
+      <input class="cur-search" id="curSearch" type="text" placeholder="Search currency…" aria-label="Search currency" />
+      <div class="cur-list" id="curList"></div>
+    </div>
+  </div>
+  <button class="cart-fab" id="cartFab" type="button" aria-label="View your cart">
+    <span class="cart-fab-sep"></span>
+    <span class="cart-fab-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg><span class="cart-fab-count" id="cartCount">0</span></span>
+    <span class="cart-fab-total" id="cartFabTotal">$0</span>
+  </button>
+  </div>
+
+
+
+  <div class="cart-overlay" id="cartOverlay" hidden></div>
+  <aside class="cart-drawer" id="cartDrawer" aria-hidden="true" aria-label="Shopping cart">
+    <div class="cart-head">
+      <div class="cart-head-titles">
+        <h3>Your Cart</h3>
+        <span class="cart-head-count" id="cartHeadCount">0 items</span>
+      </div>
+      <button class="cart-x" id="cartClose" type="button" aria-label="Close cart"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+    </div>
+    <div class="cart-body" id="cartItems"></div>
+    <p class="cart-empty" id="cartEmpty">Your cart is empty.</p>
+    <div class="cart-foot">
+      <div class="cart-sub"><span>Subtotal</span><span id="cartSubtotal">$0</span></div>
+      <button class="btn btn-primary cart-checkout" id="cartCheckout" type="button">Checkout</button>
+    </div>
+  </aside>
+
+  <div class="pm-overlay" id="pmOverlay" hidden>
+    <div class="pm-modal glass" role="dialog" aria-modal="true" aria-labelledby="pmTitle">
+      <button class="pm-x" id="pmClose" type="button" aria-label="Close"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+      <div class="pm-media" id="pmMedia"></div>
+      <div class="pm-thumbs" id="pmThumbs"></div>
+      <div class="pm-info">
+        <span class="pm-tag" id="pmTag" hidden></span>
+        <h3 id="pmTitle"></h3>
+        <p class="pm-desc" id="pmDesc"></p>
+        <ul class="pm-feats">
+          <li><svg class="pm-feat-ic" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span>Instant delivery</span></li>
+          <li><svg class="pm-feat-ic" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span>Full source files</span></li>
+          <li><svg class="pm-feat-ic" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span>Free updates &amp; support</span></li>
+        </ul>
+        <span class="pm-lic-label">Choose your licence</span>
+        <div class="pm-licence" id="pmLicence">
+          <button class="pm-lic active" type="button" data-lic="standard">
+            <span class="pm-lic-head"><span class="pm-lic-name">Standard</span><span class="pm-lic-price" data-licprice="standard"></span></span>
+            <span class="pm-lic-note">Use it in your own games.</span>
+          </button>
+          <button class="pm-lic" type="button" data-lic="resell">
+            <span class="pm-lic-head"><span class="pm-lic-name">Resell</span><span class="pm-lic-price" data-licprice="resell"></span></span>
+            <span class="pm-lic-note">Resell it in your own store.</span>
+          </button>
+        </div>
+        <div class="pm-foot">
+          <div class="pm-total"><span class="pm-total-label">Total</span><span class="pm-price" id="pmPrice"></span></div>
+          <div class="pm-actions">
+            <button class="btn btn-ghost" id="pmAdd" type="button">Add to Cart</button>
+            <button class="btn btn-primary" id="pmBuy" type="button">Buy Now</button>
+          </div>
+          <p class="pm-note">USD pricing is up to 50% cheaper than Robux!</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="pay-overlay" id="payOverlay" hidden>
+    <div class="pay-modal glass" role="dialog" aria-modal="true" aria-labelledby="payTitle">
+      <button class="pm-x" id="payClose" type="button" aria-label="Close"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+      <h3 class="pay-title" id="payTitle">Choose your payment</h3>
+      <p class="pay-sub" id="paySub">How would you like to pay?</p>
+      <div class="pay-options">
+        <button class="pay-opt" id="payUsd" type="button">
+          <span class="pay-opt-ic">$</span>
+          <span class="pay-opt-main">Pay with USD</span>
+          <span class="pay-opt-amt" id="payUsdAmt">$0</span>
+        </button>
+        <button class="pay-opt" id="payRobux" type="button">
+          <span class="pay-opt-ic robux">R$</span>
+          <span class="pay-opt-main">Pay with Robux</span>
+          <span class="pay-opt-amt" id="payRobuxAmt">R$ 0</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="auth-overlay" id="authOverlay" hidden>
+    <div class="auth-modal" id="authModal">
+      <div class="auth-card glass auth-view" id="av-signin">
+        <button class="pm-x auth-x" type="button" aria-label="Close"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+        <h1>Welcome back</h1>
+        <p class="auth-sub">Sign in to your coldd account.</p>
+        <div class="auth-social">
+          <button class="auth-oauth" type="button" data-provider="Google"><svg viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg> Continue with Google</button>
+          <button class="auth-oauth" type="button" data-provider="Discord"><svg viewBox="0 0 24 24" fill="#5865F2"><path d="M20.317 4.3698a19.7913 19.7913 0 0 0-4.8851-1.5152.0741.0741 0 0 0-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 0 0-.0785-.037 19.7363 19.7363 0 0 0-4.8852 1.515.0699.0699 0 0 0-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 0 0 .0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 0 0 .0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 0 0-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 0 1-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 0 1 .0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 0 1 .0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 0 1-.0066.1276 12.2986 12.2986 0 0 1-1.873.8914.0766.0766 0 0 0-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 0 0 .0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 0 0 .0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 0 0-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.4189-2.1568 2.4189Z"/></svg> Continue with Discord</button>
+          <button class="auth-oauth" type="button" data-provider="Roblox"><svg viewBox="0 0 24 24" fill="#fff" aria-hidden="true"><path fill-rule="evenodd" clip-rule="evenodd" d="M5.164 0 0 19.236 18.836 24 24 4.764 5.164 0Zm6.875 9.473 5.31 1.353-1.354 5.31-5.31-1.353 1.354-5.31z"/></svg> Continue with Roblox</button>
+        </div>
+        <div class="auth-divider"><span>or sign in with email</span></div>
+        <form class="auth-form" id="form-signin" novalidate>
+          <div class="auth-field" data-for="email"><label for="m-si-email">Email</label>
+            <input id="m-si-email" name="email" type="email" autocomplete="email" placeholder="you@example.com" /><span class="auth-err"></span></div>
+          <div class="auth-field" data-for="password"><label for="m-si-pass">Password</label>
+            <div class="auth-input-wrap"><input id="m-si-pass" name="password" type="password" autocomplete="current-password" placeholder="••••••••" /><button class="auth-pw-toggle" type="button" aria-label="Show password"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></div><span class="auth-err"></span></div>
+          <div class="auth-row"><a href="#" data-auth-view="forgot">Forgot password?</a></div>
+          <button class="btn btn-primary auth-submit" type="submit">Sign in</button>
+          <div class="auth-msg"></div>
+        </form>
+        <p class="auth-alt">New to coldd? <a href="#" data-auth-view="signup">Create an account</a></p>
+      </div>
+      <div class="auth-card glass auth-view" id="av-signup" hidden>
+        <button class="pm-x auth-x" type="button" aria-label="Close"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+        <h1>Create your account</h1>
+        <p class="auth-sub">Join coldd to buy, download, and manage your assets.</p>
+        <div class="auth-social">
+          <button class="auth-oauth" type="button" data-provider="Google"><svg viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg> Continue with Google</button>
+          <button class="auth-oauth" type="button" data-provider="Discord"><svg viewBox="0 0 24 24" fill="#5865F2"><path d="M20.317 4.3698a19.7913 19.7913 0 0 0-4.8851-1.5152.0741.0741 0 0 0-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 0 0-.0785-.037 19.7363 19.7363 0 0 0-4.8852 1.515.0699.0699 0 0 0-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 0 0 .0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 0 0 .0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 0 0-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 0 1-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 0 1 .0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 0 1 .0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 0 1-.0066.1276 12.2986 12.2986 0 0 1-1.873.8914.0766.0766 0 0 0-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 0 0 .0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 0 0 .0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 0 0-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.4189-2.1568 2.4189Z"/></svg> Continue with Discord</button>
+          <button class="auth-oauth" type="button" data-provider="Roblox"><svg viewBox="0 0 24 24" fill="#fff" aria-hidden="true"><path fill-rule="evenodd" clip-rule="evenodd" d="M5.164 0 0 19.236 18.836 24 24 4.764 5.164 0Zm6.875 9.473 5.31 1.353-1.354 5.31-5.31-1.353 1.354-5.31z"/></svg> Continue with Roblox</button>
+        </div>
+        <div class="auth-divider"><span>or sign up with email</span></div>
+        <form class="auth-form" id="form-signup" novalidate>
+          <div class="auth-field" data-for="email"><label for="m-su-email">Email</label>
+            <input id="m-su-email" name="email" type="email" autocomplete="email" placeholder="you@example.com" /><span class="auth-err"></span></div>
+          <div class="auth-field" data-for="password"><label for="m-su-pass">Password</label>
+            <div class="auth-input-wrap"><input id="m-su-pass" name="password" type="password" autocomplete="new-password" placeholder="At least 8 characters" /><button class="auth-pw-toggle" type="button" aria-label="Show password"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></div><span class="auth-err"></span></div>
+          <div class="auth-field" data-for="confirm"><label for="m-su-conf">Confirm password</label>
+            <div class="auth-input-wrap"><input id="m-su-conf" name="confirm" type="password" autocomplete="new-password" placeholder="••••••••" /><button class="auth-pw-toggle" type="button" aria-label="Show password"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></div><span class="auth-err"></span></div>
+          <label class="auth-check"><input type="checkbox" name="tos" /> <span>I agree to the <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>.</span></label>
+          <span class="auth-err" data-for="tos"></span>
+          <button class="btn btn-primary auth-submit" type="submit">Create account</button>
+          <div class="auth-msg"></div>
+        </form>
+        <p class="auth-alt">Already have an account? <a href="#" data-auth-view="signin">Sign in</a></p>
+      </div>
+      <div class="auth-card glass auth-view" id="av-forgot" hidden>
+        <button class="pm-x auth-x" type="button" aria-label="Close"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+        <h1>Reset your password</h1>
+        <p class="auth-sub">Enter your email and we'll send a link to reset it.</p>
+        <form class="auth-form" id="form-forgot" novalidate>
+          <div class="auth-field" data-for="email"><label for="m-fo-email">Email</label>
+            <input id="m-fo-email" name="email" type="email" autocomplete="email" placeholder="you@example.com" /><span class="auth-err"></span></div>
+          <button class="btn btn-primary auth-submit" type="submit">Send reset link</button>
+          <div class="auth-msg"></div>
+        </form>
+        <p class="auth-alt"><a href="#" data-auth-view="signin">← Back to sign in</a></p>
+      </div>
+    </div>
+  </div>
+
+  <script src="catalog.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

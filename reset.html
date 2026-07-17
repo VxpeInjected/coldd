@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>coldd Development New password</title>
+  <link rel="icon" type="image/png" href="logo.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" /><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin /><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body class="auth-page">
+  <div class="backdrop"></div>
+  <div class="glow"></div>
+  <div class="scrim"></div>
+  <div class="grain"></div>
+  <a class="auth-home" href="index.html" aria-label="coldd home"><img class="logo" src="logo.png" alt="coldd" /></a>
+  <main class="auth-wrap">
+    <div class="glass auth-card">
+      <h1>Choose a new password</h1>
+      <p class="auth-sub">Pick something you haven't used before.</p>
+      <form class="auth-form" id="form-reset" novalidate>
+        <div class="auth-field" data-for="password">
+          <label for="rs-pass">New password</label>
+          <div class="auth-input-wrap">
+            <input id="rs-pass" name="password" type="password" autocomplete="new-password" placeholder="At least 8 characters" />
+            <button class="auth-pw-toggle" type="button" aria-label="Show password"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
+          </div>
+          <span class="auth-err"></span>
+        </div>
+        <div class="auth-field" data-for="confirm">
+          <label for="rs-conf">Confirm password</label>
+          <div class="auth-input-wrap">
+            <input id="rs-conf" name="confirm" type="password" autocomplete="new-password" placeholder="••••••••" />
+            <button class="auth-pw-toggle" type="button" aria-label="Show password"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
+          </div>
+          <span class="auth-err"></span>
+        </div>
+        <button class="btn btn-primary auth-submit" type="submit">Update password</button>
+        <div class="auth-msg"></div>
+      </form>
+      <p class="auth-alt"><a href="signin.html">← Back to sign in</a></p>
+    </div>
+  </main>
+  <script src="auth.js"></script>
+</body>
+</html>

@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>coldd Development Checkout</title>
+  <title>coldd Development Blog</title>
   <link rel="icon" type="image/png" href="logo.png" />
-  <meta name="description" content="coldd is a Roblox development studio. Scripting, environments, modeling, and VFX, building and shipping polished experiences." />
+  <meta name="description" content="Devlogs, studio news, and craft notes from the people building coldd's Roblox and Minecraft catalog." />
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -33,7 +33,7 @@
       </a>
       <nav class="nav-links" aria-label="Primary">
         <span class="nav-set">
-          <a href="index.html">Home</a><a href="assets.html" id="assetsLink">Roblox</a><a href="minecraft.html" id="minecraftLink">Minecraft</a><a href="blog.html" id="blogLink">Blog</a><a href="tutorials.html" id="tutorialsLink">Tutorials</a><a href="about.html" id="aboutLink">About Us</a>
+          <a href="index.html">Home</a><a href="assets.html" id="assetsLink">Roblox</a><a href="minecraft.html" id="minecraftLink">Minecraft</a><a href="blog.html" id="blogLink" class="active" aria-current="page">Blog</a><a href="tutorials.html" id="tutorialsLink">Tutorials</a><a href="about.html" id="aboutLink">About Us</a>
         </span>
         <span class="nav-search-wrap">
           <button class="nav-search" id="searchBtn" type="button" aria-label="Search"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg></button>
@@ -78,81 +78,40 @@
     </div>
   </div>
 
-  <div class="search-panel" id="searchPanel" aria-hidden="true">
-    <div class="search-panel-inner glass">
-      <div class="search-list" id="searchList"></div>
-    </div>
-  </div>
-
-    <main class="page checkout-page">
-    <div class="wrap checkout">
-      <div class="co-main">
-        <a class="co-back" href="assets.html">← Continue shopping</a>
-        <h1>Checkout</h1>
-
-        <section class="co-sec glass">
-          <div class="co-sec-head"><h2>Contact</h2><span class="co-guest-tag" id="coMode">Guest checkout</span></div>
-          <div id="coGuest">
-            <div class="auth-field" data-for="email"><label for="co-email">Email for your receipt</label><input id="co-email" name="email" type="email" placeholder="you@example.com" /><span class="auth-err"></span></div>
-            <p class="co-hint">Checking out as a guest. <a href="#" id="coSignin">Sign in</a> for faster checkout.</p>
-          </div>
-          <div id="coUser" hidden><div class="co-user-row"><span class="dash-av" style="width:38px;height:38px;font-size:14px;">K</span><div><div class="dr-title">Kaden R.</div><div class="dr-sub" id="coUserEmail">kaden@example.com</div></div></div></div>
-        </section>
-
-        <section class="co-sec glass">
-          <h2>Payment</h2>
-          <div class="co-pay-tabs"><button class="co-pay-tab active" type="button" data-pay="card">Card</button><button class="co-pay-tab" type="button" data-pay="robux">Robux</button></div>
-          <div id="payCard" class="co-pay-panel">
-            <div class="auth-field" data-for="card"><label for="co-card">Card number</label><input id="co-card" name="card" type="text" inputmode="numeric" placeholder="1234 1234 1234 1234" autocomplete="cc-number" /><span class="auth-err"></span></div>
-            <div class="co-card-row">
-              <div class="auth-field" data-for="exp"><label for="co-exp">Expiry</label><input id="co-exp" name="exp" type="text" placeholder="MM / YY" autocomplete="cc-exp" /><span class="auth-err"></span></div>
-              <div class="auth-field" data-for="cvc"><label for="co-cvc">CVC</label><input id="co-cvc" name="cvc" type="text" inputmode="numeric" placeholder="CVC" autocomplete="cc-csc" /><span class="auth-err"></span></div>
-            </div>
-            <p class="co-hint">Card payments are processed by Stripe. <span class="co-secure">🔒 Secured &amp; encrypted</span></p>
-          </div>
-          <div id="payRobux" class="co-pay-panel" hidden>
-            <div class="co-robux-box"><div><div class="dr-title">Pay with Robux</div><div class="dr-sub">You'll complete payment via a Roblox gamepass.</div></div><div class="co-robux-amt" id="coRobuxAmt">R$ 0</div></div>
-          </div>
-        </section>
-
-        <section class="co-sec glass">
-          <label class="co-check"><input id="coTos" type="checkbox" /> <span>I agree to the <a href="#">Terms of Service</a>.</span></label>
-          <label class="co-check" id="coResellWrap" hidden><input id="coResell" type="checkbox" /> <span>I agree to the <a href="#">Resell License Terms</a>, I agree that if the terms are broken my reselling license may be revoked.</span></label>
-          <label class="co-check"><input id="coMkt" type="checkbox" checked /> <span>Email me deals, drops, and product updates (optional).</span></label>
-          <span class="auth-err" id="coAgreeErr"></span>
-        </section>
-
-        <button class="btn btn-primary co-place" id="coPlace" type="button">Place order</button>
-        <div class="co-msg" id="coMsg"></div>
+  <main class="page blog-page">
+    <section class="page-head">
+      <div class="wrap">
+        <h1>The coldd blog</h1>
+        <p>Devlogs, studio news, and craft notes from the people building coldd's Roblox and Minecraft catalog.</p>
       </div>
+    </section>
 
-      <aside class="co-side">
-        <div class="co-sum glass">
-          <h2>Order summary</h2>
-          <div class="co-items" id="coItems"></div>
-          <div class="co-empty" id="coEmpty" hidden>Your cart is empty. <a href="assets.html">Browse products →</a></div>
-          <div class="co-coupon">
-            <input id="coCoupon" type="text" placeholder="Discount code" />
-            <button class="btn btn-ghost" id="coApply" type="button">Apply</button>
-          </div>
-          <div class="co-coupon-msg" id="coCouponMsg"></div>
-          <div class="co-totals">
-            <div class="co-line"><span>Subtotal</span><span id="coSubtotal">$0</span></div>
-            <div class="co-line co-disc" id="coDiscLine" hidden><span id="coDiscLabel">Discount</span><span id="coDiscount">−$0</span></div>
-            <div class="co-line"><span>Tax (est.)</span><span id="coTax">$0</span></div>
-            <div class="co-line co-grand"><span>Total</span><span id="coTotal">$0</span></div>
-            <div class="co-fx" id="coFx"></div>
+    <section class="section-pad" style="padding-top:6px;">
+      <div class="wrap">
+        <div class="filters blog-filters" id="blogFilters">
+          <button class="chip active" data-cat="all" type="button">All</button>
+          <button class="chip" data-cat="Devlog" type="button">Devlog</button>
+          <button class="chip" data-cat="Studio News" type="button">Studio News</button>
+          <button class="chip" data-cat="Craft" type="button">Craft</button>
+        </div>
+        <div class="blog-grid" id="blogGrid"></div>
+        <p class="shop-empty" id="blogEmpty" hidden>No posts match this filter yet.</p>
+      </div>
+    </section>
+
+    <section class="section-pad" style="padding-top:0;">
+      <div class="wrap">
+        <div class="glass cta reveal">
+          <h2>Want the walkthroughs, not just the writeups?</h2>
+          <p>The tutorials hub has the step-by-step version of everything covered here.</p>
+          <div class="hero-cta" style="margin-top:28px;">
+            <a class="btn btn-primary" href="tutorials.html">Browse tutorials</a>
+            <a class="btn btn-ghost" href="releases.html">See what shipped</a>
           </div>
         </div>
-        <div class="co-suggest glass" id="coSuggest" hidden>
-          <h3>Frequently bought together</h3>
-          <p class="co-suggest-sub">Add a matching product and save 20%.</p>
-          <div class="co-suggest-list" id="coSuggestList"></div>
-        </div>
-      </aside>
-    </div>
+      </div>
+    </section>
   </main>
-
 
   <footer>
     <div class="wrap">
@@ -167,9 +126,7 @@
           <a href="blog.html">Blog</a>
           <a href="tutorials.html">Tutorials</a>
           <a href="releases.html">Releases</a>
-          <a href="#">Our Process</a>
           <a href="assets.html">Products</a>
-          <a href="#">FAQ</a>
         </div>
 
         <div class="foot-col">
@@ -226,8 +183,6 @@
     <span class="cart-fab-total" id="cartFabTotal">$0</span>
   </button>
   </div>
-
-
 
   <div class="cart-overlay" id="cartOverlay" hidden></div>
   <aside class="cart-drawer" id="cartDrawer" aria-hidden="true" aria-label="Shopping cart">
@@ -368,6 +323,7 @@
   </div>
 
   <script src="catalog.js"></script>
+  <script src="blog.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

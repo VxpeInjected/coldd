@@ -53,6 +53,9 @@
             <a href="#" data-panel="reviews"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m12 2 3 6 6.5 1-4.7 4.6 1.1 6.4L12 17l-5.9 3 1.1-6.4L2.5 9 9 8z"/></svg><span>Reviews</span></a>
             <a href="#" data-panel="users"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="4"/><path d="M2 21c0-4 3.5-6 7-6s7 2 7 6"/><path d="M16 3.5a4 4 0 0 1 0 7.8"/><path d="M18 14.5c2.5.6 4 2.2 4 5.5"/></svg><span>Users</span></a>
             <a href="#" data-panel="coupons"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5H4a1 1 0 0 0-1 1v4a2.5 2.5 0 0 1 0 5v4a1 1 0 0 0 1 1h5"/><path d="M15 19h5a1 1 0 0 0 1-1v-4a2.5 2.5 0 0 1 0-5V5a1 1 0 0 0-1-1h-5"/><path d="M9 5v14M9 8h.01M9 12h.01M9 16h.01"/></svg><span>Coupons</span></a>
+            <a href="#" data-panel="posts"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4Z"/></svg><span>Blog Posts</span></a>
+            <a href="#" data-panel="tutorials"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg><span>Tutorials</span></a>
+            <a href="#" data-panel="releases"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg><span>Releases</span></a>
             <a href="#" data-panel="staff"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 3 6v6c0 5 4 8 9 10 5-2 9-5 9-10V6z"/><path d="m9 12 2 2 4-4"/></svg><span>Staff &amp; Whitelist</span></a>
             <a href="#" data-panel="audit"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M9 13h6M9 17h6M9 9h1"/></svg><span>Audit Log</span></a>
           </nav>
@@ -265,6 +268,95 @@
             </div>
           </section>
 
+          <section class="dash-panel" id="adm-panel-posts" hidden>
+            <div class="dash-head"><h1>Blog posts</h1><p>Write, edit, and publish articles for the public blog.</p></div>
+            <div class="adm-toolbar">
+              <input type="text" id="admPostSearch" class="adm-input" placeholder="Search posts…" />
+            </div>
+            <div class="dash-card glass dash-tablewrap">
+              <table class="dash-table adm-table-tight">
+                <thead><tr><th>Title</th><th>Category</th><th>Author</th><th>Date</th><th>Status</th><th>Actions</th></tr></thead>
+                <tbody id="admPostBody"></tbody>
+              </table>
+            </div>
+            <div class="dash-card glass">
+              <div class="dash-card-head"><h2 id="admPostFormTitle">Add post</h2></div>
+              <form class="adm-form" id="admAddPostForm">
+                <input type="hidden" id="admPostEditId" value="" />
+                <input type="text" id="admNewPostTitle" class="adm-input" placeholder="Title" required />
+                <select id="admNewPostCategory" class="adm-select"><option value="Devlog">Devlog</option><option value="Studio News">Studio News</option><option value="Craft">Craft</option></select>
+                <input type="text" id="admNewPostAuthor" class="adm-input adm-input-sm" placeholder="Author" required />
+                <input type="date" id="admNewPostDate" class="adm-input adm-input-sm" required />
+                <input type="number" id="admNewPostRead" class="adm-input adm-input-sm" placeholder="Read mins" min="1" step="1" required />
+                <input type="text" id="admNewPostCover" class="adm-input adm-input-sm" placeholder="Cover image, e.g. banner.jpg" />
+                <input type="text" id="admNewPostDek" class="adm-input adm-textarea" placeholder="One-line summary (dek)" required />
+                <textarea id="admNewPostBody" class="adm-input adm-textarea" rows="6" placeholder="Body — blank line for new paragraph, ## Heading, - list item, **bold**" required></textarea>
+                <label class="adm-check"><input type="checkbox" id="admNewPostPublished" checked /> Published</label>
+                <button class="btn btn-primary adm-btn-sm" type="submit" id="admPostFormSubmit">Add post</button>
+                <button class="btn btn-ghost adm-btn-sm" type="button" id="admPostFormCancel" hidden>Cancel edit</button>
+              </form>
+            </div>
+          </section>
+
+          <section class="dash-panel" id="adm-panel-tutorials" hidden>
+            <div class="dash-head"><h1>Tutorials</h1><p>Manage the tutorials hub, grouped by track.</p></div>
+            <div class="adm-toolbar">
+              <input type="text" id="admTutSearch" class="adm-input" placeholder="Search tutorials…" />
+            </div>
+            <div class="dash-card glass dash-tablewrap">
+              <table class="dash-table adm-table-tight">
+                <thead><tr><th>Title</th><th>Track</th><th>Difficulty</th><th>Platform</th><th>Order</th><th>Status</th><th>Actions</th></tr></thead>
+                <tbody id="admTutBody"></tbody>
+              </table>
+            </div>
+            <div class="dash-card glass">
+              <div class="dash-card-head"><h2 id="admTutFormTitle">Add tutorial</h2></div>
+              <form class="adm-form" id="admAddTutForm">
+                <input type="hidden" id="admTutEditId" value="" />
+                <input type="text" id="admNewTutTitle" class="adm-input" placeholder="Title" required />
+                <select id="admNewTutTrack" class="adm-select"><option value="Scripting">Scripting</option><option value="Building">Building</option><option value="Server Setup">Server Setup</option></select>
+                <select id="admNewTutDifficulty" class="adm-select"><option value="Beginner">Beginner</option><option value="Intermediate">Intermediate</option><option value="Advanced">Advanced</option></select>
+                <select id="admNewTutPlatform" class="adm-select"><option value="Roblox">Roblox</option><option value="Minecraft">Minecraft</option><option value="Both">Both</option></select>
+                <input type="number" id="admNewTutOrder" class="adm-input adm-input-sm" placeholder="Order" min="1" step="1" required />
+                <input type="number" id="admNewTutMins" class="adm-input adm-input-sm" placeholder="Est. mins" min="1" step="1" required />
+                <input type="text" id="admNewTutCover" class="adm-input adm-input-sm" placeholder="Cover image, e.g. scripts.jpg" />
+                <input type="text" id="admNewTutSummary" class="adm-input adm-textarea" placeholder="One-line summary" required />
+                <textarea id="admNewTutBody" class="adm-input adm-textarea" rows="6" placeholder="Body — blank line for new paragraph, ## Heading, - list item, **bold**" required></textarea>
+                <label class="adm-check"><input type="checkbox" id="admNewTutPublished" checked /> Published</label>
+                <button class="btn btn-primary adm-btn-sm" type="submit" id="admTutFormSubmit">Add tutorial</button>
+                <button class="btn btn-ghost adm-btn-sm" type="button" id="admTutFormCancel" hidden>Cancel edit</button>
+              </form>
+            </div>
+          </section>
+
+          <section class="dash-panel" id="adm-panel-releases" hidden>
+            <div class="dash-head"><h1>Releases &amp; updates</h1><p>Publish changelog entries and announcements.</p></div>
+            <div class="adm-toolbar">
+              <input type="text" id="admRelSearch" class="adm-input" placeholder="Search releases…" />
+            </div>
+            <div class="dash-card glass dash-tablewrap">
+              <table class="dash-table adm-table-tight">
+                <thead><tr><th>Version</th><th>Kind</th><th>Title</th><th>Date</th><th>Status</th><th>Actions</th></tr></thead>
+                <tbody id="admRelBody"></tbody>
+              </table>
+            </div>
+            <div class="dash-card glass">
+              <div class="dash-card-head"><h2 id="admRelFormTitle">Add release</h2></div>
+              <form class="adm-form" id="admAddRelForm">
+                <input type="hidden" id="admRelEditId" value="" />
+                <input type="text" id="admNewRelVersion" class="adm-input adm-input-sm" placeholder="Version, e.g. v2.6.0 (optional)" />
+                <select id="admNewRelKind" class="adm-select"><option value="Feature">Feature</option><option value="Fix">Fix</option><option value="Announcement">Announcement</option></select>
+                <input type="text" id="admNewRelTitle" class="adm-input" placeholder="Title" required />
+                <input type="date" id="admNewRelDate" class="adm-input adm-input-sm" required />
+                <input type="text" id="admNewRelAffects" class="adm-input adm-input-sm" placeholder="Affects (product ids, comma-separated)" />
+                <textarea id="admNewRelSummary" class="adm-input adm-textarea" rows="3" placeholder="Summary" required></textarea>
+                <label class="adm-check"><input type="checkbox" id="admNewRelPublished" checked /> Published</label>
+                <button class="btn btn-primary adm-btn-sm" type="submit" id="admRelFormSubmit">Add release</button>
+                <button class="btn btn-ghost adm-btn-sm" type="button" id="admRelFormCancel" hidden>Cancel edit</button>
+              </form>
+            </div>
+          </section>
+
           <section class="dash-panel" id="adm-panel-staff" hidden>
             <div class="dash-head"><h1>Staff &amp; whitelist</h1><p>Manage who can access this dashboard and what they can do.</p></div>
             <p class="adm-note" id="admWhitelistNote"></p>
@@ -301,6 +393,7 @@
   </div>
 
   <script src="catalog.js"></script>
+  <script src="blog.js"></script>
   <script src="admin.js"></script>
 </body>
 </html>

@@ -389,7 +389,7 @@
   /* ================================================================
      NAV / PANEL SWITCHING
      ================================================================ */
-  var PANELS = ['home', 'analytics', 'products', 'orders', 'refunds', 'reviews', 'users', 'coupons', 'staff', 'audit'];
+  var PANELS = ['home', 'analytics', 'products', 'orders', 'refunds', 'reviews', 'users', 'coupons', 'posts', 'tutorials', 'releases', 'staff', 'audit'];
   var curPanel = 'home';
   function showPanel(name) {
     if (PANELS.indexOf(name) < 0) name = 'home';
@@ -411,6 +411,9 @@
     else if (name === 'reviews') renderReviews();
     else if (name === 'users') renderUsers();
     else if (name === 'coupons') renderCoupons();
+    else if (name === 'posts') renderPosts();
+    else if (name === 'tutorials') renderTutorials();
+    else if (name === 'releases') renderReleases();
     else if (name === 'staff') renderStaff();
     else if (name === 'audit') renderAudit();
   }
@@ -885,6 +888,304 @@
     COUPONS.push({ code: code, type: type, val: val, active: true, limit: limit });
     saveCoupons(); logAudit('Created coupon ' + code);
     addCouponForm.reset(); renderCoupons();
+  });
+
+  /* ================================================================
+     BLOG POSTS PANEL
+     ================================================================ */
+  var POSTS = seedIfEmpty('coldd_admin_posts_v1', function () { return (window.__POSTS || []).slice(); });
+  function savePosts() { lsSet('coldd_admin_posts_v1', POSTS); }
+  function renderPosts() {
+    var q = ($('admPostSearch') || {}).value || '';
+    q = q.trim().toLowerCase();
+    var rows = POSTS.filter(function (p) { return !q || p.title.toLowerCase().indexOf(q) >= 0; });
+    $('admPostBody').innerHTML = rows.map(function (p) {
+      return '<tr data-id="' + esc(p.id) + '">' +
+        '<td>' + esc(p.title) + '</td>' +
+        '<td>' + esc(p.category) + '</td>' +
+        '<td>' + esc(p.author) + '</td>' +
+        '<td>' + esc(p.date) + '</td>' +
+        '<td>' + (p.visible ? '<span class="dt-badge ok">Published</span>' : '<span class="dt-badge err">Draft</span>') + '</td>' +
+        '<td class="adm-row-actions">' +
+          '<button class="btn btn-ghost adm-btn-sm adm-post-edit" type="button"' + (can('admin') ? '' : ' disabled') + '>Edit</button>' +
+          '<button class="btn btn-ghost adm-btn-sm adm-post-toggle" type="button"' + (can('admin') ? '' : ' disabled') + '>' + (p.visible ? 'Unpublish' : 'Publish') + '</button>' +
+          '<button class="btn btn-ghost adm-btn-sm adm-post-del" type="button"' + (can('admin') ? '' : ' disabled') + '>Delete</button>' +
+        '</td></tr>';
+    }).join('') || '<tr><td colspan="6" class="adm-empty">No posts yet.</td></tr>';
+  }
+  function fillPostForm(p) {
+    $('admPostEditId').value = p.id;
+    $('admNewPostTitle').value = p.title;
+    $('admNewPostCategory').value = p.category;
+    $('admNewPostAuthor').value = p.author;
+    $('admNewPostDate').value = p.date;
+    $('admNewPostRead').value = p.readMins;
+    $('admNewPostCover').value = p.cover;
+    $('admNewPostDek').value = p.dek;
+    $('admNewPostBody').value = p.body;
+    $('admNewPostPublished').checked = p.visible;
+    $('admPostFormTitle').textContent = 'Edit post';
+    $('admPostFormSubmit').textContent = 'Save changes';
+    $('admPostFormCancel').hidden = false;
+  }
+  function resetPostForm() {
+    $('admAddPostForm').reset();
+    $('admPostEditId').value = '';
+    $('admPostFormTitle').textContent = 'Add post';
+    $('admPostFormSubmit').textContent = 'Add post';
+    $('admPostFormCancel').hidden = true;
+  }
+  var postBody = $('admPostBody');
+  if (postBody) postBody.addEventListener('click', function (e) {
+    var tr = e.target.closest('tr'); if (!tr) return;
+    var id = tr.getAttribute('data-id');
+    var p = POSTS.filter(function (x) { return x.id === id; })[0]; if (!p) return;
+    if (e.target.classList.contains('adm-post-edit')) {
+      if (!can('admin')) return;
+      fillPostForm(p);
+    } else if (e.target.classList.contains('adm-post-toggle')) {
+      if (!can('admin')) return;
+      p.visible = !p.visible; savePosts(); logAudit((p.visible ? 'Published' : 'Unpublished') + ' post "' + p.title + '"'); renderPosts();
+    } else if (e.target.classList.contains('adm-post-del')) {
+      if (!can('admin')) return;
+      if (!confirm('Delete "' + p.title + '"? This can\'t be undone.')) return;
+      POSTS = POSTS.filter(function (x) { return x.id !== id; });
+      savePosts(); logAudit('Deleted post "' + p.title + '"'); renderPosts();
+    }
+  });
+  var postSearch = $('admPostSearch');
+  if (postSearch) postSearch.addEventListener('input', renderPosts);
+  var postCancelBtn = $('admPostFormCancel');
+  if (postCancelBtn) postCancelBtn.addEventListener('click', resetPostForm);
+  var addPostForm = $('admAddPostForm');
+  if (addPostForm) addPostForm.addEventListener('submit', function (e) {
+    e.preventDefault();
+    if (!can('admin')) return;
+    var title = $('admNewPostTitle').value.trim();
+    if (!title) return;
+    var editId = $('admPostEditId').value;
+    var data = {
+      title: title,
+      category: $('admNewPostCategory').value,
+      author: $('admNewPostAuthor').value.trim() || 'coldd',
+      date: $('admNewPostDate').value,
+      readMins: parseInt($('admNewPostRead').value, 10) || 5,
+      cover: $('admNewPostCover').value.trim() || 'banner.jpg',
+      dek: $('admNewPostDek').value.trim(),
+      body: $('admNewPostBody').value,
+      visible: $('admNewPostPublished').checked
+    };
+    if (editId) {
+      var existing = POSTS.filter(function (x) { return x.id === editId; })[0];
+      if (existing) { Object.assign(existing, data); logAudit('Edited post "' + title + '"'); }
+    } else {
+      var slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+      data.id = slug + '-' + Date.now().toString(36);
+      data.slug = slug; data.tags = []; data.featured = false;
+      POSTS.push(data);
+      logAudit('Added post "' + title + '"');
+    }
+    savePosts();
+    resetPostForm();
+    renderPosts();
+  });
+
+  /* ================================================================
+     TUTORIALS PANEL
+     ================================================================ */
+  var TUTORIALS = seedIfEmpty('coldd_admin_tutorials_v1', function () { return (window.__TUTORIALS || []).slice(); });
+  function saveTutorials() { lsSet('coldd_admin_tutorials_v1', TUTORIALS); }
+  function renderTutorials() {
+    var q = ($('admTutSearch') || {}).value || '';
+    q = q.trim().toLowerCase();
+    var rows = TUTORIALS.filter(function (t) { return !q || t.title.toLowerCase().indexOf(q) >= 0; });
+    $('admTutBody').innerHTML = rows.map(function (t) {
+      return '<tr data-id="' + esc(t.id) + '">' +
+        '<td>' + esc(t.title) + '</td>' +
+        '<td>' + esc(t.track) + '</td>' +
+        '<td>' + esc(t.difficulty) + '</td>' +
+        '<td>' + esc(t.platform) + '</td>' +
+        '<td>' + t.order + '</td>' +
+        '<td>' + (t.visible ? '<span class="dt-badge ok">Published</span>' : '<span class="dt-badge err">Draft</span>') + '</td>' +
+        '<td class="adm-row-actions">' +
+          '<button class="btn btn-ghost adm-btn-sm adm-tut-edit" type="button"' + (can('admin') ? '' : ' disabled') + '>Edit</button>' +
+          '<button class="btn btn-ghost adm-btn-sm adm-tut-toggle" type="button"' + (can('admin') ? '' : ' disabled') + '>' + (t.visible ? 'Unpublish' : 'Publish') + '</button>' +
+          '<button class="btn btn-ghost adm-btn-sm adm-tut-del" type="button"' + (can('admin') ? '' : ' disabled') + '>Delete</button>' +
+        '</td></tr>';
+    }).join('') || '<tr><td colspan="7" class="adm-empty">No tutorials yet.</td></tr>';
+  }
+  function fillTutForm(t) {
+    $('admTutEditId').value = t.id;
+    $('admNewTutTitle').value = t.title;
+    $('admNewTutTrack').value = t.track;
+    $('admNewTutDifficulty').value = t.difficulty;
+    $('admNewTutPlatform').value = t.platform;
+    $('admNewTutOrder').value = t.order;
+    $('admNewTutMins').value = t.estMins;
+    $('admNewTutCover').value = t.cover;
+    $('admNewTutSummary').value = t.summary;
+    $('admNewTutBody').value = t.body;
+    $('admNewTutPublished').checked = t.visible;
+    $('admTutFormTitle').textContent = 'Edit tutorial';
+    $('admTutFormSubmit').textContent = 'Save changes';
+    $('admTutFormCancel').hidden = false;
+  }
+  function resetTutForm() {
+    $('admAddTutForm').reset();
+    $('admTutEditId').value = '';
+    $('admTutFormTitle').textContent = 'Add tutorial';
+    $('admTutFormSubmit').textContent = 'Add tutorial';
+    $('admTutFormCancel').hidden = true;
+  }
+  var tutBody = $('admTutBody');
+  if (tutBody) tutBody.addEventListener('click', function (e) {
+    var tr = e.target.closest('tr'); if (!tr) return;
+    var id = tr.getAttribute('data-id');
+    var t = TUTORIALS.filter(function (x) { return x.id === id; })[0]; if (!t) return;
+    if (e.target.classList.contains('adm-tut-edit')) {
+      if (!can('admin')) return;
+      fillTutForm(t);
+    } else if (e.target.classList.contains('adm-tut-toggle')) {
+      if (!can('admin')) return;
+      t.visible = !t.visible; saveTutorials(); logAudit((t.visible ? 'Published' : 'Unpublished') + ' tutorial "' + t.title + '"'); renderTutorials();
+    } else if (e.target.classList.contains('adm-tut-del')) {
+      if (!can('admin')) return;
+      if (!confirm('Delete "' + t.title + '"? This can\'t be undone.')) return;
+      TUTORIALS = TUTORIALS.filter(function (x) { return x.id !== id; });
+      saveTutorials(); logAudit('Deleted tutorial "' + t.title + '"'); renderTutorials();
+    }
+  });
+  var tutSearch = $('admTutSearch');
+  if (tutSearch) tutSearch.addEventListener('input', renderTutorials);
+  var tutCancelBtn = $('admTutFormCancel');
+  if (tutCancelBtn) tutCancelBtn.addEventListener('click', resetTutForm);
+  var addTutForm = $('admAddTutForm');
+  if (addTutForm) addTutForm.addEventListener('submit', function (e) {
+    e.preventDefault();
+    if (!can('admin')) return;
+    var title = $('admNewTutTitle').value.trim();
+    if (!title) return;
+    var editId = $('admTutEditId').value;
+    var data = {
+      title: title,
+      track: $('admNewTutTrack').value,
+      difficulty: $('admNewTutDifficulty').value,
+      platform: $('admNewTutPlatform').value,
+      order: parseInt($('admNewTutOrder').value, 10) || 1,
+      estMins: parseInt($('admNewTutMins').value, 10) || 10,
+      cover: $('admNewTutCover').value.trim() || 'scripts.jpg',
+      summary: $('admNewTutSummary').value.trim(),
+      body: $('admNewTutBody').value,
+      visible: $('admNewTutPublished').checked
+    };
+    if (editId) {
+      var existing = TUTORIALS.filter(function (x) { return x.id === editId; })[0];
+      if (existing) { Object.assign(existing, data); logAudit('Edited tutorial "' + title + '"'); }
+    } else {
+      var slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+      data.id = slug + '-' + Date.now().toString(36);
+      data.slug = slug;
+      TUTORIALS.push(data);
+      logAudit('Added tutorial "' + title + '"');
+    }
+    saveTutorials();
+    resetTutForm();
+    renderTutorials();
+  });
+
+  /* ================================================================
+     RELEASES PANEL
+     ================================================================ */
+  var RELEASES = seedIfEmpty('coldd_admin_releases_v1', function () { return (window.__RELEASES || []).slice(); });
+  function saveReleases() { lsSet('coldd_admin_releases_v1', RELEASES); }
+  function renderReleases() {
+    var q = ($('admRelSearch') || {}).value || '';
+    q = q.trim().toLowerCase();
+    var rows = RELEASES.filter(function (r) { return !q || r.title.toLowerCase().indexOf(q) >= 0; });
+    $('admRelBody').innerHTML = rows.map(function (r) {
+      return '<tr data-id="' + esc(r.id) + '">' +
+        '<td class="dt-mono">' + esc(r.version || '—') + '</td>' +
+        '<td>' + esc(r.kind) + '</td>' +
+        '<td>' + esc(r.title) + '</td>' +
+        '<td>' + esc(r.date) + '</td>' +
+        '<td>' + (r.visible ? '<span class="dt-badge ok">Published</span>' : '<span class="dt-badge err">Draft</span>') + '</td>' +
+        '<td class="adm-row-actions">' +
+          '<button class="btn btn-ghost adm-btn-sm adm-rel-edit" type="button"' + (can('admin') ? '' : ' disabled') + '>Edit</button>' +
+          '<button class="btn btn-ghost adm-btn-sm adm-rel-toggle" type="button"' + (can('admin') ? '' : ' disabled') + '>' + (r.visible ? 'Unpublish' : 'Publish') + '</button>' +
+          '<button class="btn btn-ghost adm-btn-sm adm-rel-del" type="button"' + (can('admin') ? '' : ' disabled') + '>Delete</button>' +
+        '</td></tr>';
+    }).join('') || '<tr><td colspan="6" class="adm-empty">No releases yet.</td></tr>';
+  }
+  function fillRelForm(r) {
+    $('admRelEditId').value = r.id;
+    $('admNewRelVersion').value = r.version || '';
+    $('admNewRelKind').value = r.kind;
+    $('admNewRelTitle').value = r.title;
+    $('admNewRelDate').value = r.date;
+    $('admNewRelAffects').value = (r.affects || []).join(', ');
+    $('admNewRelSummary').value = r.summary;
+    $('admNewRelPublished').checked = r.visible;
+    $('admRelFormTitle').textContent = 'Edit release';
+    $('admRelFormSubmit').textContent = 'Save changes';
+    $('admRelFormCancel').hidden = false;
+  }
+  function resetRelForm() {
+    $('admAddRelForm').reset();
+    $('admRelEditId').value = '';
+    $('admRelFormTitle').textContent = 'Add release';
+    $('admRelFormSubmit').textContent = 'Add release';
+    $('admRelFormCancel').hidden = true;
+  }
+  var relBody = $('admRelBody');
+  if (relBody) relBody.addEventListener('click', function (e) {
+    var tr = e.target.closest('tr'); if (!tr) return;
+    var id = tr.getAttribute('data-id');
+    var r = RELEASES.filter(function (x) { return x.id === id; })[0]; if (!r) return;
+    if (e.target.classList.contains('adm-rel-edit')) {
+      if (!can('admin')) return;
+      fillRelForm(r);
+    } else if (e.target.classList.contains('adm-rel-toggle')) {
+      if (!can('admin')) return;
+      r.visible = !r.visible; saveReleases(); logAudit((r.visible ? 'Published' : 'Unpublished') + ' release "' + r.title + '"'); renderReleases();
+    } else if (e.target.classList.contains('adm-rel-del')) {
+      if (!can('admin')) return;
+      if (!confirm('Delete "' + r.title + '"? This can\'t be undone.')) return;
+      RELEASES = RELEASES.filter(function (x) { return x.id !== id; });
+      saveReleases(); logAudit('Deleted release "' + r.title + '"'); renderReleases();
+    }
+  });
+  var relSearch = $('admRelSearch');
+  if (relSearch) relSearch.addEventListener('input', renderReleases);
+  var relCancelBtn = $('admRelFormCancel');
+  if (relCancelBtn) relCancelBtn.addEventListener('click', resetRelForm);
+  var addRelForm = $('admAddRelForm');
+  if (addRelForm) addRelForm.addEventListener('submit', function (e) {
+    e.preventDefault();
+    if (!can('admin')) return;
+    var title = $('admNewRelTitle').value.trim();
+    if (!title) return;
+    var editId = $('admRelEditId').value;
+    var data = {
+      version: $('admNewRelVersion').value.trim(),
+      kind: $('admNewRelKind').value,
+      title: title,
+      date: $('admNewRelDate').value,
+      affects: $('admNewRelAffects').value.split(',').map(function (s) { return s.trim(); }).filter(Boolean),
+      summary: $('admNewRelSummary').value.trim(),
+      details: '',
+      visible: $('admNewRelPublished').checked
+    };
+    if (editId) {
+      var existing = RELEASES.filter(function (x) { return x.id === editId; })[0];
+      if (existing) { Object.assign(existing, data); logAudit('Edited release "' + title + '"'); }
+    } else {
+      data.id = 'rel-' + Date.now().toString(36);
+      RELEASES.push(data);
+      logAudit('Added release "' + title + '"');
+    }
+    saveReleases();
+    resetRelForm();
+    renderReleases();
   });
 
   /* ================================================================

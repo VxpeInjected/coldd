@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>coldd Development</title>
+  <title>coldd Development Terms of Service</title>
   <link rel="icon" type="image/png" href="logo.png" />
-  <meta name="description" content="coldd is a Roblox development studio. Scripting, environments, modeling, and VFX, building and shipping polished experiences." />
+  <meta name="description" content="coldd Development's Terms of Service for using coldd.dev and our Roblox and Minecraft assets." />
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -18,15 +18,6 @@
   <div class="glow"></div>
   <div class="scrim"></div>
   <div class="grain"></div>
-
-  <div class="page-loader" id="pageLoader" hidden>
-    <div class="pl-box">
-      <span class="pl-ring"></span>
-      <span class="pl-ring two"></span>
-      <img class="pl-logo" src="logo.png" alt="" />
-      <span class="pl-text">Loading</span>
-    </div>
-  </div>
 
   <div class="announce" id="announce">
     <div class="announce-inner">
@@ -87,235 +78,116 @@
     </div>
   </div>
 
-  <div class="search-panel" id="searchPanel" aria-hidden="true">
-    <div class="search-panel-inner glass">
-      <div class="search-list" id="searchList"></div>
-    </div>
-  </div>
+  <main class="page legal">
+    <section class="page-head">
+      <div class="wrap">
+        <h1>Terms of Service</h1>
+        <p>The rules for using coldd.dev and the assets you purchase from us.</p>
+      </div>
+    </section>
 
-  <main>
+    <section class="section-pad" style="padding-top: 6px;">
+      <div class="wrap legal-wrap">
+        <div class="glass legal-card reveal">
+          <p class="legal-meta">Last updated: July 24, 2026</p>
 
-    <section class="hero" id="home">
-      <div class="wrap hero-grid">
-        <div class="hero-copy reveal d1">
-          <h1 class="hero-h1">Bringing game ideas <span class="hl">to life</span></h1>
-          <p class="hero-sub">Game templates, finished games, maps, systems, UI's and more. Everything you need to build your game, all in one place.</p>
-          <div class="hero-cta">
-            <a class="btn btn-primary" href="assets.html">Roblox</a>
-            <a class="btn btn-ghost" href="minecraft.html">Minecraft</a>
+          <p>By purchasing any digital product or service from coldd ("the Provider," "we," "us," or "our"), you ("the Customer," "you," or "your") explicitly acknowledge that you have read, understood, and agree to be contractually bound by these Terms of Service, our Digital Product License, and our Community Rules.</p>
+          <p>If you do not agree to these terms, you must not purchase or use our products and/or marketing as well as remain in our Discord server.</p>
+
+          <div class="legal-note">
+            <span class="legal-badge">Operated by coldd | ABN: 34 127 589 633</span>
+            <p style="margin-top:12px;">coldd operates under Australian law while complying with the applicable regulations of all countries in which it operates. Any disputes will be resolved exclusively under Australian jurisdiction.</p>
           </div>
-          <div class="hero-stats">
-            <div class="hstat"><span class="hn">850+</span><span class="hl2">Products</span></div>
-            <div class="hstat"><span class="hn">100k+</span><span class="hl2">Sales</span></div>
-            <div class="hstat"><span class="hn">12.4k</span><span class="hl2">Discord</span></div>
+
+          <h2>§ 1 · Intellectual Property &amp; Digital License</h2>
+
+          <div class="legal-sub">
+            <h3>§ 1.1 · Grant Of License</h3>
+            <div class="legal-clause"><p><strong>§1.1(a)</strong> — Upon successful payment, coldd grants you a limited, non-exclusive, non-transferable, revocable, worldwide Personal Use License for downloaded digital products, strictly conditional upon ongoing compliance with these Terms.</p></div>
+            <div class="legal-clause"><p><strong>§1.1(b)</strong> — This license permits Customer to use the digital product within projects owned and operated by Customer, including commercial monetization under § 1.1(c). It prohibits use on behalf of, for the benefit of, or as a deliverable to any third party, including freelance, contract, or commissioned work, without a separate agreement. Unauthorized use constitutes a material breach, resulting in immediate termination of licensing rights.</p></div>
+            <div class="legal-clause"><p><strong>§1.1(c)</strong> — Notwithstanding § 1.1(b), Customer may commercially monetize the product as a standalone experience, game, or integrated component, including via Robux, in-game purchases, or advertising. This applies to the product as delivered or modified under § 1.3, solely for Customer's own published use. It strictly prohibits selling, sublicensing, sharing, or distributing the product, source files, or derivatives.</p></div>
           </div>
-        </div>
-        <div class="hero-show reveal d2">
-          <a class="hero-card" href="assets.html" aria-label="Featured: ALL BRAWL">
-            <div class="hsc-img" style="background-image:url('new-release.jpg')"></div>
-            <div class="hsc-foot">
-              <div><span class="hsc-title">ALL BRAWL</span></div>
-            </div>
-          </a>
-          <a class="hero-mini hm1" href="minecraft.html" style="background-image:url('minecraft.jpg')"><span>Minecraft hubs</span></a>
-          <a class="hero-mini hm2" href="assets.html?cat=maps" style="background-image:url('builds.jpg')"><span>Maps &amp; builds</span></a>
-          <a class="hero-mini hm3" href="assets.html?cat=game-templates" style="background-image:url('premade.jpg')"><span>Finished games &amp; templates</span></a>
-        </div>
-      </div>
-      <div class="wrap hero-cap">
-        <div class="glass cap-strip reveal d2">
-          <div class="item"><span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m18 16 4-4-4-4"/><path d="m6 8-4 4 4 4"/><path d="m14.5 4-5 16"/></svg></span><span class="t">Scripting</span></div>
-          <div class="item"><span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg></span><span class="t">UI Designing</span></div>
-          <div class="item"><span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.09-3.09a2 2 0 0 0-2.82 0L6 21"/></svg></span><span class="t">Graphics</span></div>
-          <div class="item"><span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V7l8-4v18"/><path d="M19 21V11l-6-4"/></svg></span><span class="t">Buildings</span></div>
-          <div class="item"><span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20.38 3.46 16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.47a1 1 0 0 0 .99.84H6v10a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.47a2 2 0 0 0-1.34-2.23z"/></svg></span><span class="t">Uniforms</span></div>
-          <div class="item"><span class="ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 1.9 5.8a2 2 0 0 0 1.3 1.3L21 12l-5.8 1.9a2 2 0 0 0-1.3 1.3L12 21l-1.9-5.8a2 2 0 0 0-1.3-1.3L3 12l5.8-1.9a2 2 0 0 0 1.3-1.3z"/></svg></span><span class="t">VFX &amp; Animations</span></div>
-        </div>
-      </div>
-    </section>
 
-    <section class="section-pad" style="padding-top: 40px;">
-      <div class="wrap">
-        <div class="sec-head reveal">
-          <h2>New releases</h2>
-        </div>
-        <div class="nr-frame reveal">
-          <div class="nr-track" id="nrTrack">
-            <div class="nr-slide" style="background-image:url('new-release.jpg')"><div class="nr-cap"><span class="nr-chip">New</span><span class="nr-title">Cyberpunk District</span><a class="btn nr-view" href="product.html?id=cyberpunk-district" target="_blank" rel="noopener">View product</a></div></div>
-            <div class="nr-slide" style="background-image:url('frostline.jpg')"><div class="nr-cap"><span class="nr-chip">New</span><span class="nr-title">Frostline Survival Kit</span><a class="btn nr-view" href="product.html?id=frostline-survival-kit" target="_blank" rel="noopener">View product</a></div></div>
-            <div class="nr-slide" style="background-image:url('builds.jpg')"><div class="nr-cap"><span class="nr-chip">New</span><span class="nr-title">Containment Site</span><a class="btn nr-view" href="product.html?id=containment-site" target="_blank" rel="noopener">View product</a></div></div>
-            <div class="nr-slide" style="background-image:url('premade.jpg')"><div class="nr-cap"><span class="nr-chip">New</span><span class="nr-title">ALL BRAWL Full Game</span><a class="btn nr-view" href="product.html?id=all-brawl-full-game" target="_blank" rel="noopener">View product</a></div></div>
+          <div class="legal-sub">
+            <h3>§ 1.2 · Restrictions on Use</h3>
+            <div class="legal-clause"><p><strong>§1.2(a)</strong> — You may not sell, rent, distribute, or share the product, source files, or documentation. This includes uploading assets to public repositories, file-sharing servers, or secondary marketplaces without coldd's prior written authorization.</p></div>
+            <div class="legal-clause"><p><strong>§1.2(b)</strong> — You may use the product within a shared team project if it remains embedded in that workflow. The product must not be extracted, copied, or redistributed as a standalone asset for use outside that project.</p></div>
+            <div class="legal-clause"><p><strong>§1.2(c)</strong> — This license excludes any right to resell or sublicense the product unless coldd grants a product-specific Resell Licence in writing. If issued, you may sell that specific product under your own storefront, solely per the <a href="resell-license.html">Resell Licence terms</a>. This license applies only to the named product, excluding other versions. coldd may revoke it at any time; continued resale after revocation violates § 1.2.</p></div>
           </div>
-          <div class="nr-dots" id="nrDots"><span class="nr-dot"></span><span class="nr-dot"></span><span class="nr-dot"></span><span class="nr-dot"></span></div>
-        </div>
-      </div>
-    </section>
 
-    <section class="section-pad" style="padding-top: 64px;">
-      <div class="wrap">
-        <div class="sec-head reveal">
-          <h2>Featured products</h2>
-        </div>
-        <div class="product-grid featured-grid">
-          <article class="product" data-cat="game-templates" data-price="89" data-catlabel="Finished Games &amp; Templates" data-resell="yes">
-            <div class="p-thumb" style="background-image:url('premade.jpg')"></div>
-            <div class="p-body">
-              <h3 class="p-name">ALL BRAWL Full Game</h3>
-              <div class="p-price-row"><span class="p-price">$89</span></div>
-              <div class="p-stars"><span class="st on">★</span><span class="st on">★</span><span class="st on">★</span><span class="st on">★</span><span class="st on">★</span><span class="p-rc">(214)</span></div>
-              <p class="p-sum">Complete fighting game, fully scripted and ready to launch.</p>
-              <button class="p-add" type="button">Add to Cart</button>
-            </div>
-          </article>
-          <article class="product" data-cat="hubs" data-price="45" data-catlabel="Hubs" data-resell="yes">
-            <div class="p-thumb" style="background-image:url('minecraft.jpg')"></div>
-            <div class="p-body">
-              <h3 class="p-name">Skyblock Network Hub</h3>
-              <div class="p-price-row"><span class="p-price">$45</span></div>
-              <div class="p-stars"><span class="st on">★</span><span class="st on">★</span><span class="st on">★</span><span class="st on">★</span><span class="st on">★</span><span class="p-rc">(134)</span></div>
-              <p class="p-sum">Polished skyblock hub with portals and shops.</p>
-              <button class="p-add" type="button">Add to Cart</button>
-            </div>
-          </article>
-          <article class="product" data-cat="animations-vfx" data-price="22" data-catlabel="Animations &amp; VFX">
-            <div class="p-thumb" style="background-image:url('banner.jpg')"></div>
-            <div class="p-body">
-              <h3 class="p-name">VFX Starter Pack</h3>
-              <div class="p-price-row"><span class="p-price">$22</span></div>
-              <div class="p-stars"><span class="st on">★</span><span class="st on">★</span><span class="st on">★</span><span class="st on">★</span><span class="st on">★</span><span class="p-rc">(128)</span></div>
-              <p class="p-sum">20 ready-to-use particle and explosion effects.</p>
-              <button class="p-add" type="button">Add to Cart</button>
-            </div>
-          </article>
-          <article class="product" data-cat="weapons" data-price="24" data-catlabel="Weapons">
-            <div class="p-thumb" style="background-image:url('builds.jpg')"></div>
-            <div class="p-body">
-              <h3 class="p-name">Weapon Pack Vol.1</h3>
-              <div class="p-price-row"><span class="p-price">$24</span></div>
-              <div class="p-stars"><span class="st on">★</span><span class="st on">★</span><span class="st on">★</span><span class="st on">★</span><span class="st on">★</span><span class="p-rc">(112)</span></div>
-              <p class="p-sum">Modeled weapon set with viewmodels and sounds.</p>
-              <button class="p-add" type="button">Add to Cart</button>
-            </div>
-          </article>
-        </div>
-      </div>
-    </section>
-
-    <section class="section-pad" style="padding-top: 64px;">
-      <div class="wrap">
-        <div class="sec-head reveal">
-          <h2>This week's deals</h2>
-        </div>
-        <div class="product-grid featured-grid">
-          <article class="product" data-cat="game-templates" data-price="129" data-catlabel="Finished Games &amp; Templates" data-resell="yes">
-            <div class="p-thumb" style="background-image:url('new-release.jpg')"><span class="p-off">-32%</span></div>
-            <div class="p-body">
-              <h3 class="p-name">Frostline Survival Kit</h3>
-              <div class="p-price-row"><span class="p-was">$189</span><span class="p-price">$129</span></div>
-              <div class="p-stars"><span class="st on">★</span><span class="st on">★</span><span class="st on">★</span><span class="st on">★</span><span class="st on">★</span><span class="p-rc">(96)</span></div>
-              <p class="p-sum">Full survival game with crafting, biomes, and progression.</p>
-              <button class="p-add" type="button">Add to Cart</button>
-            </div>
-          </article>
-          <article class="product" data-cat="maps" data-price="45" data-catlabel="Maps" data-resell="yes">
-            <div class="p-thumb" style="background-image:url('new-release.jpg')"><span class="p-off">-35%</span></div>
-            <div class="p-body">
-              <h3 class="p-name">Cyberpunk District</h3>
-              <div class="p-price-row"><span class="p-was">$69</span><span class="p-price">$45</span></div>
-              <div class="p-stars"><span class="st on">★</span><span class="st on">★</span><span class="st on">★</span><span class="st on">★</span><span class="st">★</span><span class="p-rc">(142)</span></div>
-              <p class="p-sum">Neon-lit city map with detailed streets and interiors.</p>
-              <button class="p-add" type="button">Add to Cart</button>
-            </div>
-          </article>
-          <article class="product" data-cat="assets" data-price="150" data-catlabel="Assets" data-resell="yes">
-            <div class="p-thumb" style="background-image:url('premade.jpg')"><span class="p-off">-25%</span></div>
-            <div class="p-body">
-              <h3 class="p-name">Asset Mega Bundle</h3>
-              <div class="p-price-row"><span class="p-was">$199</span><span class="p-price">$150</span></div>
-              <div class="p-stars"><span class="st on">★</span><span class="st on">★</span><span class="st on">★</span><span class="st on">★</span><span class="st on">★</span><span class="p-rc">(420)</span></div>
-              <p class="p-sum">Our biggest pack, hundreds of assets in one bundle.</p>
-              <button class="p-add" type="button">Add to Cart</button>
-            </div>
-          </article>
-          <article class="product" data-cat="builds" data-price="60" data-catlabel="Builds">
-            <div class="p-thumb" style="background-image:url('products.jpg')"><span class="p-off">-25%</span></div>
-            <div class="p-body">
-              <h3 class="p-name">Modern City Pack</h3>
-              <div class="p-price-row"><span class="p-was">$80</span><span class="p-price">$60</span></div>
-              <div class="p-stars"><span class="st on">★</span><span class="st on">★</span><span class="st on">★</span><span class="st on">★</span><span class="st">★</span><span class="p-rc">(63)</span></div>
-              <p class="p-sum">Modern city build with skyscrapers and roads.</p>
-              <button class="p-add" type="button">Add to Cart</button>
-            </div>
-          </article>
-        </div>
-      </div>
-    </section>
-
-    <section class="section-pad" style="padding-top:0;">
-      <div class="wrap">
-        <div class="glass resell reveal">
-          <div class="resell-body">
-            <h2>Sell our products as your own</h2>
-            <p>Grab a resell licence on any eligible product and you're cleared to sell it in your own store, under your name. You keep what you make on every sale, we keep the products updated.</p>
-            <div class="resell-cta">
-              <a class="btn btn-primary" href="assets.html?cat=resell">Get a licence</a>
-            </div>
+          <div class="legal-sub">
+            <h3>§ 1.3 · Modifications</h3>
+            <div class="legal-clause"><p><strong>§1.3(a)</strong> — You are permitted to modify, alter, adapt, or slice the digital product's underlying assets exclusively for the purpose of integration into your permitted personal projects. These structural modifications are allowed solely to tailor the asset to your specific non-commercial technical requirements, and do not grant you any additional proprietary rights over the underlying material.</p></div>
+            <div class="legal-clause"><p><strong>§1.3(b)</strong> — You are prohibited from distributing, sharing, licensing, or selling any modified or altered versions of the product, whether for profit or free. Any modified versions are legally classified as derivative works belonging fundamentally to the original copyright holder, and distribution without a distinct license will be met with immediate legal enforcement.</p></div>
           </div>
-          <div class="resell-art" style="background-image:url('cta-bg.jpg')" aria-hidden="true">
-            <ul class="resell-points">
-              <li>Resell any licensed product</li>
-              <li>Keep 100% of your sales</li>
-              <li>Full files, ready to ship</li>
-            </ul>
+
+          <div class="legal-sub">
+            <h3>§ 1.4 · Ownership Retention</h3>
+            <div class="legal-clause"><p><strong>§1.4(a)</strong> — Your purchase represents the acquisition of a conditional license to utilize the digital asset under defined parameters; under no circumstances does it constitute a transfer of ownership, title, or copyright. The transaction grants no proprietary interest, patent rights, or intellectual property claims over the products.</p></div>
+            <div class="legal-clause"><p><strong>§1.4(b)</strong> — All intellectual property rights, titles, interests, trademarks, and copyrights relating to the digital products remain exclusively vested with coldd. The design patterns, code structures, and visual elements are protected under domestic and international intellectual property frameworks.</p></div>
+            <div class="legal-clause"><p><strong>§1.4(c)</strong> — We reserve all rights to pursue civil and criminal remedies internationally against any individual or entity violating our proprietary rights. This includes but is not limited to seeking injunctions, statutory damages, and the recovery of all legal fees incurred during enforcement.</p></div>
           </div>
-        </div>
-      </div>
-    </section>
 
-    <section class="section-pad" style="padding-top:0;">
-      <div class="wrap">
-        <div class="sec-head reveal">
-          <h2>Curated reviews</h2>
-        </div>
-        <div class="reviews">
-          <article class="glass review reveal d1">
-            <div class="stars" aria-label="5 out of 5">★★★★★</div>
-            <p>"Bought a full game template and launched the same weekend. Clean code, zero headaches, and they actually answered when I got stuck."</p>
-            <div class="review-by"><span class="ra">K</span><span class="rn">Kaden R.<small>Roblox dev</small></span></div>
-          </article>
-          <article class="glass review reveal d2">
-            <div class="stars" aria-label="5 out of 5">★★★★★</div>
-            <p>"The Minecraft hub looks unreal. Worth every Robux, already had players asking who built it."</p>
-            <div class="review-by"><span class="ra">M</span><span class="rn">Mira L.<small>Server owner</small></span></div>
-          </article>
-          <article class="glass review reveal d3">
-            <div class="stars" aria-label="5 out of 5">★★★★★</div>
-            <p>"Got the resell licence and now I run my own store off their build. Best decision I've made for my group."</p>
-            <div class="review-by"><span class="ra">J</span><span class="rn">Jonah P.<small>Studio founder</small></span></div>
-          </article>
-        </div>
-      </div>
-    </section>
+          <h2>§ 2 · Financial Terms &amp; Consumer Guarantees</h2>
 
-
-    <section id="join" class="section-pad" style="padding-top:0;">
-      <div class="wrap">
-        <div class="glass cta reveal">
-          <h2>Join the coldd community</h2>
-          <p>Get access to sneak peeks, free assets, and a community ready to welcome you.</p>
-          <div class="hero-cta" style="margin-top:28px;">
-            <a class="btn btn-primary" href="https://discord.gg/coldd" target="_blank" rel="noopener"><svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M20.317 4.3698a19.7913 19.7913 0 0 0-4.8851-1.5152.0741.0741 0 0 0-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 0 0-.0785-.037 19.7363 19.7363 0 0 0-4.8852 1.515.0699.0699 0 0 0-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 0 0 .0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 0 0 .0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 0 0-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 0 1-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 0 1 .0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 0 1 .0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 0 1-.0066.1276 12.2986 12.2986 0 0 1-1.873.8914.0766.0766 0 0 0-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 0 0 .0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 0 0 .0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 0 0-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.4189-2.1568 2.4189Z"/></svg> Join the Discord</a>
-            <a class="btn btn-ghost" href="assets.html">Explore assets</a>
+          <div class="legal-sub">
+            <h3>§ 2.1 · Consumer Guarantees &amp; Refunds</h3>
+            <div class="legal-clause"><p><strong>§2.1(a)</strong> — Due to the immediate, digital, and intangible nature of digital downloads, which cannot be physically returned or restored to an unaccessed state once delivery has occurred, we maintain a strict policy wherein all sales are final. Consequently, we do not offer refunds, credits, charge reversals, or product exchanges for reasons involving a change of mind, user oversight, accidental purchase, technical incompatibility with unlisted software, or instances where you determine you no longer require the asset after access has been initiated.</p></div>
+            <div class="legal-clause"><p><strong>§2.1(b)</strong> — If you are a consumer residing within the Commonwealth of Australia, our digital goods come equipped with statutory consumer guarantees that cannot be excluded, restricted, or modified under the Australian Consumer Law (ACL). In accordance with these regulations, you remain fully entitled to a replacement product or a complete financial refund in the event of a major failure, as well as compensation for any other reasonably foreseeable loss or damage resulting from a fundamental defect. Furthermore, you are entitled to have the digital goods repaired or replaced if they fail to meet acceptable, merchantable quality standards and the underlying technical failure does not amount to a major defect.</p></div>
+            <div class="legal-clause"><p><strong>§2.1(c)</strong> — For users operating outside the jurisdiction of Australia, requests for financial refunds will only be evaluated on a discretionary case-by-case basis if the digital asset is conclusively proven to be broken, structurally corrupted, or fundamentally misrepresented in the official product description. Such an evaluation requires that our dedicated technical support team has been notified and granted a reasonable opportunity to remedy the defect, and has subsequently failed to rectify the operational issue within a reasonable timeframe.</p></div>
           </div>
-        </div>
-      </div>
-    </section>
 
-    <section class="section-pad pay-sec">
-      <div class="wrap">
-        <p class="pay-label">Trusted checkout · accepted everywhere</p>
-        <div class="pay-marquee">
-          <div class="pay-track"><span class="pay-logo pl-visa"><span class="pay-name">VISA</span></span><span class="pay-logo"><svg class="pl-ic" width="30" height="20" viewBox="0 0 30 20" aria-hidden="true"><circle cx="12" cy="10" r="8" fill="currentColor" fill-opacity="0.5"/><circle cx="18" cy="10" r="8" fill="currentColor" fill-opacity="0.85"/></svg><span class="pay-name">Mastercard</span></span><span class="pay-logo"><span class="pay-name">PayPal</span></span><span class="pay-logo"><span class="pay-name">R$ Robux</span></span><span class="pay-logo"><span class="pay-name">AMEX</span></span><span class="pay-logo"><svg class="pl-ic" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.05 12.04c-.03-2.6 2.12-3.85 2.22-3.91-1.21-1.77-3.09-2.02-3.76-2.04-1.6-.16-3.12.94-3.93.94-.81 0-2.06-.92-3.39-.9-1.74.03-3.35 1.01-4.25 2.57-1.81 3.14-.46 7.78 1.3 10.32.86 1.24 1.88 2.64 3.22 2.59 1.29-.05 1.78-.83 3.34-.83 1.56 0 2 .83 3.37.81 1.39-.03 2.27-1.27 3.12-2.52.98-1.44 1.39-2.83 1.41-2.9-.03-.01-2.71-1.04-2.74-4.13zM14.6 4.6c.71-.86 1.19-2.06 1.06-3.25-1.02.04-2.26.68-2.99 1.54-.66.76-1.23 1.98-1.08 3.15 1.14.09 2.3-.58 3.01-1.44z"/></svg><span class="pay-name">Pay</span></span><span class="pay-logo"><span class="pay-name">G&nbsp;Pay</span></span><span class="pay-logo"><span class="pay-name">Stripe</span></span><span class="pay-logo pl-visa"><span class="pay-name">VISA</span></span><span class="pay-logo"><svg class="pl-ic" width="30" height="20" viewBox="0 0 30 20" aria-hidden="true"><circle cx="12" cy="10" r="8" fill="currentColor" fill-opacity="0.5"/><circle cx="18" cy="10" r="8" fill="currentColor" fill-opacity="0.85"/></svg><span class="pay-name">Mastercard</span></span><span class="pay-logo"><span class="pay-name">PayPal</span></span><span class="pay-logo"><span class="pay-name">R$ Robux</span></span><span class="pay-logo"><span class="pay-name">AMEX</span></span><span class="pay-logo"><svg class="pl-ic" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.05 12.04c-.03-2.6 2.12-3.85 2.22-3.91-1.21-1.77-3.09-2.02-3.76-2.04-1.6-.16-3.12.94-3.93.94-.81 0-2.06-.92-3.39-.9-1.74.03-3.35 1.01-4.25 2.57-1.81 3.14-.46 7.78 1.3 10.32.86 1.24 1.88 2.64 3.22 2.59 1.29-.05 1.78-.83 3.34-.83 1.56 0 2 .83 3.37.81 1.39-.03 2.27-1.27 3.12-2.52.98-1.44 1.39-2.83 1.41-2.9-.03-.01-2.71-1.04-2.74-4.13zM14.6 4.6c.71-.86 1.19-2.06 1.06-3.25-1.02.04-2.26.68-2.99 1.54-.66.76-1.23 1.98-1.08 3.15 1.14.09 2.3-.58 3.01-1.44z"/></svg><span class="pay-name">Pay</span></span><span class="pay-logo"><span class="pay-name">G&nbsp;Pay</span></span><span class="pay-logo"><span class="pay-name">Stripe</span></span></div>
+          <h2>§ 3 · User Conduct &amp; Ticket Compliance</h2>
+
+          <div class="legal-sub">
+            <h3>§ 3.1 · Community &amp; Platform Compliance</h3>
+            <div class="legal-clause"><p><strong>§3.1(a)</strong> — Your ongoing license to utilize our digital products is strictly conditional upon your continuous adherence to the established coldd Community Rules and server guidelines. The operational relationship between the provider and the user requires mutual respect, and any violation of community decorum directly impacts your authorization to remain a licensed user of our network assets.</p></div>
+            <div class="legal-clause"><p><strong>§3.1(b)</strong> — Engaging in toxic behavior, targeted harassment, malicious defamation, community disruption, or severe rule-breaking within our server infrastructure may result in an immediate administrative review of your account status. Such reviews can lead to the permanent suspension of your account and the total forfeiture of your active product licenses without financial compensation. Further rules are available using the button provided below.</p>
+            <a class="legal-btn-link" href="https://discord.gg/coldd" target="_blank" rel="noopener">View coldd Community Guidelines <span aria-hidden="true">↗</span></a></div>
+          </div>
+
+          <div class="legal-sub">
+            <h3>§ 3.2 · Dispute Resolution &amp; Support Tickets</h3>
+            <div class="legal-clause"><p><strong>§3.2(a)</strong> — Prior to executing any formal payment dispute, financial chargeback, or initiating a public negative review campaign, you are contractually obligated to open an official support ticket within the designated coldd communication server. This step serves as the mandatory first tier of alternative dispute resolution to ensure that technical grievances are addressed in good faith.</p></div>
+            <div class="legal-clause"><p><strong>§3.2(b)</strong> — You explicitly agree to provide our support team with all necessary data, system logs, error screenshots, and a clear, detailed description of the technical issue encountered during product implementation. You further agree to grant our staff a reasonable administrative window of not less than fourteen business days to investigate, diagnose, and assist you in resolving the operational problem before pursuing external escalation.</p></div>
+          </div>
+
+          <h2>§ 4 · Enforcement &amp; License Revocation</h2>
+
+          <div class="legal-sub">
+            <h3>§ 4.1 · Right to Revoke</h3>
+            <div class="legal-clause"><p><strong>§4.1(a)</strong> — coldd reserves the absolute right to immediately terminate your access to our product repositories and revoke your digital licenses without prior notice if you are found to be in violation of any clause, restriction, or obligation detailed within these Terms of Service or the associated Product License.</p></div>
+            <div class="legal-clause"><p><strong>§4.1(b)</strong> — Your access to our digital distribution channels and all associated licenses will be revoked instantly and permanently if you engage in fraudulent financial practices. This includes initiating unauthorized banking chargebacks, friendly fraud, or payment reversals without completing the mandatory support ticket resolution process.</p></div>
+            <div class="legal-clause"><p><strong>§4.1(c)</strong> — Your active licenses will be terminated immediately if your identity or account is blacklisted from our digital services due to severe proprietary violations, attempts to reverse-engineer our assets, or repeated community-wide behavioral infractions.</p></div>
+          </div>
+
+          <div class="legal-sub">
+            <h3>§ 4.2 · Liability Disclaimer</h3>
+            <div class="legal-clause"><p><strong>§4.2(a)</strong> — To the maximum extent permitted under applicable statutory law, including the Australian Consumer Law and United States Federal Trade Commission guidelines, coldd provides its digital products strictly on an "as is" and "as available" basis. We disclaim all implied warranties of merchantability, fitness for a particular purpose, or non-infringement.</p></div>
+            <div class="legal-clause"><p><strong>§4.2(b)</strong> — We do not warrant or guarantee that the digital products will operate completely error-free, uninterrupted, or remain perfectly compatible with all past, present, or future third-party software, operating systems, or platforms that have not been explicitly itemized in the product's official feature list.</p></div>
+          </div>
+
+          <h2>§ 5 · Governing Law &amp; Jurisdiction</h2>
+
+          <div class="legal-sub">
+            <h3>§ 5.1 · Governing Law</h3>
+            <div class="legal-clause"><p><strong>§5.1(a)</strong> — These Terms of Service, the digital product license, and all transactional relationships arising from your purchases shall be exclusively governed by, interpreted, and construed in accordance with the laws of the State of Tasmania, Australia, without giving effect to any principles regarding conflicts of law.</p></div>
+            <div class="legal-clause"><p><strong>§5.1(b)</strong> — These terms have been specifically structured to maintain harmony with international consumer protection frameworks, ensuring that transactions involving digital consumers inside the United States respect the federal guidelines enforced by the Federal Trade Commission regarding digital goods and services.</p></div>
+            <div class="legal-clause"><p><strong>§5.1(c)</strong> — Any formal legal action, judicial proceeding, or litigation arising directly or indirectly out of these terms shall be brought exclusively before the courts located in Tasmania, Australia. You hereby irrevocably submit and consent to the personal and exclusive jurisdiction of such courts for the adjudication of any legal disputes.</p></div>
+          </div>
+
+          <h2>§ 6 · Modifications to Terms</h2>
+
+          <div class="legal-sub">
+            <h3>§ 6.1 · Policy Updates</h3>
+            <div class="legal-clause"><p><strong>§6.1(a)</strong> — coldd reserves the right to modify, amend, update, or replace any portion of these Terms of Service or the associated Product License at any given time to reflect changes in our operational procedures, marketplace standards, or statutory legal obligations.</p></div>
+            <div class="legal-clause"><p><strong>§6.1(b)</strong> — All updates or structural revisions to these terms will be posted clearly within our dedicated server announcement channels, and the effective date listed at the top of the document will be updated accordingly to reflect the date of the revision.</p></div>
+            <div class="legal-clause"><p><strong>§6.1(c)</strong> — Your continued usage of our digital products, software assets, or server infrastructure following the publication of any modifications constitutes your explicit, binding, and irrevocable acceptance of the newly revised Terms of Service.</p></div>
+          </div>
+
+          <p style="margin-top:26px;">Questions about these Terms? Email <a href="mailto:support@coldd.dev">support@coldd.dev</a> or reach us on <a href="https://discord.gg/coldd" target="_blank" rel="noopener">Discord</a>.</p>
+
+          <p class="legal-meta" style="margin-top:30px;">coldd Development · ABN 34 127 589 633</p>
         </div>
       </div>
     </section>

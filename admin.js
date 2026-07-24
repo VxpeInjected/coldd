@@ -1,0 +1,949 @@
+(function () {
+  'use strict';
+
+  /* ================================================================
+     ACCESS GATE
+     TEMP: dashboard is open to anyone while Discord login is built.
+     Flip ADMIN_TESTING_OPEN to false once Discord OAuth is wired up —
+     access will then be restricted to Discord user IDs in ADMIN_WHITELIST
+     (see the Staff panel, which manages this same list).
+     ================================================================ */
+  var ADMIN_TESTING_OPEN = true;
+  var ADMIN_WHITELIST = []; // future: approved Discord user IDs
+
+  function currentDiscordId() {
+    try { return localStorage.getItem('coldd_discord_id') || null; } catch (_) { return null; }
+  }
+  function isAllowed() {
+    return ADMIN_TESTING_OPEN || ADMIN_WHITELIST.indexOf(currentDiscordId()) >= 0;
+  }
+
+  var gate = document.getElementById('admGate');
+  var shell = document.getElementById('admShell');
+  if (!isAllowed()) {
+    if (gate) gate.hidden = false;
+    if (shell) shell.hidden = true;
+    return;
+  }
+  if (gate) gate.hidden = true;
+  if (shell) shell.hidden = false;
+
+  /* ================================================================
+     UTILITIES
+     ================================================================ */
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+  function hsh(s) {
+    var h = 5381; s = String(s);
+    for (var i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) >>> 0;
+    return h;
+  }
+  function rnd(seed) { return (hsh(seed) % 10000) / 10000; }
+  function pick(arr, seed) { return arr[hsh(seed) % arr.length]; }
+  var ROBUX_PER_USD = 80;
+  var DEVEX_USD_PER_ROBUX = 0.0035;
+  var AUD_RATE = 1.52;
+  function usd(n) { return '$' + (Math.round((Number(n) || 0) * 100) / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+  function usd0(n) { return '$' + Math.round(Number(n) || 0).toLocaleString('en-US'); }
+  function aud(n) { return 'A$' + (Math.round((Number(n) || 0) * AUD_RATE * 100) / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+  function robux(n) { return 'R$ ' + Math.round((Number(n) || 0) * ROBUX_PER_USD).toLocaleString('en-US'); }
+  function pct(n) { return (Math.round((Number(n) || 0) * 10) / 10) + '%'; }
+  function fmtDate(d) { return d.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' }); }
+  function fmtDateTime(d) { return d.toLocaleDateString('en-US', { day: 'numeric', month: 'short' }) + ' ' + d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }); }
+  function daysAgo(n) { var d = new Date(); d.setHours(12, 0, 0, 0); d.setDate(d.getDate() - n); return d; }
+  function $(id) { return document.getElementById(id); }
+  function el(html) { var d = document.createElement('div'); d.innerHTML = html.trim(); return d.firstChild; }
+
+  function lsGet(k, fallback) {
+    try { var v = localStorage.getItem(k); return v == null ? fallback : JSON.parse(v); } catch (_) { return fallback; }
+  }
+  function lsSet(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (_) {} }
+  function seedIfEmpty(key, gen) {
+    var existing = null;
+    try { existing = localStorage.getItem(key); } catch (_) {}
+    if (existing != null) return lsGet(key, []);
+    var data = gen();
+    lsSet(key, data);
+    return data;
+  }
+
+  /* ================================================================
+     MOCK "DATABASE" — seeded once, then persisted + mutated in
+     localStorage like every other piece of state on this site
+     (cart, wishlist, owned products). There is no real backend here,
+     so these numbers are synthetic but internally consistent: orders
+     reference real catalog products and real seeded users, and every
+     aggregate (revenue, best sellers, coupon usage, referral earnings)
+     is computed live from this same order ledger rather than being
+     independently faked.
+     ================================================================ */
+  var CATALOG = window.__CATALOG || [];
+
+  var USER_NAMES = ['deonte123', 'mrbuilds', 'vortex_dev', 'skylar', 'notacow', 'jaydengg', 'rblxpro', 'emberkid', 'q_zen', 'frostbyte', 'halcyon', 'devkai', 'pixel_wren', 'noctown', 'siege_ii', 'kryo', 'buildrjay', 'ashfall', 'trestin', 'novaquartz', 'griefstop', 'lumen_x', 'obsidianrp', 'wickfire', 'tundraa', 'meshking', 'ravencl', 'ninthgate', 'zeph', 'coalport'];
+  var STAFF_SEED = [
+    { id: 'st1', name: 'Jordan', discordId: '', role: 'owner' },
+    { id: 'st2', name: 'kaden.dev', discordId: '', role: 'admin' },
+    { id: 'st3', name: 'mod_ash', discordId: '', role: 'support' }
+  ];
+
+  var USERS = seedIfEmpty('coldd_admin_users_v1', function () {
+    var out = [];
+    for (var i = 0; i < USER_NAMES.length; i++) {
+      var h = hsh('user' + i);
+      out.push({
+        id: 'u' + (i + 1),
+        name: USER_NAMES[i],
+        email: USER_NAMES[i].replace(/[^a-z0-9]/g, '') + '@example.com',
+        discordId: String(200000000000000000 + (h % 700000000000000000)),
+        joined: daysAgo(20 + (h % 340)).toISOString(),
+        status: (h % 23 === 0) ? 'banned' : 'active'
+      });
+    }
+    return out;
+  });
+
+  var COUPONS = seedIfEmpty('coldd_admin_coupons_v1', function () {
+    return [
+      { code: 'SAVE10', type: 'pct', val: 10, active: true, limit: null },
+      { code: 'COLDD20', type: 'pct', val: 20, active: true, limit: 500 },
+      { code: 'WELCOME5', type: 'flat', val: 5, active: true, limit: null },
+      { code: 'SUMMER25', type: 'pct', val: 25, active: false, limit: 200 }
+    ];
+  });
+
+  var STAFF = seedIfEmpty('coldd_admin_staff_v1', function () { return STAFF_SEED; });
+
+  var REF_CODES = ['kaden', 'vortex', 'skylar', 'frostbyte', 'novaquartz'];
+  var REFERRALS = seedIfEmpty('coldd_admin_referrals_v1', function () {
+    return REF_CODES.map(function (code, i) {
+      var h = hsh('ref' + code);
+      var clicks = 80 + (h % 500);
+      var signups = Math.round(clicks * (0.05 + (h % 20) / 100));
+      var conversions = Math.round(signups * (0.2 + (h % 30) / 100));
+      var earned = Math.round(conversions * (8 + (h % 40)) * 100) / 100;
+      var paid = Math.round(earned * 0.6 * 100) / 100;
+      return { code: code, owner: pick(USER_NAMES, code), clicks: clicks, signups: signups, conversions: conversions, earnedUSD: earned, paidUSD: paid };
+    });
+  });
+
+  var ORDERS = seedIfEmpty('coldd_admin_orders_v1', function () {
+    var out = [], ordId = 1000;
+    var roblox = CATALOG.filter(function (p) { return p.platform !== 'Minecraft' || true; });
+    for (var day = 119; day >= 0; day--) {
+      var date = daysAgo(day);
+      var seedBase = 'day' + day;
+      var n = hsh(seedBase) % 6; // 0-5 orders that day
+      for (var i = 0; i < n; i++) {
+        var s = seedBase + 'o' + i;
+        var h = hsh(s);
+        var product = CATALOG.length ? CATALOG[h % CATALOG.length] : null;
+        if (!product) continue;
+        var licence = (product.resell && (h % 100) < 12) ? 'resell' : 'standard';
+        var qty = 1 + ((h >> 4) % 100 < 6 ? 1 : 0);
+        var unit = licence === 'resell' ? Math.round(product.priceNum * 3) : product.priceNum;
+        var subtotal = unit * qty;
+        var couponRoll = (h >> 6) % 100;
+        var activeCoupons = COUPONS.filter(function (c) { return c.active; });
+        var coupon = (couponRoll < 14 && activeCoupons.length) ? activeCoupons[h % activeCoupons.length] : null;
+        var discount = 0;
+        if (coupon) discount = coupon.type === 'pct' ? Math.round(subtotal * coupon.val) / 100 : Math.min(coupon.val, subtotal);
+        var total = Math.round((subtotal - discount) * 100) / 100;
+        var currRoll = (h >> 9) % 100;
+        var currency = currRoll < 55 ? 'usd' : (currRoll < 75 ? 'aud' : (licence !== 'resell' ? 'robux' : 'usd'));
+        var statusRoll = (h >> 12) % 100;
+        var status = statusRoll < 4 ? 'refunded' : (statusRoll < 7 && day < 2 ? 'pending' : 'completed');
+        var refRoll = (h >> 15) % 100;
+        var refCode = refRoll < 22 ? REF_CODES[h % REF_CODES.length] : null;
+        var user = USERS.length ? USERS[h % USERS.length] : null;
+        out.push({
+          id: 'CLD-' + (ordId++),
+          date: date.toISOString(),
+          userId: user ? user.id : null,
+          userName: user ? user.name : 'guest',
+          productId: product.id,
+          title: product.title,
+          image: product.image,
+          cat: product.cat,
+          platform: product.platform,
+          licence: licence,
+          qty: qty,
+          unitPrice: unit,
+          subtotal: subtotal,
+          couponCode: coupon ? coupon.code : null,
+          discount: discount,
+          total: total,
+          currency: currency,
+          status: status,
+          refCode: refCode,
+          refundReason: status === 'refunded' ? pick(['Not as described', 'Accidental purchase', 'Technical issue', 'Duplicate charge'], s) : null
+        });
+      }
+    }
+    return out;
+  });
+
+  var REVIEWS = seedIfEmpty('coldd_admin_reviews_v1', function () {
+    var RTEXT = ['works great, exactly what i needed for my game', 'clean code and easy to set up, would recommend', 'in studio its a little laggy but overall solid', 'good value and support was really helpful', 'took a bit to figure out setup but works well', 'amazing quality, already planning to buy more', 'does exactly what it says, no complaints', 'better than expected for the price', 'the file was broken on first download, had to redownload', 'kind of overpriced for what it is honestly'];
+    var out = [], id = 1;
+    CATALOG.slice(0, 22).forEach(function (p) {
+      var n = (hsh(p.id + 'rv') % 3) + 1;
+      for (var i = 0; i < n; i++) {
+        var s = p.id + 'rv' + i;
+        var h = hsh(s);
+        var stars = 2 + (h % 4);
+        var statusRoll = h % 100;
+        out.push({
+          id: 'rv' + (id++),
+          productId: p.id,
+          productTitle: p.title,
+          user: pick(USER_NAMES, s),
+          stars: stars,
+          text: RTEXT[(h >> 3) % RTEXT.length],
+          date: daysAgo(h % 90).toISOString(),
+          status: statusRoll < 10 ? 'pending' : (statusRoll < 15 ? 'hidden' : 'approved')
+        });
+      }
+    });
+    return out;
+  });
+
+  var TRAFFIC = seedIfEmpty('coldd_admin_traffic_v1', function () {
+    var out = [];
+    for (var day = 119; day >= 0; day--) {
+      var h = hsh('traf' + day);
+      var sessions = 90 + (h % 260);
+      var pageviews = Math.round(sessions * (2.1 + (h % 30) / 10));
+      out.push({ date: daysAgo(day).toISOString(), sessions: sessions, pageviews: pageviews });
+    }
+    return out;
+  });
+
+  var ABANDONED = seedIfEmpty('coldd_admin_abandoned_v1', function () {
+    var out = [];
+    for (var i = 0; i < 26; i++) {
+      var s = 'ab' + i;
+      var h = hsh(s);
+      var p = CATALOG.length ? CATALOG[h % CATALOG.length] : null;
+      if (!p) continue;
+      out.push({ id: 'ab' + i, date: daysAgo(h % 45).toISOString(), title: p.title, image: p.image, value: p.priceNum, email: (h % 3 === 0) ? (pick(USER_NAMES, s) + '@example.com') : null });
+    }
+    return out.sort(function (a, b) { return new Date(b.date) - new Date(a.date); });
+  });
+
+  var PROD_OV = lsGet('coldd_admin_prod_ov_v1', {});
+  var EXTRA_PRODUCTS = lsGet('coldd_admin_extra_products_v1', []);
+  var AUDIT = lsGet('coldd_admin_audit_v1', []);
+
+  function saveOrders() { lsSet('coldd_admin_orders_v1', ORDERS); }
+  function saveUsers() { lsSet('coldd_admin_users_v1', USERS); }
+  function saveCoupons() { lsSet('coldd_admin_coupons_v1', COUPONS); }
+  function saveStaff() { lsSet('coldd_admin_staff_v1', STAFF); }
+  function saveReviews() { lsSet('coldd_admin_reviews_v1', REVIEWS); }
+  function saveProdOv() { lsSet('coldd_admin_prod_ov_v1', PROD_OV); }
+  function saveExtraProducts() { lsSet('coldd_admin_extra_products_v1', EXTRA_PRODUCTS); }
+  function saveReferrals() { lsSet('coldd_admin_referrals_v1', REFERRALS); }
+
+  function logAudit(action) {
+    AUDIT.unshift({ ts: new Date().toISOString(), actor: currentRole().name, action: action });
+    if (AUDIT.length > 300) AUDIT.length = 300;
+    lsSet('coldd_admin_audit_v1', AUDIT);
+    if (curPanel === 'audit') renderAudit();
+  }
+
+  /* ================================================================
+     ROLE (stand-in for real auth; drives permission gating)
+     ================================================================ */
+  var ROLES = { owner: 3, admin: 2, support: 1 };
+  function currentRole() {
+    var id = lsGet('coldd_admin_role_v1', null);
+    var staff = STAFF.filter(function (s) { return s.id === id; })[0];
+    return staff || STAFF[0] || { id: 'st1', name: 'You', role: 'owner' };
+  }
+  function setRole(id) { lsSet('coldd_admin_role_v1', id); renderTopbar(); renderAll(); }
+  function can(minRole) { return ROLES[currentRole().role] >= ROLES[minRole]; }
+
+  /* ================================================================
+     PRODUCT VIEW MODEL (catalog + admin overrides + extra products)
+     ================================================================ */
+  function allProducts() {
+    var base = CATALOG.map(function (p) {
+      var ov = PROD_OV[p.id] || {};
+      return Object.assign({}, p, {
+        price: ov.price != null ? ov.price : p.priceNum,
+        visible: ov.visible !== false,
+        extra: false
+      });
+    });
+    var extra = EXTRA_PRODUCTS.map(function (p) { return Object.assign({}, p, { extra: true, visible: p.visible !== false }); });
+    return base.concat(extra);
+  }
+  function findProduct(id) { return allProducts().filter(function (p) { return p.id === id; })[0]; }
+
+  /* ================================================================
+     DATE RANGE
+     ================================================================ */
+  var RANGE_DAYS = lsGet('coldd_admin_range_v1', 30); // 1, 7, 30, 90, 0(=all)
+  function inRange(iso) {
+    if (!RANGE_DAYS) return true;
+    var d = new Date(iso);
+    return d >= daysAgoStart(RANGE_DAYS);
+  }
+  function daysAgoStart(n) { var d = daysAgo(n - 1); d.setHours(0, 0, 0, 0); return d; }
+  function setRange(n) {
+    RANGE_DAYS = n; lsSet('coldd_admin_range_v1', n);
+    document.querySelectorAll('.adm-range button').forEach(function (b) { b.classList.toggle('active', +b.getAttribute('data-range') === n); });
+    if (curPanel === 'analytics') renderAnalytics();
+    if (curPanel === 'home') renderHome();
+  }
+
+  /* ================================================================
+     CHART HELPER (inline SVG, no external deps)
+     ================================================================ */
+  function svgBars(data, opts) {
+    opts = opts || {};
+    var w = opts.width || 640, h = opts.height || 140;
+    var max = Math.max.apply(null, data.map(function (d) { return d.v; }).concat([1]));
+    var n = data.length || 1;
+    var gap = 2;
+    var bw = Math.max(1, (w / n) - gap);
+    var bars = data.map(function (d, i) {
+      var bh = Math.max(1.5, (d.v / max) * (h - 6));
+      var x = i * (w / n);
+      var y = h - bh;
+      var op = 0.42 + 0.58 * (max ? d.v / max : 0);
+      return '<rect x="' + x.toFixed(1) + '" y="' + y.toFixed(1) + '" width="' + bw.toFixed(1) + '" height="' + bh.toFixed(1) + '" rx="2" fill="' + (opts.color || 'var(--accent)') + '" opacity="' + op.toFixed(2) + '"><title>' + esc(d.label) + ': ' + esc(d.tip != null ? d.tip : d.v) + '</title></rect>';
+    }).join('');
+    return '<svg viewBox="0 0 ' + w + ' ' + h + '" class="adm-chart" preserveAspectRatio="none">' + bars + '</svg>';
+  }
+
+  /* ================================================================
+     AGGREGATION (all computed live from ORDERS for the active range)
+     ================================================================ */
+  function ordersInRange() { return ORDERS.filter(function (o) { return inRange(o.date); }); }
+  function completedInRange() { return ordersInRange().filter(function (o) { return o.status === 'completed'; }); }
+
+  function revenueTotals() {
+    var comp = completedInRange();
+    var totalUSD = 0, byCurrency = { usd: 0, aud: 0, robux: 0 };
+    comp.forEach(function (o) { totalUSD += o.total; byCurrency[o.currency] = (byCurrency[o.currency] || 0) + o.total; });
+    return { totalUSD: totalUSD, byCurrency: byCurrency, count: comp.length };
+  }
+  function bestSellers(limit) {
+    var map = {};
+    completedInRange().forEach(function (o) {
+      map[o.productId] = map[o.productId] || { id: o.productId, title: o.title, image: o.image, units: 0, revenue: 0 };
+      map[o.productId].units += o.qty;
+      map[o.productId].revenue += o.total;
+    });
+    return Object.keys(map).map(function (k) { return map[k]; }).sort(function (a, b) { return b.revenue - a.revenue; }).slice(0, limit || 6);
+  }
+  function revenueByCategory() {
+    var map = {};
+    completedInRange().forEach(function (o) {
+      map[o.cat] = (map[o.cat] || 0) + o.total;
+    });
+    return Object.keys(map).map(function (k) { return { label: k, v: map[k] }; }).sort(function (a, b) { return b.v - a.v; });
+  }
+  function dailyRevenueSeries() {
+    var days = RANGE_DAYS || 120;
+    var out = [];
+    for (var i = days - 1; i >= 0; i--) {
+      var d = daysAgo(i);
+      var key = d.toDateString();
+      var v = 0;
+      ORDERS.forEach(function (o) { if (o.status === 'completed' && new Date(o.date).toDateString() === key) v += o.total; });
+      out.push({ label: fmtDate(d), v: Math.round(v * 100) / 100, tip: usd(v) });
+    }
+    return out;
+  }
+  function trafficSeries() {
+    var days = RANGE_DAYS || 120;
+    var rows = TRAFFIC.slice(Math.max(0, TRAFFIC.length - days));
+    return rows.map(function (r) { return { label: fmtDate(new Date(r.date)), v: r.pageviews, tip: r.pageviews + ' views' }; });
+  }
+  function conversionRate() {
+    var days = RANGE_DAYS || 120;
+    var rows = TRAFFIC.slice(Math.max(0, TRAFFIC.length - days));
+    var sessions = rows.reduce(function (s, r) { return s + r.sessions; }, 0);
+    var orders = completedInRange().length;
+    return sessions ? (orders / sessions) * 100 : 0;
+  }
+  function avgOrderValue() {
+    var comp = completedInRange();
+    if (!comp.length) return 0;
+    return comp.reduce(function (s, o) { return s + o.total; }, 0) / comp.length;
+  }
+  function couponStats() {
+    var comp = completedInRange();
+    return COUPONS.map(function (c) {
+      var used = comp.filter(function (o) { return o.couponCode === c.code; });
+      var discountGiven = used.reduce(function (s, o) { return s + o.discount; }, 0);
+      var revenue = used.reduce(function (s, o) { return s + o.total; }, 0);
+      return { code: c.code, active: c.active, limit: c.limit, uses: used.length, discountGiven: discountGiven, revenue: revenue };
+    });
+  }
+
+  /* ================================================================
+     NAV / PANEL SWITCHING
+     ================================================================ */
+  var PANELS = ['home', 'analytics', 'products', 'orders', 'refunds', 'reviews', 'users', 'coupons', 'staff', 'audit'];
+  var curPanel = 'home';
+  function showPanel(name) {
+    if (PANELS.indexOf(name) < 0) name = 'home';
+    curPanel = name;
+    PANELS.forEach(function (p) {
+      var sec = $('adm-panel-' + p);
+      if (sec) sec.hidden = (p !== name);
+    });
+    document.querySelectorAll('.dash-nav a').forEach(function (a) { a.classList.toggle('active', a.getAttribute('data-panel') === name); });
+    renderPanel(name);
+    window.scrollTo(0, 0);
+  }
+  function renderPanel(name) {
+    if (name === 'home') renderHome();
+    else if (name === 'analytics') renderAnalytics();
+    else if (name === 'products') renderProducts();
+    else if (name === 'orders') renderOrders();
+    else if (name === 'refunds') renderRefunds();
+    else if (name === 'reviews') renderReviews();
+    else if (name === 'users') renderUsers();
+    else if (name === 'coupons') renderCoupons();
+    else if (name === 'staff') renderStaff();
+    else if (name === 'audit') renderAudit();
+  }
+  function renderAll() { renderPanel(curPanel); }
+
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest('[data-panel]');
+    if (a) { e.preventDefault(); showPanel(a.getAttribute('data-panel')); }
+  });
+
+  /* ================================================================
+     TOPBAR
+     ================================================================ */
+  function renderTopbar() {
+    var r = currentRole();
+    var sel = $('admRoleSelect');
+    if (sel) {
+      sel.innerHTML = STAFF.map(function (s) { return '<option value="' + s.id + '"' + (s.id === r.id ? ' selected' : '') + '>' + esc(s.name) + ' — ' + esc(s.role) + '</option>'; }).join('');
+    }
+    var av = $('admAvatar'); if (av) av.textContent = r.name.charAt(0).toUpperCase();
+  }
+  var roleSelect = $('admRoleSelect');
+  if (roleSelect) roleSelect.addEventListener('change', function () { setRole(roleSelect.value); });
+
+  document.querySelectorAll('.adm-range button').forEach(function (b) {
+    b.addEventListener('click', function () { setRange(+b.getAttribute('data-range')); });
+  });
+
+  /* ================================================================
+     HOME PANEL
+     ================================================================ */
+  function renderHome() {
+    var todayKey = new Date().toDateString();
+    var revToday = ORDERS.filter(function (o) { return o.status === 'completed' && new Date(o.date).toDateString() === todayKey; }).reduce(function (s, o) { return s + o.total; }, 0);
+    var ordersToday = ORDERS.filter(function (o) { return new Date(o.date).toDateString() === todayKey; }).length;
+    var signupsToday = USERS.filter(function (u) { return new Date(u.joined).toDateString() === todayKey; }).length;
+    var pendingReviews = REVIEWS.filter(function (r) { return r.status === 'pending'; }).length;
+
+    $('admHomeStats').innerHTML = [
+      ['Revenue today', usd(revToday)],
+      ['Orders today', ordersToday],
+      ['New signups today', signupsToday],
+      ['Reviews awaiting moderation', pendingReviews]
+    ].map(function (s) { return '<div class="dash-stat glass"><span class="ds-label">' + s[0] + '</span><span class="ds-num">' + s[1] + '</span></div>'; }).join('');
+
+    var recent = ORDERS.slice().sort(function (a, b) { return new Date(b.date) - new Date(a.date); }).slice(0, 6);
+    $('admHomeRecent').innerHTML = recent.map(orderRowHTML).join('') || '<p class="adm-empty">No orders yet.</p>';
+
+    var mode = ADMIN_TESTING_OPEN ? '<span class="dt-badge warn">Open testing mode — anyone can view this dashboard</span>' : '<span class="dt-badge ok">Whitelist enforced</span>';
+    var banner = $('admModeBanner'); if (banner) banner.innerHTML = mode;
+  }
+  function orderRowHTML(o) {
+    return '<div class="dash-row"><span class="dr-thumb" style="background-image:url(\'' + o.image + '\')"></span>' +
+      '<div class="dr-main"><div class="dr-title">' + esc(o.title) + '</div><div class="dr-sub">' + fmtDateTime(new Date(o.date)) + ' · ' + esc(o.id) + ' · ' + esc(o.userName) + '</div></div>' +
+      statusBadge(o.status) + '<span class="p-price" style="margin-left:12px;">' + usd(o.total) + '</span></div>';
+  }
+  function statusBadge(status) {
+    var cls = status === 'completed' ? 'ok' : (status === 'refunded' ? 'err' : 'warn');
+    var label = status.charAt(0).toUpperCase() + status.slice(1);
+    return '<span class="dt-badge ' + cls + '">' + label + '</span>';
+  }
+
+  /* ================================================================
+     ANALYTICS PANEL
+     ================================================================ */
+  function renderAnalytics() {
+    var rev = revenueTotals();
+    var aov = avgOrderValue();
+    var conv = conversionRate();
+
+    $('admAnStats').innerHTML = [
+      ['Revenue', usd(rev.totalUSD)],
+      ['Orders', rev.count],
+      ['Avg order value', usd(aov)],
+      ['Conversion rate', pct(conv)]
+    ].map(function (s) { return '<div class="dash-stat glass"><span class="ds-label">' + s[0] + '</span><span class="ds-num">' + s[1] + '</span></div>'; }).join('');
+
+    $('admRevChart').innerHTML = svgBars(dailyRevenueSeries());
+
+    // Currency breakdown: USD / AUD / Robux
+    $('admCurrencyCards').innerHTML =
+      '<div class="dash-stat glass"><span class="ds-label">USD revenue</span><span class="ds-num">' + usd(rev.byCurrency.usd || 0) + '</span></div>' +
+      '<div class="dash-stat glass"><span class="ds-label">AUD revenue</span><span class="ds-num">' + aud(rev.byCurrency.aud || 0) + '</span><span class="adm-sub">' + usd(rev.byCurrency.aud || 0) + ' equiv.</span></div>' +
+      '<div class="dash-stat glass"><span class="ds-label">Robux revenue</span><span class="ds-num">' + robux(rev.byCurrency.robux || 0) + '</span><span class="adm-sub">' + usd(rev.byCurrency.robux || 0) + ' equiv.</span></div>';
+
+    var robuxRevUSD = rev.byCurrency.robux || 0;
+    var robuxAmount = Math.round(robuxRevUSD * ROBUX_PER_USD);
+    var devexPayout = robuxAmount * DEVEX_USD_PER_ROBUX;
+    $('admDevex').innerHTML =
+      '<div class="adm-devex-row"><span>Storefront rate (what buyers pay)</span><strong>1 USD = ' + ROBUX_PER_USD + ' Robux</strong></div>' +
+      '<div class="adm-devex-row"><span>Robux taken in, this range</span><strong>' + robux(robuxRevUSD) + '</strong></div>' +
+      '<div class="adm-devex-row"><span>Roblox DevEx payout rate</span><strong>$' + DEVEX_USD_PER_ROBUX.toFixed(4) + ' / Robux</strong></div>' +
+      '<div class="adm-devex-row"><span>Est. USD if cashed out via DevEx</span><strong>' + usd(devexPayout) + '</strong></div>' +
+      '<p class="adm-note">Robux is priced ~' + Math.round((ROBUX_PER_USD * DEVEX_USD_PER_ROBUX) * 100) + '% of face USD value after Roblox\'s DevEx conversion — this is why Robux checkout is marked up relative to card/PayPal.</p>';
+
+    var best = bestSellers(6);
+    $('admBestSellers').innerHTML = best.length ? best.map(function (p, i) {
+      return '<div class="dash-row"><span class="adm-rank">#' + (i + 1) + '</span><span class="dr-thumb" style="background-image:url(\'' + p.image + '\')"></span>' +
+        '<div class="dr-main"><div class="dr-title">' + esc(p.title) + '</div><div class="dr-sub">' + p.units + ' sold</div></div>' +
+        '<span class="p-price">' + usd(p.revenue) + '</span></div>';
+    }).join('') : '<p class="adm-empty">No completed orders in this range.</p>';
+
+    var byCat = revenueByCategory();
+    $('admCatChart').innerHTML = byCat.length ? svgBars(byCat.map(function (c) { return { label: c.label, v: c.v, tip: usd(c.v) }; }), { height: 120 }) : '<p class="adm-empty">No data.</p>';
+    $('admCatList').innerHTML = byCat.map(function (c) {
+      return '<div class="adm-catrow"><span>' + esc(c.label) + '</span><span>' + usd(c.v) + '</span></div>';
+    }).join('');
+
+    $('admTrafficChart').innerHTML = svgBars(trafficSeries(), { color: 'var(--price)' });
+    var trafficRows = TRAFFIC.slice(Math.max(0, TRAFFIC.length - (RANGE_DAYS || 120)));
+    var totalViews = trafficRows.reduce(function (s, r) { return s + r.pageviews; }, 0);
+    var totalSessions = trafficRows.reduce(function (s, r) { return s + r.sessions; }, 0);
+    $('admTrafficStats').innerHTML =
+      '<div class="dash-stat glass"><span class="ds-label">Pageviews</span><span class="ds-num">' + totalViews.toLocaleString('en-US') + '</span></div>' +
+      '<div class="dash-stat glass"><span class="ds-label">Sessions</span><span class="ds-num">' + totalSessions.toLocaleString('en-US') + '</span></div>';
+
+    $('admReferralBody').innerHTML = REFERRALS.map(function (r) {
+      var rate = r.clicks ? (r.conversions / r.clicks * 100) : 0;
+      return '<tr><td class="dt-mono">' + esc(r.code) + '</td><td>' + esc(r.owner) + '</td><td>' + r.clicks + '</td><td>' + r.signups + '</td><td>' + r.conversions + '</td><td>' + pct(rate) + '</td><td>' + usd(r.earnedUSD) + '</td></tr>';
+    }).join('');
+    var owed = REFERRALS.reduce(function (s, r) { return s + (r.earnedUSD - r.paidUSD); }, 0);
+    $('admAffiliateOwed').textContent = usd(owed);
+
+    $('admAbandonedBody').innerHTML = ABANDONED.slice(0, 12).map(function (a) {
+      return '<tr><td>' + fmtDate(new Date(a.date)) + '</td><td>' + esc(a.title) + '</td><td>' + usd(a.value) + '</td><td>' + (a.email ? esc(a.email) : '<span class="adm-sub">unknown</span>') + '</td></tr>';
+    }).join('');
+    $('admAbandonedTotal').textContent = usd(ABANDONED.reduce(function (s, a) { return s + a.value; }, 0));
+
+    var cs = couponStats();
+    $('admCouponAnBody').innerHTML = cs.map(function (c) {
+      return '<tr><td class="dt-mono">' + esc(c.code) + '</td><td>' + (c.active ? '<span class="dt-badge ok">Active</span>' : '<span class="dt-badge err">Inactive</span>') + '</td><td>' + c.uses + (c.limit ? ' / ' + c.limit : '') + '</td><td>' + usd(c.discountGiven) + '</td><td>' + usd(c.revenue) + '</td></tr>';
+    }).join('');
+
+    document.querySelectorAll('.adm-range button').forEach(function (b) { b.classList.toggle('active', +b.getAttribute('data-range') === RANGE_DAYS); });
+  }
+
+  /* ================================================================
+     PRODUCTS PANEL (management + bulk actions)
+     ================================================================ */
+  var selectedProducts = {};
+  function renderProducts() {
+    var q = ($('admProdSearch') || {}).value || '';
+    q = q.trim().toLowerCase();
+    var rows = allProducts().filter(function (p) { return !q || p.title.toLowerCase().indexOf(q) >= 0; });
+    $('admProdBody').innerHTML = rows.map(function (p) {
+      var checked = selectedProducts[p.id] ? ' checked' : '';
+      return '<tr data-id="' + esc(p.id) + '">' +
+        '<td><input type="checkbox" class="adm-prod-check"' + checked + ' /></td>' +
+        '<td><span class="dr-thumb" style="background-image:url(\'' + p.image + '\');width:44px;height:32px;display:inline-block;vertical-align:middle;border-radius:6px;"></span></td>' +
+        '<td>' + esc(p.title) + (p.extra ? ' <span class="adm-sub">(admin-only, add to catalog.js to publish)</span>' : '') + '</td>' +
+        '<td>' + esc(p.cat) + '</td>' +
+        '<td>' + esc(p.platform) + '</td>' +
+        '<td><input type="number" step="1" min="0" class="adm-price-input" value="' + p.price + '" ' + (can('admin') ? '' : 'disabled') + ' /></td>' +
+        '<td>' + (p.visible ? '<span class="dt-badge ok">Visible</span>' : '<span class="dt-badge err">Hidden</span>') + '</td>' +
+        '<td class="adm-row-actions">' +
+          '<button class="btn btn-ghost adm-btn-sm adm-prod-toggle" type="button"' + (can('admin') ? '' : ' disabled') + '>' + (p.visible ? 'Hide' : 'Show') + '</button>' +
+          (p.extra ? '<button class="btn btn-ghost adm-btn-sm adm-prod-del" type="button"' + (can('admin') ? '' : ' disabled') + '>Delete</button>' : '') +
+        '</td></tr>';
+    }).join('') || '<tr><td colspan="8" class="adm-empty">No products match.</td></tr>';
+    updateBulkBar();
+  }
+  function updateBulkBar() {
+    var n = Object.keys(selectedProducts).filter(function (k) { return selectedProducts[k]; }).length;
+    var bar = $('admBulkBar');
+    if (bar) { bar.hidden = n === 0; $('admBulkCount').textContent = n + ' selected'; }
+  }
+  var prodBody = $('admProdBody');
+  if (prodBody) prodBody.addEventListener('change', function (e) {
+    var tr = e.target.closest('tr'); if (!tr) return;
+    var id = tr.getAttribute('data-id');
+    if (e.target.classList.contains('adm-prod-check')) {
+      selectedProducts[id] = e.target.checked; updateBulkBar();
+    } else if (e.target.classList.contains('adm-price-input')) {
+      if (!can('admin')) return;
+      var p = findProduct(id); if (!p) return;
+      var v = Math.max(0, parseFloat(e.target.value) || 0);
+      PROD_OV[id] = Object.assign({}, PROD_OV[id], { price: v });
+      saveProdOv();
+      logAudit('Set price of "' + p.title + '" to ' + usd(v));
+    }
+  });
+  if (prodBody) prodBody.addEventListener('click', function (e) {
+    var tr = e.target.closest('tr'); if (!tr) return;
+    var id = tr.getAttribute('data-id');
+    var p = findProduct(id); if (!p) return;
+    if (e.target.classList.contains('adm-prod-toggle')) {
+      if (!can('admin')) return;
+      if (p.extra) {
+        var ep = EXTRA_PRODUCTS.filter(function (x) { return x.id === id; })[0];
+        if (ep) { ep.visible = !(ep.visible !== false); saveExtraProducts(); }
+      } else {
+        PROD_OV[id] = Object.assign({}, PROD_OV[id], { visible: !p.visible });
+        saveProdOv();
+      }
+      logAudit((p.visible ? 'Hid' : 'Unhid') + ' product "' + p.title + '"');
+      renderProducts();
+    } else if (e.target.classList.contains('adm-prod-del')) {
+      if (!can('admin')) return;
+      EXTRA_PRODUCTS = EXTRA_PRODUCTS.filter(function (x) { return x.id !== id; });
+      saveExtraProducts();
+      logAudit('Deleted admin-only product "' + p.title + '"');
+      renderProducts();
+    }
+  });
+  var prodSearch = $('admProdSearch');
+  if (prodSearch) prodSearch.addEventListener('input', renderProducts);
+
+  var bulkVisBtn = $('admBulkVisibility'), bulkPriceBtn = $('admBulkPriceApply'), bulkPriceInput = $('admBulkPriceInput');
+  if (bulkVisBtn) bulkVisBtn.addEventListener('click', function () {
+    if (!can('admin')) return;
+    var ids = Object.keys(selectedProducts).filter(function (k) { return selectedProducts[k]; });
+    ids.forEach(function (id) {
+      var p = findProduct(id); if (!p) return;
+      if (p.extra) {
+        var ep = EXTRA_PRODUCTS.filter(function (x) { return x.id === id; })[0];
+        if (ep) ep.visible = !(ep.visible !== false);
+      } else {
+        PROD_OV[id] = Object.assign({}, PROD_OV[id], { visible: !p.visible });
+      }
+    });
+    saveProdOv(); saveExtraProducts();
+    logAudit('Bulk toggled visibility on ' + ids.length + ' product(s)');
+    renderProducts();
+  });
+  if (bulkPriceBtn) bulkPriceBtn.addEventListener('click', function () {
+    if (!can('admin')) return;
+    var pctVal = parseFloat(bulkPriceInput.value);
+    if (!pctVal) return;
+    var ids = Object.keys(selectedProducts).filter(function (k) { return selectedProducts[k]; });
+    ids.forEach(function (id) {
+      var p = findProduct(id); if (!p) return;
+      var newPrice = Math.max(0, Math.round(p.price * (1 + pctVal / 100) * 100) / 100);
+      if (p.extra) {
+        var ep = EXTRA_PRODUCTS.filter(function (x) { return x.id === id; })[0];
+        if (ep) ep.price = newPrice;
+      } else {
+        PROD_OV[id] = Object.assign({}, PROD_OV[id], { price: newPrice });
+      }
+    });
+    saveProdOv(); saveExtraProducts();
+    logAudit('Bulk price adjust ' + (pctVal > 0 ? '+' : '') + pctVal + '% on ' + ids.length + ' product(s)');
+    renderProducts();
+  });
+  var selectAllBox = $('admProdSelectAll');
+  if (selectAllBox) selectAllBox.addEventListener('change', function () {
+    document.querySelectorAll('#admProdBody tr[data-id]').forEach(function (tr) {
+      selectedProducts[tr.getAttribute('data-id')] = selectAllBox.checked;
+    });
+    renderProducts();
+  });
+
+  var addProdForm = $('admAddProdForm');
+  if (addProdForm) addProdForm.addEventListener('submit', function (e) {
+    e.preventDefault();
+    if (!can('admin')) return;
+    var title = $('admNewProdTitle').value.trim();
+    var price = parseFloat($('admNewProdPrice').value) || 0;
+    var cat = $('admNewProdCat').value.trim() || 'Uncategorized';
+    var platform = $('admNewProdPlatform').value;
+    if (!title) return;
+    var id = title.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-' + Date.now().toString(36);
+    EXTRA_PRODUCTS.push({ id: id, title: title, priceNum: price, price: price, cat: cat, platform: platform, image: 'banner.jpg', desc: '', resell: false, visible: true, page: platform === 'Minecraft' ? 'minecraft.html' : 'assets.html' });
+    saveExtraProducts();
+    logAudit('Added product "' + title + '"');
+    addProdForm.reset();
+    renderProducts();
+  });
+
+  /* ================================================================
+     ORDERS PANEL
+     ================================================================ */
+  function renderOrders() {
+    var statusF = ($('admOrderStatusFilter') || {}).value || 'all';
+    var q = (($('admOrderSearch') || {}).value || '').trim().toLowerCase();
+    var rows = ORDERS.filter(function (o) {
+      var okStatus = statusF === 'all' || o.status === statusF;
+      var okQ = !q || o.id.toLowerCase().indexOf(q) >= 0 || o.title.toLowerCase().indexOf(q) >= 0 || o.userName.toLowerCase().indexOf(q) >= 0;
+      return okStatus && okQ;
+    }).sort(function (a, b) { return new Date(b.date) - new Date(a.date); }).slice(0, 200);
+    $('admOrdersBody').innerHTML = rows.map(function (o) {
+      var actions = '';
+      if (o.status === 'pending' && can('support')) actions += '<button class="btn btn-ghost adm-btn-sm adm-order-complete" type="button">Mark completed</button>';
+      if (o.status === 'completed' && can('support')) actions += '<button class="btn btn-ghost adm-btn-sm adm-order-refund" type="button">Refund</button>';
+      return '<tr data-id="' + esc(o.id) + '">' +
+        '<td>' + fmtDate(new Date(o.date)) + '</td>' +
+        '<td class="dt-mono">' + esc(o.id) + '</td>' +
+        '<td>' + esc(o.title) + (o.licence === 'resell' ? ' <span class="adm-sub">· resell</span>' : '') + '</td>' +
+        '<td>' + esc(o.userName) + '</td>' +
+        '<td>' + o.currency.toUpperCase() + '</td>' +
+        '<td>' + usd(o.total) + '</td>' +
+        '<td>' + statusBadge(o.status) + '</td>' +
+        '<td class="adm-row-actions">' + actions + '</td></tr>';
+    }).join('') || '<tr><td colspan="8" class="adm-empty">No orders match.</td></tr>';
+  }
+  var ordersBody = $('admOrdersBody');
+  if (ordersBody) ordersBody.addEventListener('click', function (e) {
+    var tr = e.target.closest('tr'); if (!tr) return;
+    var id = tr.getAttribute('data-id');
+    var o = ORDERS.filter(function (x) { return x.id === id; })[0]; if (!o) return;
+    if (e.target.classList.contains('adm-order-complete')) {
+      if (!can('support')) return;
+      o.status = 'completed'; saveOrders(); logAudit('Marked order ' + id + ' completed');
+      renderOrders(); if (curPanel === 'home') renderHome();
+    } else if (e.target.classList.contains('adm-order-refund')) {
+      if (!can('support')) return;
+      o.status = 'refunded'; o.refundReason = o.refundReason || 'Manual refund by staff';
+      saveOrders(); logAudit('Refunded order ' + id + ' (' + usd(o.total) + ')');
+      renderOrders(); renderRefunds();
+    }
+  });
+  ['admOrderStatusFilter', 'admOrderSearch'].forEach(function (id) {
+    var elx = $(id); if (elx) elx.addEventListener('input', renderOrders);
+  });
+
+  /* ================================================================
+     REFUNDS PANEL
+     ================================================================ */
+  function renderRefunds() {
+    var refunded = ORDERS.filter(function (o) { return o.status === 'refunded'; }).sort(function (a, b) { return new Date(b.date) - new Date(a.date); });
+    $('admRefundStats').innerHTML =
+      '<div class="dash-stat glass"><span class="ds-label">Refunded orders</span><span class="ds-num">' + refunded.length + '</span></div>' +
+      '<div class="dash-stat glass"><span class="ds-label">Total refunded</span><span class="ds-num">' + usd(refunded.reduce(function (s, o) { return s + o.total; }, 0)) + '</span></div>';
+    $('admRefundsBody').innerHTML = refunded.map(function (o) {
+      return '<tr><td>' + fmtDate(new Date(o.date)) + '</td><td class="dt-mono">' + esc(o.id) + '</td><td>' + esc(o.title) + '</td><td>' + esc(o.userName) + '</td><td>' + usd(o.total) + '</td><td>' + esc(o.refundReason || '') + '</td></tr>';
+    }).join('') || '<tr><td colspan="6" class="adm-empty">No refunds yet.</td></tr>';
+
+    var pending = ORDERS.filter(function (o) { return o.status === 'completed'; }).sort(function (a, b) { return new Date(b.date) - new Date(a.date); }).slice(0, 30);
+    $('admRefundEligible').innerHTML = pending.map(function (o) {
+      return '<tr data-id="' + esc(o.id) + '"><td>' + fmtDate(new Date(o.date)) + '</td><td class="dt-mono">' + esc(o.id) + '</td><td>' + esc(o.title) + '</td><td>' + esc(o.userName) + '</td><td>' + usd(o.total) + '</td>' +
+        '<td class="adm-row-actions">' + (can('support') ? '<button class="btn btn-ghost adm-btn-sm adm-refund-issue" type="button">Issue refund</button>' : '<span class="adm-sub">No permission</span>') + '</td></tr>';
+    }).join('');
+  }
+  var refundEligible = $('admRefundEligible');
+  if (refundEligible) refundEligible.addEventListener('click', function (e) {
+    if (!e.target.classList.contains('adm-refund-issue')) return;
+    if (!can('support')) return;
+    var tr = e.target.closest('tr'); var id = tr.getAttribute('data-id');
+    var o = ORDERS.filter(function (x) { return x.id === id; })[0]; if (!o) return;
+    var reason = prompt('Refund reason for ' + id + ':', 'Requested by customer') || 'Requested by customer';
+    o.status = 'refunded'; o.refundReason = reason;
+    saveOrders(); logAudit('Issued refund for ' + id + ' — ' + reason);
+    renderRefunds(); renderOrders();
+  });
+
+  /* ================================================================
+     REVIEWS PANEL
+     ================================================================ */
+  function renderReviews() {
+    var f = ($('admReviewFilter') || {}).value || 'pending';
+    var rows = REVIEWS.filter(function (r) { return f === 'all' || r.status === f; }).sort(function (a, b) { return new Date(b.date) - new Date(a.date); });
+    $('admReviewsList').innerHTML = rows.map(function (r) {
+      var stars = '';
+      for (var i = 0; i < 5; i++) stars += '<span class="pd-star ' + (i < r.stars ? 'on' : '') + '">' + (i < r.stars ? '★' : '☆') + '</span>';
+      return '<div class="dash-card glass adm-review" data-id="' + r.id + '">' +
+        '<div class="adm-review-head"><strong>' + esc(r.user) + '</strong><span class="adm-sub">on ' + esc(r.productTitle) + '</span><span class="adm-sub">' + fmtDate(new Date(r.date)) + '</span>' + statusBadge(r.status === 'approved' ? 'completed' : (r.status === 'hidden' ? 'refunded' : 'pending')) + '</div>' +
+        '<div class="pd-rev-stars">' + stars + '</div>' +
+        '<p class="adm-review-text">' + esc(r.text) + '</p>' +
+        '<div class="adm-row-actions">' +
+          (r.status !== 'approved' ? '<button class="btn btn-ghost adm-btn-sm adm-rev-approve" type="button">Approve</button>' : '') +
+          (r.status !== 'hidden' ? '<button class="btn btn-ghost adm-btn-sm adm-rev-hide" type="button">Hide</button>' : '') +
+        '</div></div>';
+    }).join('') || '<p class="adm-empty">Nothing here.</p>';
+  }
+  var reviewsList = $('admReviewsList');
+  if (reviewsList) reviewsList.addEventListener('click', function (e) {
+    var card = e.target.closest('.adm-review'); if (!card) return;
+    var id = card.getAttribute('data-id');
+    var r = REVIEWS.filter(function (x) { return x.id === id; })[0]; if (!r) return;
+    if (e.target.classList.contains('adm-rev-approve')) { r.status = 'approved'; logAudit('Approved review by ' + r.user + ' on "' + r.productTitle + '"'); }
+    else if (e.target.classList.contains('adm-rev-hide')) { r.status = 'hidden'; logAudit('Hid review by ' + r.user + ' on "' + r.productTitle + '"'); }
+    else return;
+    saveReviews(); renderReviews();
+  });
+  var reviewFilter = $('admReviewFilter');
+  if (reviewFilter) reviewFilter.addEventListener('change', renderReviews);
+
+  /* ================================================================
+     USERS PANEL (+ manual product grants)
+     ================================================================ */
+  function userSpend(userId) {
+    return ORDERS.filter(function (o) { return o.userId === userId && o.status === 'completed'; }).reduce(function (s, o) { return s + o.total; }, 0);
+  }
+  function userOrderCount(userId) { return ORDERS.filter(function (o) { return o.userId === userId; }).length; }
+  function renderUsers() {
+    var q = (($('admUserSearch') || {}).value || '').trim().toLowerCase();
+    var rows = USERS.filter(function (u) { return !q || u.name.toLowerCase().indexOf(q) >= 0 || u.email.toLowerCase().indexOf(q) >= 0; });
+    $('admUsersBody').innerHTML = rows.map(function (u) {
+      return '<tr data-id="' + u.id + '"><td>' + esc(u.name) + '</td><td>' + esc(u.email) + '</td><td>' + fmtDate(new Date(u.joined)) + '</td><td>' + userOrderCount(u.id) + '</td><td>' + usd(userSpend(u.id)) + '</td>' +
+        '<td>' + (u.status === 'active' ? '<span class="dt-badge ok">Active</span>' : '<span class="dt-badge err">Banned</span>') + '</td>' +
+        '<td class="adm-row-actions">' +
+          (can('admin') ? '<button class="btn btn-ghost adm-btn-sm adm-user-ban" type="button">' + (u.status === 'active' ? 'Ban' : 'Unban') + '</button>' : '') +
+        '</td></tr>';
+    }).join('') || '<tr><td colspan="7" class="adm-empty">No users match.</td></tr>';
+
+    var sel = $('admGrantUser');
+    if (sel) sel.innerHTML = USERS.map(function (u) { return '<option value="' + u.id + '">' + esc(u.name) + '</option>'; }).join('');
+    var psel = $('admGrantProduct');
+    if (psel) psel.innerHTML = allProducts().map(function (p) { return '<option value="' + p.id + '">' + esc(p.title) + '</option>'; }).join('');
+  }
+  var usersBody = $('admUsersBody');
+  if (usersBody) usersBody.addEventListener('click', function (e) {
+    if (!e.target.classList.contains('adm-user-ban')) return;
+    if (!can('admin')) return;
+    var tr = e.target.closest('tr'); var id = tr.getAttribute('data-id');
+    var u = USERS.filter(function (x) { return x.id === id; })[0]; if (!u) return;
+    u.status = u.status === 'active' ? 'banned' : 'active';
+    saveUsers(); logAudit((u.status === 'banned' ? 'Banned' : 'Unbanned') + ' user ' + u.name);
+    renderUsers();
+  });
+  var userSearch = $('admUserSearch');
+  if (userSearch) userSearch.addEventListener('input', renderUsers);
+
+  var grantForm = $('admGrantForm');
+  if (grantForm) grantForm.addEventListener('submit', function (e) {
+    e.preventDefault();
+    if (!can('support')) return;
+    var userId = $('admGrantUser').value, prodId = $('admGrantProduct').value;
+    var u = USERS.filter(function (x) { return x.id === userId; })[0];
+    var p = findProduct(prodId);
+    if (!u || !p) return;
+    ORDERS.unshift({
+      id: 'CLD-GRANT-' + Date.now().toString(36).toUpperCase(),
+      date: new Date().toISOString(), userId: u.id, userName: u.name,
+      productId: p.id, title: p.title, image: p.image, cat: p.cat, platform: p.platform,
+      licence: 'standard', qty: 1, unitPrice: 0, subtotal: 0, couponCode: null, discount: 0, total: 0,
+      currency: 'usd', status: 'completed', refCode: null, refundReason: null, granted: true
+    });
+    saveOrders();
+    logAudit('Manually granted "' + p.title + '" to ' + u.name);
+    var msg = $('admGrantMsg'); if (msg) { msg.textContent = 'Granted "' + p.title + '" to ' + u.name + '.'; setTimeout(function () { msg.textContent = ''; }, 3000); }
+    renderUsers(); if (curPanel === 'orders') renderOrders();
+  });
+
+  /* ================================================================
+     COUPONS PANEL
+     ================================================================ */
+  function renderCoupons() {
+    var cs = couponStats();
+    $('admCouponsBody').innerHTML = COUPONS.map(function (c, i) {
+      var stat = cs.filter(function (x) { return x.code === c.code; })[0] || { uses: 0, discountGiven: 0 };
+      return '<tr data-code="' + esc(c.code) + '"><td class="dt-mono">' + esc(c.code) + '</td><td>' + (c.type === 'pct' ? c.val + '%' : usd(c.val)) + '</td><td>' + stat.uses + (c.limit ? ' / ' + c.limit : '') + '</td><td>' + usd(stat.discountGiven) + '</td>' +
+        '<td>' + (c.active ? '<span class="dt-badge ok">Active</span>' : '<span class="dt-badge err">Inactive</span>') + '</td>' +
+        '<td class="adm-row-actions">' + (can('admin') ? '<button class="btn btn-ghost adm-btn-sm adm-coupon-toggle" type="button">' + (c.active ? 'Deactivate' : 'Activate') + '</button><button class="btn btn-ghost adm-btn-sm adm-coupon-del" type="button">Delete</button>' : '') + '</td></tr>';
+    }).join('') || '<tr><td colspan="6" class="adm-empty">No coupons yet.</td></tr>';
+  }
+  var couponsBody = $('admCouponsBody');
+  if (couponsBody) couponsBody.addEventListener('click', function (e) {
+    var tr = e.target.closest('tr'); if (!tr) return;
+    var code = tr.getAttribute('data-code');
+    var c = COUPONS.filter(function (x) { return x.code === code; })[0]; if (!c) return;
+    if (e.target.classList.contains('adm-coupon-toggle')) {
+      if (!can('admin')) return;
+      c.active = !c.active; saveCoupons(); logAudit((c.active ? 'Activated' : 'Deactivated') + ' coupon ' + code); renderCoupons();
+    } else if (e.target.classList.contains('adm-coupon-del')) {
+      if (!can('admin')) return;
+      COUPONS = COUPONS.filter(function (x) { return x.code !== code; });
+      saveCoupons(); logAudit('Deleted coupon ' + code); renderCoupons();
+    }
+  });
+  var addCouponForm = $('admAddCouponForm');
+  if (addCouponForm) addCouponForm.addEventListener('submit', function (e) {
+    e.preventDefault();
+    if (!can('admin')) return;
+    var code = $('admNewCouponCode').value.trim().toUpperCase();
+    var type = $('admNewCouponType').value;
+    var val = parseFloat($('admNewCouponVal').value) || 0;
+    var limit = parseInt($('admNewCouponLimit').value, 10) || null;
+    if (!code || !val) return;
+    if (COUPONS.some(function (c) { return c.code === code; })) { alert('Coupon code already exists.'); return; }
+    COUPONS.push({ code: code, type: type, val: val, active: true, limit: limit });
+    saveCoupons(); logAudit('Created coupon ' + code);
+    addCouponForm.reset(); renderCoupons();
+  });
+
+  /* ================================================================
+     STAFF PANEL (roles + whitelist management)
+     ================================================================ */
+  function renderStaff() {
+    $('admStaffBody').innerHTML = STAFF.map(function (s) {
+      return '<tr data-id="' + s.id + '"><td>' + esc(s.name) + '</td><td class="dt-mono">' + esc(s.discordId || '—') + '</td>' +
+        '<td><select class="adm-staff-role"' + (can('owner') ? '' : ' disabled') + '>' +
+          ['owner', 'admin', 'support'].map(function (r) { return '<option value="' + r + '"' + (r === s.role ? ' selected' : '') + '>' + r + '</option>'; }).join('') +
+        '</select></td>' +
+        '<td class="adm-row-actions">' + (can('owner') && STAFF.length > 1 ? '<button class="btn btn-ghost adm-btn-sm adm-staff-remove" type="button">Remove</button>' : '') + '</td></tr>';
+    }).join('');
+    $('admWhitelistNote').textContent = ADMIN_TESTING_OPEN
+      ? 'Open testing mode is ON — everyone can reach this dashboard regardless of the list below. Discord IDs listed here are only staged for launch.'
+      : 'Whitelist enforced — only the Discord IDs listed here can open this dashboard.';
+  }
+  var staffBody = $('admStaffBody');
+  if (staffBody) staffBody.addEventListener('change', function (e) {
+    if (!e.target.classList.contains('adm-staff-role')) return;
+    if (!can('owner')) return;
+    var tr = e.target.closest('tr'); var id = tr.getAttribute('data-id');
+    var s = STAFF.filter(function (x) { return x.id === id; })[0]; if (!s) return;
+    s.role = e.target.value; saveStaff(); logAudit('Changed ' + s.name + '\'s role to ' + s.role); renderTopbar();
+  });
+  if (staffBody) staffBody.addEventListener('click', function (e) {
+    if (!e.target.classList.contains('adm-staff-remove')) return;
+    if (!can('owner')) return;
+    var tr = e.target.closest('tr'); var id = tr.getAttribute('data-id');
+    var s = STAFF.filter(function (x) { return x.id === id; })[0]; if (!s) return;
+    STAFF = STAFF.filter(function (x) { return x.id !== id; });
+    ADMIN_WHITELIST = ADMIN_WHITELIST.filter(function (x) { return x !== s.discordId; });
+    saveStaff(); logAudit('Removed staff member ' + s.name); renderStaff(); renderTopbar();
+  });
+  var addStaffForm = $('admAddStaffForm');
+  if (addStaffForm) addStaffForm.addEventListener('submit', function (e) {
+    e.preventDefault();
+    if (!can('owner')) return;
+    var name = $('admNewStaffName').value.trim();
+    var discordId = $('admNewStaffDiscord').value.trim();
+    var role = $('admNewStaffRole').value;
+    if (!name) return;
+    var id = 'st' + Date.now().toString(36);
+    STAFF.push({ id: id, name: name, discordId: discordId, role: role });
+    if (discordId) ADMIN_WHITELIST.push(discordId);
+    saveStaff(); logAudit('Added staff member ' + name + ' (' + role + ')');
+    addStaffForm.reset(); renderStaff();
+  });
+
+  /* ================================================================
+     AUDIT LOG PANEL
+     ================================================================ */
+  function renderAudit() {
+    $('admAuditBody').innerHTML = AUDIT.map(function (a) {
+      return '<tr><td>' + fmtDateTime(new Date(a.ts)) + '</td><td>' + esc(a.actor) + '</td><td>' + esc(a.action) + '</td></tr>';
+    }).join('') || '<tr><td colspan="3" class="adm-empty">No actions logged yet this session.</td></tr>';
+  }
+
+  /* ================================================================
+     INIT
+     ================================================================ */
+  renderTopbar();
+  showPanel('home');
+})();

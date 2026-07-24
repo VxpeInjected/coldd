@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>coldd Admin</title>
+  <link rel="icon" type="image/png" href="logo.png" />
+  <meta name="robots" content="noindex, nofollow" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body class="adm-body">
+  <div class="backdrop"></div>
+  <div class="scrim"></div>
+  <div class="grain"></div>
+
+  <div class="adm-gate" id="admGate" hidden>
+    <div class="adm-gate-card glass">
+      <img class="logo" src="logo.png" alt="coldd" />
+      <h1>Staff access only</h1>
+      <p>This dashboard is restricted to whitelisted coldd staff. If you believe this is a mistake, reach out in Discord.</p>
+      <a class="btn btn-primary" href="index.html">Back to site</a>
+    </div>
+  </div>
+
+  <div id="admShell" hidden>
+    <header class="adm-topbar">
+      <a class="brand" href="index.html" aria-label="coldd home"><img class="logo" src="logo.png" alt="coldd" /></a>
+      <span class="adm-tag">Admin</span>
+      <span class="adm-mode-flag" id="admModeBanner"></span>
+      <div class="adm-topbar-right">
+        <label class="adm-role-label">Viewing as
+          <select id="admRoleSelect" class="adm-select"></select>
+        </label>
+        <span class="dash-av" id="admAvatar">A</span>
+        <a class="btn btn-ghost adm-btn-sm" href="index.html">Exit to site</a>
+      </div>
+    </header>
+
+    <main class="page adm-page">
+      <div class="wrap dash">
+        <aside class="dash-side glass">
+          <nav class="dash-nav">
+            <a href="#" data-panel="home" class="active"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg><span>Dashboard</span></a>
+            <a href="#" data-panel="analytics"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-6 4 3 5-8"/></svg><span>Analytics</span></a>
+            <a href="#" data-panel="products"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="M3.3 7 12 12l8.7-5M12 22V12"/></svg><span>Products</span></a>
+            <a href="#" data-panel="orders"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg><span>Orders</span></a>
+            <a href="#" data-panel="refunds"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg><span>Refunds</span></a>
+            <a href="#" data-panel="reviews"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m12 2 3 6 6.5 1-4.7 4.6 1.1 6.4L12 17l-5.9 3 1.1-6.4L2.5 9 9 8z"/></svg><span>Reviews</span></a>
+            <a href="#" data-panel="users"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="4"/><path d="M2 21c0-4 3.5-6 7-6s7 2 7 6"/><path d="M16 3.5a4 4 0 0 1 0 7.8"/><path d="M18 14.5c2.5.6 4 2.2 4 5.5"/></svg><span>Users</span></a>
+            <a href="#" data-panel="coupons"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5H4a1 1 0 0 0-1 1v4a2.5 2.5 0 0 1 0 5v4a1 1 0 0 0 1 1h5"/><path d="M15 19h5a1 1 0 0 0 1-1v-4a2.5 2.5 0 0 1 0-5V5a1 1 0 0 0-1-1h-5"/><path d="M9 5v14M9 8h.01M9 12h.01M9 16h.01"/></svg><span>Coupons</span></a>
+            <a href="#" data-panel="staff"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 3 6v6c0 5 4 8 9 10 5-2 9-5 9-10V6z"/><path d="m9 12 2 2 4-4"/></svg><span>Staff &amp; Whitelist</span></a>
+            <a href="#" data-panel="audit"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M9 13h6M9 17h6M9 9h1"/></svg><span>Audit Log</span></a>
+          </nav>
+        </aside>
+
+        <div class="dash-main">
+
+          <section class="dash-panel" id="adm-panel-home">
+            <div class="dash-head"><h1>Dashboard</h1><p>A snapshot of coldd right now.</p></div>
+            <div class="dash-stats" id="admHomeStats"></div>
+            <div class="dash-card glass">
+              <div class="dash-card-head"><h2>Recent orders</h2><a href="#" data-panel="orders">View all</a></div>
+              <div class="dash-rows" id="admHomeRecent"></div>
+            </div>
+          </section>
+
+          <section class="dash-panel" id="adm-panel-analytics" hidden>
+            <div class="dash-head adm-head-row">
+              <div><h1>Analytics</h1><p>Every figure below recalculates for the selected range.</p></div>
+              <div class="adm-range" role="group" aria-label="Date range">
+                <button type="button" data-range="1">Today</button>
+                <button type="button" data-range="7">7D</button>
+                <button type="button" data-range="30" class="active">30D</button>
+                <button type="button" data-range="90">90D</button>
+                <button type="button" data-range="0">All</button>
+              </div>
+            </div>
+
+            <div class="dash-stats" id="admAnStats"></div>
+
+            <div class="dash-card glass">
+              <div class="dash-card-head"><h2>Revenue analytics</h2></div>
+              <div id="admRevChart"></div>
+            </div>
+
+            <div class="adm-two-col">
+              <div class="dash-card glass">
+                <div class="dash-card-head"><h2>Revenue by currency</h2></div>
+                <div class="dash-stats adm-stats-3" id="admCurrencyCards"></div>
+              </div>
+              <div class="dash-card glass">
+                <div class="dash-card-head"><h2>Robux &amp; DevEx conversion</h2></div>
+                <div id="admDevex"></div>
+              </div>
+            </div>
+
+            <div class="adm-two-col">
+              <div class="dash-card glass">
+                <div class="dash-card-head"><h2>Best sellers</h2></div>
+                <div class="dash-rows" id="admBestSellers"></div>
+              </div>
+              <div class="dash-card glass">
+                <div class="dash-card-head"><h2>Revenue by category</h2></div>
+                <div id="admCatChart"></div>
+                <div class="adm-catlist" id="admCatList"></div>
+              </div>
+            </div>
+
+            <div class="dash-card glass">
+              <div class="dash-card-head"><h2>Traffic analytics</h2></div>
+              <div class="dash-stats adm-stats-2" id="admTrafficStats"></div>
+              <div id="admTrafficChart"></div>
+            </div>
+
+            <div class="dash-card glass dash-tablewrap">
+              <div class="dash-card-head"><h2>Referral link tracking</h2><span class="adm-sub">Total currently owed to affiliates: <strong id="admAffiliateOwed"></strong></span></div>
+              <table class="dash-table">
+                <thead><tr><th>Code</th><th>Owner</th><th>Clicks</th><th>Sign-ups</th><th>Conversions</th><th>Conv. rate</th><th>Earned</th></tr></thead>
+                <tbody id="admReferralBody"></tbody>
+              </table>
+            </div>
+
+            <div class="adm-two-col">
+              <div class="dash-card glass dash-tablewrap">
+                <div class="dash-card-head"><h2>Abandoned carts</h2><span class="adm-sub">Value at risk: <strong id="admAbandonedTotal"></strong></span></div>
+                <table class="dash-table">
+                  <thead><tr><th>Date</th><th>Item</th><th>Value</th><th>Email</th></tr></thead>
+                  <tbody id="admAbandonedBody"></tbody>
+                </table>
+              </div>
+              <div class="dash-card glass dash-tablewrap">
+                <div class="dash-card-head"><h2>Coupon usage &amp; redemption</h2></div>
+                <table class="dash-table">
+                  <thead><tr><th>Code</th><th>Status</th><th>Uses</th><th>Discount given</th><th>Revenue influenced</th></tr></thead>
+                  <tbody id="admCouponAnBody"></tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+
+          <section class="dash-panel" id="adm-panel-products" hidden>
+            <div class="dash-head"><h1>Product management</h1><p>Edit pricing and visibility, or add admin-only listings.</p></div>
+            <div class="adm-toolbar">
+              <input type="text" id="admProdSearch" class="adm-input" placeholder="Search products…" />
+            </div>
+            <div class="adm-bulkbar" id="admBulkBar" hidden>
+              <span id="admBulkCount">0 selected</span>
+              <button class="btn btn-ghost adm-btn-sm" type="button" id="admBulkVisibility">Toggle visibility</button>
+              <span class="adm-bulk-price"><input type="number" id="admBulkPriceInput" class="adm-input adm-input-sm" placeholder="% change, e.g. -10" /><button class="btn btn-ghost adm-btn-sm" type="button" id="admBulkPriceApply">Apply price change</button></span>
+            </div>
+            <div class="dash-card glass dash-tablewrap">
+              <table class="dash-table adm-table-tight">
+                <thead><tr><th><input type="checkbox" id="admProdSelectAll" /></th><th></th><th>Product</th><th>Category</th><th>Platform</th><th>Price (USD)</th><th>Status</th><th>Actions</th></tr></thead>
+                <tbody id="admProdBody"></tbody>
+              </table>
+            </div>
+            <div class="dash-card glass">
+              <div class="dash-card-head"><h2>Add admin-only product</h2></div>
+              <form class="adm-form" id="admAddProdForm">
+                <input type="text" id="admNewProdTitle" class="adm-input" placeholder="Title" required />
+                <input type="number" id="admNewProdPrice" class="adm-input adm-input-sm" placeholder="Price USD" min="0" step="1" required />
+                <input type="text" id="admNewProdCat" class="adm-input" placeholder="Category" />
+                <select id="admNewProdPlatform" class="adm-select"><option value="Roblox">Roblox</option><option value="Minecraft">Minecraft</option></select>
+                <button class="btn btn-primary adm-btn-sm" type="submit">Add product</button>
+              </form>
+              <p class="adm-note">Admin-only products are staged here for review — publish them to the live storefront by adding them to catalog.js.</p>
+            </div>
+          </section>
+
+          <section class="dash-panel" id="adm-panel-orders" hidden>
+            <div class="dash-head"><h1>Order management</h1><p>Every order placed on the storefront.</p></div>
+            <div class="adm-toolbar">
+              <input type="text" id="admOrderSearch" class="adm-input" placeholder="Search order #, product, or buyer…" />
+              <select id="admOrderStatusFilter" class="adm-select">
+                <option value="all">All statuses</option>
+                <option value="completed">Completed</option>
+                <option value="pending">Pending</option>
+                <option value="refunded">Refunded</option>
+              </select>
+            </div>
+            <div class="dash-card glass dash-tablewrap">
+              <table class="dash-table">
+                <thead><tr><th>Date</th><th>Order</th><th>Product</th><th>Buyer</th><th>Currency</th><th>Total</th><th>Status</th><th>Actions</th></tr></thead>
+                <tbody id="admOrdersBody"></tbody>
+              </table>
+            </div>
+          </section>
+
+          <section class="dash-panel" id="adm-panel-refunds" hidden>
+            <div class="dash-head"><h1>Refund management</h1><p>Issue refunds and review refund history.</p></div>
+            <div class="dash-stats adm-stats-2" id="admRefundStats"></div>
+            <div class="dash-card glass dash-tablewrap">
+              <div class="dash-card-head"><h2>Eligible orders</h2></div>
+              <table class="dash-table">
+                <thead><tr><th>Date</th><th>Order</th><th>Product</th><th>Buyer</th><th>Total</th><th>Actions</th></tr></thead>
+                <tbody id="admRefundEligible"></tbody>
+              </table>
+            </div>
+            <div class="dash-card glass dash-tablewrap">
+              <div class="dash-card-head"><h2>Refund history</h2></div>
+              <table class="dash-table">
+                <thead><tr><th>Date</th><th>Order</th><th>Product</th><th>Buyer</th><th>Amount</th><th>Reason</th></tr></thead>
+                <tbody id="admRefundsBody"></tbody>
+              </table>
+            </div>
+          </section>
+
+          <section class="dash-panel" id="adm-panel-reviews" hidden>
+            <div class="dash-head"><h1>Review moderation</h1><p>Approve or hide product reviews before they go public.</p></div>
+            <div class="adm-toolbar">
+              <select id="admReviewFilter" class="adm-select">
+                <option value="pending" selected>Pending</option>
+                <option value="approved">Approved</option>
+                <option value="hidden">Hidden</option>
+                <option value="all">All</option>
+              </select>
+            </div>
+            <div id="admReviewsList"></div>
+          </section>
+
+          <section class="dash-panel" id="adm-panel-users" hidden>
+            <div class="dash-head"><h1>User management</h1><p>Search accounts, ban bad actors, or grant a product manually.</p></div>
+            <div class="adm-toolbar">
+              <input type="text" id="admUserSearch" class="adm-input" placeholder="Search name or email…" />
+            </div>
+            <div class="dash-card glass dash-tablewrap">
+              <table class="dash-table">
+                <thead><tr><th>Name</th><th>Email</th><th>Joined</th><th>Orders</th><th>Spent</th><th>Status</th><th>Actions</th></tr></thead>
+                <tbody id="admUsersBody"></tbody>
+              </table>
+            </div>
+            <div class="dash-card glass">
+              <div class="dash-card-head"><h2>Manual product grant</h2></div>
+              <form class="adm-form" id="admGrantForm">
+                <select id="admGrantUser" class="adm-select"></select>
+                <select id="admGrantProduct" class="adm-select"></select>
+                <button class="btn btn-primary adm-btn-sm" type="submit">Grant access</button>
+                <span class="adm-note" id="admGrantMsg"></span>
+              </form>
+            </div>
+          </section>
+
+          <section class="dash-panel" id="adm-panel-coupons" hidden>
+            <div class="dash-head"><h1>Coupons &amp; discounts</h1><p>Create, disable, or retire promo codes.</p></div>
+            <div class="dash-card glass dash-tablewrap">
+              <table class="dash-table">
+                <thead><tr><th>Code</th><th>Discount</th><th>Uses</th><th>Discount given</th><th>Status</th><th>Actions</th></tr></thead>
+                <tbody id="admCouponsBody"></tbody>
+              </table>
+            </div>
+            <div class="dash-card glass">
+              <div class="dash-card-head"><h2>Create coupon</h2></div>
+              <form class="adm-form" id="admAddCouponForm">
+                <input type="text" id="admNewCouponCode" class="adm-input adm-input-sm" placeholder="CODE" required />
+                <select id="admNewCouponType" class="adm-select"><option value="pct">% off</option><option value="flat">$ off</option></select>
+                <input type="number" id="admNewCouponVal" class="adm-input adm-input-sm" placeholder="Value" min="0" step="1" required />
+                <input type="number" id="admNewCouponLimit" class="adm-input adm-input-sm" placeholder="Use limit (optional)" min="0" step="1" />
+                <button class="btn btn-primary adm-btn-sm" type="submit">Create coupon</button>
+              </form>
+            </div>
+          </section>
+
+          <section class="dash-panel" id="adm-panel-staff" hidden>
+            <div class="dash-head"><h1>Staff &amp; whitelist</h1><p>Manage who can access this dashboard and what they can do.</p></div>
+            <p class="adm-note" id="admWhitelistNote"></p>
+            <div class="dash-card glass dash-tablewrap">
+              <table class="dash-table">
+                <thead><tr><th>Name</th><th>Discord ID</th><th>Role</th><th>Actions</th></tr></thead>
+                <tbody id="admStaffBody"></tbody>
+              </table>
+            </div>
+            <div class="dash-card glass">
+              <div class="dash-card-head"><h2>Add staff member</h2></div>
+              <form class="adm-form" id="admAddStaffForm">
+                <input type="text" id="admNewStaffName" class="adm-input" placeholder="Name" required />
+                <input type="text" id="admNewStaffDiscord" class="adm-input" placeholder="Discord user ID" />
+                <select id="admNewStaffRole" class="adm-select"><option value="support">Support agent</option><option value="admin">Admin</option><option value="owner">Owner</option></select>
+                <button class="btn btn-primary adm-btn-sm" type="submit">Add staff</button>
+              </form>
+            </div>
+          </section>
+
+          <section class="dash-panel" id="adm-panel-audit" hidden>
+            <div class="dash-head"><h1>Audit log</h1><p>Every action taken from this dashboard, most recent first.</p></div>
+            <div class="dash-card glass dash-tablewrap">
+              <table class="dash-table">
+                <thead><tr><th>When</th><th>Staff member</th><th>Action</th></tr></thead>
+                <tbody id="admAuditBody"></tbody>
+              </table>
+            </div>
+          </section>
+
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="catalog.js"></script>
+  <script src="admin.js"></script>
+</body>
+</html>

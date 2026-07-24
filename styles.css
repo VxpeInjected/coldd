@@ -1574,7 +1574,17 @@ body.auth-page { min-height: 100vh; }
 .tut-toc-card nav a:hover { color: var(--fg); }
 .tut-toc-cta p { font-size: 12.5px; color: var(--fg-2); margin: 0 0 12px; }
 .tut-toc-cta .btn { width: 100%; justify-content: center; }
+.tut-video { margin: 28px 0 0; }
 @media (max-width: 900px) { .tut-detail-layout { grid-template-columns: 1fr; } .tut-toc { position: static; } }
+
+/* ================================================================
+   BLOG / TUTORIALS VIEW SWITCH
+   ================================================================ */
+.bt-switch { display: inline-flex; gap: 4px; padding: 4px; margin-bottom: 26px; border-radius: 13px; background: var(--bg-3); border: 1px solid var(--hairline); }
+.bt-opt { font-family: inherit; font-size: 13.5px; font-weight: 600; color: var(--fg-2); background: none; border: none;
+  padding: 9px 20px; border-radius: 10px; cursor: pointer; transition: background .2s var(--ease), color .2s var(--ease); }
+.bt-opt:hover { color: var(--fg); }
+.bt-opt.active { color: #fff; background: linear-gradient(180deg, #ff5247, #e23229); box-shadow: 0 10px 24px -12px rgba(255,77,68,0.55); }
 
 /* ================================================================
    RELEASES TIMELINE

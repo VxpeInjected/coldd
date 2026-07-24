@@ -22,6 +22,14 @@
     return m ? decodeURIComponent(m[1].replace(/\+/g, ' ')) : '';
   }
 
+  /* Accepts youtube.com/watch?v=, youtu.be/, youtube.com/embed/, or a bare
+     video id; returns an embeddable URL or null if it doesn't look like one. */
+  function ytEmbed(url) {
+    if (!url) return null;
+    var m = String(url).trim().match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|^)([a-zA-Z0-9_-]{11})(?:[?&#]|$)/);
+    return m ? 'https://www.youtube.com/embed/' + m[1] : null;
+  }
+
   /* Minimal markdown-lite: blank-line paragraphs, ## / ### headings (get slug ids
      for anchor/TOC use), "- " bullet lists, **bold**, `code`. Nothing else. */
   function mdLite(src) {
@@ -57,13 +65,13 @@
     return out.join('\n');
   }
 
-  window.__blog = { esc: esc, slugify: slugify, fmtDate: fmtDate, qp: qp, mdLite: mdLite };
+  window.__blog = { esc: esc, slugify: slugify, fmtDate: fmtDate, qp: qp, mdLite: mdLite, ytEmbed: ytEmbed };
 
   window.__TUTORIALS = [
     {
       id: 'tut-1', slug: 'datastore-that-wont-corrupt-your-saves', title: 'DataStore that won’t corrupt your saves',
       summary: 'UpdateAsync, retry backoff, BindToClose, and schema versioning — the four habits that stop save corruption before it ships.',
-      cover: 'scripts.jpg', track: 'Scripting', difficulty: 'Intermediate', platform: 'Roblox', order: 1, estMins: 12, visible: true,
+      cover: 'scripts.jpg', track: 'Scripting', difficulty: 'Intermediate', platform: 'Roblox', order: 1, estMins: 12, visible: true, video: '',
       body: [
         'Most DataStore bugs never show up in Studio. They show up three weeks after launch, when two servers write to the same key at once and one write silently overwrites the other.',
         '## Why UpdateAsync beats SetAsync',
@@ -79,7 +87,7 @@
     {
       id: 'tut-2', slug: 'writing-a-modular-combat-system', title: 'Writing a modular combat system',
       summary: 'Separate hit detection, damage calculation, and feedback into swappable modules so one weapon change doesn’t risk the whole system.',
-      cover: 'banner.jpg', track: 'Scripting', difficulty: 'Intermediate', platform: 'Roblox', order: 2, estMins: 15, visible: true,
+      cover: 'banner.jpg', track: 'Scripting', difficulty: 'Intermediate', platform: 'Roblox', order: 2, estMins: 15, visible: true, video: '',
       body: [
         'The fastest way to make a combat system unmaintainable is to put hit detection, damage math, and hit-feedback in the same function. Change one weapon and you risk breaking all of them.',
         '## Split into three modules',
@@ -93,7 +101,7 @@
     {
       id: 'tut-3', slug: 'debugging-server-client-replication', title: 'Debugging server-client replication',
       summary: 'A checklist for the three replication bugs that eat the most debugging time: stale reads, ordering races, and silent RemoteEvent drops.',
-      cover: 'scripts.jpg', track: 'Scripting', difficulty: 'Advanced', platform: 'Roblox', order: 3, estMins: 14, visible: true,
+      cover: 'scripts.jpg', track: 'Scripting', difficulty: 'Advanced', platform: 'Roblox', order: 3, estMins: 14, visible: true, video: '',
       body: [
         'Replication bugs are miserable because they’re non-deterministic — they pass in Studio and fail on a real server with real latency. Here’s the order to check things in.',
         '## Check for stale local reads first',
@@ -107,7 +115,7 @@
     {
       id: 'tut-4', slug: 'building-a-slot-based-inventory-from-scratch', title: 'Building a slot-based inventory from scratch',
       summary: 'Grid state, drag-and-drop without dropped items, and stack merging — the three pieces that make an inventory feel solid instead of fragile.',
-      cover: 'scripts.jpg', track: 'Scripting', difficulty: 'Intermediate', platform: 'Roblox', order: 4, estMins: 18, visible: true,
+      cover: 'scripts.jpg', track: 'Scripting', difficulty: 'Intermediate', platform: 'Roblox', order: 4, estMins: 18, visible: true, video: '',
       body: [
         'A slot-based inventory is really just a fixed-size array with UI on top. Most of the difficulty is in the drag-and-drop, not the data.',
         '## Model the grid as data first',
@@ -121,7 +129,7 @@
     {
       id: 'tut-5', slug: 'optimizing-part-count-before-you-ship', title: 'Optimizing part count before you ship',
       summary: 'Where part count actually comes from, and the three passes that cut it fastest: unions, meshes, and hidden-surface removal.',
-      cover: 'builds.jpg', track: 'Building', difficulty: 'Beginner', platform: 'Roblox', order: 1, estMins: 9, visible: true,
+      cover: 'builds.jpg', track: 'Building', difficulty: 'Beginner', platform: 'Roblox', order: 1, estMins: 9, visible: true, video: '',
       body: [
         'Part count problems almost always come from the same source: detail work done with dozens of small Parts instead of one mesh or union.',
         '## Union repetitive detail, don’t leave it loose',
@@ -135,7 +143,7 @@
     {
       id: 'tut-6', slug: 'lighting-a-map-without-killing-fps', title: 'Lighting a map without killing FPS',
       summary: 'Future lighting technology is not free — here’s how to get the mood without tanking low-end devices.',
-      cover: 'products.jpg', track: 'Building', difficulty: 'Intermediate', platform: 'Roblox', order: 2, estMins: 11, visible: true,
+      cover: 'products.jpg', track: 'Building', difficulty: 'Intermediate', platform: 'Roblox', order: 2, estMins: 11, visible: true, video: '',
       body: [
         'Future lighting looks great and costs the most of any lighting technology in Roblox. Most maps don’t need it everywhere — they need it where the player is looking.',
         '## Bake what doesn’t move',
@@ -149,7 +157,7 @@
     {
       id: 'tut-7', slug: 'blocking-out-a-level-before-you-detail-it', title: 'Blocking out a level before you detail it',
       summary: 'Why skipping greybox and going straight to detail is the single biggest cause of reworked maps.',
-      cover: 'builds.jpg', track: 'Building', difficulty: 'Beginner', platform: 'Both', order: 3, estMins: 8, visible: true,
+      cover: 'builds.jpg', track: 'Building', difficulty: 'Beginner', platform: 'Both', order: 3, estMins: 8, visible: true, video: '',
       body: [
         'The maps that get reworked the most are the ones where detailing started before the layout was tested. Blocking out first fixes that.',
         '## Use plain blocks, no materials, no detail',
@@ -163,7 +171,7 @@
     {
       id: 'tut-8', slug: 'configuring-a-skyblock-economy-plugin', title: 'Configuring a Skyblock economy plugin',
       summary: 'Starting balances, sell-price curves, and the inflation traps that quietly ruin a Skyblock server’s economy within a month.',
-      cover: 'minecraft.jpg', track: 'Server Setup', difficulty: 'Intermediate', platform: 'Minecraft', order: 1, estMins: 16, visible: true,
+      cover: 'minecraft.jpg', track: 'Server Setup', difficulty: 'Intermediate', platform: 'Minecraft', order: 1, estMins: 16, visible: true, video: '',
       body: [
         'A Skyblock economy that feels fine on day one and breaks by week three is almost always an inflation problem, not a bug.',
         '## Keep starting balances low',
@@ -177,7 +185,7 @@
     {
       id: 'tut-9', slug: 'cross-version-compatibility-1-20-to-1-21', title: 'Cross-version compatibility, 1.20 to 1.21',
       summary: 'What actually breaks between Minecraft versions, and how to keep one server running for both without maintaining two builds.',
-      cover: 'minecraft.jpg', track: 'Server Setup', difficulty: 'Advanced', platform: 'Minecraft', order: 2, estMins: 13, visible: true,
+      cover: 'minecraft.jpg', track: 'Server Setup', difficulty: 'Advanced', platform: 'Minecraft', order: 2, estMins: 13, visible: true, video: '',
       body: [
         'Most cross-version breakage isn’t the game version — it’s plugins and data packs assuming a block ID or NBT structure that changed underneath them.',
         '## Pin your plugin versions, not just the server jar',
@@ -191,7 +199,7 @@
     {
       id: 'tut-10', slug: 'backing-up-a-server-without-downtime', title: 'Backing up a server without downtime',
       summary: 'A backup routine that doesn’t freeze the world, doesn’t corrupt saves, and doesn’t require anyone to remember to run it.',
-      cover: 'frostline.jpg', track: 'Server Setup', difficulty: 'Beginner', platform: 'Minecraft', order: 3, estMins: 7, visible: true,
+      cover: 'frostline.jpg', track: 'Server Setup', difficulty: 'Beginner', platform: 'Minecraft', order: 3, estMins: 7, visible: true, video: '',
       body: [
         'A backup you have to remember to run is a backup that won’t exist the one time you actually need it.',
         '## Flush before you copy',
@@ -378,6 +386,28 @@
     render();
   })();
 
+  /* ---------- Blog / Tutorials view switch (blog.html) ---------- */
+  (function () {
+    var sw = document.getElementById('btSwitch');
+    if (!sw) return;
+    var blogView = document.getElementById('blogView');
+    var tutView = document.getElementById('tutHub');
+
+    function setView(v) {
+      if (v !== 'tutorials') v = 'blog';
+      if (blogView) blogView.hidden = v === 'tutorials';
+      if (tutView) tutView.hidden = v !== 'tutorials';
+      sw.querySelectorAll('.bt-opt').forEach(function (b) { b.classList.toggle('active', b.getAttribute('data-view') === v); });
+      var url = location.pathname + (v === 'tutorials' ? '?view=tutorials' : '');
+      history.replaceState(null, '', url);
+    }
+    sw.addEventListener('click', function (e) {
+      var btn = e.target.closest('.bt-opt'); if (!btn) return;
+      setView(btn.getAttribute('data-view'));
+    });
+    setView(qp('view'));
+  })();
+
   /* ---------- Post detail (post.html) ---------- */
   (function () {
     var root = document.getElementById('postView');
@@ -413,13 +443,13 @@
                 return '<a class="post-rel" href="post.html?slug=' + encodeURIComponent(r.slug) + '"><span class="post-rel-cat">' + esc(r.category) + '</span><span class="post-rel-title">' + esc(r.title) + '</span></a>';
               }).join('') +
             '</div>' +
-            '<div class="post-rail-card post-rail-cta"><h3>Build it yourself</h3><p>Step-by-step guides in the tutorials hub.</p><a class="btn btn-primary" href="tutorials.html">Browse tutorials</a></div>' +
+            '<div class="post-rail-card post-rail-cta"><h3>Build it yourself</h3><p>Step-by-step guides in the tutorials hub.</p><a class="btn btn-primary" href="blog.html?view=tutorials">Browse tutorials</a></div>' +
           '</aside>' +
         '</div>' +
       '</div>';
   })();
 
-  /* ---------- Tutorials hub (tutorials.html) ---------- */
+  /* ---------- Tutorials hub (blog.html, tutorials view) ---------- */
   (function () {
     var root = document.getElementById('tutHub');
     if (!root) return;
@@ -489,15 +519,17 @@
       return m;
     });
     var diffLv = t.difficulty === 'Beginner' ? 'lv1' : t.difficulty === 'Intermediate' ? 'lv2' : 'lv3';
+    var videoSrc = ytEmbed(t.video);
 
     root.innerHTML =
       '<div class="tut-detail">' +
-        '<nav class="pd-crumb"><a href="tutorials.html">Tutorials</a> <span>/</span> <span>' + esc(t.track) + '</span> <span>/</span> <span class="pd-crumb-cur">' + esc(t.title) + '</span></nav>' +
+        '<nav class="pd-crumb"><a href="blog.html?view=tutorials">Tutorials</a> <span>/</span> <span>' + esc(t.track) + '</span> <span>/</span> <span class="pd-crumb-cur">' + esc(t.title) + '</span></nav>' +
         '<header class="tut-detail-head">' +
           '<div class="tut-detail-badges"><span class="tut-diff ' + diffLv + '">' + esc(t.difficulty) + '</span><span class="tut-detail-plat">' + esc(t.platform) + '</span><span class="tut-detail-mins">' + t.estMins + ' min</span></div>' +
           '<h1 class="tut-detail-title">' + esc(t.title) + '</h1>' +
           '<p class="tut-detail-sum">' + esc(t.summary) + '</p>' +
         '</header>' +
+        (videoSrc ? '<div class="tut-video"><div class="pd-embed"><iframe src="' + videoSrc + '" title="' + esc(t.title) + '" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div></div>' : '') +
         '<div class="tut-detail-layout">' +
           '<article class="tut-detail-body">' + bodyHtml + '</article>' +
           '<aside class="tut-toc">' +

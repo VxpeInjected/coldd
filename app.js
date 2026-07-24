@@ -535,7 +535,7 @@
       document.addEventListener('click', function (e) {
         const a = e.target.closest('a'); if (!a || a.target === '_blank') return;
         const href = a.getAttribute('href') || '';
-        if (!/^(index\.html|assets\.html|minecraft\.html|about\.html|blog\.html|post\.html|tutorials\.html|tutorial\.html|releases\.html)(\?|#|$)/.test(href)) return;
+        if (!/^(index\.html|assets\.html|minecraft\.html|about\.html|blog\.html|post\.html|tutorial\.html|releases\.html)(\?|#|$)/.test(href)) return;
 
         const here = location.pathname.split('/').pop() || 'index.html';
         const target = href.split(/[?#]/)[0] || 'index.html';

@@ -1023,6 +1023,7 @@
     $('admNewTutOrder').value = t.order;
     $('admNewTutMins').value = t.estMins;
     $('admNewTutCover').value = t.cover;
+    $('admNewTutVideo').value = t.video || '';
     $('admNewTutSummary').value = t.summary;
     $('admNewTutBody').value = t.body;
     $('admNewTutPublished').checked = t.visible;
@@ -1074,6 +1075,7 @@
       order: parseInt($('admNewTutOrder').value, 10) || 1,
       estMins: parseInt($('admNewTutMins').value, 10) || 10,
       cover: $('admNewTutCover').value.trim() || 'scripts.jpg',
+      video: $('admNewTutVideo').value.trim(),
       summary: $('admNewTutSummary').value.trim(),
       body: $('admNewTutBody').value,
       visible: $('admNewTutPublished').checked

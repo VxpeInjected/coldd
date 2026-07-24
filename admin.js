@@ -609,6 +609,7 @@
       renderProducts();
     } else if (e.target.classList.contains('adm-prod-del')) {
       if (!can('admin')) return;
+      if (!confirm('Delete "' + p.title + '"? This can\'t be undone.')) return;
       EXTRA_PRODUCTS = EXTRA_PRODUCTS.filter(function (x) { return x.id !== id; });
       saveExtraProducts();
       logAudit('Deleted admin-only product "' + p.title + '"');
@@ -866,6 +867,7 @@
       c.active = !c.active; saveCoupons(); logAudit((c.active ? 'Activated' : 'Deactivated') + ' coupon ' + code); renderCoupons();
     } else if (e.target.classList.contains('adm-coupon-del')) {
       if (!can('admin')) return;
+      if (!confirm('Delete coupon ' + code + '? This can\'t be undone.')) return;
       COUPONS = COUPONS.filter(function (x) { return x.code !== code; });
       saveCoupons(); logAudit('Deleted coupon ' + code); renderCoupons();
     }
@@ -913,6 +915,7 @@
     if (!can('owner')) return;
     var tr = e.target.closest('tr'); var id = tr.getAttribute('data-id');
     var s = STAFF.filter(function (x) { return x.id === id; })[0]; if (!s) return;
+    if (!confirm('Remove ' + s.name + ' from staff?')) return;
     STAFF = STAFF.filter(function (x) { return x.id !== id; });
     ADMIN_WHITELIST = ADMIN_WHITELIST.filter(function (x) { return x !== s.discordId; });
     saveStaff(); logAudit('Removed staff member ' + s.name); renderStaff(); renderTopbar();

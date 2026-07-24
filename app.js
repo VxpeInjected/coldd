@@ -66,6 +66,7 @@
       window.__robux = function (usd) { return 'R$ ' + Math.round((Number(usd) || 0) * ROBUX_PER_USD).toLocaleString('en-US'); };
       window.__fiat = function (usd) { return fmtFiat(usd, byCode[fiatCode] || byCode.USD); };
       window.__money = function (usd) { return mode === 'robux' ? window.__robux(usd) : fmtFiat(usd, byCode[fiatCode] || byCode.USD); };
+      window.__currencyMode = function () { return mode; };
 
       const switchEl = document.getElementById('curSwitch');
       const fiatBtn = document.getElementById('curFiat');
@@ -816,7 +817,12 @@
         if (!card) return;
         e.preventDefault();
         if (e.target.closest('.p-add')) { add(readCard(card)); openCart(); }
-        else openModal(readCard(card));
+        else {
+          var a = document.createElement('a');
+          a.href = 'product.html?id=' + encodeURIComponent(readCard(card).id);
+          a.target = '_blank'; a.rel = 'noopener';
+          a.click();
+        }
       });
       var pmCloseBtn = document.getElementById('pmClose');
       if (pmCloseBtn) pmCloseBtn.addEventListener('click', closeModal);
@@ -847,7 +853,7 @@
         var pdCrumb = $('pdCrumb'), pdTitle = $('pdTitle'), pdSub = $('pdSub');
         var pdPrice = $('pdPrice'), pdPriceWas = $('pdPriceWas'), pdPriceRbx = $('pdPriceRbx'), pdPriceNote = $('pdPriceNote');
         var pdLicence = $('pdLicence'), pdLicLabel = $('pdLicLabel'), pdLicResell = $('pdLicResell');
-        var pdFeatList = $('pdFeatList'), pdTechList = $('pdTechList'), pdAbout = $('pdAbout');
+        var pdTechList = $('pdTechList'), pdAbout = $('pdAbout');
         var pdRelated = $('pdRelated'), pdRelatedWrap = $('pdRelatedWrap'), pdFaqList = $('pdFaqList');
         var pdReferEarn = $('pdReferEarn'), pdReferCopy = $('pdReferCopy');
         var pdWish = $('pdWish'), pdWishTx = $('pdWishTx');
@@ -948,8 +954,8 @@
         }
         function refreshPrice() {
           if (!cur) return;
-          var showRbx = cur.platform !== 'Minecraft';
           var isResell = cur.licence === 'resell';
+          var showRbx = cur.platform !== 'Minecraft' && !isResell;
           var base = isResell ? Math.round(cur.priceNum * RESELL_MULT) : cur.priceNum;
           cur.price = base; cur.licence = cur.licence;
           if (pdPrice) pdPrice.textContent = fiat(base);
@@ -960,9 +966,12 @@
           if (pdPriceRbx) { pdPriceRbx.textContent = showRbx ? robux(base) : ''; pdPriceRbx.hidden = !showRbx; }
           if (pdPriceNote) pdPriceNote.hidden = !showRbx;
           if (pdSale) pdSale.hidden = !(cur.was > cur.priceNum);
+          var robuxMode = window.__currencyMode ? window.__currencyMode() === 'robux' : false;
           licPriceEls.forEach(function (el) {
-            var pp = el.getAttribute('data-licprice') === 'resell' ? Math.round(cur.priceNum * RESELL_MULT) : cur.priceNum;
-            el.textContent = fiat(pp);
+            var isResellOpt = el.getAttribute('data-licprice') === 'resell';
+            if (isResellOpt && robuxMode) { el.textContent = 'Not available'; return; }
+            var pp = isResellOpt ? Math.round(cur.priceNum * RESELL_MULT) : cur.priceNum;
+            el.textContent = window.__money ? window.__money(pp) : fiat(pp);
           });
           if (pdReferEarn) pdReferEarn.textContent = 'earn ' + fiat(Math.round(cur.priceNum * 0.2 * 100) / 100);
         }
@@ -999,7 +1008,7 @@
             return s;
           }
           cat.sort(function (a, b) { return score(b) - score(a); });
-          return cat.slice(0, 5);
+          return cat.slice(0, 4);
         }
 
         var curTab = 'overview';
@@ -1035,8 +1044,7 @@
                   price: p.priceNum, licence: 'standard', resell: p.resell, platform: p.platform };
 
           var catSlug = (p.cat || '').toLowerCase().replace(/&/g, 'and').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-          var crumb = '<a href="' + (p.page || 'assets.html') + '">Resources</a><span>›</span>' +
-            '<a href="' + (p.page || 'assets.html') + '">' + esc(p.platform) + '</a><span>›</span>' +
+          var crumb = '<a href="' + (p.page || 'assets.html') + '">' + esc(p.platform) + '</a><span>›</span>' +
             '<a href="' + (p.page || 'assets.html') + '?cat=' + catSlug + '">' + esc(p.cat) + '</a>';
           if (p.subcat) crumb += '<span>›</span><span class="pd-crumb-cur">' + esc(humanize(p.subcat)) + '</span>';
           else crumb = crumb.replace('<a href="' + (p.page || 'assets.html') + '?cat=' + catSlug + '">' + esc(p.cat) + '</a>', '<span class="pd-crumb-cur">' + esc(p.cat) + '</span>');
@@ -1066,8 +1074,8 @@
           cur.licence = 'standard';
           refreshPrice();
 
-          if (pdFeatList) pdFeatList.innerHTML = FEATURES.map(function (f) { return '<li>' + esc(f) + '</li>'; }).join('');
-          if (pdAbout) pdAbout.innerHTML = '<h4>About this product</h4><p>' + esc(p.desc || '') + ' Every coldd release ships with clean, well documented files and free lifetime updates. If you get stuck, our team is one message away.</p>';
+          if (pdAbout) pdAbout.innerHTML = '<h4>Product Features</h4><p>' + esc(p.desc || '') + ' Every coldd release ships with clean, well documented files and free lifetime updates. If you get stuck, our team is one message away.</p>' +
+            '<ul class="pd-feat-list">' + FEATURES.map(function (f) { return '<li>' + esc(f) + '</li>'; }).join('') + '</ul>';
           if (pdTechList) pdTechList.innerHTML = techFor(p).map(function (r) { return '<div class="pd-tech-row"><dt>' + esc(r[0]) + '</dt><dd>' + esc(r[1]) + '</dd></div>'; }).join('');
 
           var revs = reviewsFor(p);

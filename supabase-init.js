@@ -59,7 +59,7 @@
 
   function upsertBasicProfile(user) {
     var email = user.email || '';
-    var name = (user.user_metadata && (user.user_metadata.full_name || user.user_metadata.name)) || (email ? email.split('@')[0] : 'Member');
+    var name = (user.user_metadata && (user.user_metadata.username || user.user_metadata.full_name || user.user_metadata.name)) || (email ? email.split('@')[0] : 'Member');
     var payload = { id: user.id, username: name, email: email, updated_at: new Date().toISOString() };
     client.from('profiles').upsert(payload).then(function (res) {
       if (res.error) console.warn('[coldd] profile upsert failed:', res.error.message);
@@ -83,8 +83,12 @@
         options: { redirectTo: redirectTo, scopes: 'identify email guilds guilds.members.read' }
       });
     },
-    signUpEmail: function (email, password) {
-      return client.auth.signUp({ email: email, password: password });
+    signUpEmail: function (email, password, username) {
+      return client.auth.signUp({
+        email: email,
+        password: password,
+        options: { data: { username: username } }
+      });
     },
     requestEmailOtp: function () {
       return client.functions.invoke('email-otp', { body: { action: 'send' } });

@@ -12,6 +12,19 @@
     var msg = card.querySelector('.auth-msg'); if (!msg) return;
     msg.textContent = text; msg.classList.add('show');
   }
+  function setLoading(form, loading) {
+    var btn = form.querySelector('.auth-submit'); if (!btn) return;
+    var spinner = btn.querySelector('.btn-spinner');
+    btn.disabled = loading;
+    if (spinner) spinner.hidden = !loading;
+  }
+  function withMinDelay(promise, ms) {
+    var start = Date.now();
+    return promise.then(function (res) {
+      var wait = Math.max(0, ms - (Date.now() - start));
+      return new Promise(function (resolve) { setTimeout(function () { resolve(res); }, wait); });
+    });
+  }
 
   document.querySelectorAll('.auth-pw-toggle').forEach(function (btn) {
     btn.addEventListener('click', function () {
@@ -35,6 +48,51 @@
   });
 
   var si = document.getElementById('form-signin');
+  var su = document.getElementById('form-signup');
+  var sv = document.getElementById('form-verify');
+  var resendBtn = document.getElementById('btnResendCode');
+  var backBtn = document.getElementById('btnBackToSignup');
+  var pendingEmail = '';
+  var resendTimer = null;
+  var RESEND_SECONDS = 30;
+
+  function startResendCooldown() {
+    if (!resendBtn) return;
+    var remaining = RESEND_SECONDS;
+    resendBtn.disabled = true;
+    resendBtn.textContent = 'Resend code (' + remaining + 's)';
+    clearInterval(resendTimer);
+    resendTimer = setInterval(function () {
+      remaining -= 1;
+      if (remaining <= 0) {
+        clearInterval(resendTimer);
+        resendBtn.disabled = false;
+        resendBtn.textContent = 'Resend code';
+      } else {
+        resendBtn.textContent = 'Resend code (' + remaining + 's)';
+      }
+    }, 1000);
+  }
+
+  function showVerifyStep(email) {
+    pendingEmail = email;
+    if (si) si.hidden = true;
+    if (su) su.hidden = true;
+    if (sv) {
+      sv.hidden = false;
+      var sub = document.getElementById('verifySub');
+      if (sub) sub.textContent = 'Enter the code we emailed to ' + email + '.';
+    }
+    startResendCooldown();
+  }
+
+  if (backBtn) backBtn.addEventListener('click', function () {
+    clearInterval(resendTimer);
+    if (sv) sv.hidden = true;
+    if (su) { su.hidden = false; return; }
+    if (si) si.hidden = false;
+  });
+
   if (si) si.addEventListener('submit', function (e) {
     e.preventDefault();
     var ok = true, email = val(si, 'email'), pass = val(si, 'password');
@@ -42,12 +100,11 @@
     if (!pass) { fieldErr(si, 'password', 'Enter your password.'); ok = false; } else fieldErr(si, 'password', '');
     if (!ok || !window.coldAuth) return;
 
-    var btn = si.querySelector('[type="submit"]');
-    if (btn) btn.disabled = true;
+    setLoading(si, true);
     window.coldAuth.signInEmail(email, pass).then(function (res) {
       if (res.error) {
         window.coldAuth.emailExists(email).then(function (exists) {
-          if (btn) btn.disabled = false;
+          setLoading(si, false);
           if (!exists) {
             var card = si.closest('.auth-card'), msg = card && card.querySelector('.auth-msg');
             if (msg) { msg.innerHTML = 'No account found for that email. <a href="signup.html">Create one instead?</a>'; msg.classList.add('show'); }
@@ -59,7 +116,7 @@
         return;
       }
       window.coldAuth.isEmailVerified().then(function (verified) {
-        if (btn) btn.disabled = false;
+        setLoading(si, false);
         if (!verified) {
           window.coldAuth.requestEmailOtp().then(function () { showVerifyStep(email); });
           return;
@@ -69,25 +126,11 @@
     });
   });
 
-  var su = document.getElementById('form-signup');
-  var sv = document.getElementById('form-verify');
-  var pendingEmail = '';
-
-  function showVerifyStep(email) {
-    pendingEmail = email;
-    if (si) si.hidden = true;
-    if (su) su.hidden = true;
-    if (sv) {
-      sv.hidden = false;
-      var sub = document.getElementById('verifySub');
-      if (sub) sub.textContent = 'Enter the code we emailed to ' + email + '.';
-    }
-  }
-
   if (su) su.addEventListener('submit', function (e) {
     e.preventDefault();
-    var ok = true, email = val(su, 'email'), pass = val(su, 'password'), conf = val(su, 'confirm');
+    var ok = true, username = val(su, 'username'), email = val(su, 'email'), pass = val(su, 'password'), conf = val(su, 'confirm');
     var tos = su.querySelector('[name="tos"]');
+    if (!username || username.length < 3) { fieldErr(su, 'username', 'Pick a username (3+ characters).'); ok = false; } else fieldErr(su, 'username', '');
     if (!emailOk(email)) { fieldErr(su, 'email', 'Enter a valid email.'); ok = false; } else fieldErr(su, 'email', '');
     if (pass.length < 8) { fieldErr(su, 'password', 'Use at least 8 characters.'); ok = false; } else fieldErr(su, 'password', '');
     if (!conf || conf !== pass) { fieldErr(su, 'confirm', "Passwords don't match."); ok = false; } else fieldErr(su, 'confirm', '');
@@ -95,13 +138,12 @@
     if (tos && !tos.checked) { if (te) te.textContent = 'Please accept the Terms to continue.'; ok = false; } else if (te) te.textContent = '';
     if (!ok || !window.coldAuth) return;
 
-    var btn = su.querySelector('[type="submit"]');
-    if (btn) btn.disabled = true;
-    window.coldAuth.signUpEmail(email, pass).then(function (res) {
-      if (res.error) { if (btn) btn.disabled = false; flash(su, res.error.message); return; }
+    setLoading(su, true);
+    withMinDelay(window.coldAuth.signUpEmail(email, pass, username), 1500).then(function (res) {
+      if (res.error) { setLoading(su, false); flash(su, res.error.message); return; }
       window.coldAuth.requestEmailOtp().then(function (otpRes) {
-        if (btn) btn.disabled = false;
-        if (otpRes.error) { flash(su, "Account created, but we couldn't send the code. Try resending on the next screen."); }
+        setLoading(su, false);
+        if (otpRes.error) flash(su, "Account created, but we couldn't send the code. Try resending on the next screen.");
         showVerifyStep(email);
       });
     });
@@ -112,10 +154,9 @@
     var code = val(sv, 'code').toUpperCase();
     if (!code || code.length < 6) { fieldErr(sv, 'code', 'Enter the 6-character code.'); return; }
     fieldErr(sv, 'code', '');
-    var btn = sv.querySelector('[type="submit"]');
-    if (btn) btn.disabled = true;
+    setLoading(sv, true);
     window.coldAuth.verifyEmailOtp(code).then(function (res) {
-      if (btn) btn.disabled = false;
+      setLoading(sv, false);
       if (res.error || !res.data || !res.data.ok) {
         var m = (res.data && res.data.error) || 'Incorrect or expired code.';
         flash(sv, m);
@@ -125,12 +166,12 @@
     });
   });
 
-  var resendBtn = document.getElementById('btnResendCode');
   if (resendBtn) resendBtn.addEventListener('click', function () {
+    if (resendBtn.disabled) return;
     resendBtn.disabled = true;
     window.coldAuth.requestEmailOtp().then(function (res) {
-      resendBtn.disabled = false;
       flash(sv, res.error ? "Couldn't resend right now, try again shortly." : 'New code sent to ' + pendingEmail + '.');
+      startResendCooldown();
     });
   });
 

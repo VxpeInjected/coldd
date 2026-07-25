@@ -205,14 +205,16 @@
       if (slides <= 1) return;
       const dots = Array.prototype.slice.call(document.querySelectorAll('#nrDots .nr-dot'));
       const DELAY = 3500;
-      const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+      // Reduced-motion users still get auto-advance (WCAG-friendly cadence, no forced motion
+      // to opt into); the CSS's own reduced-motion rule already strips the slide transition,
+      // so this just becomes an instant cut instead of a smooth slide.
       let i = 0, timer = null;
       function go(n) {
         i = (n % slides + slides) % slides;
         track.style.transform = 'translateX(' + (-i * 100) + '%)';
         dots.forEach(function (d, idx) { d.classList.toggle('active', idx === i); });
       }
-      function start() { if (!reduced && !timer) timer = setInterval(function () { go(i + 1); }, DELAY); }
+      function start() { if (!timer) timer = setInterval(function () { go(i + 1); }, DELAY); }
       function stop() { clearInterval(timer); timer = null; }
       go(0);
 

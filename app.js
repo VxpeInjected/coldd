@@ -623,7 +623,10 @@
 
       function updateBadge() {
         var c = count();
-        if (countEl) countEl.textContent = c > 99 ? '99+' : c;
+        if (countEl) {
+          countEl.textContent = c > 99 ? '99+' : c;
+          countEl.classList.remove('bump'); void countEl.offsetWidth; countEl.classList.add('bump');
+        }
         if (headCount) headCount.textContent = c + (c === 1 ? ' item' : ' items');
         if (fabTotal) fabTotal.textContent = money(subtotal());
         if (fab) fab.classList.toggle('has-items', c > 0);

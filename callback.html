@@ -43,14 +43,35 @@
         if (!session) throw new Error('No session returned from Discord.');
 
         var user = session.user;
+        var provider = (user.app_metadata && user.app_metadata.provider) || 'email';
         var identity = (user.identities && user.identities[0] && user.identities[0].identity_data) || {};
         var meta = user.user_metadata || {};
+        var email = user.email || identity.email || '';
+
+        if (provider !== 'discord') {
+          // Email/password account confirming for the first time (or any
+          // other non-Discord provider) - simple profile, no guild lookups.
+          var basicName = meta.full_name || meta.name || (email ? email.split('@')[0] : 'Member');
+          var upsertBasic = await window.coldSupabase.from('profiles').upsert({
+            id: user.id,
+            username: basicName,
+            email: email,
+            updated_at: new Date().toISOString()
+          });
+          if (upsertBasic.error) console.warn('[coldd] profile upsert failed:', upsertBasic.error.message);
+
+          window.coldAuth.saveProfile({ id: user.id, provider: provider, name: basicName, email: email, avatar: '' });
+          try { localStorage.setItem('coldd_auth', 'in'); } catch (e) {}
+
+          msg.textContent = 'Signed in as ' + basicName + '. Redirecting…';
+          setTimeout(function () { location.href = 'dashboard.html'; }, 500);
+          return;
+        }
 
         var discordId = identity.provider_id || identity.sub || meta.provider_id || '';
         var name = (identity.custom_claims && identity.custom_claims.global_name) ||
                     identity.full_name || identity.name || meta.full_name || meta.name || 'Discord User';
         var avatar = identity.avatar_url || meta.avatar_url || '';
-        var email = user.email || identity.email || '';
 
         // provider_token is Discord's own access token, only present on the
         // session object returned right after OAuth completes.

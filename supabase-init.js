@@ -57,6 +57,19 @@
     }
   }
 
+  function upsertBasicProfile(user) {
+    var email = user.email || '';
+    var name = (user.user_metadata && (user.user_metadata.full_name || user.user_metadata.name)) || (email ? email.split('@')[0] : 'Member');
+    var payload = { id: user.id, username: name, email: email, updated_at: new Date().toISOString() };
+    client.from('profiles').upsert(payload).then(function (res) {
+      if (res.error) console.warn('[coldd] profile upsert failed:', res.error.message);
+    });
+    var profile = { id: user.id, provider: 'email', name: name, email: email, avatar: '' };
+    saveProfile(profile);
+    try { localStorage.setItem(AUTH_KEY, 'in'); } catch (e) {}
+    return profile;
+  }
+
   window.coldAuth = {
     saveProfile: saveProfile,
     getProfile: getProfile,
@@ -70,6 +83,48 @@
         options: { redirectTo: redirectTo, scopes: 'identify email guilds guilds.members.read' }
       });
     },
+    signUpEmail: function (email, password) {
+      return client.auth.signUp({ email: email, password: password });
+    },
+    requestEmailOtp: function () {
+      return client.functions.invoke('email-otp', { body: { action: 'send' } });
+    },
+    verifyEmailOtp: function (code) {
+      return client.functions.invoke('email-otp', { body: { action: 'verify', code: code } }).then(function (res) {
+        if (!res.error && res.data && res.data.ok) {
+          client.auth.getUser().then(function (r) {
+            if (r.data && r.data.user) upsertBasicProfile(r.data.user);
+          });
+        }
+        return res;
+      });
+    },
+    signInEmail: function (email, password) {
+      return client.auth.signInWithPassword({ email: email, password: password }).then(function (res) {
+        if (!res.error && res.data && res.data.user) upsertBasicProfile(res.data.user);
+        return res;
+      });
+    },
+    isEmailVerified: function () {
+      return client.auth.getUser().then(function (r) {
+        if (!r.data || !r.data.user) return false;
+        return client.from('profiles').select('email_verified').eq('id', r.data.user.id).single().then(function (res) {
+          return !!(res.data && res.data.email_verified);
+        });
+      });
+    },
+    emailExists: function (email) {
+      return client.rpc('email_exists', { check_email: email }).then(function (res) {
+        return !!(res.data === true);
+      });
+    },
+    sendPasswordReset: function (email) {
+      return client.auth.resetPasswordForEmail(email, { redirectTo: location.origin + '/coldd/reset.html' });
+    },
+    updatePassword: function (password) {
+      return client.auth.updateUser({ password: password });
+    },
+    upsertBasicProfile: upsertBasicProfile,
     signOut: function () {
       clearProfile();
       try { localStorage.setItem(AUTH_KEY, 'out'); } catch (e) {}

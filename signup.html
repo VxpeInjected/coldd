@@ -51,6 +51,17 @@
         <button class="btn btn-primary auth-submit" type="submit">Create account</button>
         <div class="auth-msg"></div>
       </form>
+      <form class="auth-form" id="form-verify" novalidate hidden>
+        <p class="auth-sub" id="verifySub">Enter the code we emailed you.</p>
+        <div class="auth-field" data-for="code">
+          <label for="su-code">Verification code</label>
+          <input id="su-code" name="code" type="text" inputmode="text" autocomplete="one-time-code" maxlength="6" placeholder="X7K2NP" style="text-transform:uppercase;letter-spacing:4px;font-weight:700;" />
+          <span class="auth-err"></span>
+        </div>
+        <button class="btn btn-primary auth-submit" type="submit">Verify &amp; continue</button>
+        <button class="btn auth-resend" type="button" id="btnResendCode" style="margin-top:8px;">Resend code</button>
+        <div class="auth-msg"></div>
+      </form>
       <p class="auth-alt">Already have an account? <a href="signin.html">Sign in</a></p>
     </div>
   </main>

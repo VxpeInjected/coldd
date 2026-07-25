@@ -388,7 +388,7 @@
     })();
 
     (function () {
-      const trigger = document.getElementById('assetsLink');
+      const trigger = document.getElementById('shopLink');
       const mega = document.getElementById('navMega');
       if (!trigger || !mega) return;
       let hideT;
@@ -411,6 +411,41 @@
       mega.addEventListener('mouseenter', function () { clearTimeout(hideT); });
       mega.addEventListener('mouseleave', close);
       window.addEventListener('resize', function () { if (mega.classList.contains('open')) position(); });
+
+      const tabs = mega.querySelectorAll('.nmt-tab');
+      const panels = mega.querySelectorAll('.nav-mega-cats[data-platform-panel]');
+      const feature = document.getElementById('navMegaFeature');
+      function setPlatform(platform) {
+        tabs.forEach(function (t) {
+          const active = t.getAttribute('data-platform') === platform;
+          t.classList.toggle('active', active);
+          t.setAttribute('aria-selected', active ? 'true' : 'false');
+        });
+        panels.forEach(function (p) { p.hidden = p.getAttribute('data-platform-panel') !== platform; });
+        if (feature) {
+          feature.setAttribute('href', feature.getAttribute('data-href-' + platform) || feature.getAttribute('href'));
+          const img = feature.querySelector('.nmf-img');
+          const url = feature.getAttribute('data-img-' + platform);
+          if (img && url) img.style.backgroundImage = "url('" + url + "')";
+        }
+        if (mega.classList.contains('open')) position();
+      }
+      tabs.forEach(function (t) {
+        t.addEventListener('click', function () { setPlatform(t.getAttribute('data-platform')); });
+        t.addEventListener('mouseenter', function () { setPlatform(t.getAttribute('data-platform')); });
+      });
+    })();
+
+    (function () {
+      const wrap = document.getElementById('platSelect');
+      const btn = document.getElementById('platBtn');
+      const menu = document.getElementById('platMenu');
+      if (!wrap || !btn || !menu) return;
+      function close() { wrap.classList.remove('open'); menu.hidden = true; btn.setAttribute('aria-expanded', 'false'); }
+      function open() { wrap.classList.add('open'); menu.hidden = false; btn.setAttribute('aria-expanded', 'true'); }
+      btn.addEventListener('click', function (e) { e.stopPropagation(); menu.hidden ? open() : close(); });
+      document.addEventListener('click', function (e) { if (!wrap.contains(e.target)) close(); });
+      document.addEventListener('keydown', function (e) { if (e.key === 'Escape') close(); });
     })();
 
     (function () {
@@ -429,6 +464,11 @@
         const prMaxVal = shop.querySelector('.pr-maxval');
         const empty = shop.querySelector('.shop-empty');
         const pager = shop.querySelector('.shop-pager');
+        const rateBtns = Array.prototype.slice.call(shop.querySelectorAll('.fc-rate'));
+        const saleBox = shop.querySelector('.fc-sale');
+        const sortSel = shop.querySelector('.sort-select');
+        const clearBtn = shop.querySelector('.fc-clear');
+        const countEl = shop.querySelector('.shop-count');
         const base = shop.getAttribute('data-page') || (location.pathname.split('/').pop() || 'assets.html');
         const products = Array.prototype.slice.call(grid.querySelectorAll('.product'));
         const PER_PAGE = 12;
@@ -438,13 +478,13 @@
         products.forEach(function (p) { maxPrice = Math.max(maxPrice, parseFloat(p.getAttribute('data-price')) || 0); });
         maxPrice = Math.max(10, Math.ceil(maxPrice / 10) * 10);
         if (prMin && prMax) { prMin.max = prMax.max = maxPrice; prMin.value = 0; prMax.value = maxPrice; }
-        let curCat = 'all', curSub = null, query = '', lo = 0, hi = maxPrice;
+        if (prMinVal && prMaxVal) { prMinVal.max = prMaxVal.max = maxPrice; prMinVal.value = 0; prMaxVal.value = maxPrice; }
+        let curCat = 'all', curSub = null, query = '', lo = 0, hi = maxPrice, minRating = 0, onSale = false;
 
-        function money(n) { return window.__money ? window.__money(n) : ('$' + n); }
         function paintRange() {
           if (prFill) { prFill.style.left = (lo / maxPrice * 100) + '%'; prFill.style.width = ((hi - lo) / maxPrice * 100) + '%'; }
-          if (prMinVal) prMinVal.textContent = money(lo);
-          if (prMaxVal) prMaxVal.textContent = money(hi);
+          if (prMinVal && document.activeElement !== prMinVal) prMinVal.value = Math.round(lo);
+          if (prMaxVal && document.activeElement !== prMaxVal) prMaxVal.value = Math.round(hi);
         }
         function syncCats() {
           if (chips) chips.querySelectorAll('.chip').forEach(function (c) { c.classList.toggle('active', c.getAttribute('data-cat') === curCat); });
@@ -455,13 +495,39 @@
         }
         function matches(p) {
           const price = parseFloat(p.getAttribute('data-price')) || 0;
+          const rating = parseFloat(p.getAttribute('data-rating')) || 0;
           const nameEl = p.querySelector('.p-name') || p.querySelector('h3');
           const title = (nameEl ? nameEl.textContent : '').toLowerCase();
           const okCat = curCat === 'all' ? true
                       : curCat === 'resell' ? p.getAttribute('data-resell') === 'yes'
                       : p.getAttribute('data-cat') === curCat;
           const okSub = !curSub || p.getAttribute('data-subcat') === curSub;
-          return okCat && okSub && (!query || title.indexOf(query) >= 0) && price >= lo && price <= hi;
+          const okRating = rating >= minRating;
+          const okSale = !onSale || p.hasAttribute('data-was');
+          return okCat && okSub && okRating && okSale && (!query || title.indexOf(query) >= 0) && price >= lo && price <= hi;
+        }
+        function isFiltered() {
+          return curCat !== 'all' || !!curSub || !!query || lo > 0 || hi < maxPrice || minRating > 0 || onSale;
+        }
+        function sortMatches(arr) {
+          const mode = sortSel ? sortSel.value : 'featured';
+          if (mode === 'featured') return arr;
+          const withMeta = arr.map(function (p, i) {
+            return {
+              p: p, i: i,
+              price: parseFloat(p.getAttribute('data-price')) || 0,
+              rating: parseFloat(p.getAttribute('data-rating')) || 0,
+              reviews: parseFloat(p.getAttribute('data-reviews')) || 0
+            };
+          });
+          withMeta.sort(function (a, b) {
+            if (mode === 'price-asc') return (a.price - b.price) || (a.i - b.i);
+            if (mode === 'price-desc') return (b.price - a.price) || (a.i - b.i);
+            if (mode === 'rating') return (b.rating - a.rating) || (b.reviews - a.reviews) || (a.i - b.i);
+            if (mode === 'reviews') return (b.reviews - a.reviews) || (a.i - b.i);
+            return a.i - b.i;
+          });
+          return withMeta.map(function (m) { return m.p; });
         }
         function renderPager(pages) {
           if (!pager) return;
@@ -483,14 +549,21 @@
         }
         function refilter(resetPage) {
           if (resetPage) page = 1;
-          const matched = products.filter(matches);
+          const matched = sortMatches(products.filter(matches));
           const pages = Math.max(1, Math.ceil(matched.length / PER_PAGE));
           if (page > pages) page = pages;
           const start = (page - 1) * PER_PAGE;
+          const visible = matched.slice(start, start + PER_PAGE);
           products.forEach(function (p) { p.style.display = 'none'; });
-          matched.slice(start, start + PER_PAGE).forEach(function (p) { p.style.display = ''; });
+          visible.forEach(function (p) { p.style.display = ''; grid.appendChild(p); });
           if (empty) empty.hidden = matched.length > 0;
           renderPager(pages);
+          if (countEl) {
+            countEl.textContent = matched.length === products.length
+              ? matched.length + (matched.length === 1 ? ' result' : ' results')
+              : 'Showing ' + matched.length + ' of ' + products.length + ' results';
+          }
+          if (clearBtn) clearBtn.hidden = !isFiltered();
         }
         function setCat(cat) { curCat = cat; curSub = null; syncCats(); refilter(true); }
         function setSub(cat, sub) { curCat = cat; curSub = sub; syncCats(); refilter(true); }
@@ -523,7 +596,42 @@
           paintRange(); refilter(true);
         }
         if (prMin && prMax) { prMin.addEventListener('input', onRange); prMax.addEventListener('input', onRange); }
+        function onPriceBox() {
+          let a = parseFloat(prMinVal.value); let b = parseFloat(prMaxVal.value);
+          if (isNaN(a)) a = 0;
+          if (isNaN(b)) b = maxPrice;
+          a = Math.max(0, Math.min(a, maxPrice));
+          b = Math.max(0, Math.min(b, maxPrice));
+          lo = Math.min(a, b); hi = Math.max(a, b);
+          if (prMin && prMax) { prMin.value = lo; prMax.value = hi; }
+          paintRange(); refilter(true);
+        }
+        if (prMinVal && prMaxVal) {
+          prMinVal.addEventListener('change', onPriceBox);
+          prMaxVal.addEventListener('change', onPriceBox);
+          [prMinVal, prMaxVal].forEach(function (el) {
+            el.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); el.blur(); } });
+          });
+        }
         window.addEventListener('currencychange', paintRange);
+
+        if (rateBtns.length) rateBtns.forEach(function (b) {
+          b.addEventListener('click', function () {
+            minRating = parseFloat(b.getAttribute('data-rating')) || 0;
+            rateBtns.forEach(function (x) { x.classList.toggle('active', x === b); });
+            refilter(true);
+          });
+        });
+        if (saleBox) saleBox.addEventListener('change', function () { onSale = saleBox.checked; refilter(true); });
+        if (sortSel) sortSel.addEventListener('change', function () { refilter(true); });
+        if (clearBtn) clearBtn.addEventListener('click', function () {
+          curCat = 'all'; curSub = null; query = ''; lo = 0; hi = maxPrice; minRating = 0; onSale = false;
+          if (searchEl) searchEl.value = '';
+          if (rateBtns.length) rateBtns.forEach(function (b) { b.classList.toggle('active', b.getAttribute('data-rating') === '0'); });
+          if (saleBox) saleBox.checked = false;
+          syncCats(); paintRange(); refilter(true);
+          try { history.replaceState(null, '', base); } catch (_) {}
+        });
 
         paintRange();
         const initial = new URLSearchParams(location.search).get('cat');

@@ -42,7 +42,7 @@
       </a>
       <nav class="nav-links" aria-label="Primary">
         <span class="nav-set">
-          <a href="index.html">Home</a><a href="assets.html" id="assetsLink">Roblox</a><a href="minecraft.html" id="minecraftLink">Minecraft</a><a href="blog.html" id="blogLink">Blogs &amp; Tutorials</a><a href="about.html" id="aboutLink">About Us</a>
+          <a href="index.html">Home</a><a href="assets.html" id="shopLink">Shop</a><a href="blog.html" id="blogLink">Blogs &amp; Tutorials</a><a href="about.html" id="aboutLink">About Us</a>
         </span>
         <span class="nav-search-wrap">
           <button class="nav-search" id="searchBtn" type="button" aria-label="Search"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg></button>
@@ -65,20 +65,34 @@
 
   <div class="nav-mega" id="navMega" aria-hidden="true">
     <div class="nav-mega-inner glass">
-      <div class="nav-mega-cats">
-        <a href="assets.html?cat=game-templates">Finished Games &amp; Templates</a>
-        <a href="assets.html?cat=maps">Maps</a>
-        <a href="assets.html?cat=scripts-ui">Scripts &amp; UI</a>
-        <a href="assets.html?cat=graphics">Graphics</a>
-        <a href="assets.html?cat=buildings">Buildings</a>
-        <a href="assets.html?cat=assets">Assets</a>
-        <a href="assets.html?cat=uniforms-gear">Uniforms &amp; Gear</a>
-        <a href="assets.html?cat=boats">Boats</a>
-        <a href="assets.html?cat=weapons">Weapons</a>
-        <a href="assets.html?cat=vehicles">Vehicles</a>
-        <a href="assets.html?cat=animations-vfx">Animations &amp; VFX</a>
+      <div class="nav-mega-main">
+        <div class="nav-mega-tabs" role="tablist" aria-label="Shop platform">
+          <button class="nmt-tab active" type="button" data-platform="roblox" role="tab" aria-selected="true">Roblox</button>
+          <button class="nmt-tab" type="button" data-platform="minecraft" role="tab" aria-selected="false">Minecraft</button>
+        </div>
+        <div class="nav-mega-cats" data-platform-panel="roblox">
+          <a href="assets.html?cat=game-templates">Finished Games &amp; Templates</a>
+          <a href="assets.html?cat=maps">Maps</a>
+          <a href="assets.html?cat=scripts-ui">Scripts &amp; UI</a>
+          <a href="assets.html?cat=graphics">Graphics</a>
+          <a href="assets.html?cat=buildings">Buildings</a>
+          <a href="assets.html?cat=assets">Assets</a>
+          <a href="assets.html?cat=uniforms-gear">Uniforms &amp; Gear</a>
+          <a href="assets.html?cat=boats">Boats</a>
+          <a href="assets.html?cat=weapons">Weapons</a>
+          <a href="assets.html?cat=vehicles">Vehicles</a>
+          <a href="assets.html?cat=animations-vfx">Animations &amp; VFX</a>
+        </div>
+        <div class="nav-mega-cats" data-platform-panel="minecraft" hidden>
+          <a href="minecraft.html?cat=hubs">Hubs</a>
+          <a href="minecraft.html?cat=lobbies">Lobbies</a>
+          <a href="minecraft.html?cat=maps">Maps</a>
+          <a href="minecraft.html?cat=builds">Builds</a>
+          <a href="minecraft.html?cat=plugins">Plugins</a>
+          <a href="minecraft.html?cat=setups">Full Setups</a>
+        </div>
       </div>
-      <a class="nav-mega-feature" href="assets.html">
+      <a class="nav-mega-feature" href="assets.html" id="navMegaFeature" data-href-roblox="assets.html" data-href-minecraft="minecraft.html" data-img-roblox="new-release.jpg" data-img-minecraft="minecraft.jpg">
         <span class="nmf-img" style="background-image:url('new-release.jpg')"></span>
         <span class="nmf-tag">New</span>
         <span class="nmf-title">New Releases</span>

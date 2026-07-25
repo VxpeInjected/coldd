@@ -33,7 +33,7 @@
       </a>
       <nav class="nav-links" aria-label="Primary">
         <span class="nav-set">
-          <a href="index.html">Home</a><a href="assets.html" id="shopLink" class="active" aria-current="page">Shop</a><a href="blog.html" id="blogLink">Blogs &amp; Tutorials</a><a href="about.html" id="aboutLink">About Us</a>
+          <a href="index.html">Home</a><a href="assets.html" id="shopLink" class="active" aria-current="page">Shop</a><a href="blog.html" id="blogLink">Blog &amp; Tutorials</a><a href="about.html" id="aboutLink">About Us</a>
         </span>
         <span class="nav-search-wrap">
           <button class="nav-search" id="searchBtn" type="button" aria-label="Search"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg></button>
@@ -118,16 +118,21 @@
             </div>
           </div>
           <div class="shop-searchbar"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg><input class="shop-search" type="text" placeholder="Search products…" aria-label="Search products" /></div>
-          <label class="sort-field">
-            <span class="sf-label">Sort by</span>
-            <select class="sort-select">
-              <option value="featured">Featured</option>
-              <option value="price-asc">Price: Low to High</option>
-              <option value="price-desc">Price: High to Low</option>
-              <option value="rating">Top Rated</option>
-              <option value="reviews">Most Reviewed</option>
-            </select>
-          </label>
+          <div class="sort-field">
+            <button type="button" class="sort-btn" aria-haspopup="listbox" aria-expanded="false">
+              <span class="sf-label">Sort by</span>
+              <span class="sort-btn-val">Recommended</span>
+              <svg class="sort-chev" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+            </button>
+            <div class="sort-menu" role="listbox" aria-label="Sort products" hidden>
+              <button type="button" class="sort-opt active" data-sort="recommended" role="option" aria-selected="true"><span>Recommended</span><span class="sort-radio"></span></button>
+              <button type="button" class="sort-opt" data-sort="featured" role="option" aria-selected="false"><span>Featured</span><span class="sort-radio"></span></button>
+              <button type="button" class="sort-opt" data-sort="price-asc" role="option" aria-selected="false"><span>Lowest Price</span><span class="sort-radio"></span></button>
+              <button type="button" class="sort-opt" data-sort="price-desc" role="option" aria-selected="false"><span>Highest Price</span><span class="sort-radio"></span></button>
+              <button type="button" class="sort-opt" data-sort="newest" role="option" aria-selected="false"><span>Newest</span><span class="sort-radio"></span></button>
+              <button type="button" class="sort-opt" data-sort="oldest" role="option" aria-selected="false"><span>Oldest</span><span class="sort-radio"></span></button>
+            </div>
+          </div>
         </div>
         <div class="shop-layout">
           <div class="shop-main">
@@ -321,6 +326,33 @@
               <button class="p-add" type="button">Add to Cart</button>
             </div>
           </article>
+          <article class="product" data-cat="scripts-ui" data-subcat="combat" data-price="0" data-reviews="0" data-rating="0" data-catlabel="Scripts &amp; UI" data-free="yes">
+            <div class="p-thumb" style="background-image:url('scripts.jpg')"><span class="p-off">Free</span></div>
+            <div class="p-body">
+              <h3 class="p-name">Combat HUD Lite</h3>
+              <div class="p-price-row"><span class="p-price-free">Free</span></div>
+              <p class="p-sum">A stripped-down build of our Combat HUD: health, ammo, and hitmarkers, drop-in ready.</p>
+              <button class="btn btn-ghost free-btn" type="button">Join Discord to unlock</button>
+            </div>
+          </article>
+          <article class="product" data-cat="maps" data-subcat="lobby-spawns" data-price="0" data-reviews="0" data-rating="0" data-catlabel="Maps" data-free="yes">
+            <div class="p-thumb" style="background-image:url('builds.jpg')"><span class="p-off">Free</span></div>
+            <div class="p-body">
+              <h3 class="p-name">Starter Spawn</h3>
+              <div class="p-price-row"><span class="p-price-free">Free</span></div>
+              <p class="p-sum">A clean, neutral lobby spawn to get a new game off the ground in minutes.</p>
+              <button class="btn btn-ghost free-btn" type="button">Join Discord to unlock</button>
+            </div>
+          </article>
+          <article class="product" data-cat="scripts-ui" data-subcat="ui-packs" data-price="0" data-reviews="0" data-rating="0" data-catlabel="Scripts &amp; UI" data-free="yes">
+            <div class="p-thumb" style="background-image:url('products.jpg')"><span class="p-off">Free</span></div>
+            <div class="p-body">
+              <h3 class="p-name">UI Sound Pack</h3>
+              <div class="p-price-row"><span class="p-price-free">Free</span></div>
+              <p class="p-sum">20 clicks, hovers, and ambient cues we use in our own builds. Royalty-free.</p>
+              <button class="btn btn-ghost free-btn" type="button">Join Discord to unlock</button>
+            </div>
+          </article>
             </div>
             <div class="shop-empty" id="shopEmpty" hidden>No products match your filters.</div>
             <div class="shop-pager" aria-label="Pagination"></div>
@@ -328,7 +360,7 @@
           <aside class="shop-side">
             <div class="filter-card">
               <div class="fc-head">
-                <span class="fc-head-title"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"/></svg> <span>Filters</span></span>
+                <span class="fc-head-title"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="21" y1="4" x2="14" y2="4"/><line x1="10" y1="4" x2="3" y2="4"/><circle cx="12" cy="4" r="2"/><line x1="21" y1="12" x2="12" y2="12"/><line x1="8" y1="12" x2="3" y2="12"/><circle cx="10" cy="12" r="2"/><line x1="21" y1="20" x2="16" y2="20"/><line x1="12" y1="20" x2="3" y2="20"/><circle cx="14" cy="20" r="2"/></svg> <span>Filters</span></span>
                 <button class="fc-clear" type="button" hidden>Clear all</button>
               </div>
               <div class="fc-group">
@@ -341,20 +373,19 @@
                 <div class="pr-vals"><span class="pr-box-wrap"><span class="pr-cur">$</span><input class="pr-box pr-minval" type="number" min="0" inputmode="numeric" aria-label="Minimum price" value="0" /></span><span class="pr-sep">–</span><span class="pr-box-wrap"><span class="pr-cur">$</span><input class="pr-box pr-maxval" type="number" min="0" inputmode="numeric" aria-label="Maximum price" value="150" /></span></div>
               </div>
               <div class="fc-group">
-                <span class="fc-label">Rating</span>
-                <div class="fc-rating" role="group" aria-label="Minimum rating">
-                  <button type="button" class="fc-rate active" data-rating="0">Any</button>
-                  <button type="button" class="fc-rate" data-rating="4">4★ &amp; up</button>
-                  <button type="button" class="fc-rate" data-rating="5">5★ only</button>
-                </div>
-              </div>
-              <div class="fc-group">
                 <span class="fc-label">Availability</span>
-                <label class="fc-check">
-                  <input type="checkbox" class="fc-sale" />
-                  <span class="fc-check-box"></span>
-                  <span class="fc-check-label">On Sale</span>
-                </label>
+                <div class="fc-check-list">
+                  <label class="fc-check">
+                    <input type="checkbox" class="fc-sale" />
+                    <span class="fc-check-box"></span>
+                    <span class="fc-check-label">On Sale</span>
+                  </label>
+                  <label class="fc-check">
+                    <input type="checkbox" class="fc-free" />
+                    <span class="fc-check-box"></span>
+                    <span class="fc-check-label">Free</span>
+                  </label>
+                </div>
               </div>
               <div class="fc-group">
                 <span class="fc-label">Categories</span>
@@ -495,9 +526,10 @@
 
     <section class="section-pad free-section">
       <div class="wrap">
+        <div class="free-section-inner">
         <div class="sec-head reveal">
-          <h2>Free this month.</h2>
-          <p>Free Roblox drops, members only. Join our Discord to unlock the files, new picks every month.</p>
+          <h2>Free products</h2>
+          <p>Free Roblox products, subscriber only. Join our Discord to unlock the files, completely for free.</p>
         </div>
         <div class="free-grid">
           <article class="free-card reveal d1">
@@ -524,6 +556,7 @@
               <a class="btn btn-ghost free-btn" href="https://discord.gg/coldd" target="_blank" rel="noopener">Join Discord to unlock</a>
             </div>
           </article>
+        </div>
         </div>
       </div>
     </section>

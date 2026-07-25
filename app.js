@@ -464,9 +464,13 @@
         const prMaxVal = shop.querySelector('.pr-maxval');
         const empty = shop.querySelector('.shop-empty');
         const pager = shop.querySelector('.shop-pager');
-        const rateBtns = Array.prototype.slice.call(shop.querySelectorAll('.fc-rate'));
         const saleBox = shop.querySelector('.fc-sale');
-        const sortSel = shop.querySelector('.sort-select');
+        const freeBox = shop.querySelector('.fc-free');
+        const sortField = shop.querySelector('.sort-field');
+        const sortBtn = shop.querySelector('.sort-btn');
+        const sortMenu = shop.querySelector('.sort-menu');
+        const sortBtnVal = shop.querySelector('.sort-btn-val');
+        const sortOpts = sortMenu ? Array.prototype.slice.call(sortMenu.querySelectorAll('.sort-opt')) : [];
         const clearBtn = shop.querySelector('.fc-clear');
         const countEl = shop.querySelector('.shop-count');
         const base = shop.getAttribute('data-page') || (location.pathname.split('/').pop() || 'assets.html');
@@ -479,7 +483,7 @@
         maxPrice = Math.max(10, Math.ceil(maxPrice / 10) * 10);
         if (prMin && prMax) { prMin.max = prMax.max = maxPrice; prMin.value = 0; prMax.value = maxPrice; }
         if (prMinVal && prMaxVal) { prMinVal.max = prMaxVal.max = maxPrice; prMinVal.value = 0; prMaxVal.value = maxPrice; }
-        let curCat = 'all', curSub = null, query = '', lo = 0, hi = maxPrice, minRating = 0, onSale = false;
+        let curCat = 'all', curSub = null, query = '', lo = 0, hi = maxPrice, onSale = false, onFree = false, sortMode = 'recommended';
 
         function paintRange() {
           if (prFill) { prFill.style.left = (lo / maxPrice * 100) + '%'; prFill.style.width = ((hi - lo) / maxPrice * 100) + '%'; }
@@ -495,23 +499,23 @@
         }
         function matches(p) {
           const price = parseFloat(p.getAttribute('data-price')) || 0;
-          const rating = parseFloat(p.getAttribute('data-rating')) || 0;
           const nameEl = p.querySelector('.p-name') || p.querySelector('h3');
           const title = (nameEl ? nameEl.textContent : '').toLowerCase();
           const okCat = curCat === 'all' ? true
                       : curCat === 'resell' ? p.getAttribute('data-resell') === 'yes'
                       : p.getAttribute('data-cat') === curCat;
           const okSub = !curSub || p.getAttribute('data-subcat') === curSub;
-          const okRating = rating >= minRating;
           const okSale = !onSale || p.hasAttribute('data-was');
-          return okCat && okSub && okRating && okSale && (!query || title.indexOf(query) >= 0) && price >= lo && price <= hi;
+          const okFree = !onFree || p.getAttribute('data-free') === 'yes';
+          return okCat && okSub && okSale && okFree && (!query || title.indexOf(query) >= 0) && price >= lo && price <= hi;
         }
         function isFiltered() {
-          return curCat !== 'all' || !!curSub || !!query || lo > 0 || hi < maxPrice || minRating > 0 || onSale;
+          return curCat !== 'all' || !!curSub || !!query || lo > 0 || hi < maxPrice || onSale || onFree;
         }
         function sortMatches(arr) {
-          const mode = sortSel ? sortSel.value : 'featured';
-          if (mode === 'featured') return arr;
+          const mode = sortMode || 'recommended';
+          if (mode === 'recommended' || mode === 'oldest') return arr;
+          if (mode === 'newest') return arr.slice().reverse();
           const withMeta = arr.map(function (p, i) {
             return {
               p: p, i: i,
@@ -523,8 +527,7 @@
           withMeta.sort(function (a, b) {
             if (mode === 'price-asc') return (a.price - b.price) || (a.i - b.i);
             if (mode === 'price-desc') return (b.price - a.price) || (a.i - b.i);
-            if (mode === 'rating') return (b.rating - a.rating) || (b.reviews - a.reviews) || (a.i - b.i);
-            if (mode === 'reviews') return (b.reviews - a.reviews) || (a.i - b.i);
+            if (mode === 'featured') return (b.rating - a.rating) || (b.reviews - a.reviews) || (a.i - b.i);
             return a.i - b.i;
           });
           return withMeta.map(function (m) { return m.p; });
@@ -615,20 +618,40 @@
         }
         window.addEventListener('currencychange', paintRange);
 
-        if (rateBtns.length) rateBtns.forEach(function (b) {
-          b.addEventListener('click', function () {
-            minRating = parseFloat(b.getAttribute('data-rating')) || 0;
-            rateBtns.forEach(function (x) { x.classList.toggle('active', x === b); });
-            refilter(true);
+        if (saleBox) saleBox.addEventListener('change', function () { onSale = saleBox.checked; refilter(true); });
+        if (freeBox) freeBox.addEventListener('change', function () { onFree = freeBox.checked; refilter(true); });
+
+        function closeSort() { if (sortField) sortField.classList.remove('open'); if (sortMenu) sortMenu.hidden = true; if (sortBtn) sortBtn.setAttribute('aria-expanded', 'false'); }
+        function openSort() { if (sortField) sortField.classList.add('open'); if (sortMenu) sortMenu.hidden = false; if (sortBtn) sortBtn.setAttribute('aria-expanded', 'true'); }
+        function setSort(mode, label) {
+          sortMode = mode;
+          if (sortBtnVal) sortBtnVal.textContent = label;
+          sortOpts.forEach(function (o) {
+            var active = o.getAttribute('data-sort') === mode;
+            o.classList.toggle('active', active);
+            o.setAttribute('aria-selected', active ? 'true' : 'false');
+          });
+          refilter(true);
+        }
+        if (sortBtn) sortBtn.addEventListener('click', function (e) {
+          e.stopPropagation();
+          if (sortMenu && sortMenu.hidden) openSort(); else closeSort();
+        });
+        sortOpts.forEach(function (o) {
+          o.addEventListener('click', function () {
+            var label = o.querySelector('span') ? o.querySelector('span').textContent : o.textContent;
+            setSort(o.getAttribute('data-sort'), label);
+            closeSort();
           });
         });
-        if (saleBox) saleBox.addEventListener('change', function () { onSale = saleBox.checked; refilter(true); });
-        if (sortSel) sortSel.addEventListener('change', function () { refilter(true); });
+        document.addEventListener('click', function (e) { if (sortField && !sortField.contains(e.target)) closeSort(); });
+        document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeSort(); });
+
         if (clearBtn) clearBtn.addEventListener('click', function () {
-          curCat = 'all'; curSub = null; query = ''; lo = 0; hi = maxPrice; minRating = 0; onSale = false;
+          curCat = 'all'; curSub = null; query = ''; lo = 0; hi = maxPrice; onSale = false; onFree = false;
           if (searchEl) searchEl.value = '';
-          if (rateBtns.length) rateBtns.forEach(function (b) { b.classList.toggle('active', b.getAttribute('data-rating') === '0'); });
           if (saleBox) saleBox.checked = false;
+          if (freeBox) freeBox.checked = false;
           syncCats(); paintRange(); refilter(true);
           try { history.replaceState(null, '', base); } catch (_) {}
         });
@@ -929,6 +952,7 @@
         var card = e.target.closest('.product');
         if (!card) return;
         e.preventDefault();
+        if (card.getAttribute('data-free') === 'yes') { window.open('https://discord.gg/coldd', '_blank', 'noopener'); return; }
         if (e.target.closest('.p-add')) { add(readCard(card)); openCart(); }
         else {
           var a = document.createElement('a');

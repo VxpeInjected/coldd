@@ -113,6 +113,11 @@
         });
       });
     },
+    emailExists: function (email) {
+      return client.rpc('email_exists', { check_email: email }).then(function (res) {
+        return !!(res.data === true);
+      });
+    },
     sendPasswordReset: function (email) {
       return client.auth.resetPasswordForEmail(email, { redirectTo: location.origin + '/coldd/reset.html' });
     },

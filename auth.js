@@ -46,9 +46,16 @@
     if (btn) btn.disabled = true;
     window.coldAuth.signInEmail(email, pass).then(function (res) {
       if (res.error) {
-        if (btn) btn.disabled = false;
-        var m = /confirm/i.test(res.error.message) ? 'Please confirm your email first — check your inbox.' : 'Incorrect email or password.';
-        flash(si, m);
+        window.coldAuth.emailExists(email).then(function (exists) {
+          if (btn) btn.disabled = false;
+          if (!exists) {
+            var card = si.closest('.auth-card'), msg = card && card.querySelector('.auth-msg');
+            if (msg) { msg.innerHTML = 'No account found for that email. <a href="signup.html">Create one instead?</a>'; msg.classList.add('show'); }
+            return;
+          }
+          var m = /confirm/i.test(res.error.message) ? 'Please confirm your email first — check your inbox.' : 'Incorrect password.';
+          flash(si, m);
+        });
         return;
       }
       window.coldAuth.isEmailVerified().then(function (verified) {

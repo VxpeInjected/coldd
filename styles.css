@@ -832,10 +832,6 @@ body.no-scroll { overflow: hidden; }
 .about-info .about-info-body p:last-child { margin-bottom: 0; }
 .about-info .about-info-body strong { color: var(--fg); font-weight: 600; }
 .about-info-cta { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-.about-info-stack { display: block; }
-.about-info-stack h2 { font-size: clamp(30px, 4vw, 44px); letter-spacing: -0.03em; line-height: 1.1; margin: 0 0 14px; }
-.about-info-stack p { color: var(--fg-2); font-size: 16.5px; line-height: 1.7; max-width: 640px; margin: 0; }
-.about-info-stack .about-info-cta { margin-top: 22px; }
 .about-tags { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 22px; }
 .about-tags span { font-size: 13px; font-weight: 500; color: var(--fg-2); padding: 7px 14px; border-radius: 999px;
   background: var(--glass-top); border: 1px solid var(--hairline); }

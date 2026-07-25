@@ -87,7 +87,7 @@
     <main class="page dash-page">
     <div class="wrap dash">
       <aside class="dash-side glass">
-        <div class="dash-user"><span class="dash-av">K</span><div class="dash-user-info"><div class="dash-name">Kaden R.</div><div class="dash-email">kaden@example.com</div></div></div>
+        <div class="dash-user"><span class="dash-av" id="dashAvatar">K</span><div class="dash-user-info"><div class="dash-name" id="dashName">Kaden R.</div><div class="dash-email" id="dashEmail">kaden@example.com</div></div></div>
         <nav class="dash-nav">
         <a href="#" data-panel="overview" class="active"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg><span>Overview</span></a>
         <a href="#" data-panel="purchases"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg><span>Purchase History</span></a>
@@ -102,7 +102,7 @@
       </aside>
       <div class="dash-main">
       <section class="dash-panel" id="panel-overview">
-        <div class="dash-head"><h1>Welcome back, Kaden.</h1><p>Here's a snapshot of your coldd account.</p></div>
+        <div class="dash-head"><h1>Welcome back, <span id="dashWelcomeName">Kaden</span>.</h1><p>Here's a snapshot of your coldd account.</p></div>
         <div class="dash-stats">
           <div class="dash-stat glass"><span class="ds-label">Total spent (USD)</span><span class="ds-num ds-money">$418</span></div>
           <div class="dash-stat glass"><span class="ds-label">Total spent (Robux)</span><span class="ds-num ds-money">R$ 33,440</span></div>
@@ -443,6 +443,8 @@
     </div>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="supabase-init.js"></script>
   <script src="catalog.js"></script>
   <script src="app.js"></script>
 </body>

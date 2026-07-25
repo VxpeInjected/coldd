@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="robots" content="noindex" />
+<title>Signing in — coldd</title>
+<style>
+  html,body{height:100%;margin:0;background:#0a0a0a;color:#d7d7d7;font-family:'IBM Plex Mono',ui-monospace,monospace;}
+  .cb-wrap{height:100%;display:flex;align-items:center;justify-content:center;}
+  .cb-card{border:1px solid #262626;background:#111;padding:32px 36px;text-align:center;min-width:280px;}
+  .cb-spin{width:22px;height:22px;margin:0 auto 16px;border:2px solid #262626;border-top-color:#b23a3a;border-radius:50%;animation:cbspin .8s linear infinite;}
+  @keyframes cbspin{to{transform:rotate(360deg);}}
+  .cb-card p{margin:0;font-size:13px;letter-spacing:.02em;color:#a3a3a3;}
+</style>
+</head>
+<body>
+  <div class="cb-wrap">
+    <div class="cb-card">
+      <div class="cb-spin" aria-hidden="true"></div>
+      <p id="cbMsg">Finishing sign-in…</p>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="supabase-init.js"></script>
+  <script>
+    (async function () {
+      var msg = document.getElementById('cbMsg');
+      function fail(text) {
+        msg.textContent = text;
+        setTimeout(function () { location.href = 'signin.html'; }, 1800);
+      }
+      try {
+        if (!window.coldSupabase) throw new Error('Supabase client unavailable.');
+
+        var session = null;
+        for (var i = 0; i < 5 && !session; i++) {
+          var res = await window.coldSupabase.auth.getSession();
+          session = res && res.data ? res.data.session : null;
+          if (!session) await new Promise(function (r) { setTimeout(r, 300); });
+        }
+        if (!session) throw new Error('No session returned from Discord.');
+
+        var user = session.user;
+        var identity = (user.identities && user.identities[0] && user.identities[0].identity_data) || {};
+        var meta = user.user_metadata || {};
+
+        var discordId = identity.provider_id || identity.sub || meta.provider_id || '';
+        var name = (identity.custom_claims && identity.custom_claims.global_name) ||
+                    identity.full_name || identity.name || meta.full_name || meta.name || 'Discord User';
+        var avatar = identity.avatar_url || meta.avatar_url || '';
+        var email = user.email || identity.email || '';
+
+        // provider_token is Discord's own access token, only present on the
+        // session object returned right after OAuth completes.
+        var providerToken = session.provider_token || '';
+        var guilds = [];
+        var memberInfo = null;
+
+        if (providerToken) {
+          try {
+            var guildsRes = await fetch('https://discord.com/api/users/@me/guilds', {
+              headers: { Authorization: 'Bearer ' + providerToken }
+            });
+            if (guildsRes.ok) guilds = await guildsRes.json();
+            else console.warn('[coldd] guild list fetch failed:', guildsRes.status);
+          } catch (e) { console.warn('[coldd] guild list fetch error:', e); }
+
+          var targetGuild = window.coldAuth.targetGuildId;
+          if (targetGuild) {
+            try {
+              var memberRes = await fetch('https://discord.com/api/users/@me/guilds/' + targetGuild + '/member', {
+                headers: { Authorization: 'Bearer ' + providerToken }
+              });
+              if (memberRes.ok) memberInfo = await memberRes.json();
+              else console.warn('[coldd] guild member fetch failed:', memberRes.status);
+            } catch (e) { console.warn('[coldd] guild member fetch error:', e); }
+          }
+        }
+
+        var upsertRes = await window.coldSupabase.from('profiles').upsert({
+          id: user.id,
+          discord_id: discordId,
+          username: name,
+          email: email,
+          avatar_url: avatar,
+          guilds: guilds,
+          member_info: memberInfo,
+          updated_at: new Date().toISOString()
+        });
+        if (upsertRes.error) console.warn('[coldd] profile upsert failed:', upsertRes.error.message);
+
+        window.coldAuth.saveProfile({ id: user.id, provider: 'discord', discordId: discordId, name: name, email: email, avatar: avatar, guilds: guilds, memberInfo: memberInfo });
+        try { localStorage.setItem('coldd_auth', 'in'); } catch (e) {}
+
+        msg.textContent = 'Signed in as ' + name + '. Redirecting…';
+        setTimeout(function () { location.href = 'dashboard.html'; }, 500);
+      } catch (err) {
+        console.error('[coldd] callback error:', err);
+        fail('Sign-in failed. Redirecting…');
+      }
+    })();
+  </script>
+</body>
+</html>

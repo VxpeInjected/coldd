@@ -1203,7 +1203,14 @@
       });
 
       overlay.querySelectorAll('.auth-oauth').forEach(function (b) {
-        b.addEventListener('click', function () { close(); if (window.__demoLogin) window.__demoLogin(); });
+        b.addEventListener('click', function () {
+          var p = b.getAttribute('data-provider');
+          if (p === 'Discord') {
+            if (window.coldAuth) window.coldAuth.signInDiscord();
+            return;
+          }
+          close(); if (window.__demoLogin) window.__demoLogin();
+        });
       });
       var si = document.getElementById('form-signin');
       if (si) si.addEventListener('submit', function (e) {
@@ -1326,6 +1333,7 @@
       var so = document.getElementById('dashSignout');
       if (so) so.addEventListener('click', function () {
         setState(false);
+        if (window.coldAuth) window.coldAuth.signOut();
         if (window.__go) window.__go('home'); else location.href = 'index.html';
       });
     })();

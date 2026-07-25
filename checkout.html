@@ -96,7 +96,7 @@
             <div class="auth-field" data-for="email"><label for="co-email">Email for your receipt</label><input id="co-email" name="email" type="email" placeholder="you@example.com" /><span class="auth-err"></span></div>
             <p class="co-hint">Checking out as a guest. <a href="#" id="coSignin">Sign in</a> for faster checkout.</p>
           </div>
-          <div id="coUser" hidden><div class="co-user-row"><span class="dash-av" style="width:38px;height:38px;font-size:14px;">K</span><div><div class="dr-title">Kaden R.</div><div class="dr-sub" id="coUserEmail">kaden@example.com</div></div></div></div>
+          <div id="coUser" hidden><div class="co-user-row"><span class="dash-av" id="coAvatar" style="width:38px;height:38px;font-size:14px;">K</span><div><div class="dr-title" id="coUserName">Kaden R.</div><div class="dr-sub" id="coUserEmail">kaden@example.com</div></div></div></div>
         </section>
 
         <section class="co-sec glass">
@@ -365,6 +365,8 @@
     </div>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="supabase-init.js"></script>
   <script src="catalog.js"></script>
   <script src="app.js"></script>
 </body>

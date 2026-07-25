@@ -24,9 +24,13 @@
 
   document.querySelectorAll('.auth-oauth').forEach(function (b) {
     b.addEventListener('click', function () {
-      var form = b.closest('.auth-card').querySelector('.auth-form');
       var p = b.getAttribute('data-provider');
-      if (form) flash(form, p + ' sign-in will work once an auth backend is connected.');
+      if (p === 'Discord') {
+        if (window.coldAuth) window.coldAuth.signInDiscord();
+        return;
+      }
+      try { localStorage.setItem('coldd_auth', 'in'); } catch (e) {}
+      location.href = 'dashboard.html';
     });
   });
 
@@ -36,7 +40,7 @@
     var ok = true, email = val(si, 'email'), pass = val(si, 'password');
     if (!emailOk(email)) { fieldErr(si, 'email', 'Enter a valid email.'); ok = false; } else fieldErr(si, 'email', '');
     if (!pass) { fieldErr(si, 'password', 'Enter your password.'); ok = false; } else fieldErr(si, 'password', '');
-    if (ok) flash(si, 'Looks good, connect a backend to finish signing in.');
+    if (ok) { try { localStorage.setItem('coldd_auth', 'in'); } catch (_) {} location.href = 'dashboard.html'; }
   });
 
   var su = document.getElementById('form-signup');
@@ -49,7 +53,7 @@
     if (!conf || conf !== pass) { fieldErr(su, 'confirm', "Passwords don't match."); ok = false; } else fieldErr(su, 'confirm', '');
     var te = su.querySelector('.auth-err[data-for="tos"]');
     if (tos && !tos.checked) { if (te) te.textContent = 'Please accept the Terms to continue.'; ok = false; } else if (te) te.textContent = '';
-    if (ok) flash(su, 'All set, connect a backend to create the account.');
+    if (ok) { try { localStorage.setItem('coldd_auth', 'in'); } catch (_) {} location.href = 'dashboard.html'; }
   });
 
   var fo = document.getElementById('form-forgot');

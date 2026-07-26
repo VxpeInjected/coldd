@@ -16,6 +16,7 @@
     var btn = form.querySelector('.auth-submit'); if (!btn) return;
     var spinner = btn.querySelector('.btn-spinner');
     btn.disabled = loading;
+    btn.classList.toggle('is-loading', loading);
     if (spinner) spinner.hidden = !loading;
   }
   function withMinDelay(promise, ms) {

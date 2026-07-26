@@ -32,8 +32,9 @@
       </div>
     </div>
   </header>
-  <main class="auth-wrap">
-    <div class="glass auth-card">
+  <main class="auth-split">
+    <div class="auth-split-left">
+    <div class="auth-card">
       <h1>Choose a new password</h1>
       <p class="auth-sub">Pick something you haven't used before.</p>
       <form class="auth-form" id="form-reset" novalidate>
@@ -57,6 +58,10 @@
         <div class="auth-msg"></div>
       </form>
       <p class="auth-alt"><a href="signin.html">← Back to sign in</a></p>
+    </div>
+    </div>
+    <div class="auth-split-right">
+      <div class="auth-split-logo"><img src="logo.png" alt="" /></div>
     </div>
   </main>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>

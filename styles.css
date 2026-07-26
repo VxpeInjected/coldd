@@ -84,16 +84,11 @@
     .btn-primary:hover { transform: translateY(-2px); background: linear-gradient(180deg, #ff6056, #e8392f); box-shadow: 0 16px 38px -12px rgba(255,77,68,0.62); }
     .btn-ghost { color: var(--fg); background: var(--glass-top); border-color: var(--hairline); }
     .btn-ghost:hover { transform: translateY(-2px); background: rgba(255,255,255,0.10); border-color: rgba(255,255,255,0.16); }
-    .btn-minecraft { color: #fff; background: linear-gradient(180deg, rgba(90,181,90,0.32), rgba(56,124,56,0.32));
-      border-color: rgba(126,208,126,0.4); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
-    .btn-minecraft:hover { transform: translateY(-2px); background: linear-gradient(180deg, rgba(100,199,100,0.42), rgba(62,138,62,0.42));
-      border-color: rgba(136,218,136,0.55); }
+    .btn-minecraft { color: #fff; background: linear-gradient(180deg, #6cc25c, #4a9a3f);
+      border-color: rgba(126,208,126,0.4); box-shadow: 0 12px 30px -12px rgba(74,154,63,0.5); }
+    .btn-minecraft:hover { transform: translateY(-2px); background: linear-gradient(180deg, #78d167, #559f47);
+      border-color: rgba(136,218,136,0.55); box-shadow: 0 16px 38px -12px rgba(74,154,63,0.58); }
     .btn-plat-ic { display: block; border-radius: 4px; }
-    .btn-minecraft { color: #fff; background: linear-gradient(180deg, rgba(90,181,90,0.32), rgba(56,124,56,0.32));
-      border-color: rgba(126,208,126,0.4); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
-    .btn-plat-ic { display: block; border-radius: 4px; }
-    .btn-minecraft:hover { transform: translateY(-2px); background: linear-gradient(180deg, rgba(100,199,100,0.42), rgba(62,138,62,0.42));
-      border-color: rgba(136,218,136,0.55); }
     .btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 
     header.nav { position: fixed; top: 12px; left: 50%; transform: translateX(-50%); z-index: 100;

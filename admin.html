@@ -208,19 +208,62 @@
 
                 <label class="adm-field adm-field-wide" style="margin-top:20px;"><span>Subtext (shown on catalog cards)</span><input type="text" id="admEditSubtext" class="adm-input" maxlength="140" /></label>
                 <label class="adm-field adm-field-wide" style="margin-top:16px;"><span>Description (shown on the product page)</span><textarea id="admEditLongDesc" class="adm-input adm-textarea" rows="4"></textarea></label>
+              </div>
+
+              <div class="dash-card glass">
+                <div class="dash-card-head"><h2>Media</h2></div>
+
+                <div class="adm-field">
+                  <span>Product file</span>
+                  <div class="adm-dropzone" id="admEditFileDrop">
+                    <input type="file" id="admEditFileInput" hidden />
+                    <svg class="adm-dropzone-ic" viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M12 4 7 9M12 4l5 5"/><path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
+                    <p><strong>Click to upload</strong> or drag and drop</p>
+                    <p class="adm-dropzone-hint">Any file type — this becomes the downloadable product file</p>
+                  </div>
+                  <p class="adm-sub" id="admEditFileNote" style="margin-top:8px;">Currently: shared placeholder file</p>
+                  <p class="adm-note">File Format and File Size below are read automatically from whatever file you choose here. Actual delivery still uses the shared placeholder until Supabase Storage is connected.</p>
+                  <input type="hidden" id="admEditTechFileName" />
+                </div>
 
                 <div class="adm-field" style="margin-top:20px;">
-                  <span>Product file</span>
-                  <div class="adm-file-row"><span class="adm-sub" id="admEditFileNote">Currently: shared placeholder file</span><input type="file" id="admEditFileInput" disabled /></div>
-                  <p class="adm-note">File uploads need Supabase Storage connected — coming once the backend is live. Every product downloads the same placeholder until then.</p>
+                  <span>Thumbnail image</span>
+                  <div class="adm-dropzone" id="admEditThumbDrop">
+                    <input type="file" id="admEditThumbInput" accept="image/*" hidden />
+                    <div class="adm-dropzone-empty" id="admEditThumbEmpty">
+                      <svg class="adm-dropzone-ic" viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M12 4 7 9M12 4l5 5"/><path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
+                      <p><strong>Click to upload</strong> or drag and drop</p>
+                      <p class="adm-dropzone-hint">PNG, JPG, GIF or WEBP</p>
+                    </div>
+                    <div class="adm-dropzone-preview" id="admEditThumbPreviewWrap" hidden>
+                      <img id="admEditThumbPreview" alt="" />
+                      <button type="button" class="adm-icon-btn adm-dropzone-remove" id="admEditThumbRemove"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg></button>
+                    </div>
+                  </div>
+                  <input type="hidden" id="admEditThumbUrl" />
+                  <p class="adm-note">Actual image hosting needs Supabase Storage connected — for now this previews locally and tracks the file name.</p>
                 </div>
+
+                <div class="adm-field" style="margin-top:20px;">
+                  <span>Gallery images</span>
+                  <div class="adm-dropzone adm-dropzone-sm" id="admEditGalleryDrop">
+                    <input type="file" id="admEditGalleryInput" accept="image/*" multiple hidden />
+                    <svg class="adm-dropzone-ic" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M12 4 7 9M12 4l5 5"/><path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
+                    <p><strong>Click to upload</strong> or drag and drop files</p>
+                    <p class="adm-dropzone-hint">PNG, JPG, GIF or WEBP — multiple allowed</p>
+                  </div>
+                  <div class="adm-gallery-grid" id="admEditGalleryList"></div>
+                  <p class="adm-note">Extra images shown in the product page gallery, in order. Same local-preview caveat as above.</p>
+                </div>
+
+                <label class="adm-field" style="margin-top:20px;max-width:420px;"><span>YouTube demo link</span><input type="url" id="admEditVideoUrl" class="adm-input" placeholder="https://youtube.com/watch?v=…" /></label>
               </div>
 
               <div class="dash-card glass">
                 <div class="dash-card-head"><h2>Technical details</h2></div>
                 <div class="adm-edit-grid">
-                  <label class="adm-field"><span>File Format</span><input type="text" id="admEditTechFormat" class="adm-input" placeholder=".rbxm" /></label>
-                  <label class="adm-field"><span>File Size</span><input type="text" id="admEditTechSize" class="adm-input" placeholder="31.8 MB" /></label>
+                  <label class="adm-field"><span>File Format</span><input type="text" id="admEditTechFormat" class="adm-input" placeholder="Upload a file above" readonly /></label>
+                  <label class="adm-field"><span>File Size</span><input type="text" id="admEditTechSize" class="adm-input" placeholder="Upload a file above" readonly /></label>
                   <label class="adm-field"><span>Part Count</span><input type="number" min="0" step="1" id="admEditTechParts" class="adm-input" /></label>
                   <label class="adm-field"><span>MeshPart Count</span><input type="number" min="0" step="1" id="admEditTechMeshParts" class="adm-input" /></label>
                   <label class="adm-field"><span>Union Count</span><input type="number" min="0" step="1" id="admEditTechUnions" class="adm-input" /></label>
@@ -232,7 +275,9 @@
                 <div class="dash-card-head"><h2>Legal</h2></div>
                 <p class="adm-sub">Licensing paperwork and sale restrictions for this product.</p>
 
-                <div class="adm-field" style="margin-top:16px;">
+                <label class="adm-field adm-field-wide" style="margin-top:16px;"><span>Terms of Service (internal)</span><textarea id="admLegalTos" class="adm-input adm-textarea" rows="4" placeholder="Restrictions the licenser has placed on coldd's use/sale of this product (internal reference only — not shown to customers)."></textarea></label>
+
+                <div class="adm-field" style="margin-top:20px;">
                   <span>Proof of license</span>
                   <div class="adm-file-list" id="admLegalProofList"></div>
                   <div class="adm-file-row"><input type="file" id="admLegalProofInput" multiple /></div>
@@ -250,6 +295,20 @@
                   <span>Licenser contact details</span>
                   <div class="adm-contact-list" id="admLegalContactList"></div>
                   <button class="btn btn-ghost adm-btn-sm" type="button" id="admLegalContactAdd" style="margin-top:10px;">+ Add contact</button>
+                </div>
+
+                <div class="adm-edit-grid" style="margin-top:20px;">
+                  <label class="adm-field"><span>License cost</span>
+                    <div style="display:flex;gap:8px;">
+                      <input type="number" min="0" step="0.01" id="admLegalCostAmount" class="adm-input" style="flex:1;min-width:0;" />
+                      <div class="adm-cost-toggle" id="admLegalCostCurrencyToggle">
+                        <button type="button" class="active" data-currency="usd">USD</button>
+                        <button type="button" data-currency="robux">Robux</button>
+                      </div>
+                    </div>
+                    <input type="hidden" id="admLegalCostCurrency" value="usd" />
+                  </label>
+                  <label class="adm-field"><span>Date license was purchased</span><input type="date" id="admLegalPurchasedAt" class="adm-input" /></label>
                 </div>
 
                 <div class="adm-edit-grid" style="margin-top:20px;">

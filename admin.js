@@ -262,10 +262,22 @@
      PRODUCT VIEW MODEL (catalog + admin overrides + extra products)
      ================================================================ */
   function defaultLegal() {
-    return { proofFiles: [], devProofFiles: [], contacts: [], minSaleUsd: 0, minSaleRobux: 0, canBeFree: false, disallowSales: false };
+    return { tos: '', proofFiles: [], devProofFiles: [], contacts: [], licenseCost: 0, licenseCostCurrency: 'usd', licensePurchasedAt: '', minSaleUsd: 0, minSaleRobux: 0, canBeFree: false, disallowSales: false };
+  }
+  function toYouTubeEmbed(url) {
+    url = (url || '').trim();
+    if (!url) return '';
+    var m = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([a-zA-Z0-9_-]{6,})/);
+    return m ? ('https://www.youtube.com/embed/' + m[1]) : url;
   }
   function defaultTech() {
-    return { format: '', size: '', parts: '', meshParts: '', unions: '', scripts: '' };
+    return { format: '', size: '', fileName: '', parts: '', meshParts: '', unions: '', scripts: '' };
+  }
+  function formatFileSize(bytes) {
+    if (bytes >= 1024 * 1024 * 1024) return (bytes / (1024 * 1024 * 1024)).toFixed(1) + ' GB';
+    if (bytes >= 1024 * 1024) return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+    if (bytes >= 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return bytes + ' B';
   }
   function allProducts() {
     var base = CATALOG.map(function (p) {
@@ -276,6 +288,9 @@
         cat: ov.cat != null ? ov.cat : p.cat,
         desc: ov.desc != null ? ov.desc : p.desc,
         longDesc: ov.longDesc || '',
+        image: ov.image != null ? ov.image : p.image,
+        gallery: ov.gallery || [],
+        video: ov.video || '',
         resell: ov.resell != null ? ov.resell : p.resell,
         resellPrice: ov.resellPrice != null ? ov.resellPrice : null,
         robuxPrice: ov.robuxPrice != null ? ov.robuxPrice : null,
@@ -289,6 +304,8 @@
     var extra = EXTRA_PRODUCTS.map(function (p) {
       return Object.assign({}, p, {
         longDesc: p.longDesc || '',
+        gallery: p.gallery || [],
+        video: p.video || '',
         resellPrice: p.resellPrice != null ? p.resellPrice : null,
         robuxPrice: p.robuxPrice != null ? p.robuxPrice : null,
         tech: Object.assign(defaultTech(), p.tech || {}),
@@ -645,6 +662,7 @@
   var editContacts = [];
   var editProofFiles = [];
   var editDevProofFiles = [];
+  var editGallery = [];
 
   var catDD = $('admEditCatDD');
   var catDDBtn = catDD ? catDD.querySelector('.adm-dd-btn') : null;
@@ -699,6 +717,28 @@
   }
   function renderProofList() { renderFileList('admLegalProofList', editProofFiles, 'adm-proof-remove'); }
   function renderDevProofList() { renderFileList('admLegalDevProofList', editDevProofFiles, 'adm-dev-proof-remove'); }
+  function renderGalleryList() {
+    var list = $('admEditGalleryList'); if (!list) return;
+    list.innerHTML = editGallery.map(function (src, i) {
+      return '<div class="adm-gallery-item"><img src="' + esc(src) + '" alt="" /><button type="button" class="adm-gallery-remove" data-i="' + i + '">' + ADM_ICON_TRASH + '</button></div>';
+    }).join('');
+  }
+  function updateThumbPreview() {
+    var img = $('admEditThumbPreview'); if (!img) return;
+    var url = $('admEditThumbUrl').value.trim();
+    img.src = url;
+    $('admEditThumbEmpty').hidden = !!url;
+    $('admEditThumbPreviewWrap').hidden = !url;
+  }
+  function addThumbFile(file) {
+    if (!file) return;
+    $('admEditThumbUrl').value = URL.createObjectURL(file);
+    updateThumbPreview();
+  }
+  function addGalleryFiles(files) {
+    Array.prototype.forEach.call(files, function (f) { editGallery.push(URL.createObjectURL(f)); });
+    renderGalleryList();
+  }
   function renderContactList() {
     var list = $('admLegalContactList'); if (!list) return;
     list.innerHTML = editContacts.map(function (c, i) {
@@ -732,16 +772,29 @@
     var tech = p.tech || {};
     $('admEditTechFormat').value = tech.format || '';
     $('admEditTechSize').value = tech.size || '';
+    $('admEditTechFileName').value = tech.fileName || '';
+    $('admEditFileInput').value = '';
+    $('admEditFileNote').textContent = tech.fileName ? ('Selected: ' + tech.fileName) : 'Currently: shared placeholder file';
     $('admEditTechParts').value = tech.parts || '';
     $('admEditTechMeshParts').value = tech.meshParts || '';
     $('admEditTechUnions').value = tech.unions || '';
     $('admEditTechScripts').value = tech.scripts || '';
 
+    $('admEditThumbUrl').value = p.image || '';
+    updateThumbPreview();
+    editGallery = (p.gallery || []).slice();
+    renderGalleryList();
+    $('admEditVideoUrl').value = p.video || '';
+
     var legal = p.legal || defaultLegal();
+    $('admLegalTos').value = legal.tos || '';
     editContacts = (legal.contacts || []).map(function (c) { return Object.assign({}, c); });
     editProofFiles = (legal.proofFiles || []).slice();
     editDevProofFiles = (legal.devProofFiles || []).slice();
     renderContactList(); renderProofList(); renderDevProofList();
+    $('admLegalCostAmount').value = legal.licenseCost || 0;
+    setCostCurrency(legal.licenseCostCurrency || 'usd');
+    $('admLegalPurchasedAt').value = legal.licensePurchasedAt || '';
     $('admLegalMinUsd').value = legal.minSaleUsd || 0;
     $('admLegalMinRobux').value = legal.minSaleRobux || 0;
     $('admLegalCanBeFree').checked = !!legal.canBeFree;
@@ -749,6 +802,54 @@
 
     showPanel('product-edit');
   }
+
+  function wireDropzone(dropEl, inputEl, onFiles) {
+    if (!dropEl || !inputEl) return;
+    dropEl.addEventListener('click', function () { inputEl.click(); });
+    inputEl.addEventListener('change', function () { onFiles(inputEl.files); inputEl.value = ''; });
+    dropEl.addEventListener('dragover', function (e) { e.preventDefault(); dropEl.classList.add('dragover'); });
+    dropEl.addEventListener('dragleave', function () { dropEl.classList.remove('dragover'); });
+    dropEl.addEventListener('drop', function (e) {
+      e.preventDefault();
+      dropEl.classList.remove('dragover');
+      if (e.dataTransfer && e.dataTransfer.files.length) onFiles(e.dataTransfer.files);
+    });
+  }
+
+  wireDropzone($('admEditFileDrop'), $('admEditFileInput'), function (files) {
+    var f = files[0]; if (!f) return;
+    var dot = f.name.lastIndexOf('.');
+    $('admEditTechFormat').value = dot >= 0 ? f.name.slice(dot).toLowerCase() : '';
+    $('admEditTechSize').value = formatFileSize(f.size);
+    $('admEditTechFileName').value = f.name;
+    $('admEditFileNote').textContent = 'Selected: ' + f.name;
+  });
+
+  wireDropzone($('admEditThumbDrop'), $('admEditThumbInput'), function (files) { addThumbFile(files[0]); });
+  var thumbRemoveBtn = $('admEditThumbRemove');
+  if (thumbRemoveBtn) thumbRemoveBtn.addEventListener('click', function (e) {
+    e.stopPropagation();
+    $('admEditThumbUrl').value = '';
+    updateThumbPreview();
+  });
+
+  wireDropzone($('admEditGalleryDrop'), $('admEditGalleryInput'), addGalleryFiles);
+  var galleryList = $('admEditGalleryList');
+  if (galleryList) galleryList.addEventListener('click', function (e) {
+    var btn = e.target.closest('.adm-gallery-remove'); if (!btn) return;
+    editGallery.splice(+btn.getAttribute('data-i'), 1);
+    renderGalleryList();
+  });
+
+  function setCostCurrency(currency) {
+    $('admLegalCostCurrency').value = currency;
+    document.querySelectorAll('#admLegalCostCurrencyToggle button').forEach(function (b) {
+      b.classList.toggle('active', b.getAttribute('data-currency') === currency);
+    });
+  }
+  document.querySelectorAll('#admLegalCostCurrencyToggle button').forEach(function (b) {
+    b.addEventListener('click', function () { setCostCurrency(b.getAttribute('data-currency')); });
+  });
 
   document.querySelectorAll('#admEditPlatformToggle .adm-platform-btn').forEach(function (b) {
     b.addEventListener('click', function () {
@@ -824,10 +925,22 @@
     $('admEditMsg').textContent = '';
     updateDevexHint();
 
-    ['admEditTechFormat', 'admEditTechSize', 'admEditTechParts', 'admEditTechMeshParts', 'admEditTechUnions', 'admEditTechScripts'].forEach(function (id) { $(id).value = ''; });
+    ['admEditTechFormat', 'admEditTechSize', 'admEditTechFileName', 'admEditTechParts', 'admEditTechMeshParts', 'admEditTechUnions', 'admEditTechScripts'].forEach(function (id) { $(id).value = ''; });
+    $('admEditFileInput').value = '';
+    $('admEditFileNote').textContent = 'Currently: shared placeholder file';
 
+    $('admEditThumbUrl').value = '';
+    updateThumbPreview();
+    editGallery = [];
+    renderGalleryList();
+    $('admEditVideoUrl').value = '';
+
+    $('admLegalTos').value = '';
     editContacts = []; editProofFiles = []; editDevProofFiles = [];
     renderContactList(); renderProofList(); renderDevProofList();
+    $('admLegalCostAmount').value = 0;
+    setCostCurrency('usd');
+    $('admLegalPurchasedAt').value = '';
     $('admLegalMinUsd').value = 0;
     $('admLegalMinRobux').value = 0;
     $('admLegalCanBeFree').checked = false;
@@ -848,18 +961,26 @@
       resell: $('admEditResell').checked,
       resellPrice: $('admEditResell').checked && $('admEditResellPrice').value !== '' ? Math.max(0, parseFloat($('admEditResellPrice').value) || 0) : null,
       visible: $('admEditReleased').checked,
+      image: $('admEditThumbUrl').value.trim(),
+      gallery: editGallery.slice(),
+      video: toYouTubeEmbed($('admEditVideoUrl').value.trim()),
       tech: {
         format: $('admEditTechFormat').value.trim(),
         size: $('admEditTechSize').value.trim(),
+        fileName: $('admEditTechFileName').value,
         parts: $('admEditTechParts').value,
         meshParts: $('admEditTechMeshParts').value,
         unions: $('admEditTechUnions').value,
         scripts: $('admEditTechScripts').value
       },
       legal: {
+        tos: $('admLegalTos').value.trim(),
         proofFiles: editProofFiles.slice(),
         devProofFiles: editDevProofFiles.slice(),
         contacts: editContacts.filter(function (c) { return c.label || c.value; }),
+        licenseCost: Math.max(0, parseFloat($('admLegalCostAmount').value) || 0),
+        licenseCostCurrency: $('admLegalCostCurrency').value,
+        licensePurchasedAt: $('admLegalPurchasedAt').value,
         minSaleUsd: Math.max(0, parseFloat($('admLegalMinUsd').value) || 0),
         minSaleRobux: Math.max(0, parseFloat($('admLegalMinRobux').value) || 0),
         canBeFree: $('admLegalCanBeFree').checked,
@@ -881,9 +1002,10 @@
       var title = $('admEditTitleInput').value.trim();
       if (!title) { if (msg) msg.textContent = 'Enter a title.'; return; }
       var fields = Object.assign({ title: title }, collectEditFields());
+      if (!fields.image) fields.image = 'banner.jpg';
       var newId = title.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-' + Date.now().toString(36);
       EXTRA_PRODUCTS.push(Object.assign({
-        id: newId, image: 'banner.jpg', platform: platform,
+        id: newId, platform: platform,
         page: platform === 'Minecraft' ? 'minecraft.html' : 'assets.html',
         priceNum: fields.price, rating: 0, reviews: 0, versions: []
       }, fields));

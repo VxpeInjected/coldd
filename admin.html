@@ -151,23 +151,13 @@
             <div class="adm-toolbar">
               <input type="text" id="admProdSearch" class="adm-input" placeholder="Search by product name…" />
               <button class="btn btn-ghost adm-btn-sm" type="button" id="admOpenUpdatePanel">Push Update</button>
+              <button class="btn btn-primary adm-btn-sm" type="button" id="admOpenCreatePanel">+ Create Product</button>
             </div>
             <div class="dash-card glass dash-tablewrap">
               <table class="dash-table adm-table-tight">
                 <thead><tr><th>Thumbnail</th><th>Product Name</th><th>Category</th><th>Status</th><th>Rating</th><th>Purchases</th><th></th></tr></thead>
                 <tbody id="admProdBody"></tbody>
               </table>
-            </div>
-            <div class="dash-card glass">
-              <div class="dash-card-head"><h2>Add admin-only product</h2></div>
-              <form class="adm-form" id="admAddProdForm">
-                <input type="text" id="admNewProdTitle" class="adm-input" placeholder="Title" required />
-                <input type="number" id="admNewProdPrice" class="adm-input adm-input-sm" placeholder="Price USD" min="0" step="1" required />
-                <input type="text" id="admNewProdCat" class="adm-input" placeholder="Category" />
-                <select id="admNewProdPlatform" class="adm-select"><option value="Roblox">Roblox</option><option value="Minecraft">Minecraft</option></select>
-                <button class="btn btn-primary adm-btn-sm" type="submit">Add product</button>
-              </form>
-              <p class="adm-note">Admin-only products are staged here for review — publish them to the live storefront by adding them to catalog.js.</p>
             </div>
           </section>
 
@@ -193,7 +183,14 @@
                 <div class="adm-edit-grid" style="margin-top:20px;">
                   <label class="adm-field"><span>Title</span><input type="text" id="admEditTitleInput" class="adm-input" required /></label>
                   <label class="adm-field"><span>Category</span>
-                    <select id="admEditCat" class="adm-select"></select>
+                    <div class="adm-dd" id="admEditCatDD">
+                      <button type="button" class="adm-dd-btn" aria-haspopup="listbox" aria-expanded="false">
+                        <span class="adm-dd-val placeholder">Select category</span>
+                        <svg class="adm-dd-chev" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                      </button>
+                      <div class="adm-dd-menu" role="listbox" aria-label="Category" hidden></div>
+                    </div>
+                    <input type="hidden" id="admEditCat" />
                   </label>
                   <label class="adm-field"><span>Price (USD)</span><input type="number" min="0" step="0.01" id="admEditPrice" class="adm-input" required /></label>
                   <label class="adm-field">
@@ -266,7 +263,7 @@
               </div>
 
               <div class="adm-edit-actions">
-                <button class="btn btn-primary" type="submit">Save changes</button>
+                <button class="btn btn-primary" type="submit" id="admEditSaveBtn">Save changes</button>
                 <button class="btn btn-ghost" type="button" id="admEditDeleteBtn" hidden>Delete product</button>
               </div>
               <div class="adm-edit-msg" id="admEditMsg"></div>

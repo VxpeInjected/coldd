@@ -1478,6 +1478,30 @@ button.dt-badge:disabled { cursor: default; opacity: 0.6; }
 .adm-select { font-family: inherit; font-size: 13px; color: var(--fg); background: var(--bg-3); border: 1px solid var(--hairline);
   border-radius: 9px; padding: 7px 10px; transition: border-color .15s; }
 .adm-select:focus { outline: none; border-color: rgba(255,77,68,0.5); }
+
+.adm-dd { position: relative; width: 100%; }
+.adm-dd-btn { display: flex; align-items: center; justify-content: space-between; gap: 9px; width: 100%;
+  padding: 9px 12px; border-radius: 9px; background: var(--bg-3); border: 1px solid var(--hairline); color: var(--fg);
+  font-family: inherit; font-size: 13.5px; font-weight: 600; cursor: pointer; transition: border-color .15s var(--ease); }
+.adm-dd-btn:hover { border-color: rgba(255,255,255,0.2); }
+.adm-dd.open .adm-dd-btn { border-color: rgba(255,77,68,0.5); }
+.adm-dd-val { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.adm-dd-val.placeholder { color: var(--fg-3); font-weight: 500; }
+.adm-dd-chev { color: var(--fg-3); transition: transform .18s var(--ease); flex: 0 0 auto; }
+.adm-dd.open .adm-dd-chev { transform: rotate(180deg); }
+.adm-dd-menu { position: absolute; top: calc(100% + 8px); left: 0; right: 0; z-index: 40; max-height: 280px; overflow-y: auto;
+  padding: 6px; border-radius: 14px; background: rgba(19,20,26,0.98); border: 1px solid var(--hairline);
+  box-shadow: 0 20px 46px -18px rgba(0,0,0,0.75); }
+.adm-dd-menu[hidden] { display: none; }
+.adm-dd-opt { display: flex; align-items: center; justify-content: space-between; gap: 14px; width: 100%;
+  padding: 10px 12px; border-radius: 10px; background: transparent; border: none; color: var(--fg-1);
+  font-family: inherit; font-size: 13.5px; font-weight: 600; text-align: left; cursor: pointer;
+  transition: background .16s var(--ease), color .16s var(--ease); }
+.adm-dd-opt:hover { background: rgba(255,255,255,0.06); color: var(--fg); }
+.adm-dd-opt.active { background: rgba(255,255,255,0.06); color: #fff; }
+.adm-dd-radio { width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--hairline); flex: 0 0 auto; position: relative; }
+.adm-dd-opt.active .adm-dd-radio { border-color: var(--accent); }
+.adm-dd-opt.active .adm-dd-radio::after { content: ""; position: absolute; inset: 3px; border-radius: 50%; background: var(--accent); }
 .adm-page { padding-top: 26px; padding-bottom: 80px; }
 .adm-page .dash { grid-template-columns: 220px 1fr; }
 

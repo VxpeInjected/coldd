@@ -37,7 +37,7 @@
   function rnd(seed) { return (hsh(seed) % 10000) / 10000; }
   function pick(arr, seed) { return arr[hsh(seed) % arr.length]; }
   var ROBUX_PER_USD = 80;
-  var DEVEX_USD_PER_ROBUX = 0.0035;
+  var DEVEX_USD_PER_ROBUX = 0.0038;
   var AUD_RATE = 1.52;
   function usd(n) { return '$' + (Math.round((Number(n) || 0) * 100) / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
   function usd0(n) { return '$' + Math.round(Number(n) || 0).toLocaleString('en-US'); }
@@ -646,11 +646,36 @@
   var editProofFiles = [];
   var editDevProofFiles = [];
 
+  var catDD = $('admEditCatDD');
+  var catDDBtn = catDD ? catDD.querySelector('.adm-dd-btn') : null;
+  var catDDVal = catDD ? catDD.querySelector('.adm-dd-val') : null;
+  var catDDMenu = catDD ? catDD.querySelector('.adm-dd-menu') : null;
+  function closeCatDD() { if (catDD) catDD.classList.remove('open'); if (catDDMenu) catDDMenu.hidden = true; if (catDDBtn) catDDBtn.setAttribute('aria-expanded', 'false'); }
+  function openCatDD() { if (catDD) catDD.classList.add('open'); if (catDDMenu) catDDMenu.hidden = false; if (catDDBtn) catDDBtn.setAttribute('aria-expanded', 'true'); }
+  function setCatValue(c) {
+    $('admEditCat').value = c || '';
+    if (catDDVal) { catDDVal.textContent = c || 'Select category'; catDDVal.classList.toggle('placeholder', !c); }
+    if (catDDMenu) Array.prototype.forEach.call(catDDMenu.querySelectorAll('.adm-dd-opt'), function (o) {
+      o.classList.toggle('active', o.getAttribute('data-cat') === c);
+    });
+  }
+  if (catDDBtn) catDDBtn.addEventListener('click', function (e) {
+    e.stopPropagation();
+    if (catDDMenu && catDDMenu.hidden) openCatDD(); else closeCatDD();
+  });
+  document.addEventListener('click', function (e) { if (catDD && !catDD.contains(e.target)) closeCatDD(); });
+
   function populateCategorySelect(platform, selected) {
-    var sel = $('admEditCat'); if (!sel) return;
+    if (!catDDMenu) return;
     var cats = CATEGORIES_BY_PLATFORM[platform] || [];
-    sel.innerHTML = cats.map(function (c) { return '<option value="' + esc(c) + '"' + (c === selected ? ' selected' : '') + '>' + esc(c) + '</option>'; }).join('');
-    if (selected && cats.indexOf(selected) < 0) sel.insertAdjacentHTML('afterbegin', '<option value="' + esc(selected) + '" selected>' + esc(selected) + '</option>');
+    if (selected && cats.indexOf(selected) < 0) cats = cats.concat([selected]);
+    catDDMenu.innerHTML = cats.map(function (c) {
+      return '<button type="button" class="adm-dd-opt' + (c === selected ? ' active' : '') + '" data-cat="' + esc(c) + '" role="option" aria-selected="' + (c === selected ? 'true' : 'false') + '"><span>' + esc(c) + '</span><span class="adm-dd-radio"></span></button>';
+    }).join('');
+    Array.prototype.forEach.call(catDDMenu.querySelectorAll('.adm-dd-opt'), function (o) {
+      o.addEventListener('click', function () { setCatValue(o.getAttribute('data-cat')); closeCatDD(); });
+    });
+    setCatValue(selected || (cats[0] || ''));
   }
   function setEditPlatform(platform, catToKeep) {
     $('admEditPlatform').value = platform;
@@ -700,6 +725,7 @@
     $('admEditReleased').checked = !!p.visible;
     $('admEditDeleteBtn').hidden = !p.extra;
     $('admEditHeading').textContent = 'Edit: ' + p.title;
+    $('admEditSaveBtn').textContent = 'Save changes';
     $('admEditMsg').textContent = '';
     updateDevexHint();
 
@@ -779,14 +805,41 @@
     renderDevProofList();
   });
 
-  var editForm = $('admEditForm');
-  if (editForm) editForm.addEventListener('submit', function (e) {
-    e.preventDefault();
-    if (!can('admin')) return;
-    var id = $('admEditId').value;
-    var p = findProduct(id); if (!p) return;
-    var fields = {
-      title: $('admEditTitleInput').value.trim() || p.title,
+  function openProductCreate() {
+    $('admEditId').value = '';
+    $('admEditTitleInput').value = '';
+    $('admEditPrice').value = 0;
+    $('admEditRobuxPrice').value = '';
+    setEditPlatform('Roblox', null);
+    document.querySelectorAll('#admEditPlatformToggle .adm-platform-btn').forEach(function (b) { b.disabled = false; });
+    $('admEditSubtext').value = '';
+    $('admEditLongDesc').value = '';
+    $('admEditResell').checked = false;
+    $('admEditResellPrice').value = '';
+    $('admEditResellPriceWrap').hidden = true;
+    $('admEditReleased').checked = false;
+    $('admEditDeleteBtn').hidden = true;
+    $('admEditHeading').textContent = 'Create new product';
+    $('admEditSaveBtn').textContent = 'Create product';
+    $('admEditMsg').textContent = '';
+    updateDevexHint();
+
+    ['admEditTechFormat', 'admEditTechSize', 'admEditTechParts', 'admEditTechMeshParts', 'admEditTechUnions', 'admEditTechScripts'].forEach(function (id) { $(id).value = ''; });
+
+    editContacts = []; editProofFiles = []; editDevProofFiles = [];
+    renderContactList(); renderProofList(); renderDevProofList();
+    $('admLegalMinUsd').value = 0;
+    $('admLegalMinRobux').value = 0;
+    $('admLegalCanBeFree').checked = false;
+    $('admLegalDisallowSales').checked = false;
+
+    showPanel('product-edit');
+  }
+  var createBtn = $('admOpenCreatePanel');
+  if (createBtn) createBtn.addEventListener('click', function () { if (can('admin')) openProductCreate(); });
+
+  function collectEditFields() {
+    return {
       price: Math.max(0, parseFloat($('admEditPrice').value) || 0),
       robuxPrice: $('admEditRobuxPrice').value === '' ? null : Math.max(0, parseFloat($('admEditRobuxPrice').value) || 0),
       cat: $('admEditCat').value,
@@ -813,10 +866,41 @@
         disallowSales: $('admLegalDisallowSales').checked
       }
     };
-    if (p.extra) fields.platform = $('admEditPlatform').value;
+  }
+
+  var editForm = $('admEditForm');
+  if (editForm) editForm.addEventListener('submit', function (e) {
+    e.preventDefault();
+    if (!can('admin')) return;
+    var id = $('admEditId').value;
+    var isCreate = !id;
+    var platform = $('admEditPlatform').value;
+    var msg = $('admEditMsg');
+
+    if (isCreate) {
+      var title = $('admEditTitleInput').value.trim();
+      if (!title) { if (msg) msg.textContent = 'Enter a title.'; return; }
+      var fields = Object.assign({ title: title }, collectEditFields());
+      var newId = title.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-' + Date.now().toString(36);
+      EXTRA_PRODUCTS.push(Object.assign({
+        id: newId, image: 'banner.jpg', platform: platform,
+        page: platform === 'Minecraft' ? 'minecraft.html' : 'assets.html',
+        priceNum: fields.price, rating: 0, reviews: 0, versions: []
+      }, fields));
+      saveExtraProducts();
+      logAudit('Created product "' + title + '"');
+      openProductEdit(newId);
+      if (msg) msg.textContent = 'Created.';
+      renderProducts();
+      return;
+    }
+
+    var p = findProduct(id); if (!p) return;
+    var fields = Object.assign({ title: $('admEditTitleInput').value.trim() || p.title }, collectEditFields());
+    if (p.extra) fields.platform = platform;
     saveProductFields(id, p.extra, fields);
     logAudit('Updated product "' + fields.title + '"');
-    var msg = $('admEditMsg'); if (msg) msg.textContent = 'Saved.';
+    if (msg) msg.textContent = 'Saved.';
     renderProducts();
   });
   var editDeleteBtn = $('admEditDeleteBtn');
@@ -829,23 +913,6 @@
     saveExtraProducts();
     logAudit('Deleted admin-only product "' + p.title + '"');
     showPanel('products');
-  });
-
-  var addProdForm = $('admAddProdForm');
-  if (addProdForm) addProdForm.addEventListener('submit', function (e) {
-    e.preventDefault();
-    if (!can('admin')) return;
-    var title = $('admNewProdTitle').value.trim();
-    var price = parseFloat($('admNewProdPrice').value) || 0;
-    var cat = $('admNewProdCat').value.trim() || 'Uncategorized';
-    var platform = $('admNewProdPlatform').value;
-    if (!title) return;
-    var id = title.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-' + Date.now().toString(36);
-    EXTRA_PRODUCTS.push({ id: id, title: title, priceNum: price, price: price, cat: cat, platform: platform, image: 'banner.jpg', desc: '', resell: false, visible: true, page: platform === 'Minecraft' ? 'minecraft.html' : 'assets.html' });
-    saveExtraProducts();
-    logAudit('Added product "' + title + '"');
-    addProdForm.reset();
-    renderProducts();
   });
 
   /* ================================================================

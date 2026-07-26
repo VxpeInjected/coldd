@@ -48,12 +48,18 @@
     var parts = name.trim().split(/\s+/);
     return (parts[0][0] || '').toUpperCase();
   }
+  function capitalizeEmailPrefix(email) {
+    if (!email) return '';
+    var prefix = email.split('@')[0];
+    return prefix.charAt(0).toUpperCase() + prefix.slice(1);
+  }
 
   function applyProfile() {
     var p = getProfile();
     if (!p) return;
+    var displayName = (p.provider === 'email' ? capitalizeEmailPrefix(p.email) : p.name) || p.name;
 
-    document.querySelectorAll('#dashName, #coUserName').forEach(function (el) { el.textContent = p.name; });
+    document.querySelectorAll('#dashName, #coUserName').forEach(function (el) { el.textContent = displayName; });
     document.querySelectorAll('#dashEmail, #coUserEmail').forEach(function (el) { el.textContent = p.email || ''; });
 
     document.querySelectorAll('#dashAvatar, #coAvatar').forEach(function (el) {
@@ -63,21 +69,21 @@
         el.style.backgroundPosition = 'center';
         el.textContent = '';
       } else {
-        el.textContent = initials(p.name);
+        el.textContent = initials(displayName);
       }
     });
 
     var welcome = document.getElementById('dashWelcomeName');
-    if (welcome) welcome.textContent = (p.name || '').split(' ')[0] || p.name;
+    if (welcome) welcome.textContent = (displayName || '').split(' ')[0] || displayName;
 
     var acName = document.getElementById('ac-name');
-    if (acName) acName.value = p.name || '';
+    if (acName) acName.value = displayName || '';
     var acEmail = document.getElementById('ac-email');
     if (acEmail) acEmail.value = p.email || '';
 
     var refLink = document.getElementById('refLink');
-    if (refLink && p.name) {
-      var slug = p.name.toLowerCase().replace(/[^a-z0-9]+/g, '') || 'user';
+    if (refLink && displayName) {
+      var slug = displayName.toLowerCase().replace(/[^a-z0-9]+/g, '') || 'user';
       refLink.value = 'https://coldd.gg/r/' + slug;
     }
   }

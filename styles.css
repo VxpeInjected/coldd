@@ -1912,3 +1912,33 @@ body.auth-page { background: #050505; }
 .confirm-modal p { margin: 0 0 20px; font-size: 14.5px; color: var(--fg); }
 .confirm-actions { display: flex; gap: 10px; }
 .confirm-actions .btn { flex: 1; justify-content: center; }
+
+/* password strength meter + checklist */
+.pw-strength { max-height: 0; overflow: hidden; opacity: 0; transition: max-height 0.25s ease, opacity 0.2s ease, margin-top 0.25s ease; margin-top: 0; }
+.pw-strength.open { max-height: 220px; opacity: 1; margin-top: 10px; }
+.pw-strength-bar { height: 4px; border-radius: 2px; background: rgba(255,255,255,0.08); overflow: hidden; }
+.pw-strength-fill { height: 100%; width: 0%; border-radius: 2px; background: #ff4d44; transition: width 0.2s ease, background-color 0.2s ease; }
+.pw-checklist { list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-direction: column; gap: 5px; }
+.pw-checklist li { font-size: 12px; color: var(--fg-3); display: flex; align-items: center; gap: 7px; }
+.pw-checklist li::before { content: ""; flex: 0 0 auto; width: 13px; height: 13px; border-radius: 50%; border: 1.5px solid var(--hairline); background: transparent; }
+.pw-checklist li.met { color: #7ee08a; }
+.pw-checklist li.met::before { content: "✓"; border-color: #7ee08a; background: rgba(126,224,138,0.12); color: #7ee08a; font-size: 9px; line-height: 13px; text-align: center; }
+
+/* custom checkboxes site-wide */
+input[type="checkbox"] {
+  appearance: none; -webkit-appearance: none; -moz-appearance: none;
+  width: 18px; height: 18px; flex: 0 0 auto;
+  border: 1.5px solid var(--hairline); border-radius: 4px;
+  background: rgba(255,255,255,0.03);
+  position: relative; display: inline-block; vertical-align: middle;
+  cursor: pointer; margin: 0;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+input[type="checkbox"]:hover { border-color: rgba(255,255,255,0.28); }
+input[type="checkbox"]:checked { background: var(--accent); border-color: var(--accent); }
+input[type="checkbox"]:checked::after {
+  content: ""; position: absolute; left: 5px; top: 1px;
+  width: 5px; height: 10px; border: solid #fff; border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+input[type="checkbox"]:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }

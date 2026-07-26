@@ -38,6 +38,8 @@
       var show = input.type === 'password';
       input.type = show ? 'text' : 'password';
       btn.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
+      var off = btn.querySelector('.eye-off'), on = btn.querySelector('.eye-on');
+      if (off && on) { off.hidden = show; on.hidden = !show; }
     });
   });
 
@@ -53,8 +55,47 @@
     });
   });
 
+  function setupPasswordStrength(form, getUsername) {
+    var input = form.querySelector('input[name="password"]');
+    var box = form.querySelector('#pwStrength');
+    var fill = form.querySelector('#pwFill');
+    var list = form.querySelector('#pwChecklist');
+    if (!input || !box || !fill || !list) return;
+
+    function evaluate() {
+      var v = input.value;
+      var rules = {
+        upper: /[A-Z]/.test(v),
+        lower: /[a-z]/.test(v),
+        number: /[0-9]/.test(v),
+        special: /[^A-Za-z0-9]/.test(v),
+        length: v.length > 8
+      };
+      var met = 0;
+      Object.keys(rules).forEach(function (k) {
+        var li = list.querySelector('[data-rule="' + k + '"]');
+        if (li) li.classList.toggle('met', rules[k]);
+        if (rules[k]) met++;
+      });
+      fill.style.width = (met / 5 * 100) + '%';
+      fill.style.background = met <= 2 ? '#ff4d44' : met <= 4 ? '#ffb020' : '#7ee08a';
+
+      var username = getUsername ? getUsername() : '';
+      if (username && v && v.toLowerCase() === username.toLowerCase()) {
+        fieldErr(form, 'password', "Password can't be the same as your username.");
+      } else {
+        fieldErr(form, 'password', '');
+      }
+    }
+
+    input.addEventListener('input', function () { box.classList.add('open'); evaluate(); });
+    input.addEventListener('focus', function () { if (input.value) box.classList.add('open'); });
+    input.addEventListener('blur', function () { if (!input.value) box.classList.remove('open'); });
+  }
+
   var si = document.getElementById('form-signin');
   var su = document.getElementById('form-signup');
+  if (su) setupPasswordStrength(su, function () { return val(su, 'username'); });
   var sv = document.getElementById('form-verify');
   var resendBtn = document.getElementById('btnResendCode');
   var backBtn = document.getElementById('btnBackToSignup');
@@ -268,6 +309,7 @@
   });
 
   var rs = document.getElementById('form-reset');
+  if (rs) setupPasswordStrength(rs, null);
   if (rs) rs.addEventListener('submit', function (e) {
     e.preventDefault();
     var ok = true, pass = val(rs, 'password'), conf = val(rs, 'confirm');

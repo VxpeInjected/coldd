@@ -1,6 +1,6 @@
 (function () {
-  var SUPABASE_URL = 'https://auypmvrzvmvoulobvkus.supabase.co';
-  var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF1eXBtdnJ6dm12b3Vsb2J2a3VzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ5MjU3NjcsImV4cCI6MjEwMDUwMTc2N30.20Cl68wK2uOGgzd3onzqvVR_GDYLCSwgI8oDarNzRkw';
+  var SUPABASE_URL = 'https://ekinmytmudjwfaqaqswp.supabase.co';
+  var SUPABASE_ANON_KEY = 'sb_publishable_q5JwjFnMT_0Uhu5rAlAkQA_DEGnhwV7';
   // Set this to your Coldd Development Discord server's guild ID to enable
   // per-member role/nickname lookups via the guilds.members.read scope.
   // Leave empty to skip that lookup (guild LIST still works either way).

@@ -150,6 +150,7 @@
             <div class="dash-head"><h1>Product management</h1><p>Edit pricing and visibility, or add admin-only listings.</p></div>
             <div class="adm-toolbar">
               <input type="text" id="admProdSearch" class="adm-input" placeholder="Search by product name…" />
+              <button class="btn btn-ghost adm-btn-sm" type="button" id="admOpenUpdatePanel">Push Update</button>
             </div>
             <div class="dash-card glass dash-tablewrap">
               <table class="dash-table adm-table-tight">
@@ -176,31 +177,143 @@
               <h1 id="admEditHeading">Edit product</h1>
               <p>Update this product's details.</p>
             </div>
-            <div class="dash-card glass">
-              <form id="admEditForm">
-                <input type="hidden" id="admEditId" />
-                <div class="adm-edit-grid">
-                  <label class="adm-field"><span>Title</span><input type="text" id="admEditTitleInput" class="adm-input" required /></label>
-                  <label class="adm-field"><span>Price (USD)</span><input type="number" min="0" step="0.01" id="admEditPrice" class="adm-input" required /></label>
-                  <label class="adm-field"><span>Category</span><input type="text" id="admEditCat" class="adm-input" /></label>
-                  <label class="adm-field"><span>Platform</span>
-                    <select id="admEditPlatform" class="adm-select"><option value="Roblox">Roblox</option><option value="Minecraft">Minecraft</option></select>
-                  </label>
-                  <label class="adm-field adm-field-wide"><span>Description</span><textarea id="admEditDesc" class="adm-input adm-textarea" rows="3"></textarea></label>
+            <form id="admEditForm">
+              <input type="hidden" id="admEditId" />
+
+              <div class="dash-card glass">
+                <div class="dash-card-head"><h2>Details</h2></div>
+                <div class="adm-field">
+                  <span>Platform</span>
+                  <div class="adm-platform-toggle" id="admEditPlatformToggle">
+                    <button type="button" class="btn btn-primary adm-platform-btn active" data-platform="Roblox"><img class="btn-plat-ic" src="roblox-studio.png" alt="" width="20" height="20" /> Roblox</button>
+                    <button type="button" class="btn btn-minecraft adm-platform-btn" data-platform="Minecraft"><img class="btn-plat-ic" src="minecraft-icon.webp" alt="" width="20" height="20" /> Minecraft</button>
+                  </div>
+                  <input type="hidden" id="admEditPlatform" value="Roblox" />
                 </div>
-                <label class="adm-field-check"><input type="checkbox" id="admEditResell" /> <span>Resell licence available</span></label>
+                <div class="adm-edit-grid" style="margin-top:20px;">
+                  <label class="adm-field"><span>Title</span><input type="text" id="admEditTitleInput" class="adm-input" required /></label>
+                  <label class="adm-field"><span>Category</span>
+                    <select id="admEditCat" class="adm-select"></select>
+                  </label>
+                  <label class="adm-field"><span>Price (USD)</span><input type="number" min="0" step="0.01" id="admEditPrice" class="adm-input" required /></label>
+                  <label class="adm-field">
+                    <span>Price (Robux)</span>
+                    <input type="number" min="0" step="1" id="admEditRobuxPrice" class="adm-input" />
+                    <span class="adm-hint" id="admEditDevexHint"></span>
+                  </label>
+                </div>
+
+                <label class="adm-field-check" style="margin-top:20px;"><input type="checkbox" id="admEditResell" /> <span>Resell licence available</span></label>
+                <label class="adm-field" id="admEditResellPriceWrap" hidden style="margin-top:12px;max-width:260px;">
+                  <span>Resell licence price (USD)</span><input type="number" min="0" step="0.01" id="admEditResellPrice" class="adm-input" />
+                </label>
                 <label class="adm-field-check"><input type="checkbox" id="admEditReleased" /> <span>Released (visible on storefront)</span></label>
-                <div class="adm-field" style="margin-top:18px;">
+
+                <label class="adm-field adm-field-wide" style="margin-top:20px;"><span>Subtext (shown on catalog cards)</span><input type="text" id="admEditSubtext" class="adm-input" maxlength="140" /></label>
+                <label class="adm-field adm-field-wide" style="margin-top:16px;"><span>Description (shown on the product page)</span><textarea id="admEditLongDesc" class="adm-input adm-textarea" rows="4"></textarea></label>
+
+                <div class="adm-field" style="margin-top:20px;">
                   <span>Product file</span>
                   <div class="adm-file-row"><span class="adm-sub" id="admEditFileNote">Currently: shared placeholder file</span><input type="file" id="admEditFileInput" disabled /></div>
                   <p class="adm-note">File uploads need Supabase Storage connected — coming once the backend is live. Every product downloads the same placeholder until then.</p>
                 </div>
-                <div class="adm-edit-actions">
-                  <button class="btn btn-primary" type="submit">Save changes</button>
-                  <button class="btn btn-ghost" type="button" id="admEditDeleteBtn" hidden>Delete product</button>
+              </div>
+
+              <div class="dash-card glass">
+                <div class="dash-card-head"><h2>Technical details</h2></div>
+                <div class="adm-edit-grid">
+                  <label class="adm-field"><span>File Format</span><input type="text" id="admEditTechFormat" class="adm-input" placeholder=".rbxm" /></label>
+                  <label class="adm-field"><span>File Size</span><input type="text" id="admEditTechSize" class="adm-input" placeholder="31.8 MB" /></label>
+                  <label class="adm-field"><span>Part Count</span><input type="number" min="0" step="1" id="admEditTechParts" class="adm-input" /></label>
+                  <label class="adm-field"><span>MeshPart Count</span><input type="number" min="0" step="1" id="admEditTechMeshParts" class="adm-input" /></label>
+                  <label class="adm-field"><span>Union Count</span><input type="number" min="0" step="1" id="admEditTechUnions" class="adm-input" /></label>
+                  <label class="adm-field"><span>Script Count</span><input type="number" min="0" step="1" id="admEditTechScripts" class="adm-input" /></label>
                 </div>
-                <div class="adm-edit-msg" id="admEditMsg"></div>
-              </form>
+              </div>
+
+              <div class="dash-card glass">
+                <div class="dash-card-head"><h2>Legal</h2></div>
+                <p class="adm-sub">Licensing paperwork and sale restrictions for this product.</p>
+
+                <div class="adm-field" style="margin-top:16px;">
+                  <span>Proof of license</span>
+                  <div class="adm-file-list" id="admLegalProofList"></div>
+                  <div class="adm-file-row"><input type="file" id="admLegalProofInput" multiple /></div>
+                  <p class="adm-note">File storage needs Supabase Storage connected — for now this only tracks file names locally.</p>
+                </div>
+
+                <div class="adm-field" style="margin-top:20px;">
+                  <span>Proof of development</span>
+                  <div class="adm-file-list" id="admLegalDevProofList"></div>
+                  <div class="adm-file-row"><input type="file" id="admLegalDevProofInput" multiple accept="video/*,.mp4,.mov,.webm,.mkv,.avi" /></div>
+                  <p class="adm-note">Screen recordings or clips showing the product being built (MP4 and other video formats). Same storage caveat as above — file names only for now.</p>
+                </div>
+
+                <div class="adm-field" style="margin-top:20px;">
+                  <span>Licenser contact details</span>
+                  <div class="adm-contact-list" id="admLegalContactList"></div>
+                  <button class="btn btn-ghost adm-btn-sm" type="button" id="admLegalContactAdd" style="margin-top:10px;">+ Add contact</button>
+                </div>
+
+                <div class="adm-edit-grid" style="margin-top:20px;">
+                  <label class="adm-field"><span>Minimum sale price (USD)</span><input type="number" min="0" step="0.01" id="admLegalMinUsd" class="adm-input" /></label>
+                  <label class="adm-field"><span>Minimum sale price (Robux)</span><input type="number" min="0" step="1" id="admLegalMinRobux" class="adm-input" /></label>
+                </div>
+                <p class="adm-note" style="margin-top:6px;">Even during a sale event, the discounted price for this product will never drop below these floors.</p>
+
+                <label class="adm-field-check" style="margin-top:18px;"><input type="checkbox" id="admLegalCanBeFree" /> <span>Can be given away for free (e.g. promos/giveaways)</span></label>
+                <label class="adm-field-check"><input type="checkbox" id="admLegalDisallowSales" /> <span>Disallow from all sales — no discount or sale event can apply, regardless</span></label>
+              </div>
+
+              <div class="adm-edit-actions">
+                <button class="btn btn-primary" type="submit">Save changes</button>
+                <button class="btn btn-ghost" type="button" id="admEditDeleteBtn" hidden>Delete product</button>
+              </div>
+              <div class="adm-edit-msg" id="admEditMsg"></div>
+            </form>
+          </section>
+
+          <section class="dash-panel" id="adm-panel-product-update" hidden>
+            <div class="dash-head">
+              <a href="#" class="dt-link" data-panel="products">← Back to Products</a>
+              <h1>Push product update</h1>
+              <p>Add a new version, changelog, and file to an existing product.</p>
+            </div>
+            <div class="dash-card glass">
+              <div class="adm-field">
+                <span>Select product</span>
+                <input type="text" id="admUpdSearch" class="adm-input" placeholder="Search by product name…" autocomplete="off" />
+                <div class="adm-upd-results" id="admUpdResults"></div>
+              </div>
+
+              <div id="admUpdSelected" hidden>
+                <div class="adm-upd-selected-card">
+                  <span class="dr-thumb" id="admUpdThumb"></span>
+                  <span id="admUpdSelectedName"></span>
+                  <button type="button" class="dt-link adm-upd-change" id="admUpdChange">Change product</button>
+                </div>
+
+                <div class="adm-edit-grid" style="margin-top:18px;">
+                  <label class="adm-field"><span>Version number</span><input type="text" id="admUpdVersion" class="adm-input" placeholder="v1.1" /></label>
+                  <label class="adm-field adm-field-wide"><span>Changelog</span><textarea id="admUpdChangelog" class="adm-input adm-textarea" rows="3" placeholder="What changed in this version?"></textarea></label>
+                </div>
+
+                <div class="adm-field" style="margin-top:16px;">
+                  <span>File</span>
+                  <input type="file" id="admUpdFileInput" disabled />
+                  <p class="adm-note">File uploads need Supabase Storage connected — coming once the backend is live.</p>
+                </div>
+
+                <button type="button" class="btn btn-ghost adm-btn-sm" id="admUpdDescToggle" style="margin-top:18px;">Update description</button>
+                <label class="adm-field adm-field-wide" id="admUpdDescWrap" hidden style="margin-top:12px;"><span>Description</span><textarea id="admUpdDescInput" class="adm-input adm-textarea" rows="3"></textarea></label>
+
+                <div class="adm-edit-actions">
+                  <button class="btn btn-primary" type="button" id="admUpdSubmit">Push update</button>
+                </div>
+                <div class="adm-edit-msg" id="admUpdMsg"></div>
+
+                <div class="adm-upd-history" id="admUpdHistory"></div>
+              </div>
             </div>
           </section>
 

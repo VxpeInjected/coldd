@@ -261,6 +261,12 @@
   /* ================================================================
      PRODUCT VIEW MODEL (catalog + admin overrides + extra products)
      ================================================================ */
+  function defaultLegal() {
+    return { proofFiles: [], devProofFiles: [], contacts: [], minSaleUsd: 0, minSaleRobux: 0, canBeFree: false, disallowSales: false };
+  }
+  function defaultTech() {
+    return { format: '', size: '', parts: '', meshParts: '', unions: '', scripts: '' };
+  }
   function allProducts() {
     var base = CATALOG.map(function (p) {
       var ov = PROD_OV[p.id] || {};
@@ -269,15 +275,42 @@
         price: ov.price != null ? ov.price : p.priceNum,
         cat: ov.cat != null ? ov.cat : p.cat,
         desc: ov.desc != null ? ov.desc : p.desc,
+        longDesc: ov.longDesc || '',
         resell: ov.resell != null ? ov.resell : p.resell,
+        resellPrice: ov.resellPrice != null ? ov.resellPrice : null,
+        robuxPrice: ov.robuxPrice != null ? ov.robuxPrice : null,
+        tech: Object.assign(defaultTech(), ov.tech || {}),
+        legal: Object.assign(defaultLegal(), ov.legal || {}),
+        versions: ov.versions || [],
         visible: ov.visible !== false,
         extra: false
       });
     });
-    var extra = EXTRA_PRODUCTS.map(function (p) { return Object.assign({}, p, { extra: true, visible: p.visible !== false }); });
+    var extra = EXTRA_PRODUCTS.map(function (p) {
+      return Object.assign({}, p, {
+        longDesc: p.longDesc || '',
+        resellPrice: p.resellPrice != null ? p.resellPrice : null,
+        robuxPrice: p.robuxPrice != null ? p.robuxPrice : null,
+        tech: Object.assign(defaultTech(), p.tech || {}),
+        legal: Object.assign(defaultLegal(), p.legal || {}),
+        versions: p.versions || [],
+        extra: true,
+        visible: p.visible !== false
+      });
+    });
     return base.concat(extra);
   }
   function findProduct(id) { return allProducts().filter(function (p) { return p.id === id; })[0]; }
+  function saveProductFields(id, isExtra, fields) {
+    if (isExtra) {
+      var ep = EXTRA_PRODUCTS.filter(function (x) { return x.id === id; })[0];
+      if (ep) Object.assign(ep, fields);
+      saveExtraProducts();
+    } else {
+      PROD_OV[id] = Object.assign({}, PROD_OV[id], fields);
+      saveProdOv();
+    }
+  }
 
   /* ================================================================
      DATE RANGE
@@ -386,7 +419,7 @@
   /* ================================================================
      NAV / PANEL SWITCHING
      ================================================================ */
-  var PANELS = ['home', 'analytics', 'products', 'product-edit', 'orders', 'refunds', 'reviews', 'users', 'coupons', 'posts', 'tutorials', 'releases', 'staff', 'audit'];
+  var PANELS = ['home', 'analytics', 'products', 'product-edit', 'product-update', 'orders', 'refunds', 'reviews', 'users', 'coupons', 'posts', 'tutorials', 'releases', 'staff', 'audit'];
   var curPanel = 'home';
   function showPanel(name) {
     if (PANELS.indexOf(name) < 0) name = 'home';
@@ -604,22 +637,148 @@
   if (prodSearch) prodSearch.addEventListener('input', renderProducts);
 
   /* ---- Product edit panel ---- */
+  var ADM_ICON_TRASH = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>';
+  var CATEGORIES_BY_PLATFORM = {
+    Roblox: ['Finished Games & Templates', 'Maps', 'Scripts & UI', 'Graphics', 'Buildings', 'Assets', 'Uniforms & Gear', 'Boats', 'Weapons', 'Vehicles', 'Animations & VFX'],
+    Minecraft: ['Hubs', 'Lobbies', 'Maps', 'Builds', 'Plugins', 'Full Setups']
+  };
+  var editContacts = [];
+  var editProofFiles = [];
+  var editDevProofFiles = [];
+
+  function populateCategorySelect(platform, selected) {
+    var sel = $('admEditCat'); if (!sel) return;
+    var cats = CATEGORIES_BY_PLATFORM[platform] || [];
+    sel.innerHTML = cats.map(function (c) { return '<option value="' + esc(c) + '"' + (c === selected ? ' selected' : '') + '>' + esc(c) + '</option>'; }).join('');
+    if (selected && cats.indexOf(selected) < 0) sel.insertAdjacentHTML('afterbegin', '<option value="' + esc(selected) + '" selected>' + esc(selected) + '</option>');
+  }
+  function setEditPlatform(platform, catToKeep) {
+    $('admEditPlatform').value = platform;
+    document.querySelectorAll('#admEditPlatformToggle .adm-platform-btn').forEach(function (b) {
+      b.classList.toggle('active', b.getAttribute('data-platform') === platform);
+    });
+    populateCategorySelect(platform, catToKeep);
+  }
+  function updateDevexHint() {
+    var usdPrice = parseFloat($('admEditPrice').value) || 0;
+    var hint = $('admEditDevexHint'); if (!hint) return;
+    hint.textContent = usdPrice > 0
+      ? ('DevEx equivalent of ' + usd(usdPrice) + ' ≈ R$ ' + Math.round(usdPrice / DEVEX_USD_PER_ROBUX).toLocaleString('en-US'))
+      : '';
+  }
+  function renderFileList(listId, files, removeClass) {
+    var list = $(listId); if (!list) return;
+    list.innerHTML = files.map(function (name, i) {
+      return '<div class="adm-file-item"><span>' + esc(name) + '</span><button type="button" class="adm-icon-btn ' + removeClass + '" data-i="' + i + '">' + ADM_ICON_TRASH + '</button></div>';
+    }).join('') || '<p class="adm-empty" style="padding:8px 0;">No files uploaded yet.</p>';
+  }
+  function renderProofList() { renderFileList('admLegalProofList', editProofFiles, 'adm-proof-remove'); }
+  function renderDevProofList() { renderFileList('admLegalDevProofList', editDevProofFiles, 'adm-dev-proof-remove'); }
+  function renderContactList() {
+    var list = $('admLegalContactList'); if (!list) return;
+    list.innerHTML = editContacts.map(function (c, i) {
+      return '<div class="adm-contact-row" data-i="' + i + '">' +
+        '<input type="text" class="adm-input adm-contact-label" placeholder="Label (e.g. Discord username)" value="' + esc(c.label || '') + '" />' +
+        '<input type="text" class="adm-input adm-contact-value" placeholder="Value" value="' + esc(c.value || '') + '" />' +
+        '<button type="button" class="adm-icon-btn adm-contact-remove">' + ADM_ICON_TRASH + '</button></div>';
+    }).join('');
+  }
+
   function openProductEdit(id) {
     var p = findProduct(id); if (!p) return;
     $('admEditId').value = p.id;
     $('admEditTitleInput').value = p.title;
     $('admEditPrice').value = p.price;
-    $('admEditCat').value = p.cat || '';
-    $('admEditPlatform').value = p.platform;
-    $('admEditPlatform').disabled = !p.extra;
-    $('admEditDesc').value = p.desc || '';
+    $('admEditRobuxPrice').value = p.robuxPrice != null ? p.robuxPrice : '';
+    setEditPlatform(p.platform, p.cat);
+    document.querySelectorAll('#admEditPlatformToggle .adm-platform-btn').forEach(function (b) { b.disabled = !p.extra; });
+    $('admEditSubtext').value = p.desc || '';
+    $('admEditLongDesc').value = p.longDesc || '';
     $('admEditResell').checked = !!p.resell;
+    $('admEditResellPrice').value = p.resellPrice != null ? p.resellPrice : '';
+    $('admEditResellPriceWrap').hidden = !p.resell;
     $('admEditReleased').checked = !!p.visible;
     $('admEditDeleteBtn').hidden = !p.extra;
     $('admEditHeading').textContent = 'Edit: ' + p.title;
     $('admEditMsg').textContent = '';
+    updateDevexHint();
+
+    var tech = p.tech || {};
+    $('admEditTechFormat').value = tech.format || '';
+    $('admEditTechSize').value = tech.size || '';
+    $('admEditTechParts').value = tech.parts || '';
+    $('admEditTechMeshParts').value = tech.meshParts || '';
+    $('admEditTechUnions').value = tech.unions || '';
+    $('admEditTechScripts').value = tech.scripts || '';
+
+    var legal = p.legal || defaultLegal();
+    editContacts = (legal.contacts || []).map(function (c) { return Object.assign({}, c); });
+    editProofFiles = (legal.proofFiles || []).slice();
+    editDevProofFiles = (legal.devProofFiles || []).slice();
+    renderContactList(); renderProofList(); renderDevProofList();
+    $('admLegalMinUsd').value = legal.minSaleUsd || 0;
+    $('admLegalMinRobux').value = legal.minSaleRobux || 0;
+    $('admLegalCanBeFree').checked = !!legal.canBeFree;
+    $('admLegalDisallowSales').checked = !!legal.disallowSales;
+
     showPanel('product-edit');
   }
+
+  document.querySelectorAll('#admEditPlatformToggle .adm-platform-btn').forEach(function (b) {
+    b.addEventListener('click', function () {
+      if (b.disabled) return;
+      setEditPlatform(b.getAttribute('data-platform'), null);
+    });
+  });
+  var editPriceInput = $('admEditPrice');
+  if (editPriceInput) editPriceInput.addEventListener('input', updateDevexHint);
+  var editResellBox = $('admEditResell');
+  if (editResellBox) editResellBox.addEventListener('change', function () { $('admEditResellPriceWrap').hidden = !editResellBox.checked; });
+
+  var contactAddBtn = $('admLegalContactAdd');
+  if (contactAddBtn) contactAddBtn.addEventListener('click', function () { editContacts.push({ label: '', value: '' }); renderContactList(); });
+  var contactList = $('admLegalContactList');
+  if (contactList) {
+    contactList.addEventListener('click', function (e) {
+      var btn = e.target.closest('.adm-contact-remove'); if (!btn) return;
+      var i = +btn.closest('.adm-contact-row').getAttribute('data-i');
+      editContacts.splice(i, 1); renderContactList();
+    });
+    contactList.addEventListener('input', function (e) {
+      var row = e.target.closest('.adm-contact-row'); if (!row) return;
+      var i = +row.getAttribute('data-i');
+      if (!editContacts[i]) return;
+      if (e.target.classList.contains('adm-contact-label')) editContacts[i].label = e.target.value;
+      else if (e.target.classList.contains('adm-contact-value')) editContacts[i].value = e.target.value;
+    });
+  }
+
+  var proofInput = $('admLegalProofInput');
+  if (proofInput) proofInput.addEventListener('change', function () {
+    Array.prototype.forEach.call(proofInput.files, function (f) { editProofFiles.push(f.name); });
+    proofInput.value = '';
+    renderProofList();
+  });
+  var proofList = $('admLegalProofList');
+  if (proofList) proofList.addEventListener('click', function (e) {
+    var btn = e.target.closest('.adm-proof-remove'); if (!btn) return;
+    editProofFiles.splice(+btn.getAttribute('data-i'), 1);
+    renderProofList();
+  });
+
+  var devProofInput = $('admLegalDevProofInput');
+  if (devProofInput) devProofInput.addEventListener('change', function () {
+    Array.prototype.forEach.call(devProofInput.files, function (f) { editDevProofFiles.push(f.name); });
+    devProofInput.value = '';
+    renderDevProofList();
+  });
+  var devProofList = $('admLegalDevProofList');
+  if (devProofList) devProofList.addEventListener('click', function (e) {
+    var btn = e.target.closest('.adm-dev-proof-remove'); if (!btn) return;
+    editDevProofFiles.splice(+btn.getAttribute('data-i'), 1);
+    renderDevProofList();
+  });
+
   var editForm = $('admEditForm');
   if (editForm) editForm.addEventListener('submit', function (e) {
     e.preventDefault();
@@ -629,19 +788,33 @@
     var fields = {
       title: $('admEditTitleInput').value.trim() || p.title,
       price: Math.max(0, parseFloat($('admEditPrice').value) || 0),
-      cat: $('admEditCat').value.trim(),
-      desc: $('admEditDesc').value.trim(),
+      robuxPrice: $('admEditRobuxPrice').value === '' ? null : Math.max(0, parseFloat($('admEditRobuxPrice').value) || 0),
+      cat: $('admEditCat').value,
+      desc: $('admEditSubtext').value.trim(),
+      longDesc: $('admEditLongDesc').value.trim(),
       resell: $('admEditResell').checked,
-      visible: $('admEditReleased').checked
+      resellPrice: $('admEditResell').checked && $('admEditResellPrice').value !== '' ? Math.max(0, parseFloat($('admEditResellPrice').value) || 0) : null,
+      visible: $('admEditReleased').checked,
+      tech: {
+        format: $('admEditTechFormat').value.trim(),
+        size: $('admEditTechSize').value.trim(),
+        parts: $('admEditTechParts').value,
+        meshParts: $('admEditTechMeshParts').value,
+        unions: $('admEditTechUnions').value,
+        scripts: $('admEditTechScripts').value
+      },
+      legal: {
+        proofFiles: editProofFiles.slice(),
+        devProofFiles: editDevProofFiles.slice(),
+        contacts: editContacts.filter(function (c) { return c.label || c.value; }),
+        minSaleUsd: Math.max(0, parseFloat($('admLegalMinUsd').value) || 0),
+        minSaleRobux: Math.max(0, parseFloat($('admLegalMinRobux').value) || 0),
+        canBeFree: $('admLegalCanBeFree').checked,
+        disallowSales: $('admLegalDisallowSales').checked
+      }
     };
-    if (p.extra) {
-      var ep = EXTRA_PRODUCTS.filter(function (x) { return x.id === id; })[0];
-      if (ep) Object.assign(ep, fields, { platform: $('admEditPlatform').value });
-      saveExtraProducts();
-    } else {
-      PROD_OV[id] = Object.assign({}, PROD_OV[id], fields);
-      saveProdOv();
-    }
+    if (p.extra) fields.platform = $('admEditPlatform').value;
+    saveProductFields(id, p.extra, fields);
     logAudit('Updated product "' + fields.title + '"');
     var msg = $('admEditMsg'); if (msg) msg.textContent = 'Saved.';
     renderProducts();
@@ -672,6 +845,103 @@
     saveExtraProducts();
     logAudit('Added product "' + title + '"');
     addProdForm.reset();
+    renderProducts();
+  });
+
+  /* ================================================================
+     PRODUCT UPDATE PANEL (version/changelog/file pushes)
+     ================================================================ */
+  var updSelectedId = null;
+
+  function openUpdatePanel() {
+    updSelectedId = null;
+    var search = $('admUpdSearch'); if (search) search.value = '';
+    $('admUpdResults').innerHTML = '';
+    $('admUpdSelected').hidden = true;
+    showPanel('product-update');
+  }
+  var openUpdateBtn = $('admOpenUpdatePanel');
+  if (openUpdateBtn) openUpdateBtn.addEventListener('click', openUpdatePanel);
+
+  function renderUpdResults() {
+    var q = ($('admUpdSearch').value || '').trim().toLowerCase();
+    var results = $('admUpdResults');
+    if (!q) { results.innerHTML = ''; return; }
+    var matches = allProducts().filter(function (p) { return p.title.toLowerCase().indexOf(q) >= 0; }).slice(0, 8);
+    results.innerHTML = matches.map(function (p) {
+      return '<button type="button" class="adm-upd-result" data-id="' + esc(p.id) + '">' +
+        '<span class="dr-thumb" style="width:36px;height:26px;border-radius:6px;flex:0 0 auto;background-image:url(\'' + p.image + '\')"></span>' +
+        '<span>' + esc(p.title) + '</span></button>';
+    }).join('') || '<p class="adm-empty" style="padding:8px 0;">No products match.</p>';
+  }
+  var updSearchInput = $('admUpdSearch');
+  if (updSearchInput) updSearchInput.addEventListener('input', renderUpdResults);
+
+  function renderUpdHistory(p) {
+    var box = $('admUpdHistory'); if (!box) return;
+    var versions = (p.versions || []).slice().sort(function (a, b) { return new Date(b.date) - new Date(a.date); });
+    box.innerHTML = '<div class="dash-card-head"><h2>Version history</h2></div>' + (versions.map(function (v) {
+      return '<div class="adm-ver-item"><span class="adm-ver-num">' + esc(v.version) + '</span>' +
+        '<span class="adm-ver-date">' + fmtDate(new Date(v.date)) + '</span>' +
+        '<span class="adm-ver-note">' + esc(v.changelog) + '</span></div>';
+    }).join('') || '<p class="adm-empty">No versions pushed yet.</p>');
+  }
+
+  function selectUpdateProduct(id) {
+    var p = findProduct(id); if (!p) return;
+    updSelectedId = id;
+    $('admUpdThumb').style.backgroundImage = "url('" + p.image + "')";
+    $('admUpdSelectedName').textContent = p.title;
+    $('admUpdVersion').value = '';
+    $('admUpdChangelog').value = '';
+    $('admUpdDescWrap').hidden = true;
+    $('admUpdDescInput').value = '';
+    $('admUpdMsg').textContent = '';
+    $('admUpdResults').innerHTML = '';
+    $('admUpdSearch').value = p.title;
+    $('admUpdSelected').hidden = false;
+    renderUpdHistory(p);
+  }
+  var updResults = $('admUpdResults');
+  if (updResults) updResults.addEventListener('click', function (e) {
+    var btn = e.target.closest('.adm-upd-result'); if (!btn) return;
+    selectUpdateProduct(btn.getAttribute('data-id'));
+  });
+  var updChangeBtn = $('admUpdChange');
+  if (updChangeBtn) updChangeBtn.addEventListener('click', openUpdatePanel);
+
+  var updDescToggle = $('admUpdDescToggle');
+  if (updDescToggle) updDescToggle.addEventListener('click', function () {
+    var wrap = $('admUpdDescWrap');
+    var opening = wrap.hidden;
+    wrap.hidden = !opening;
+    if (opening && updSelectedId) {
+      var p = findProduct(updSelectedId);
+      $('admUpdDescInput').value = (p && p.longDesc) || '';
+    }
+  });
+
+  var updSubmitBtn = $('admUpdSubmit');
+  if (updSubmitBtn) updSubmitBtn.addEventListener('click', function () {
+    if (!can('admin')) return;
+    if (!updSelectedId) return;
+    var p = findProduct(updSelectedId); if (!p) return;
+    var version = $('admUpdVersion').value.trim();
+    var changelog = $('admUpdChangelog').value.trim();
+    var msg = $('admUpdMsg');
+    if (!version || !changelog) { if (msg) msg.textContent = 'Enter a version number and changelog.'; return; }
+
+    var versions = (p.versions || []).slice();
+    versions.push({ version: version, changelog: changelog, date: new Date().toISOString() });
+    var fields = { versions: versions };
+    if (!$('admUpdDescWrap').hidden) fields.longDesc = $('admUpdDescInput').value.trim();
+
+    saveProductFields(updSelectedId, p.extra, fields);
+    logAudit('Pushed update ' + version + ' for "' + p.title + '"');
+    if (msg) msg.textContent = 'Update pushed.';
+    $('admUpdVersion').value = '';
+    $('admUpdChangelog').value = '';
+    renderUpdHistory(findProduct(updSelectedId));
     renderProducts();
   });
 

@@ -272,7 +272,11 @@
     var base = CATALOG.map(function (p) {
       var ov = PROD_OV[p.id] || {};
       return Object.assign({}, p, {
+        title: ov.title != null ? ov.title : p.title,
         price: ov.price != null ? ov.price : p.priceNum,
+        cat: ov.cat != null ? ov.cat : p.cat,
+        desc: ov.desc != null ? ov.desc : p.desc,
+        resell: ov.resell != null ? ov.resell : p.resell,
         visible: ov.visible !== false,
         extra: false
       });
@@ -389,7 +393,7 @@
   /* ================================================================
      NAV / PANEL SWITCHING
      ================================================================ */
-  var PANELS = ['home', 'analytics', 'products', 'orders', 'refunds', 'reviews', 'users', 'coupons', 'posts', 'tutorials', 'releases', 'staff', 'audit'];
+  var PANELS = ['home', 'analytics', 'products', 'product-edit', 'orders', 'refunds', 'reviews', 'users', 'coupons', 'posts', 'tutorials', 'releases', 'staff', 'audit'];
   var curPanel = 'home';
   function showPanel(name) {
     if (PANELS.indexOf(name) < 0) name = 'home';
@@ -551,55 +555,41 @@
   }
 
   /* ================================================================
-     PRODUCTS PANEL (management + bulk actions)
+     PRODUCTS PANEL
      ================================================================ */
-  var selectedProducts = {};
+  var ADM_ICON_DOWNLOAD = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>';
+  var ADM_ICON_KEBAB = '<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><circle cx="12" cy="5" r="1.75"/><circle cx="12" cy="12" r="1.75"/><circle cx="12" cy="19" r="1.75"/></svg>';
+
+  function purchaseCount(id) {
+    return ORDERS.filter(function (o) { return o.productId === id && o.status !== 'refunded'; }).length;
+  }
   function renderProducts() {
     var q = ($('admProdSearch') || {}).value || '';
     q = q.trim().toLowerCase();
     var rows = allProducts().filter(function (p) { return !q || p.title.toLowerCase().indexOf(q) >= 0; });
     $('admProdBody').innerHTML = rows.map(function (p) {
-      var checked = selectedProducts[p.id] ? ' checked' : '';
+      var rating = (p.rating || 0).toFixed(1);
       return '<tr data-id="' + esc(p.id) + '">' +
-        '<td><input type="checkbox" class="adm-prod-check"' + checked + ' /></td>' +
-        '<td><span class="dr-thumb" style="background-image:url(\'' + p.image + '\');width:44px;height:32px;display:inline-block;vertical-align:middle;border-radius:6px;"></span></td>' +
-        '<td>' + esc(p.title) + (p.extra ? ' <span class="adm-sub">(admin-only, add to catalog.js to publish)</span>' : '') + '</td>' +
-        '<td>' + esc(p.cat) + '</td>' +
-        '<td>' + esc(p.platform) + '</td>' +
-        '<td><input type="number" step="1" min="0" class="adm-price-input" value="' + p.price + '" ' + (can('admin') ? '' : 'disabled') + ' /></td>' +
-        '<td>' + (p.visible ? '<span class="dt-badge ok">Visible</span>' : '<span class="dt-badge err">Hidden</span>') + '</td>' +
+        '<td><span class="dr-thumb" style="background-image:url(\'' + p.image + '\');width:52px;height:38px;display:inline-block;vertical-align:middle;border-radius:7px;"></span></td>' +
+        '<td><a class="dt-link" href="product.html?id=' + esc(p.id) + '" target="_blank" rel="noopener">' + esc(p.title) + '</a>' + (p.extra ? ' <span class="adm-sub">(admin-only)</span>' : '') + '</td>' +
+        '<td><span class="adm-cat-tag">' + esc(p.cat || 'Uncategorized') + '</span></td>' +
+        '<td>' + (p.visible
+          ? '<button type="button" class="dt-badge ok adm-prod-toggle"' + (can('admin') ? '' : ' disabled') + '>Released</button>'
+          : '<button type="button" class="dt-badge warn adm-prod-toggle"' + (can('admin') ? '' : ' disabled') + '>Unreleased</button>') + '</td>' +
+        '<td>' + rating + '<span class="adm-star">★</span></td>' +
+        '<td>' + purchaseCount(p.id) + '</td>' +
         '<td class="adm-row-actions">' +
-          '<button class="btn btn-ghost adm-btn-sm adm-prod-toggle" type="button"' + (can('admin') ? '' : ' disabled') + '>' + (p.visible ? 'Hide' : 'Show') + '</button>' +
-          (p.extra ? '<button class="btn btn-ghost adm-btn-sm adm-prod-del" type="button"' + (can('admin') ? '' : ' disabled') + '>Delete</button>' : '') +
+          '<button class="adm-icon-btn adm-prod-download" type="button" title="Download product file" aria-label="Download">' + ADM_ICON_DOWNLOAD + '</button>' +
+          '<button class="adm-icon-btn adm-prod-edit" type="button" title="Edit product" aria-label="Edit">' + ADM_ICON_KEBAB + '</button>' +
         '</td></tr>';
-    }).join('') || '<tr><td colspan="8" class="adm-empty">No products match.</td></tr>';
-    updateBulkBar();
-  }
-  function updateBulkBar() {
-    var n = Object.keys(selectedProducts).filter(function (k) { return selectedProducts[k]; }).length;
-    var bar = $('admBulkBar');
-    if (bar) { bar.hidden = n === 0; $('admBulkCount').textContent = n + ' selected'; }
+    }).join('') || '<tr><td colspan="7" class="adm-empty">No products match.</td></tr>';
   }
   var prodBody = $('admProdBody');
-  if (prodBody) prodBody.addEventListener('change', function (e) {
-    var tr = e.target.closest('tr'); if (!tr) return;
-    var id = tr.getAttribute('data-id');
-    if (e.target.classList.contains('adm-prod-check')) {
-      selectedProducts[id] = e.target.checked; updateBulkBar();
-    } else if (e.target.classList.contains('adm-price-input')) {
-      if (!can('admin')) return;
-      var p = findProduct(id); if (!p) return;
-      var v = Math.max(0, parseFloat(e.target.value) || 0);
-      PROD_OV[id] = Object.assign({}, PROD_OV[id], { price: v });
-      saveProdOv();
-      logAudit('Set price of "' + p.title + '" to ' + usd(v));
-    }
-  });
   if (prodBody) prodBody.addEventListener('click', function (e) {
     var tr = e.target.closest('tr'); if (!tr) return;
     var id = tr.getAttribute('data-id');
     var p = findProduct(id); if (!p) return;
-    if (e.target.classList.contains('adm-prod-toggle')) {
+    if (e.target.closest('.adm-prod-toggle')) {
       if (!can('admin')) return;
       if (p.extra) {
         var ep = EXTRA_PRODUCTS.filter(function (x) { return x.id === id; })[0];
@@ -608,62 +598,72 @@
         PROD_OV[id] = Object.assign({}, PROD_OV[id], { visible: !p.visible });
         saveProdOv();
       }
-      logAudit((p.visible ? 'Hid' : 'Unhid') + ' product "' + p.title + '"');
+      logAudit((p.visible ? 'Unreleased' : 'Released') + ' product "' + p.title + '"');
       renderProducts();
-    } else if (e.target.classList.contains('adm-prod-del')) {
-      if (!can('admin')) return;
-      if (!confirm('Delete "' + p.title + '"? This can\'t be undone.')) return;
-      EXTRA_PRODUCTS = EXTRA_PRODUCTS.filter(function (x) { return x.id !== id; });
-      saveExtraProducts();
-      logAudit('Deleted admin-only product "' + p.title + '"');
-      renderProducts();
+    } else if (e.target.closest('.adm-prod-download')) {
+      var a = document.createElement('a');
+      a.href = 'placeholder.zip'; a.download = p.title.replace(/[^a-z0-9]+/gi, '-') + '.zip';
+      document.body.appendChild(a); a.click(); a.remove();
+    } else if (e.target.closest('.adm-prod-edit')) {
+      openProductEdit(id);
     }
   });
   var prodSearch = $('admProdSearch');
   if (prodSearch) prodSearch.addEventListener('input', renderProducts);
 
-  var bulkVisBtn = $('admBulkVisibility'), bulkPriceBtn = $('admBulkPriceApply'), bulkPriceInput = $('admBulkPriceInput');
-  if (bulkVisBtn) bulkVisBtn.addEventListener('click', function () {
+  /* ---- Product edit panel ---- */
+  function openProductEdit(id) {
+    var p = findProduct(id); if (!p) return;
+    $('admEditId').value = p.id;
+    $('admEditTitleInput').value = p.title;
+    $('admEditPrice').value = p.price;
+    $('admEditCat').value = p.cat || '';
+    $('admEditPlatform').value = p.platform;
+    $('admEditPlatform').disabled = !p.extra;
+    $('admEditDesc').value = p.desc || '';
+    $('admEditResell').checked = !!p.resell;
+    $('admEditReleased').checked = !!p.visible;
+    $('admEditDeleteBtn').hidden = !p.extra;
+    $('admEditHeading').textContent = 'Edit: ' + p.title;
+    $('admEditMsg').textContent = '';
+    showPanel('product-edit');
+  }
+  var editForm = $('admEditForm');
+  if (editForm) editForm.addEventListener('submit', function (e) {
+    e.preventDefault();
     if (!can('admin')) return;
-    var ids = Object.keys(selectedProducts).filter(function (k) { return selectedProducts[k]; });
-    ids.forEach(function (id) {
-      var p = findProduct(id); if (!p) return;
-      if (p.extra) {
-        var ep = EXTRA_PRODUCTS.filter(function (x) { return x.id === id; })[0];
-        if (ep) ep.visible = !(ep.visible !== false);
-      } else {
-        PROD_OV[id] = Object.assign({}, PROD_OV[id], { visible: !p.visible });
-      }
-    });
-    saveProdOv(); saveExtraProducts();
-    logAudit('Bulk toggled visibility on ' + ids.length + ' product(s)');
+    var id = $('admEditId').value;
+    var p = findProduct(id); if (!p) return;
+    var fields = {
+      title: $('admEditTitleInput').value.trim() || p.title,
+      price: Math.max(0, parseFloat($('admEditPrice').value) || 0),
+      cat: $('admEditCat').value.trim(),
+      desc: $('admEditDesc').value.trim(),
+      resell: $('admEditResell').checked,
+      visible: $('admEditReleased').checked
+    };
+    if (p.extra) {
+      var ep = EXTRA_PRODUCTS.filter(function (x) { return x.id === id; })[0];
+      if (ep) Object.assign(ep, fields, { platform: $('admEditPlatform').value });
+      saveExtraProducts();
+    } else {
+      PROD_OV[id] = Object.assign({}, PROD_OV[id], fields);
+      saveProdOv();
+    }
+    logAudit('Updated product "' + fields.title + '"');
+    var msg = $('admEditMsg'); if (msg) msg.textContent = 'Saved.';
     renderProducts();
   });
-  if (bulkPriceBtn) bulkPriceBtn.addEventListener('click', function () {
+  var editDeleteBtn = $('admEditDeleteBtn');
+  if (editDeleteBtn) editDeleteBtn.addEventListener('click', function () {
     if (!can('admin')) return;
-    var pctVal = parseFloat(bulkPriceInput.value);
-    if (!pctVal) return;
-    var ids = Object.keys(selectedProducts).filter(function (k) { return selectedProducts[k]; });
-    ids.forEach(function (id) {
-      var p = findProduct(id); if (!p) return;
-      var newPrice = Math.max(0, Math.round(p.price * (1 + pctVal / 100) * 100) / 100);
-      if (p.extra) {
-        var ep = EXTRA_PRODUCTS.filter(function (x) { return x.id === id; })[0];
-        if (ep) ep.price = newPrice;
-      } else {
-        PROD_OV[id] = Object.assign({}, PROD_OV[id], { price: newPrice });
-      }
-    });
-    saveProdOv(); saveExtraProducts();
-    logAudit('Bulk price adjust ' + (pctVal > 0 ? '+' : '') + pctVal + '% on ' + ids.length + ' product(s)');
-    renderProducts();
-  });
-  var selectAllBox = $('admProdSelectAll');
-  if (selectAllBox) selectAllBox.addEventListener('change', function () {
-    document.querySelectorAll('#admProdBody tr[data-id]').forEach(function (tr) {
-      selectedProducts[tr.getAttribute('data-id')] = selectAllBox.checked;
-    });
-    renderProducts();
+    var id = $('admEditId').value;
+    var p = findProduct(id); if (!p) return;
+    if (!confirm('Delete "' + p.title + '"? This can\'t be undone.')) return;
+    EXTRA_PRODUCTS = EXTRA_PRODUCTS.filter(function (x) { return x.id !== id; });
+    saveExtraProducts();
+    logAudit('Deleted admin-only product "' + p.title + '"');
+    showPanel('products');
   });
 
   var addProdForm = $('admAddProdForm');

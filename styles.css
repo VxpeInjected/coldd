@@ -1297,6 +1297,32 @@ button.dt-badge:disabled { cursor: default; opacity: 0.6; }
 .co-msg.show { display: block; }
 .co-msg.err { background: rgba(255,77,68,0.1); border-color: rgba(255,77,68,0.3); }
 
+.co-pay-methods { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+.co-pay-btn { display: flex; align-items: center; gap: 8px; padding: 10px 15px; border-radius: 11px;
+  background: rgba(0,0,0,0.25); border: 1px solid var(--hairline); color: var(--fg-2); font-family: inherit;
+  font-size: 13.5px; font-weight: 600; cursor: pointer; transition: border-color .18s var(--ease), background .18s var(--ease), color .18s var(--ease); }
+.co-pay-btn svg { flex: 0 0 auto; }
+.co-pay-btn:hover { border-color: rgba(255,255,255,0.22); color: var(--fg); }
+.co-pay-btn.active { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
+.co-pay-btn--card.active { background: rgba(255,77,68,0.14); color: #fff; }
+.co-pay-btn--paypal { background: #16065a; border-color: #2d1a7a; color: #eef0ff; }
+.co-pay-btn--paypal:hover, .co-pay-btn--paypal.active { background: #1c0872; color: #fff; }
+.co-pay-btn--applepay { background: #000; border-color: #000; color: #fff; }
+.co-pay-btn--applepay:hover, .co-pay-btn--applepay.active { background: #1a1a1a; color: #fff; }
+.co-pay-btn--afterpay { background: #b2fce4; border-color: #b2fce4; color: #0a2e28; }
+.co-pay-btn--afterpay:hover, .co-pay-btn--afterpay.active { background: #9df3d9; color: #0a2e28; }
+.co-pay-btn--crypto { background: rgba(255,193,7,0.1); border-color: rgba(255,193,7,0.3); color: #ffcf5c; }
+.co-pay-btn--crypto:hover, .co-pay-btn--crypto.active { background: rgba(255,193,7,0.18); color: #ffdd85; }
+.co-pay-btn--robux { background: rgba(52,224,138,0.1); border-color: rgba(52,224,138,0.3); color: var(--price); }
+.co-pay-btn--robux:hover, .co-pay-btn--robux.active { background: rgba(52,224,138,0.18); color: var(--price); }
+.co-pay-panel[hidden] { display: none; }
+.co-pay-more { font-size: 12.5px; margin: 0 0 16px; }
+.co-pay-more a { color: var(--fg-3); text-decoration: none; }
+.co-pay-more a:hover { color: var(--accent); }
+.co-pay-soon { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #ffcf5c;
+  background: rgba(255,193,7,0.08); border: 1px solid rgba(255,193,7,0.25); border-radius: 10px; padding: 12px 14px; }
+.co-pay-robux-ic { font-size: 12px; font-weight: 800; }
+
 .co-side { position: sticky; top: 96px; display: flex; flex-direction: column; gap: 16px; }
 .co-sum, .co-suggest { padding: 22px 24px;
   background: rgba(17,18,24,0.74); backdrop-filter: blur(13px) saturate(130%); -webkit-backdrop-filter: blur(13px) saturate(130%); }
@@ -1319,6 +1345,7 @@ button.dt-badge:disabled { cursor: default; opacity: 0.6; }
 .co-coupon-msg.no { color: var(--accent); }
 .co-totals { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--hairline); }
 .co-line { display: flex; justify-content: space-between; align-items: center; font-size: 14px; color: var(--fg-2); padding: 6px 0; }
+.co-line[hidden] { display: none; }
 .co-line span:last-child { color: var(--fg); font-weight: 600; }
 .co-disc span { color: var(--price) !important; }
 .co-grand { margin-top: 8px; padding-top: 12px; border-top: 1px solid var(--hairline); font-size: 16px; }

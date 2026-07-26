@@ -9,6 +9,13 @@
 //
 // SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY and SUPABASE_ANON_KEY are the same
 // three env vars already relied on by supabase/functions/email-otp.
+//
+// Guest checkout: signing in is optional. If the caller has a real session
+// the order is tied to their user_id (so it shows up in their dashboard and
+// they can re-download later); if not, orders.user_id is left null and Stripe
+// collects the buyer's email itself. Either way, get-order-by-session and
+// get-download-url can look the order up by Stripe session id alone, so a
+// guest can still see + download from success.html right after paying.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import Stripe from "https://esm.sh/stripe@17?target=deno";
@@ -43,15 +50,17 @@ Deno.serve(async (req: Request) => {
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const siteUrl = Deno.env.get("SITE_URL") ?? ALLOWED_ORIGIN;
 
-    // Identify the caller from their own JWT. No guest checkout - purchases
-    // must be tied to a real account so the buyer can see/download them later.
-    const userClient = createClient(supabaseUrl, anonKey, {
-      global: { headers: { Authorization: authHeader } },
-    });
-    const { data: userData, error: userErr } = await userClient.auth.getUser();
-    if (userErr || !userData?.user) return json({ ok: false, error: "Please sign in to check out." }, 401);
-    const user = userData.user;
-    if (!user.email) return json({ ok: false, error: "No email on account." }, 400);
+    // Identify the caller from their own JWT if they're signed in - but signing
+    // in is optional. A guest (no/invalid Authorization header) checks out with
+    // orders.user_id left null; Stripe's own hosted page collects their email.
+    let user: { id: string; email?: string | null } | null = null;
+    if (authHeader) {
+      const userClient = createClient(supabaseUrl, anonKey, {
+        global: { headers: { Authorization: authHeader } },
+      });
+      const { data: userData } = await userClient.auth.getUser();
+      if (userData?.user) user = userData.user;
+    }
 
     const body = await req.json().catch(() => ({}));
     const items: CartItem[] = Array.isArray(body.items) ? body.items : [];
@@ -101,7 +110,7 @@ Deno.serve(async (req: Request) => {
     const { data: order, error: orderErr } = await admin
       .from("orders")
       .insert({
-        user_id: user.id,
+        user_id: user ? user.id : null,
         status: "pending",
         subtotal_usd: subtotal,
         discount_usd: 0,
@@ -135,8 +144,8 @@ Deno.serve(async (req: Request) => {
     try {
       const session = await stripe.checkout.sessions.create({
         mode: "payment",
-        customer_email: user.email,
-        client_reference_id: user.id,
+        ...(user?.email ? { customer_email: user.email } : {}),
+        ...(user ? { client_reference_id: user.id } : {}),
         line_items: lineItems.map((li) => ({
           price_data: {
             currency: "usd",

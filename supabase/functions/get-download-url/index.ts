@@ -10,6 +10,13 @@
 // This is the actual enforcement point for "you must have paid to
 // download": the product-files Storage bucket is private with no public
 // policies, so this signed URL is the only way a file ever leaves it.
+//
+// Guest checkout support: a guest has no session, so ownership can't be
+// proven via auth.uid(). If the caller passes the Stripe checkout session id
+// instead (which success.html has, from the success_url redirect), that's
+// accepted as equivalent proof - same trust model as get-order-by-session.
+// A signed-in caller can still omit it and use their normal owned-orders
+// lookup (e.g. redownloading later from the dashboard).
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -40,28 +47,44 @@ Deno.serve(async (req: Request) => {
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
 
-    const userClient = createClient(supabaseUrl, anonKey, {
-      global: { headers: { Authorization: authHeader } },
-    });
-    const { data: userData, error: userErr } = await userClient.auth.getUser();
-    if (userErr || !userData?.user) return json({ ok: false, error: "Please sign in." }, 401);
-
     const body = await req.json().catch(() => ({}));
     const slug = String(body.slug || "");
+    const sessionId = String(body.sessionId || "");
     if (!slug) return json({ ok: false, error: "Missing product." }, 400);
 
     const admin = createClient(supabaseUrl, serviceKey);
 
-    // Ownership check: does this user have a PAID order containing this slug?
-    const { data: owned, error: ownedErr } = await admin
-      .from("order_items")
-      .select("id, orders!inner(user_id, status)")
-      .eq("product_slug", slug)
-      .eq("orders.user_id", userData.user.id)
-      .eq("orders.status", "paid")
-      .limit(1);
-    if (ownedErr) return json({ ok: false, error: "Could not verify ownership." }, 500);
-    if (!owned || owned.length === 0) return json({ ok: false, error: "You don't own this product." }, 403);
+    let owned = false;
+    if (sessionId) {
+      // Guest (or just-paid) path: the Stripe checkout session id is the proof.
+      const { data: order, error: orderErr } = await admin
+        .from("orders")
+        .select("status, order_items(product_slug)")
+        .eq("stripe_checkout_session_id", sessionId)
+        .maybeSingle();
+      if (orderErr) return json({ ok: false, error: "Could not verify ownership." }, 500);
+      owned = !!order && order.status === "paid" &&
+        (order.order_items || []).some((i: { product_slug: string }) => i.product_slug === slug);
+    } else {
+      if (!authHeader) return json({ ok: false, error: "Please sign in." }, 401);
+      const userClient = createClient(supabaseUrl, anonKey, {
+        global: { headers: { Authorization: authHeader } },
+      });
+      const { data: userData, error: userErr } = await userClient.auth.getUser();
+      if (userErr || !userData?.user) return json({ ok: false, error: "Please sign in." }, 401);
+
+      // Ownership check: does this user have a PAID order containing this slug?
+      const { data: rows, error: ownedErr } = await admin
+        .from("order_items")
+        .select("id, orders!inner(user_id, status)")
+        .eq("product_slug", slug)
+        .eq("orders.user_id", userData.user.id)
+        .eq("orders.status", "paid")
+        .limit(1);
+      if (ownedErr) return json({ ok: false, error: "Could not verify ownership." }, 500);
+      owned = !!rows && rows.length > 0;
+    }
+    if (!owned) return json({ ok: false, error: "You don't own this product." }, 403);
 
     const { data: product, error: productErr } = await admin
       .from("products")

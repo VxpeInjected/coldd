@@ -107,16 +107,50 @@
         <section class="co-sec glass">
           <div class="co-sec-head"><h2>Contact</h2></div>
           <div id="coGuest">
-            <p class="co-hint">Sign in to check out — your purchases and downloads are tied to your account.</p>
-            <button class="btn btn-primary" id="coSigninBtn" type="button">Sign in</button>
+            <p class="co-hint">Sign in to save your purchase history and re-download anytime — or check out as a guest, no account needed.</p>
+            <button class="btn btn-ghost" id="coSigninBtn" type="button">Sign in (optional)</button>
           </div>
           <div id="coUser" hidden><div class="co-user-row"><span class="dash-av" id="coAvatar" style="width:38px;height:38px;font-size:14px;">K</span><div><div class="dr-title" id="coUserName">Kaden R.</div><div class="dr-sub" id="coUserEmail">kaden@example.com</div></div></div></div>
         </section>
 
         <section class="co-sec glass">
           <h2>Payment</h2>
-          <div id="payCard" class="co-pay-panel">
-            <p class="co-hint">You'll enter your card details securely on Stripe's payment page after placing your order. <span class="co-secure">🔒 Secured &amp; encrypted</span></p>
+          <div class="co-pay-methods" id="coPayMethods">
+            <button type="button" class="co-pay-btn co-pay-btn--card active" data-key="card" data-method="stripe">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+              Card
+            </button>
+            <button type="button" class="co-pay-btn co-pay-btn--paypal" data-key="paypal" data-method="stripe">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3h7a4 4 0 0 1 4 4.5c-.4 3-2.7 5-5.7 5H9.5L8 21H4L7 3Z"/><path d="M11 12.5h2.3c3 0 5.3-2 5.7-5"/></svg>
+              PayPal
+            </button>
+            <button type="button" class="co-pay-btn co-pay-btn--applepay" data-key="applepay" data-method="stripe">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="13" rx="2.5"/><path d="M7 6V5a2 2 0 0 1 2-2h1"/></svg>
+              Apple Pay
+            </button>
+            <button type="button" class="co-pay-btn co-pay-btn--afterpay" data-key="afterpay" data-method="stripe">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="7" y1="13" x2="7" y2="13"/><line x1="12" y1="13" x2="12" y2="13"/><line x1="17" y1="13" x2="17" y2="13"/></svg>
+              Afterpay
+            </button>
+            <button type="button" class="co-pay-btn co-pay-btn--crypto" data-key="crypto" data-method="crypto">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9 8h4a2 2 0 1 1 0 4H9m0 0h4a2 2 0 1 1 0 4H9m1.5-9V6m0 12v-1.5"/></svg>
+              Crypto
+            </button>
+            <button type="button" class="co-pay-btn co-pay-btn--robux" data-key="robux" data-method="robux">
+              <span class="co-pay-robux-ic">R$</span>
+              Robux
+            </button>
+          </div>
+          <p class="co-pay-more"><a href="https://stripe.com/payments/payment-methods" target="_blank" rel="noopener">Don't see your payment method? See all available methods, including regional options →</a></p>
+
+          <div id="payCard" class="co-pay-panel" data-method-panel="stripe">
+            <p class="co-hint">You'll choose exactly how to pay on Stripe's secure checkout page after placing your order. <span class="co-secure">🔒 Secured &amp; encrypted</span></p>
+          </div>
+          <div id="coPayCryptoPanel" class="co-pay-panel" data-method-panel="crypto" hidden>
+            <div class="co-pay-soon">Crypto checkout is coming soon. For now, please pay with Card, PayPal, or another method above.</div>
+          </div>
+          <div id="coPayRobuxPanel" class="co-pay-panel" data-method-panel="robux" hidden>
+            <div class="co-pay-soon">Robux checkout is coming soon. For now, please pay with Card, PayPal, or another method above.</div>
           </div>
         </section>
 
@@ -136,9 +170,14 @@
           <h2>Order summary</h2>
           <div class="co-items" id="coItems"></div>
           <div class="co-empty" id="coEmpty" hidden>Your cart is empty. <a href="assets.html">Browse products →</a></div>
-          <div class="co-coupon-msg">Discount codes aren't available right now.</div>
+          <div class="co-coupon">
+            <input type="text" id="coCouponInput" placeholder="Discount code" autocomplete="off" />
+            <button type="button" class="btn btn-ghost" id="coCouponApply">Apply</button>
+          </div>
+          <div class="co-coupon-msg" id="coCouponMsg"></div>
           <div class="co-totals">
             <div class="co-line"><span>Subtotal</span><span id="coSubtotal">$0</span></div>
+            <div class="co-line co-disc" id="coDiscLine" hidden><span id="coDiscLabel">Discount</span><span id="coDiscAmt">-$0</span></div>
             <div class="co-line"><span>Tax (est.)</span><span id="coTax">$0</span></div>
             <div class="co-line co-grand"><span>Total</span><span id="coTotal">$0</span></div>
             <div class="co-fx" id="coFx"></div>

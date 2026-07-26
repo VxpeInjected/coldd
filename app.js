@@ -1526,6 +1526,16 @@
 
       function subtotal() { return cart.reduce(function (s, i) { return s + i.price * i.qty; }, 0); }
 
+      var appliedCoupon = null;
+      function readCoupons() {
+        try { return JSON.parse(localStorage.getItem('coldd_admin_coupons_v1') || '[]') || []; } catch (e) { return []; }
+      }
+      function computeDiscount(sub) {
+        if (!appliedCoupon) return 0;
+        var d = appliedCoupon.type === 'pct' ? sub * (appliedCoupon.val / 100) : appliedCoupon.val;
+        return Math.max(0, Math.min(d, sub));
+      }
+
       function renderItems() {
         if (!itemsEl) return;
         itemsEl.innerHTML = '';
@@ -1541,13 +1551,23 @@
       }
       function renderTotals() {
         var sub = subtotal();
+        var disc = computeDiscount(sub);
+        var total = Math.max(0, sub - disc);
         var set = function (id, v) { var el = document.getElementById(id); if (el) el.textContent = v; };
         set('coSubtotal', money(sub));
+        var discLine = document.getElementById('coDiscLine');
+        if (discLine) {
+          discLine.hidden = disc <= 0;
+          if (disc > 0) {
+            set('coDiscLabel', 'Discount (' + appliedCoupon.code + ')');
+            set('coDiscAmt', '-' + money(disc));
+          }
+        }
         set('coTax', money(0));
-        set('coTotal', money(sub));
+        set('coTotal', money(total));
         var fx = document.getElementById('coFx');
         if (fx) fx.textContent = 'All prices in USD. Your card is charged in USD via Stripe.';
-        return sub;
+        return total;
       }
       function render() { renderItems(); renderTotals(); updateResell(); }
 
@@ -1576,15 +1596,56 @@
       var coSigninBtn = document.getElementById('coSigninBtn');
       if (coSigninBtn) coSigninBtn.addEventListener('click', function () { location.href = 'signin.html'; });
 
+      var couponInput = document.getElementById('coCouponInput'), couponApplyBtn = document.getElementById('coCouponApply'), couponMsg = document.getElementById('coCouponMsg');
+      if (couponApplyBtn) couponApplyBtn.addEventListener('click', function () {
+        var code = (couponInput && couponInput.value || '').trim().toUpperCase();
+        if (!code) return;
+        var match = readCoupons().filter(function (c) { return String(c.code || '').toUpperCase() === code; })[0];
+        if (!match || !match.active) {
+          appliedCoupon = null;
+          if (couponMsg) { couponMsg.className = 'co-coupon-msg no'; couponMsg.textContent = 'That code is invalid or no longer active.'; }
+        } else {
+          appliedCoupon = match;
+          if (couponMsg) { couponMsg.className = 'co-coupon-msg ok'; couponMsg.textContent = 'Code "' + match.code + '" applied!'; }
+        }
+        renderTotals();
+      });
+
+      var payMethod = 'stripe';
+      var payMethodsWrap = document.getElementById('coPayMethods');
+      function setPayMethod(key) {
+        var btns = payMethodsWrap ? payMethodsWrap.querySelectorAll('.co-pay-btn') : [];
+        var picked = null;
+        btns.forEach(function (b) {
+          var isMatch = b.getAttribute('data-key') === key;
+          b.classList.toggle('active', isMatch);
+          if (isMatch) picked = b;
+        });
+        var method = picked ? picked.getAttribute('data-method') : 'stripe';
+        payMethod = method;
+        document.querySelectorAll('.co-pay-panel').forEach(function (p) {
+          p.hidden = p.getAttribute('data-method-panel') !== method;
+        });
+        var placeBtnEl = document.getElementById('coPlace');
+        if (placeBtnEl) {
+          if (method === 'stripe') { placeBtnEl.disabled = false; placeBtnEl.textContent = 'Place order'; }
+          else { placeBtnEl.disabled = true; placeBtnEl.textContent = (method === 'crypto' ? 'Crypto' : 'Robux') + ' checkout coming soon'; }
+        }
+      }
+      if (payMethodsWrap) payMethodsWrap.addEventListener('click', function (e) {
+        var btn = e.target.closest('.co-pay-btn'); if (!btn) return;
+        setPayMethod(btn.getAttribute('data-key'));
+      });
+      setPayMethod('card');
+
       var placeBtn = document.getElementById('coPlace'), msg = document.getElementById('coMsg'), agreeErr = document.getElementById('coAgreeErr');
       if (placeBtn) placeBtn.addEventListener('click', function () {
         if (!cart.length) return;
+        if (payMethod !== 'stripe') return;
 
-        if (!loggedIn) {
-          if (msg) { msg.className = 'co-msg err show'; msg.textContent = 'Please sign in to check out.'; }
-          location.href = 'signin.html';
-          return;
-        }
+        // Signing in is optional - a guest can check out fine (create-checkout-session
+        // leaves orders.user_id null for them); this just ties the order to an
+        // account when one exists, for dashboard history and easier redownloads.
 
         var tos = document.getElementById('coTos'), resellWrap = document.getElementById('coResellWrap'), resell = document.getElementById('coResell');
         var ok = true, agreeMsgs = [];
@@ -1676,7 +1737,7 @@
           btn.addEventListener('click', function () {
             var prev = btn.textContent;
             btn.disabled = true; btn.textContent = 'Preparing…';
-            window.coldSupabase.functions.invoke('get-download-url', { body: { slug: it.product_slug } })
+            window.coldSupabase.functions.invoke('get-download-url', { body: { slug: it.product_slug, sessionId: sessionId } })
               .then(function (res) {
                 var data = res && res.data;
                 if (data && data.ok) { window.open(data.url, '_blank', 'noopener'); btn.disabled = false; btn.textContent = prev; }
@@ -1691,22 +1752,21 @@
       function poll(triesLeft) {
         if (!sessionId) { if (subEl) subEl.textContent = 'No order found.'; return; }
         if (!window.coldSupabase) { if (subEl) subEl.textContent = 'Could not connect. Please refresh.'; return; }
-        window.coldSupabase
-          .from('orders')
-          .select('id, status, order_items(product_slug, title, qty, licence)')
-          .eq('stripe_checkout_session_id', sessionId)
-          .maybeSingle()
+        // Looked up by Stripe session id via a service-role function, not a
+        // direct table read - a guest order has no user_id for RLS to match,
+        // so this is the only way (guest or signed-in) to see it right after paying.
+        window.coldSupabase.functions.invoke('get-order-by-session', { body: { sessionId: sessionId } })
           .then(function (res) {
-            var order = res && res.data;
-            if (!order) {
+            var data = res && res.data;
+            if (!data || !data.ok) {
               if (triesLeft > 0) { setTimeout(function () { poll(triesLeft - 1); }, 1500); return; }
               if (subEl) subEl.textContent = "We couldn't find that order.";
               return;
             }
-            if (order.status === 'paid') {
+            if (data.status === 'paid') {
               if (titleEl) titleEl.textContent = 'Payment confirmed!';
               if (subEl) subEl.textContent = 'Your files are ready below.';
-              renderItems(order.order_items || []);
+              renderItems(data.items || []);
             } else if (triesLeft > 0) {
               setTimeout(function () { poll(triesLeft - 1); }, 1500);
             } else if (subEl) {

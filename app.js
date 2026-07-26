@@ -1283,11 +1283,69 @@
     (function () {
       var btn = document.getElementById('accountBtn');
       if (!btn) return;
+
+      function isLoggedIn() { try { return localStorage.getItem('coldd_auth') === 'in'; } catch (e) { return false; } }
+
+      var menu = null, overlay = null;
+
+      function buildMenu() {
+        menu = document.createElement('div');
+        menu.className = 'account-menu';
+        menu.hidden = true;
+        var p = window.coldAuth && window.coldAuth.getProfile ? window.coldAuth.getProfile() : null;
+        var initial = (p && p.name) ? p.name.trim().charAt(0).toUpperCase() : '?';
+        var avatarHtml = p && p.avatar
+          ? '<span class="account-menu-av" style="background-image:url(' + p.avatar + ')"></span>'
+          : '<span class="account-menu-av">' + initial + '</span>';
+        menu.innerHTML =
+          '<a href="dashboard.html" class="account-menu-item">' + avatarHtml + '<span>Your Account</span></a>' +
+          '<button type="button" class="account-menu-item account-menu-signout" id="menuSignout">' +
+          '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/></svg>' +
+          '<span>Sign out</span></button>';
+        btn.parentNode.style.position = 'relative';
+        btn.parentNode.appendChild(menu);
+        menu.querySelector('#menuSignout').addEventListener('click', function () {
+          closeMenu();
+          openConfirm();
+        });
+      }
+
+      function toggleMenu() {
+        if (!menu) buildMenu();
+        menu.hidden = !menu.hidden;
+      }
+      function closeMenu() { if (menu) menu.hidden = true; }
+
+      function buildConfirm() {
+        overlay = document.createElement('div');
+        overlay.className = 'confirm-overlay';
+        overlay.hidden = true;
+        overlay.innerHTML =
+          '<div class="confirm-modal"><p>Sign out of coldd?</p><div class="confirm-actions">' +
+          '<button class="btn" type="button" id="navSignoutCancel">Cancel</button>' +
+          '<button class="btn btn-primary" type="button" id="navSignoutConfirm">Sign out</button>' +
+          '</div></div>';
+        document.body.appendChild(overlay);
+        overlay.addEventListener('click', function (e) { if (e.target === overlay) overlay.hidden = true; });
+        overlay.querySelector('#navSignoutCancel').addEventListener('click', function () { overlay.hidden = true; });
+        overlay.querySelector('#navSignoutConfirm').addEventListener('click', function () {
+          overlay.hidden = true;
+          try { localStorage.setItem('coldd_auth', 'out'); } catch (e) {}
+          if (window.coldAuth) window.coldAuth.signOut();
+          location.href = 'index.html';
+        });
+      }
+      function openConfirm() { if (!overlay) buildConfirm(); overlay.hidden = false; }
+
       btn.addEventListener('click', function (e) {
         e.preventDefault();
-        if (window.__isLoggedIn && window.__isLoggedIn()) { if (window.__goDashboard) window.__goDashboard(); }
+        if (isLoggedIn()) toggleMenu();
         else location.href = 'signin.html';
       });
+      document.addEventListener('click', function (e) {
+        if (menu && !menu.hidden && !e.target.closest('.account-menu') && e.target !== btn && !e.target.closest('#accountBtn')) closeMenu();
+      });
+      document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeMenu(); });
     })();
 
     (function () {
@@ -1501,7 +1559,14 @@
       }
 
       var so = document.getElementById('dashSignout');
-      if (so) so.addEventListener('click', function () {
+      var soOverlay = document.getElementById('signoutOverlay');
+      var soCancel = document.getElementById('signoutCancel');
+      var soConfirm = document.getElementById('signoutConfirm');
+      if (so && soOverlay) so.addEventListener('click', function () { soOverlay.hidden = false; });
+      if (soCancel) soCancel.addEventListener('click', function () { soOverlay.hidden = true; });
+      if (soOverlay) soOverlay.addEventListener('click', function (e) { if (e.target === soOverlay) soOverlay.hidden = true; });
+      if (soConfirm) soConfirm.addEventListener('click', function () {
+        soOverlay.hidden = true;
         setState(false);
         if (window.coldAuth) window.coldAuth.signOut();
         if (window.__go) window.__go('home'); else location.href = 'index.html';

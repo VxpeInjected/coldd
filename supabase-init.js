@@ -1,6 +1,6 @@
 (function () {
-  var SUPABASE_URL = 'https://auypmvrzvmvoulobvkus.supabase.co';
-  var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF1eXBtdnJ6dm12b3Vsb2J2a3VzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ5MjU3NjcsImV4cCI6MjEwMDUwMTc2N30.20Cl68wK2uOGgzd3onzqvVR_GDYLCSwgI8oDarNzRkw';
+  var SUPABASE_URL = 'https://ekinmytmudjwfaqaqswp.supabase.co';
+  var SUPABASE_ANON_KEY = 'sb_publishable_q5JwjFnMT_0Uhu5rAlAkQA_DEGnhwV7';
   // Set this to your Coldd Development Discord server's guild ID to enable
   // per-member role/nickname lookups via the guilds.members.read scope.
   // Leave empty to skip that lookup (guild LIST still works either way).
@@ -48,12 +48,18 @@
     var parts = name.trim().split(/\s+/);
     return (parts[0][0] || '').toUpperCase();
   }
+  function capitalizeEmailPrefix(email) {
+    if (!email) return '';
+    var prefix = email.split('@')[0];
+    return prefix.charAt(0).toUpperCase() + prefix.slice(1);
+  }
 
   function applyProfile() {
     var p = getProfile();
     if (!p) return;
+    var displayName = (p.provider === 'email' ? capitalizeEmailPrefix(p.email) : p.name) || p.name;
 
-    document.querySelectorAll('#dashName, #coUserName').forEach(function (el) { el.textContent = p.name; });
+    document.querySelectorAll('#dashName, #coUserName').forEach(function (el) { el.textContent = displayName; });
     document.querySelectorAll('#dashEmail, #coUserEmail').forEach(function (el) { el.textContent = p.email || ''; });
 
     document.querySelectorAll('#dashAvatar, #coAvatar').forEach(function (el) {
@@ -63,21 +69,21 @@
         el.style.backgroundPosition = 'center';
         el.textContent = '';
       } else {
-        el.textContent = initials(p.name);
+        el.textContent = initials(displayName);
       }
     });
 
     var welcome = document.getElementById('dashWelcomeName');
-    if (welcome) welcome.textContent = (p.name || '').split(' ')[0] || p.name;
+    if (welcome) welcome.textContent = (displayName || '').split(' ')[0] || displayName;
 
     var acName = document.getElementById('ac-name');
-    if (acName) acName.value = p.name || '';
+    if (acName) acName.value = displayName || '';
     var acEmail = document.getElementById('ac-email');
     if (acEmail) acEmail.value = p.email || '';
 
     var refLink = document.getElementById('refLink');
-    if (refLink && p.name) {
-      var slug = p.name.toLowerCase().replace(/[^a-z0-9]+/g, '') || 'user';
+    if (refLink && displayName) {
+      var slug = displayName.toLowerCase().replace(/[^a-z0-9]+/g, '') || 'user';
       refLink.value = 'https://coldd.gg/r/' + slug;
     }
   }
@@ -150,7 +156,16 @@
       });
     },
     sendPasswordReset: function (email) {
-      return client.auth.resetPasswordForEmail(email, { redirectTo: location.origin + '/coldd/reset.html' });
+      return client.auth.resetPasswordForEmail(email);
+    },
+    verifyRecoveryOtp: function (email, code, newPassword) {
+      return client.auth.verifyOtp({ email: email, token: code, type: 'recovery' }).then(function (res) {
+        if (res.error) return res;
+        return client.auth.updateUser({ password: newPassword }).then(function (upRes) {
+          if (!upRes.error && res.data && res.data.user) upsertBasicProfile(res.data.user);
+          return upRes;
+        });
+      });
     },
     updatePassword: function (password) {
       return client.auth.updateUser({ password: password });

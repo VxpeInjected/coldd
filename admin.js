@@ -3,19 +3,12 @@
 
   /* ================================================================
      ACCESS GATE
-     TEMP: dashboard is open to anyone while Discord login is built.
-     Flip ADMIN_TESTING_OPEN to false once Discord OAuth is wired up —
-     access will then be restricted to Discord user IDs in ADMIN_WHITELIST
-     (see the Staff panel, which manages this same list).
+     Restricted to the Discord IDs in supabase-init.js's ADMIN_WHITELIST
+     (window.coldAuth.isAdminWhitelisted) - single source of truth shared
+     with the admin-panel link on dashboard.html.
      ================================================================ */
-  var ADMIN_TESTING_OPEN = true;
-  var ADMIN_WHITELIST = []; // future: approved Discord user IDs
-
-  function currentDiscordId() {
-    try { return localStorage.getItem('coldd_discord_id') || null; } catch (_) { return null; }
-  }
   function isAllowed() {
-    return ADMIN_TESTING_OPEN || ADMIN_WHITELIST.indexOf(currentDiscordId()) >= 0;
+    return !!(window.coldAuth && window.coldAuth.isAdminWhitelisted());
   }
 
   var gate = document.getElementById('admGate');
@@ -466,8 +459,7 @@
     var recent = ORDERS.slice().sort(function (a, b) { return new Date(b.date) - new Date(a.date); }).slice(0, 6);
     $('admHomeRecent').innerHTML = recent.map(orderRowHTML).join('') || '<p class="adm-empty">No orders yet.</p>';
 
-    var mode = ADMIN_TESTING_OPEN ? '<span class="dt-badge warn">Open testing mode — anyone can view this dashboard</span>' : '<span class="dt-badge ok">Whitelist enforced</span>';
-    var banner = $('admModeBanner'); if (banner) banner.innerHTML = mode;
+    var banner = $('admModeBanner'); if (banner) banner.innerHTML = '<span class="dt-badge ok">Whitelist enforced</span>';
   }
   function orderRowHTML(o) {
     return '<div class="dash-row"><span class="dr-thumb" style="background-image:url(\'' + o.image + '\')"></span>' +
@@ -1201,9 +1193,7 @@
         '</select></td>' +
         '<td class="adm-row-actions">' + (can('owner') && STAFF.length > 1 ? '<button class="btn btn-ghost adm-btn-sm adm-staff-remove" type="button">Remove</button>' : '') + '</td></tr>';
     }).join('');
-    $('admWhitelistNote').textContent = ADMIN_TESTING_OPEN
-      ? 'Open testing mode is ON — everyone can reach this dashboard regardless of the list below. Discord IDs listed here are only staged for launch.'
-      : 'Whitelist enforced — only the Discord IDs listed here can open this dashboard.';
+    $('admWhitelistNote').textContent = 'Whitelist enforced — only the Discord IDs set in supabase-init.js\'s ADMIN_WHITELIST can open this dashboard. This staff list is separate role-management data and isn\'t the enforcement source.';
   }
   var staffBody = $('admStaffBody');
   if (staffBody) staffBody.addEventListener('change', function (e) {

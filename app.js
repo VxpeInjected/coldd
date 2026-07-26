@@ -1317,6 +1317,10 @@
 
       var dash = document.querySelector('.dash');
       if (!dash) return;
+
+      var adminLink = document.getElementById('dashAdminLink');
+      if (adminLink && window.coldAuth && window.coldAuth.isAdminWhitelisted()) adminLink.hidden = false;
+
       var panels = dash.querySelectorAll('.dash-panel');
       var navlinks = dash.querySelectorAll('.dash-nav a, [data-panel]');
       function showPanel(name) {

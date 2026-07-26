@@ -8,12 +8,37 @@
   var PROFILE_KEY = 'coldd_profile';
   var AUTH_KEY = 'coldd_auth';
 
+  // Discord user IDs allowed into admin.html and shown the admin-panel link
+  // on the dashboard. This is a client-side gate only - it hides the admin
+  // UI from everyone else, but doesn't stop a determined user from reading
+  // the underlying (still-mock) data via devtools. Real enforcement needs
+  // server-side RLS keyed off profiles.is_admin once the backend is live.
+  var ADMIN_WHITELIST = ['1327350011054526505', '1253736765986967622'];
+
   if (!window.supabase || !window.supabase.createClient) {
     console.error('[coldd] Supabase SDK failed to load.');
     return;
   }
   var client = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   window.coldSupabase = client;
+
+  // Reads the Discord ID out of the SDK's own persisted session (no network
+  // call - same localStorage key window.coldSupabase.auth.getSession() reads
+  // from), mirroring the identity_data extraction callback.html does right
+  // after OAuth completes.
+  function currentDiscordId() {
+    try {
+      var raw = localStorage.getItem('sb-auypmvrzvmvoulobvkus-auth-token');
+      var parsed = raw && JSON.parse(raw);
+      if (!parsed || !parsed.user) return null;
+      if (parsed.expires_at && parsed.expires_at * 1000 < Date.now()) return null;
+      var identities = parsed.user.identities || [];
+      var discordIdentity = identities.filter(function (i) { return i.provider === 'discord'; })[0];
+      var data = (discordIdentity && discordIdentity.identity_data) || {};
+      return data.provider_id || data.sub || (parsed.user.user_metadata && parsed.user.user_metadata.provider_id) || null;
+    } catch (e) { return null; }
+  }
+  function isAdminWhitelisted() { return ADMIN_WHITELIST.indexOf(currentDiscordId()) >= 0; }
 
   function saveProfile(p) { try { localStorage.setItem(PROFILE_KEY, JSON.stringify(p)); } catch (e) {} }
   function getProfile() { try { return JSON.parse(localStorage.getItem(PROFILE_KEY) || 'null'); } catch (e) { return null; } }
@@ -76,6 +101,8 @@
     clearProfile: clearProfile,
     applyProfile: applyProfile,
     targetGuildId: TARGET_GUILD_ID,
+    currentDiscordId: currentDiscordId,
+    isAdminWhitelisted: isAdminWhitelisted,
     signInDiscord: function () {
       var redirectTo = location.origin + '/coldd/callback.html';
       client.auth.signInWithOAuth({

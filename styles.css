@@ -1133,6 +1133,11 @@ body.auth-page { min-height: 100vh; }
 .dash-signout { display: flex; align-items: center; gap: 9px; margin-top: 10px; padding: 10px 12px; border-radius: 11px;
   background: transparent; border: 1px solid var(--hairline); color: var(--fg-2); font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer; transition: color .2s, background .2s, border-color .2s; }
 .dash-signout:hover { color: var(--fg); background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.18); }
+.dash-admin-link { display: flex; align-items: center; gap: 9px; margin-top: 14px; padding: 10px 12px; border-radius: 11px;
+  background: rgba(255,77,68,0.1); border: 1px solid rgba(255,77,68,0.3); color: var(--accent); text-decoration: none;
+  font-size: 14px; font-weight: 600; transition: color .2s, background .2s, border-color .2s; }
+.dash-admin-link:hover { color: #fff; background: rgba(255,77,68,0.18); border-color: rgba(255,77,68,0.45); }
+.dash-admin-link[hidden] { display: none; }
 
 .dash-main { min-width: 0; }
 .dash-head { margin-bottom: 22px; }

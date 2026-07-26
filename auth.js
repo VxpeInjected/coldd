@@ -33,13 +33,17 @@
   }
 
   document.querySelectorAll('.auth-pw-toggle').forEach(function (btn) {
+    var off = btn.querySelector('.eye-off'), on = btn.querySelector('.eye-on');
+    if (off && on) { off.style.display = ''; on.style.display = 'none'; }
     btn.addEventListener('click', function () {
       var input = btn.parentNode.querySelector('input'); if (!input) return;
       var show = input.type === 'password';
       input.type = show ? 'text' : 'password';
       btn.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
-      var off = btn.querySelector('.eye-off'), on = btn.querySelector('.eye-on');
-      if (off && on) { off.hidden = show; on.hidden = !show; }
+      if (off && on) {
+        off.style.display = show ? 'none' : '';
+        on.style.display = show ? '' : 'none';
+      }
     });
   });
 

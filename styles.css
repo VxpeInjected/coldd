@@ -1077,6 +1077,7 @@ body.auth-page { min-height: 100vh; }
 .auth-divider { display: flex; align-items: center; gap: 14px; margin: 22px 0; color: var(--fg-3); font-size: 12.5px; white-space: nowrap; }
 .auth-divider::before, .auth-divider::after { content: ""; flex: 1; height: 1px; background: var(--hairline); }
 .auth-form { display: flex; flex-direction: column; gap: 15px; }
+.auth-form[hidden] { display: none !important; }
 .auth-field { display: flex; flex-direction: column; gap: 7px; }
 .auth-field > label { font-size: 13px; font-weight: 600; color: var(--fg-2); }
 .auth-input-wrap { position: relative; }
@@ -1874,11 +1875,13 @@ a.adm-sub[href] { color: var(--fg-1); cursor: pointer; text-decoration: underlin
 .auth-submit .btn-spinner[hidden] { display: none; }
 .auth-submit.is-loading { opacity: 0.55; cursor: default; }
 .auth-submit.is-loading .btn-label { visibility: hidden; }
-.auth-submit.is-loading .btn-spinner { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); }
+.auth-submit.is-loading .btn-spinner { position: absolute; top: 50%; left: 50%; margin-top: -8px; margin-left: -8px; }
 @keyframes authbtnspin { to { transform: rotate(360deg); } }
 .auth-back { background: none; border: none; color: var(--fg-3); font-size: 13px; cursor: pointer; padding: 0; margin-top: 10px; text-align: left; }
 .auth-back:hover { color: var(--fg-2); }
-.auth-resend[disabled] { opacity: 0.5; cursor: default; }
+.auth-resend { background: transparent; border: 1px solid var(--hairline); color: var(--fg-2); }
+.auth-resend[disabled] { opacity: 0.45; cursor: default; border-color: var(--hairline); color: var(--fg-3); }
+.auth-resend:not([disabled]):hover { border-color: rgba(255,255,255,0.3); color: var(--fg); }
 
 /* auth split-screen full page layout */
 body.auth-page { background: #050505; }

@@ -178,30 +178,7 @@
     return out;
   });
 
-  var REVIEWS = seedIfEmpty('coldd_admin_reviews_v1', function () {
-    var RTEXT = ['works great, exactly what i needed for my game', 'clean code and easy to set up, would recommend', 'in studio its a little laggy but overall solid', 'good value and support was really helpful', 'took a bit to figure out setup but works well', 'amazing quality, already planning to buy more', 'does exactly what it says, no complaints', 'better than expected for the price', 'the file was broken on first download, had to redownload', 'kind of overpriced for what it is honestly'];
-    var out = [], id = 1;
-    CATALOG.slice(0, 22).forEach(function (p) {
-      var n = (hsh(p.id + 'rv') % 3) + 1;
-      for (var i = 0; i < n; i++) {
-        var s = p.id + 'rv' + i;
-        var h = hsh(s);
-        var stars = 2 + (h % 4);
-        var statusRoll = h % 100;
-        out.push({
-          id: 'rv' + (id++),
-          productId: p.id,
-          productTitle: p.title,
-          user: pick(USER_NAMES, s),
-          stars: stars,
-          text: RTEXT[(h >> 3) % RTEXT.length],
-          date: daysAgo(h % 90).toISOString(),
-          status: statusRoll < 10 ? 'pending' : (statusRoll < 15 ? 'hidden' : 'approved')
-        });
-      }
-    });
-    return out;
-  });
+  var REVIEWS = seedIfEmpty('coldd_admin_reviews_v1', function () { return (window.__REVIEWS || []).slice(); });
 
   var TRAFFIC = seedIfEmpty('coldd_admin_traffic_v1', function () {
     var out = [];
@@ -1279,9 +1256,16 @@
         '<div class="adm-review-head"><strong>' + esc(r.user) + '</strong><span class="adm-sub">on ' + esc(r.productTitle) + '</span><span class="adm-sub">' + fmtDate(new Date(r.date)) + '</span>' + statusBadge(r.status === 'approved' ? 'completed' : (r.status === 'hidden' ? 'refunded' : 'pending')) + '</div>' +
         '<div class="pd-rev-stars">' + stars + '</div>' +
         '<p class="adm-review-text">' + esc(r.text) + '</p>' +
+        (r.reply ? '<div class="adm-review-reply"><strong>Your reply</strong><p>' + esc(r.reply.text) + '</p></div>' : '') +
+        '<div class="adm-review-reply-form" hidden>' +
+          '<textarea class="adm-input adm-textarea adm-rev-reply-input" rows="2" placeholder="Write a public reply to this review…">' + esc(r.reply ? r.reply.text : '') + '</textarea>' +
+          '<button type="button" class="btn btn-primary adm-btn-sm adm-rev-reply-save">Save reply</button>' +
+        '</div>' +
         '<div class="adm-row-actions">' +
           (r.status !== 'approved' ? '<button class="btn btn-ghost adm-btn-sm adm-rev-approve" type="button">Approve</button>' : '') +
           (r.status !== 'hidden' ? '<button class="btn btn-ghost adm-btn-sm adm-rev-hide" type="button">Hide</button>' : '') +
+          '<button class="btn btn-ghost adm-btn-sm adm-rev-reply-toggle" type="button">' + (r.reply ? 'Edit reply' : 'Reply') + '</button>' +
+          '<button class="btn btn-ghost adm-btn-sm adm-rev-goto" type="button">Go to product</button>' +
         '</div></div>';
     }).join('') || '<p class="adm-empty">Nothing here.</p>';
   }
@@ -1290,10 +1274,24 @@
     var card = e.target.closest('.adm-review'); if (!card) return;
     var id = card.getAttribute('data-id');
     var r = REVIEWS.filter(function (x) { return x.id === id; })[0]; if (!r) return;
-    if (e.target.classList.contains('adm-rev-approve')) { r.status = 'approved'; logAudit('Approved review by ' + r.user + ' on "' + r.productTitle + '"'); }
-    else if (e.target.classList.contains('adm-rev-hide')) { r.status = 'hidden'; logAudit('Hid review by ' + r.user + ' on "' + r.productTitle + '"'); }
-    else return;
-    saveReviews(); renderReviews();
+    if (e.target.classList.contains('adm-rev-approve')) {
+      r.status = 'approved'; logAudit('Approved review by ' + r.user + ' on "' + r.productTitle + '"');
+      saveReviews(); renderReviews();
+    } else if (e.target.classList.contains('adm-rev-hide')) {
+      r.status = 'hidden'; logAudit('Hid review by ' + r.user + ' on "' + r.productTitle + '"');
+      saveReviews(); renderReviews();
+    } else if (e.target.classList.contains('adm-rev-reply-toggle')) {
+      var form = card.querySelector('.adm-review-reply-form');
+      form.hidden = !form.hidden;
+      if (!form.hidden) form.querySelector('textarea').focus();
+    } else if (e.target.classList.contains('adm-rev-reply-save')) {
+      var text = card.querySelector('.adm-rev-reply-input').value.trim();
+      r.reply = text ? { text: text, date: new Date().toISOString() } : null;
+      logAudit((text ? 'Replied to' : 'Removed reply on') + ' review by ' + r.user + ' on "' + r.productTitle + '"');
+      saveReviews(); renderReviews();
+    } else if (e.target.classList.contains('adm-rev-goto')) {
+      openProductEdit(r.productId);
+    }
   });
   /* ================================================================
      USERS PANEL (+ manual product grants)

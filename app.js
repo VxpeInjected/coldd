@@ -1011,28 +1011,16 @@
         function lsSet(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (_) {} }
         var WISH = 'coldd_wish_v1', OWN = 'coldd_owned_v1';
 
-        var NAMES = ['deonte123', 'mrbuilds', 'vortex_dev', 'skylar', 'notacow', 'jaydengg', 'rblxpro', 'emberkid', 'q_zen', 'frostbyte', 'halcyon', 'devkai'];
-        var RTEXT = ['works great, exactly what i needed for my game', 'clean code and easy to set up, would recommend to anyone', 'in roblox studio its a little laggy but overall a solid pack', 'good value for the price and the support was really helpful', 'took me a bit to figure out the setup but works well now', 'amazing quality, already planning to buy more', 'does exactly what it says, no complaints at all', 'honestly better than i expected for the price'];
-        var ORIGINS = ['BuiltByBit', '', '', 'Discord', '', ''];
         var UDATES = ['Jun 6, 2026', 'Jun 1, 2026', 'May 20, 2026', 'Apr 23, 2026', 'Mar 14, 2026', 'Feb 2, 2026'];
         var UNOTES = ['Fixed a bug where parts floated after respawning.', 'Added new configuration options and cleaned up the code.', 'Updated the setup instructions and documentation.', 'Improved performance and general optimizations.', 'Fixed a rare edge case that could error on load.'];
         var FEATURES = ['Fully optimized and production ready', 'Clean, well organized and easy to edit files', 'Simple drag and drop setup', 'Free updates and lifetime support included', 'Works in unlimited games and projects'];
 
+        function fmtRevDate(iso) {
+          try { return new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }); }
+          catch (e) { return iso; }
+        }
         function reviewsFor(p) {
-          if (!p.reviews) return [];
-          var n = (hsh(p.id + 'r') % 3) + 1, out = [], i;
-          for (i = 0; i < n; i++) {
-            var h = hsh(p.id + 'r' + i);
-            out.push({
-              name: NAMES[(h + i * 5) % NAMES.length],
-              stars: 3 + (h % 3),
-              text: RTEXT[((h >> 3) + i * 3) % RTEXT.length],
-              date: UDATES[((h >> 5) + i) % UDATES.length],
-              version: 'v1.' + (h % 4),
-              origin: ORIGINS[((h >> 7) + i) % ORIGINS.length]
-            });
-          }
-          return out;
+          return window.__reviews ? window.__reviews.productReviews(p.id) : [];
         }
         function updatesFor(p) {
           var n = hsh(p.id + 'u') % 3, out = [], i;
@@ -1219,12 +1207,11 @@
           if (pdRevCount) pdRevCount.textContent = '(' + revs.length + ')';
           if (pdPaneReviews) {
             pdPaneReviews.innerHTML = revs.length ? revs.map(function (r) {
-              var sub = r.origin ? '<div class="pd-rev-origin">Originally reviewed on ' + esc(r.origin) + '</div>' : '';
-              return '<div class="pd-rev"><div class="pd-rev-head"><span class="pd-rev-name">' + esc(r.name) + '</span>' +
+              var reply = r.reply ? '<div class="pd-rev-reply"><div class="pd-rev-reply-head">coldd team replied</div><p>' + esc(r.reply.text) + '</p></div>' : '';
+              return '<div class="pd-rev"><div class="pd-rev-head"><span class="pd-rev-name">' + esc(r.user) + '</span>' +
                 '<span class="pd-rev-dot">·</span><span class="pd-rev-stars">' + starRow(r.stars) + '</span>' +
-                '<span class="pd-rev-dot">·</span><span class="pd-rev-meta">' + esc(r.date) + '</span>' +
-                '<span class="pd-rev-dot">·</span><span class="pd-rev-meta">Version: ' + esc(r.version) + '</span></div>' +
-                '<p class="pd-rev-body">' + esc(r.text) + '</p>' + sub + '</div>';
+                '<span class="pd-rev-dot">·</span><span class="pd-rev-meta">' + esc(fmtRevDate(r.date)) + '</span></div>' +
+                '<p class="pd-rev-body">' + esc(r.text) + '</p>' + reply + '</div>';
             }).join('') : '<p class="pd-empty">No reviews yet. Be the first to review this product.</p>';
           }
 

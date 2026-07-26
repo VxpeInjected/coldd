@@ -1268,6 +1268,7 @@ button.dt-badge:disabled { cursor: default; opacity: 0.6; }
 
 .checkout-page { padding-top: 108px; padding-bottom: 90px; }
 .checkout { display: grid; grid-template-columns: 1fr 388px; gap: 22px; align-items: start; }
+.co-main { min-width: 0; }
 .co-back { display: inline-block; color: var(--fg-2); text-decoration: none; font-size: 13.5px; font-weight: 600; margin-bottom: 12px; }
 .co-back:hover { color: var(--fg); }
 .co-main > h1 { font-size: clamp(26px, 3vw, 32px); letter-spacing: -0.03em; margin-bottom: 18px; }
@@ -1297,10 +1298,10 @@ button.dt-badge:disabled { cursor: default; opacity: 0.6; }
 .co-msg.show { display: block; }
 .co-msg.err { background: rgba(255,77,68,0.1); border-color: rgba(255,77,68,0.3); }
 
-.co-pay-methods { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
-.co-pay-btn { display: flex; align-items: center; gap: 8px; padding: 10px 15px; border-radius: 11px;
+.co-pay-methods { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+.co-pay-btn { display: flex; align-items: center; justify-content: center; gap: 9px; padding: 15px 18px; border-radius: 13px;
   background: rgba(0,0,0,0.25); border: 1px solid var(--hairline); color: var(--fg-2); font-family: inherit;
-  font-size: 13.5px; font-weight: 600; cursor: pointer; transition: border-color .18s var(--ease), background .18s var(--ease), color .18s var(--ease); }
+  font-size: 15px; font-weight: 700; cursor: pointer; transition: border-color .18s var(--ease), background .18s var(--ease), color .18s var(--ease); }
 .co-pay-btn svg { flex: 0 0 auto; }
 .co-pay-btn:hover { border-color: rgba(255,255,255,0.22); color: var(--fg); }
 .co-pay-btn.active { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
@@ -1313,17 +1314,17 @@ button.dt-badge:disabled { cursor: default; opacity: 0.6; }
 .co-pay-btn--robux { background: rgba(52,224,138,0.1); border-color: rgba(52,224,138,0.3); color: var(--price); }
 .co-pay-btn--robux:hover, .co-pay-btn--robux.active { background: rgba(52,224,138,0.18); color: var(--price); }
 .co-pay-panel[hidden] { display: none; }
-.co-pay-carousel { overflow: hidden; margin-bottom: 10px;
-  -webkit-mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
-  mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent); }
+.co-pay-carousel-wrap { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+.co-pay-carousel-wrap[hidden] { display: none; }
+.co-pay-accepts { flex: 0 0 auto; font-size: 12px; font-weight: 700; color: var(--fg-3); text-transform: uppercase; letter-spacing: .03em; }
+.co-pay-carousel { flex: 1; min-width: 0; overflow: hidden;
+  -webkit-mask-image: linear-gradient(90deg, #000, #000 85%, transparent);
+  mask-image: linear-gradient(90deg, #000, #000 85%, transparent); }
 .co-pay-carousel-track { display: flex; gap: 8px; width: max-content; animation: coPayScroll 26s linear infinite; }
 .co-pay-carousel:hover .co-pay-carousel-track { animation-play-state: paused; }
 .co-pay-chip { flex: 0 0 auto; font-size: 12px; font-weight: 600; color: var(--fg-3); padding: 7px 13px;
   border-radius: 999px; background: rgba(255,255,255,0.04); border: 1px solid var(--hairline); white-space: nowrap; }
 @keyframes coPayScroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }
-.co-pay-more { font-size: 12.5px; margin: 0 0 16px; }
-.co-pay-more a { color: var(--fg-3); text-decoration: none; }
-.co-pay-more a:hover { color: var(--accent); }
 .co-pay-soon { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #ffcf5c;
   background: rgba(255,193,7,0.08); border: 1px solid rgba(255,193,7,0.25); border-radius: 10px; padding: 12px 14px; }
 .co-pay-robux-ic { font-size: 12px; font-weight: 800; }

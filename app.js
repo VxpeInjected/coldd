@@ -1631,6 +1631,8 @@
           if (method === 'stripe') { placeBtnEl.disabled = false; placeBtnEl.textContent = 'Place order'; }
           else { placeBtnEl.disabled = true; placeBtnEl.textContent = (method === 'crypto' ? 'Crypto' : 'Robux') + ' checkout coming soon'; }
         }
+        var carouselWrap = document.getElementById('coPayCarouselWrap');
+        if (carouselWrap) carouselWrap.hidden = key !== 'stripe';
       }
       if (payMethodsWrap) payMethodsWrap.addEventListener('click', function (e) {
         var btn = e.target.closest('.co-pay-btn'); if (!btn) return;

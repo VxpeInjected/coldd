@@ -150,7 +150,16 @@
       });
     },
     sendPasswordReset: function (email) {
-      return client.auth.resetPasswordForEmail(email, { redirectTo: location.origin + '/coldd/reset.html' });
+      return client.auth.resetPasswordForEmail(email);
+    },
+    verifyRecoveryOtp: function (email, code, newPassword) {
+      return client.auth.verifyOtp({ email: email, token: code, type: 'recovery' }).then(function (res) {
+        if (res.error) return res;
+        return client.auth.updateUser({ password: newPassword }).then(function (upRes) {
+          if (!upRes.error && res.data && res.data.user) upsertBasicProfile(res.data.user);
+          return upRes;
+        });
+      });
     },
     updatePassword: function (password) {
       return client.auth.updateUser({ password: password });

@@ -1502,6 +1502,7 @@
 
       var so = document.getElementById('dashSignout');
       if (so) so.addEventListener('click', function () {
+        if (!window.confirm('Sign out of coldd?')) return;
         setState(false);
         if (window.coldAuth) window.coldAuth.signOut();
         if (window.__go) window.__go('home'); else location.href = 'index.html';

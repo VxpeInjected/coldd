@@ -36,14 +36,42 @@
     <div class="auth-split-left">
     <div class="auth-card">
       <h1>Reset your password</h1>
-      <p class="auth-sub">Enter your email and we'll send a link to reset it.</p>
+      <p class="auth-sub">Enter your email and we'll send a code to reset it.</p>
       <form class="auth-form" id="form-forgot" novalidate>
         <div class="auth-field" data-for="email">
           <label for="fo-email">Email</label>
           <input id="fo-email" name="email" type="email" autocomplete="email" placeholder="you@example.com" />
           <span class="auth-err"></span>
         </div>
-        <button class="btn btn-primary auth-submit" type="submit">Send reset link</button>
+        <button class="btn btn-primary auth-submit" type="submit"><span class="btn-label">Send code</span><span class="btn-spinner" hidden></span></button>
+        <div class="auth-msg"></div>
+      </form>
+      <form class="auth-form" id="form-reset-code" novalidate hidden>
+        <p class="auth-sub" id="resetCodeSub">Enter the code we emailed you, plus your new password.</p>
+        <div class="auth-field" data-for="code">
+          <label for="fo-code">Verification code</label>
+          <input id="fo-code" name="code" type="text" inputmode="text" autocomplete="one-time-code" maxlength="6" placeholder="X7K2NP" style="text-transform:uppercase;letter-spacing:4px;font-weight:700;" />
+          <span class="auth-err"></span>
+        </div>
+        <div class="auth-field" data-for="password">
+          <label for="fo-pass">New password</label>
+          <div class="auth-input-wrap">
+            <input id="fo-pass" name="password" type="password" autocomplete="new-password" placeholder="At least 8 characters" />
+            <button class="auth-pw-toggle" type="button" aria-label="Show password"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
+          </div>
+          <span class="auth-err"></span>
+        </div>
+        <div class="auth-field" data-for="confirm">
+          <label for="fo-conf">Confirm new password</label>
+          <div class="auth-input-wrap">
+            <input id="fo-conf" name="confirm" type="password" autocomplete="new-password" placeholder="••••••••" />
+            <button class="auth-pw-toggle" type="button" aria-label="Show password"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
+          </div>
+          <span class="auth-err"></span>
+        </div>
+        <button class="btn btn-primary auth-submit" type="submit"><span class="btn-label">Set new password</span><span class="btn-spinner" hidden></span></button>
+        <button class="btn auth-resend" type="button" id="btnResendCode" style="margin-top:8px;" disabled>Resend code</button>
+        <button class="auth-back" type="button" id="btnBackToSignup">&larr; Back</button>
         <div class="auth-msg"></div>
       </form>
       <p class="auth-alt"><a href="signin.html">← Back to sign in</a></p>

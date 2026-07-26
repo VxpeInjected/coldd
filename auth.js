@@ -160,9 +160,11 @@
       setLoading(sv, false);
       if (res.error || !res.data || !res.data.ok) {
         var m = (res.data && res.data.error) || 'Incorrect or expired code.';
+        fieldErr(sv, 'code', m);
         flash(sv, m);
         return;
       }
+      fieldErr(sv, 'code', '');
       location.href = 'dashboard.html';
     });
   });
@@ -177,13 +179,80 @@
   });
 
   var fo = document.getElementById('form-forgot');
+  var frc = document.getElementById('form-reset-code');
+  var foResendBtn = document.getElementById('btnResendCode');
+  var foBackBtn = document.getElementById('btnBackToSignup');
+  var pendingResetEmail = '';
+  var foResendTimer = null;
+
+  function startForgotCooldown() {
+    if (!foResendBtn) return;
+    var remaining = RESEND_SECONDS_ALT;
+    foResendBtn.disabled = true;
+    foResendBtn.textContent = 'Resend code (' + remaining + 's)';
+    clearInterval(foResendTimer);
+    foResendTimer = setInterval(function () {
+      remaining -= 1;
+      if (remaining <= 0) {
+        clearInterval(foResendTimer);
+        foResendBtn.disabled = false;
+        foResendBtn.textContent = 'Resend code';
+      } else {
+        foResendBtn.textContent = 'Resend code (' + remaining + 's)';
+      }
+    }, 1000);
+  }
+
   if (fo) fo.addEventListener('submit', function (e) {
     e.preventDefault();
     var email = val(fo, 'email');
     if (!emailOk(email)) { fieldErr(fo, 'email', 'Enter a valid email.'); return; }
     fieldErr(fo, 'email', '');
-    if (window.coldAuth) window.coldAuth.sendPasswordReset(email);
-    flash(fo, 'If an account exists for ' + email + ", we'll email a reset link shortly.");
+    if (!window.coldAuth) return;
+    setLoading(fo, true);
+    window.coldAuth.sendPasswordReset(email).then(function () {
+      setLoading(fo, false);
+      pendingResetEmail = email;
+      fo.hidden = true;
+      if (frc) {
+        frc.hidden = false;
+        var sub = document.getElementById('resetCodeSub');
+        if (sub) sub.textContent = 'Enter the code we emailed to ' + email + ', plus your new password.';
+      }
+      startForgotCooldown();
+    });
+  });
+
+  if (frc) frc.addEventListener('submit', function (e) {
+    e.preventDefault();
+    var ok = true, code = val(frc, 'code').toUpperCase(), pass = val(frc, 'password'), conf = val(frc, 'confirm');
+    if (!code || code.length < 6) { fieldErr(frc, 'code', 'Enter the 6-character code.'); ok = false; } else fieldErr(frc, 'code', '');
+    if (pass.length < 8) { fieldErr(frc, 'password', 'Use at least 8 characters.'); ok = false; } else fieldErr(frc, 'password', '');
+    if (!conf || conf !== pass) { fieldErr(frc, 'confirm', "Passwords don't match."); ok = false; } else fieldErr(frc, 'confirm', '');
+    if (!ok || !window.coldAuth) return;
+
+    setLoading(frc, true);
+    window.coldAuth.verifyRecoveryOtp(pendingResetEmail, code, pass).then(function (res) {
+      setLoading(frc, false);
+      if (res.error) { flash(frc, 'Incorrect or expired code.'); return; }
+      flash(frc, 'Password updated! Redirecting…');
+      setTimeout(function () { location.href = 'dashboard.html'; }, 900);
+    });
+  });
+
+  if (foResendBtn) foResendBtn.addEventListener('click', function () {
+    if (foResendBtn.disabled || !pendingResetEmail) return;
+    foResendBtn.disabled = true;
+    window.coldAuth.sendPasswordReset(pendingResetEmail).then(function (res) {
+      flash(frc, res.error ? "Couldn't resend right now, try again shortly." : 'New code sent to ' + pendingResetEmail + '.');
+      startForgotCooldown();
+    });
+  });
+
+  if (foBackBtn) foBackBtn.addEventListener('click', function () {
+    clearInterval(foResendTimer);
+    if (frc) frc.hidden = true;
+    if (fo) fo.hidden = false;
   });
 
   var rs = document.getElementById('form-reset');

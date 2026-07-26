@@ -1182,6 +1182,7 @@ body.auth-page { min-height: 100vh; }
 .dt-badge.err { color: var(--accent); background: rgba(255,77,68,0.12); border: 1px solid rgba(255,77,68,0.28); }
 
 .dash-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
+.dash-empty-note { color: var(--fg-2); font-size: 14px; grid-column: 1 / -1; }
 .dash-prod { display: flex; gap: 14px; padding: 14px; align-items: center; }
 .dp-thumb { flex: 0 0 84px; width: 84px; height: 64px; border-radius: 10px; background: #0f1014 center / cover no-repeat; }
 .dp-body { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 7px; }

@@ -711,8 +711,13 @@
   }
   function renderFileList(listId, files, removeClass) {
     var list = $(listId); if (!list) return;
-    list.innerHTML = files.map(function (name, i) {
-      return '<div class="adm-file-item"><span>' + esc(name) + '</span><button type="button" class="adm-icon-btn ' + removeClass + '" data-i="' + i + '">' + ADM_ICON_TRASH + '</button></div>';
+    list.innerHTML = files.map(function (f, i) {
+      var name = typeof f === 'string' ? f : (f.name || '');
+      var url = typeof f === 'string' ? null : f.url;
+      var nameHtml = url
+        ? '<a href="' + esc(url) + '" target="_blank" rel="noopener">' + esc(name) + '</a>'
+        : '<span>' + esc(name) + '</span>';
+      return '<div class="adm-file-item">' + nameHtml + '<button type="button" class="adm-icon-btn ' + removeClass + '" data-i="' + i + '">' + ADM_ICON_TRASH + '</button></div>';
     }).join('') || '<p class="adm-empty" style="padding:8px 0;">No files uploaded yet.</p>';
   }
   function renderProofList() { renderFileList('admLegalProofList', editProofFiles, 'adm-proof-remove'); }
@@ -720,7 +725,7 @@
   function renderGalleryList() {
     var list = $('admEditGalleryList'); if (!list) return;
     list.innerHTML = editGallery.map(function (src, i) {
-      return '<div class="adm-gallery-item"><img src="' + esc(src) + '" alt="" /><button type="button" class="adm-gallery-remove" data-i="' + i + '">' + ADM_ICON_TRASH + '</button></div>';
+      return '<div class="adm-gallery-item"><a href="' + esc(src) + '" target="_blank" rel="noopener"><img src="' + esc(src) + '" alt="" /></a><button type="button" class="adm-gallery-remove" data-i="' + i + '">' + ADM_ICON_TRASH + '</button></div>';
     }).join('');
   }
   function updateThumbPreview() {
@@ -774,7 +779,9 @@
     $('admEditTechSize').value = tech.size || '';
     $('admEditTechFileName').value = tech.fileName || '';
     $('admEditFileInput').value = '';
-    $('admEditFileNote').textContent = tech.fileName ? ('Selected: ' + tech.fileName) : 'Currently: shared placeholder file';
+    var fileNote = $('admEditFileNote');
+    fileNote.textContent = tech.fileName ? ('Selected: ' + tech.fileName) : 'Currently: shared placeholder file';
+    fileNote.removeAttribute('href');
     $('admEditTechParts').value = tech.parts || '';
     $('admEditTechMeshParts').value = tech.meshParts || '';
     $('admEditTechUnions').value = tech.unions || '';
@@ -789,8 +796,8 @@
     var legal = p.legal || defaultLegal();
     $('admLegalTos').value = legal.tos || '';
     editContacts = (legal.contacts || []).map(function (c) { return Object.assign({}, c); });
-    editProofFiles = (legal.proofFiles || []).slice();
-    editDevProofFiles = (legal.devProofFiles || []).slice();
+    editProofFiles = (legal.proofFiles || []).map(function (f) { return typeof f === 'string' ? { name: f, url: null } : f; });
+    editDevProofFiles = (legal.devProofFiles || []).map(function (f) { return typeof f === 'string' ? { name: f, url: null } : f; });
     renderContactList(); renderProofList(); renderDevProofList();
     $('admLegalCostAmount').value = legal.licenseCost || 0;
     setCostCurrency(legal.licenseCostCurrency || 'usd');
@@ -822,8 +829,12 @@
     $('admEditTechFormat').value = dot >= 0 ? f.name.slice(dot).toLowerCase() : '';
     $('admEditTechSize').value = formatFileSize(f.size);
     $('admEditTechFileName').value = f.name;
-    $('admEditFileNote').textContent = 'Selected: ' + f.name;
+    var fileNote = $('admEditFileNote');
+    fileNote.textContent = 'Selected: ' + f.name;
+    fileNote.href = URL.createObjectURL(f);
   });
+  var fileNoteLink = $('admEditFileNote');
+  if (fileNoteLink) fileNoteLink.addEventListener('click', function (e) { if (!fileNoteLink.getAttribute('href')) e.preventDefault(); });
 
   wireDropzone($('admEditThumbDrop'), $('admEditThumbInput'), function (files) { addThumbFile(files[0]); });
   var thumbRemoveBtn = $('admEditThumbRemove');
@@ -831,6 +842,12 @@
     e.stopPropagation();
     $('admEditThumbUrl').value = '';
     updateThumbPreview();
+  });
+  var thumbPreviewImg = $('admEditThumbPreview');
+  if (thumbPreviewImg) thumbPreviewImg.addEventListener('click', function (e) {
+    e.stopPropagation();
+    var url = $('admEditThumbUrl').value.trim();
+    if (url) window.open(url, '_blank');
   });
 
   wireDropzone($('admEditGalleryDrop'), $('admEditGalleryInput'), addGalleryFiles);
@@ -880,10 +897,8 @@
     });
   }
 
-  var proofInput = $('admLegalProofInput');
-  if (proofInput) proofInput.addEventListener('change', function () {
-    Array.prototype.forEach.call(proofInput.files, function (f) { editProofFiles.push(f.name); });
-    proofInput.value = '';
+  wireDropzone($('admLegalProofDrop'), $('admLegalProofInput'), function (files) {
+    Array.prototype.forEach.call(files, function (f) { editProofFiles.push({ name: f.name, url: URL.createObjectURL(f) }); });
     renderProofList();
   });
   var proofList = $('admLegalProofList');
@@ -893,10 +908,8 @@
     renderProofList();
   });
 
-  var devProofInput = $('admLegalDevProofInput');
-  if (devProofInput) devProofInput.addEventListener('change', function () {
-    Array.prototype.forEach.call(devProofInput.files, function (f) { editDevProofFiles.push(f.name); });
-    devProofInput.value = '';
+  wireDropzone($('admLegalDevProofDrop'), $('admLegalDevProofInput'), function (files) {
+    Array.prototype.forEach.call(files, function (f) { editDevProofFiles.push({ name: f.name, url: URL.createObjectURL(f) }); });
     renderDevProofList();
   });
   var devProofList = $('admLegalDevProofList');
@@ -928,6 +941,7 @@
     ['admEditTechFormat', 'admEditTechSize', 'admEditTechFileName', 'admEditTechParts', 'admEditTechMeshParts', 'admEditTechUnions', 'admEditTechScripts'].forEach(function (id) { $(id).value = ''; });
     $('admEditFileInput').value = '';
     $('admEditFileNote').textContent = 'Currently: shared placeholder file';
+    $('admEditFileNote').removeAttribute('href');
 
     $('admEditThumbUrl').value = '';
     updateThumbPreview();

@@ -31,5 +31,7 @@ alter table public.product_legal enable row level security;
 
 -- contacts jsonb shape (mirrors admin.js's editContacts):
 --   [{ label, value }]
--- proof_files / dev_proof_files jsonb shape: string[] of file names
--- (real file storage is a later step - see admin-get-upload-url).
+-- proof_files / dev_proof_files jsonb shape (mirrors admin.js's
+-- editProofFiles/editDevProofFiles): [{ name, url }], where url is a real
+-- Storage URL once uploads go through admin-get-upload-url (a client-side
+-- blob: URL in the interim, which won't survive a page reload).

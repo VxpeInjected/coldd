@@ -221,7 +221,7 @@
                     <p><strong>Click to upload</strong> or drag and drop</p>
                     <p class="adm-dropzone-hint">Any file type — this becomes the downloadable product file</p>
                   </div>
-                  <p class="adm-sub" id="admEditFileNote" style="margin-top:8px;">Currently: shared placeholder file</p>
+                  <a class="adm-sub" id="admEditFileNote" target="_blank" rel="noopener" style="margin-top:8px;display:inline-block;">Currently: shared placeholder file</a>
                   <p class="adm-note">File Format and File Size below are read automatically from whatever file you choose here. Actual delivery still uses the shared placeholder until Supabase Storage is connected.</p>
                   <input type="hidden" id="admEditTechFileName" />
                 </div>
@@ -279,16 +279,26 @@
 
                 <div class="adm-field" style="margin-top:20px;">
                   <span>Proof of license</span>
+                  <div class="adm-dropzone adm-dropzone-sm" id="admLegalProofDrop">
+                    <input type="file" id="admLegalProofInput" multiple hidden />
+                    <svg class="adm-dropzone-ic" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M12 4 7 9M12 4l5 5"/><path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
+                    <p><strong>Click to upload</strong> or drag and drop files</p>
+                    <p class="adm-dropzone-hint">Any file type — multiple allowed</p>
+                  </div>
                   <div class="adm-file-list" id="admLegalProofList"></div>
-                  <div class="adm-file-row"><input type="file" id="admLegalProofInput" multiple /></div>
-                  <p class="adm-note">File storage needs Supabase Storage connected — for now this only tracks file names locally.</p>
+                  <p class="adm-note">File storage needs Supabase Storage connected — for now this previews locally and tracks file names.</p>
                 </div>
 
                 <div class="adm-field" style="margin-top:20px;">
                   <span>Proof of development</span>
+                  <div class="adm-dropzone adm-dropzone-sm" id="admLegalDevProofDrop">
+                    <input type="file" id="admLegalDevProofInput" multiple accept="video/*,.mp4,.mov,.webm,.mkv,.avi" hidden />
+                    <svg class="adm-dropzone-ic" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M12 4 7 9M12 4l5 5"/><path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
+                    <p><strong>Click to upload</strong> or drag and drop files</p>
+                    <p class="adm-dropzone-hint">MP4 and other video formats — multiple allowed</p>
+                  </div>
                   <div class="adm-file-list" id="admLegalDevProofList"></div>
-                  <div class="adm-file-row"><input type="file" id="admLegalDevProofInput" multiple accept="video/*,.mp4,.mov,.webm,.mkv,.avi" /></div>
-                  <p class="adm-note">Screen recordings or clips showing the product being built (MP4 and other video formats). Same storage caveat as above — file names only for now.</p>
+                  <p class="adm-note">Screen recordings or clips showing the product being built. Same storage caveat as above — previews locally for now.</p>
                 </div>
 
                 <div class="adm-field" style="margin-top:20px;">

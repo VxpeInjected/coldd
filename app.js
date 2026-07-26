@@ -1294,80 +1294,12 @@
     })();
 
     (function () {
-      var overlay = document.getElementById('authOverlay');
       var btn = document.getElementById('accountBtn');
-      if (!overlay) return;
-      var VIEWS = ['signin', 'signup', 'forgot'];
-      function showView(v) {
-        VIEWS.forEach(function (k) { var el = document.getElementById('av-' + k); if (el) el.hidden = (k !== v); });
-      }
-      function open(v) { showView(v || 'signin'); overlay.hidden = false; document.body.classList.add('no-scroll'); }
-      function close() { overlay.hidden = true; document.body.classList.remove('no-scroll'); }
-      window.__authClose = close;
-      window.__openAuth = open;
-
-      if (btn) btn.addEventListener('click', function (e) {
+      if (!btn) return;
+      btn.addEventListener('click', function (e) {
         e.preventDefault();
         if (window.__isLoggedIn && window.__isLoggedIn()) { if (window.__goDashboard) window.__goDashboard(); }
-        else open('signin');
-      });
-      overlay.addEventListener('click', function (e) {
-        if (e.target === overlay) { close(); return; }
-        if (e.target.closest('.auth-x')) { close(); return; }
-        var sw = e.target.closest('[data-auth-view]');
-        if (sw) { e.preventDefault(); showView(sw.getAttribute('data-auth-view')); }
-      });
-      document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !overlay.hidden) close(); });
-
-      function emailOk(v) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v); }
-      function val(f, n) { var el = f.querySelector('[name="' + n + '"]'); return el ? el.value.trim() : ''; }
-      function fieldErr(f, n, m) {
-        var fl = f.querySelector('.auth-field[data-for="' + n + '"]'); if (!fl) return;
-        fl.classList.toggle('invalid', !!m); var e = fl.querySelector('.auth-err'); if (e) e.textContent = m || '';
-      }
-      function flash(f, t) { var c = f.closest('.auth-card'); if (!c) return; var m = c.querySelector('.auth-msg'); if (m) { m.textContent = t; m.classList.add('show'); } }
-
-      overlay.querySelectorAll('.auth-pw-toggle').forEach(function (b) {
-        b.addEventListener('click', function () {
-          var i = b.parentNode.querySelector('input'); if (!i) return;
-          var s = i.type === 'password'; i.type = s ? 'text' : 'password';
-          b.setAttribute('aria-label', s ? 'Hide password' : 'Show password');
-        });
-      });
-
-      overlay.querySelectorAll('.auth-oauth').forEach(function (b) {
-        b.addEventListener('click', function () {
-          var p = b.getAttribute('data-provider');
-          if (p === 'Discord') {
-            if (window.coldAuth) window.coldAuth.signInDiscord();
-            return;
-          }
-          close(); if (window.__demoLogin) window.__demoLogin();
-        });
-      });
-      var si = document.getElementById('form-signin');
-      if (si) si.addEventListener('submit', function (e) {
-        e.preventDefault(); var ok = true, em = val(si, 'email'), pw = val(si, 'password');
-        if (!emailOk(em)) { fieldErr(si, 'email', 'Enter a valid email.'); ok = false; } else fieldErr(si, 'email', '');
-        if (!pw) { fieldErr(si, 'password', 'Enter your password.'); ok = false; } else fieldErr(si, 'password', '');
-        if (ok) { close(); if (window.__demoLogin) window.__demoLogin(); }
-      });
-      var su = document.getElementById('form-signup');
-      if (su) su.addEventListener('submit', function (e) {
-        e.preventDefault(); var ok = true, em = val(su, 'email'), pw = val(su, 'password'), cf = val(su, 'confirm');
-        var tos = su.querySelector('[name="tos"]');
-        if (!emailOk(em)) { fieldErr(su, 'email', 'Enter a valid email.'); ok = false; } else fieldErr(su, 'email', '');
-        if (pw.length < 8) { fieldErr(su, 'password', 'Use at least 8 characters.'); ok = false; } else fieldErr(su, 'password', '');
-        if (!cf || cf !== pw) { fieldErr(su, 'confirm', "Passwords don't match."); ok = false; } else fieldErr(su, 'confirm', '');
-        var te = su.querySelector('.auth-err[data-for="tos"]');
-        if (tos && !tos.checked) { if (te) te.textContent = 'Please accept the Terms to continue.'; ok = false; } else if (te) te.textContent = '';
-        if (ok) { close(); if (window.__demoLogin) window.__demoLogin(); }
-      });
-      var fo = document.getElementById('form-forgot');
-      if (fo) fo.addEventListener('submit', function (e) {
-        e.preventDefault(); var em = val(fo, 'email');
-        if (!emailOk(em)) { fieldErr(fo, 'email', 'Enter a valid email.'); return; } fieldErr(fo, 'email', '');
-        flash(fo, 'If an account exists for ' + em + ", we'll email a reset link shortly.");
+        else location.href = 'signin.html';
       });
     })();
 
@@ -1651,7 +1583,7 @@
       if (window.coldSupabase) window.coldSupabase.auth.onAuthStateChange(function () { refreshSession(); });
 
       var coSigninBtn = document.getElementById('coSigninBtn');
-      if (coSigninBtn) coSigninBtn.addEventListener('click', function () { if (window.__openAuth) window.__openAuth('signin'); });
+      if (coSigninBtn) coSigninBtn.addEventListener('click', function () { location.href = 'signin.html'; });
 
       var placeBtn = document.getElementById('coPlace'), msg = document.getElementById('coMsg'), agreeErr = document.getElementById('coAgreeErr');
       if (placeBtn) placeBtn.addEventListener('click', function () {
@@ -1659,7 +1591,7 @@
 
         if (!loggedIn) {
           if (msg) { msg.className = 'co-msg err show'; msg.textContent = 'Please sign in to check out.'; }
-          if (window.__openAuth) window.__openAuth('signin');
+          location.href = 'signin.html';
           return;
         }
 

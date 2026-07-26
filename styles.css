@@ -1718,3 +1718,12 @@ body.auth-page { min-height: 100vh; }
 @media (max-width: 640px) {
   .rel-item { grid-template-columns: 1fr; gap: 8px; }
 }
+
+/* auth full-page: submit spinner + verify-step controls */
+.auth-submit { position: relative; display: flex; align-items: center; justify-content: center; gap: 8px; }
+.auth-submit .btn-spinner { width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; display: inline-block; animation: authbtnspin 0.7s linear infinite; }
+.auth-submit .btn-spinner[hidden] { display: none; }
+@keyframes authbtnspin { to { transform: rotate(360deg); } }
+.auth-back { background: none; border: none; color: var(--fg-3); font-size: 13px; cursor: pointer; padding: 0; margin-top: 10px; text-align: left; }
+.auth-back:hover { color: var(--fg-2); }
+.auth-resend[disabled] { opacity: 0.5; cursor: default; }

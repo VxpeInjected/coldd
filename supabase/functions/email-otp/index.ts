@@ -132,14 +132,14 @@ Deno.serve(async (req: Request) => {
       });
       if (upsertErr) return json({ ok: false, error: "Could not create code." }, 500);
 
-      // NOTE: tls:false + port 587 lets denomailer negotiate STARTTLS
-      // automatically. If Migadu rejects this, try port 465 with tls:true
-      // instead (implicit TLS) - see supabase/functions/email-otp/index.ts notes.
+      // Port 465 with implicit TLS is the reliable option for outbound SMTP
+      // from Supabase Edge Functions. Port 587/STARTTLS is known to hang in
+      // this environment and can cause a platform-level 503 timeout.
       const client = new SMTPClient({
         connection: {
           hostname: Deno.env.get("SMTP_HOST")!,
-          port: Number(Deno.env.get("SMTP_PORT") ?? "587"),
-          tls: false,
+          port: Number(Deno.env.get("SMTP_PORT") ?? "465"),
+          tls: true,
           auth: {
             username: Deno.env.get("SMTP_USER")!,
             password: Deno.env.get("SMTP_PASSWORD")!,

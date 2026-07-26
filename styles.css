@@ -1480,6 +1480,14 @@ button.dt-badge:disabled { cursor: default; opacity: 0.6; }
 .adm-select:focus { outline: none; border-color: rgba(255,77,68,0.5); }
 
 .adm-dd { position: relative; width: 100%; }
+.adm-dd-inline { width: auto; flex: 0 0 auto; }
+.adm-dd-inline .adm-dd-btn { min-width: 160px; }
+.adm-dd-inline .adm-dd-val { white-space: nowrap; }
+.adm-dd-inline .adm-dd-menu { left: 0; right: auto; width: max-content; min-width: 100%; max-width: 260px; }
+.adm-dd-inline .adm-dd-opt span:first-child { white-space: nowrap; }
+.adm-staff-role-dd .adm-dd-btn { min-width: 110px; padding: 7px 12px; text-transform: capitalize; }
+.adm-staff-role-dd .adm-dd-opt { text-transform: capitalize; }
+.adm-staff-role-dd .adm-dd-btn:disabled { opacity: 0.5; cursor: default; }
 .adm-dd-btn { display: flex; align-items: center; justify-content: space-between; gap: 9px; width: 100%;
   padding: 9px 12px; border-radius: 9px; background: var(--bg-3); border: 1px solid var(--hairline); color: var(--fg);
   font-family: inherit; font-size: 13.5px; font-weight: 600; cursor: pointer; transition: border-color .15s var(--ease); }

@@ -474,16 +474,15 @@
   /* ================================================================
      TOPBAR
      ================================================================ */
+  var roleDropdown = makeDropdown($('admRoleSelectDD'), {
+    placeholder: 'Select viewer',
+    onChange: function (id) { if (id) setRole(id); }
+  });
   function renderTopbar() {
     var r = currentRole();
-    var sel = $('admRoleSelect');
-    if (sel) {
-      sel.innerHTML = STAFF.map(function (s) { return '<option value="' + s.id + '"' + (s.id === r.id ? ' selected' : '') + '>' + esc(s.name) + ' — ' + esc(s.role) + '</option>'; }).join('');
-    }
+    roleDropdown.setOptions(STAFF.map(function (s) { return { value: s.id, label: s.name + ' — ' + s.role }; }), r.id);
     var av = $('admAvatar'); if (av) av.textContent = r.name.charAt(0).toUpperCase();
   }
-  var roleSelect = $('admRoleSelect');
-  if (roleSelect) roleSelect.addEventListener('change', function () { setRole(roleSelect.value); });
 
   document.querySelectorAll('.adm-range button').forEach(function (b) {
     b.addEventListener('click', function () { setRange(+b.getAttribute('data-range')); });
@@ -664,36 +663,62 @@
   var editDevProofFiles = [];
   var editGallery = [];
 
-  var catDD = $('admEditCatDD');
-  var catDDBtn = catDD ? catDD.querySelector('.adm-dd-btn') : null;
-  var catDDVal = catDD ? catDD.querySelector('.adm-dd-val') : null;
-  var catDDMenu = catDD ? catDD.querySelector('.adm-dd-menu') : null;
-  function closeCatDD() { if (catDD) catDD.classList.remove('open'); if (catDDMenu) catDDMenu.hidden = true; if (catDDBtn) catDDBtn.setAttribute('aria-expanded', 'false'); }
-  function openCatDD() { if (catDD) catDD.classList.add('open'); if (catDDMenu) catDDMenu.hidden = false; if (catDDBtn) catDDBtn.setAttribute('aria-expanded', 'true'); }
-  function setCatValue(c) {
-    $('admEditCat').value = c || '';
-    if (catDDVal) { catDDVal.textContent = c || 'Select category'; catDDVal.classList.toggle('placeholder', !c); }
-    if (catDDMenu) Array.prototype.forEach.call(catDDMenu.querySelectorAll('.adm-dd-opt'), function (o) {
-      o.classList.toggle('active', o.getAttribute('data-cat') === c);
-    });
-  }
-  if (catDDBtn) catDDBtn.addEventListener('click', function (e) {
-    e.stopPropagation();
-    if (catDDMenu && catDDMenu.hidden) openCatDD(); else closeCatDD();
-  });
-  document.addEventListener('click', function (e) { if (catDD && !catDD.contains(e.target)) closeCatDD(); });
+  /* ---- Reusable custom dropdown (replaces native <select> everywhere in admin) ----
+     root must contain .adm-dd-btn (with .adm-dd-val + chevron) and .adm-dd-menu,
+     matching the markup already used for the product category picker. */
+  function makeDropdown(root, opts) {
+    opts = opts || {};
+    if (!root) return { setOptions: function () {}, setValue: function () {}, getValue: function () { return ''; }, close: function () {} };
+    var btn = root.querySelector('.adm-dd-btn');
+    var valEl = root.querySelector('.adm-dd-val');
+    var menu = root.querySelector('.adm-dd-menu');
+    var valueInput = opts.valueInput || null;
+    var placeholder = opts.placeholder || 'Select…';
+    var current = '';
+    var optionList = [];
 
+    function close() { root.classList.remove('open'); if (menu) menu.hidden = true; if (btn) btn.setAttribute('aria-expanded', 'false'); }
+    function open() { root.classList.add('open'); if (menu) menu.hidden = false; if (btn) btn.setAttribute('aria-expanded', 'true'); }
+    function labelFor(value) {
+      var found = optionList.filter(function (o) { return o.value === value; })[0];
+      return found ? found.label : value;
+    }
+    function setValue(value, silent) {
+      current = value || '';
+      if (valEl) { valEl.textContent = current ? labelFor(current) : placeholder; valEl.classList.toggle('placeholder', !current); }
+      if (valueInput) valueInput.value = current;
+      if (menu) Array.prototype.forEach.call(menu.querySelectorAll('.adm-dd-opt'), function (o) {
+        o.classList.toggle('active', o.getAttribute('data-value') === current);
+      });
+      if (!silent && typeof opts.onChange === 'function') opts.onChange(current);
+    }
+    function setOptions(list, selected) {
+      optionList = list.map(function (o) { return typeof o === 'string' ? { value: o, label: o } : o; });
+      if (menu) {
+        menu.innerHTML = optionList.map(function (o) {
+          var isActive = o.value === selected;
+          return '<button type="button" class="adm-dd-opt' + (isActive ? ' active' : '') + '" data-value="' + esc(o.value) + '" role="option" aria-selected="' + (isActive ? 'true' : 'false') + '"><span>' + esc(o.label) + '</span><span class="adm-dd-radio"></span></button>';
+        }).join('');
+        Array.prototype.forEach.call(menu.querySelectorAll('.adm-dd-opt'), function (o) {
+          o.addEventListener('click', function () { setValue(o.getAttribute('data-value')); close(); });
+        });
+      }
+      setValue(selected != null ? selected : current, true);
+    }
+    if (btn) btn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      if (menu && menu.hidden) open(); else close();
+    });
+    document.addEventListener('click', function (e) { if (!root.contains(e.target)) close(); });
+
+    return { setOptions: setOptions, setValue: setValue, getValue: function () { return current; }, close: close };
+  }
+
+  var catDropdown = makeDropdown($('admEditCatDD'), { valueInput: $('admEditCat'), placeholder: 'Select category' });
   function populateCategorySelect(platform, selected) {
-    if (!catDDMenu) return;
     var cats = CATEGORIES_BY_PLATFORM[platform] || [];
     if (selected && cats.indexOf(selected) < 0) cats = cats.concat([selected]);
-    catDDMenu.innerHTML = cats.map(function (c) {
-      return '<button type="button" class="adm-dd-opt' + (c === selected ? ' active' : '') + '" data-cat="' + esc(c) + '" role="option" aria-selected="' + (c === selected ? 'true' : 'false') + '"><span>' + esc(c) + '</span><span class="adm-dd-radio"></span></button>';
-    }).join('');
-    Array.prototype.forEach.call(catDDMenu.querySelectorAll('.adm-dd-opt'), function (o) {
-      o.addEventListener('click', function () { setCatValue(o.getAttribute('data-cat')); closeCatDD(); });
-    });
-    setCatValue(selected || (cats[0] || ''));
+    catDropdown.setOptions(cats, selected || cats[0] || '');
   }
   function setEditPlatform(platform, catToKeep) {
     $('admEditPlatform').value = platform;
@@ -1151,8 +1176,17 @@
   /* ================================================================
      ORDERS PANEL
      ================================================================ */
+  var orderStatusDropdown = makeDropdown($('admOrderStatusFilterDD'), {
+    onChange: function () { renderOrders(); }
+  });
+  orderStatusDropdown.setOptions([
+    { value: 'all', label: 'All statuses' },
+    { value: 'completed', label: 'Completed' },
+    { value: 'pending', label: 'Pending' },
+    { value: 'refunded', label: 'Refunded' }
+  ], 'all');
   function renderOrders() {
-    var statusF = ($('admOrderStatusFilter') || {}).value || 'all';
+    var statusF = orderStatusDropdown.getValue() || 'all';
     var q = (($('admOrderSearch') || {}).value || '').trim().toLowerCase();
     var rows = ORDERS.filter(function (o) {
       var okStatus = statusF === 'all' || o.status === statusF;
@@ -1190,9 +1224,8 @@
       renderOrders(); renderRefunds();
     }
   });
-  ['admOrderStatusFilter', 'admOrderSearch'].forEach(function (id) {
-    var elx = $(id); if (elx) elx.addEventListener('input', renderOrders);
-  });
+  var orderSearchInput = $('admOrderSearch');
+  if (orderSearchInput) orderSearchInput.addEventListener('input', renderOrders);
 
   /* ================================================================
      REFUNDS PANEL
@@ -1227,8 +1260,17 @@
   /* ================================================================
      REVIEWS PANEL
      ================================================================ */
+  var reviewFilterDropdown = makeDropdown($('admReviewFilterDD'), {
+    onChange: function () { renderReviews(); }
+  });
+  reviewFilterDropdown.setOptions([
+    { value: 'pending', label: 'Pending' },
+    { value: 'approved', label: 'Approved' },
+    { value: 'hidden', label: 'Hidden' },
+    { value: 'all', label: 'All' }
+  ], 'pending');
   function renderReviews() {
-    var f = ($('admReviewFilter') || {}).value || 'pending';
+    var f = reviewFilterDropdown.getValue() || 'pending';
     var rows = REVIEWS.filter(function (r) { return f === 'all' || r.status === f; }).sort(function (a, b) { return new Date(b.date) - new Date(a.date); });
     $('admReviewsList').innerHTML = rows.map(function (r) {
       var stars = '';
@@ -1253,9 +1295,6 @@
     else return;
     saveReviews(); renderReviews();
   });
-  var reviewFilter = $('admReviewFilter');
-  if (reviewFilter) reviewFilter.addEventListener('change', renderReviews);
-
   /* ================================================================
      USERS PANEL (+ manual product grants)
      ================================================================ */
@@ -1263,6 +1302,8 @@
     return ORDERS.filter(function (o) { return o.userId === userId && o.status === 'completed'; }).reduce(function (s, o) { return s + o.total; }, 0);
   }
   function userOrderCount(userId) { return ORDERS.filter(function (o) { return o.userId === userId; }).length; }
+  var grantUserDropdown = makeDropdown($('admGrantUserDD'), { valueInput: $('admGrantUser'), placeholder: 'Select user' });
+  var grantProductDropdown = makeDropdown($('admGrantProductDD'), { valueInput: $('admGrantProduct'), placeholder: 'Select product' });
   function renderUsers() {
     var q = (($('admUserSearch') || {}).value || '').trim().toLowerCase();
     var rows = USERS.filter(function (u) { return !q || u.name.toLowerCase().indexOf(q) >= 0 || u.email.toLowerCase().indexOf(q) >= 0; });
@@ -1274,10 +1315,8 @@
         '</td></tr>';
     }).join('') || '<tr><td colspan="7" class="adm-empty">No users match.</td></tr>';
 
-    var sel = $('admGrantUser');
-    if (sel) sel.innerHTML = USERS.map(function (u) { return '<option value="' + u.id + '">' + esc(u.name) + '</option>'; }).join('');
-    var psel = $('admGrantProduct');
-    if (psel) psel.innerHTML = allProducts().map(function (p) { return '<option value="' + p.id + '">' + esc(p.title) + '</option>'; }).join('');
+    grantUserDropdown.setOptions(USERS.map(function (u) { return { value: u.id, label: u.name }; }), grantUserDropdown.getValue());
+    grantProductDropdown.setOptions(allProducts().map(function (p) { return { value: p.id, label: p.title }; }), grantProductDropdown.getValue());
   }
   var usersBody = $('admUsersBody');
   if (usersBody) usersBody.addEventListener('click', function (e) {
@@ -1658,23 +1697,46 @@
   /* ================================================================
      STAFF PANEL (roles + whitelist management)
      ================================================================ */
+  var ADM_DD_CHEV = '<svg class="adm-dd-chev" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>';
   function renderStaff() {
     $('admStaffBody').innerHTML = STAFF.map(function (s) {
+      var roleMenu = ['owner', 'admin', 'support'].map(function (r) {
+        return '<button type="button" class="adm-dd-opt' + (r === s.role ? ' active' : '') + '" data-value="' + r + '" role="option" aria-selected="' + (r === s.role ? 'true' : 'false') + '"><span>' + r + '</span><span class="adm-dd-radio"></span></button>';
+      }).join('');
       return '<tr data-id="' + s.id + '"><td>' + esc(s.name) + '</td><td class="dt-mono">' + esc(s.discordId || '—') + '</td>' +
-        '<td><select class="adm-staff-role"' + (can('owner') ? '' : ' disabled') + '>' +
-          ['owner', 'admin', 'support'].map(function (r) { return '<option value="' + r + '"' + (r === s.role ? ' selected' : '') + '>' + r + '</option>'; }).join('') +
-        '</select></td>' +
+        '<td><div class="adm-dd adm-dd-inline adm-staff-role-dd"' + (can('owner') ? '' : ' data-disabled="1"') + '>' +
+          '<button type="button" class="adm-dd-btn"' + (can('owner') ? '' : ' disabled') + ' aria-haspopup="listbox" aria-expanded="false"><span class="adm-dd-val">' + esc(s.role) + '</span>' + ADM_DD_CHEV + '</button>' +
+          '<div class="adm-dd-menu" role="listbox" aria-label="Role" hidden>' + roleMenu + '</div>' +
+        '</div></td>' +
         '<td class="adm-row-actions">' + (can('owner') && STAFF.length > 1 ? '<button class="btn btn-ghost adm-btn-sm adm-staff-remove" type="button">Remove</button>' : '') + '</td></tr>';
     }).join('');
     $('admWhitelistNote').textContent = 'Whitelist enforced — only the Discord IDs set in supabase-init.js\'s ADMIN_WHITELIST can open this dashboard. This staff list is separate role-management data and isn\'t the enforcement source.';
   }
   var staffBody = $('admStaffBody');
-  if (staffBody) staffBody.addEventListener('change', function (e) {
-    if (!e.target.classList.contains('adm-staff-role')) return;
-    if (!can('owner')) return;
-    var tr = e.target.closest('tr'); var id = tr.getAttribute('data-id');
-    var s = STAFF.filter(function (x) { return x.id === id; })[0]; if (!s) return;
-    s.role = e.target.value; saveStaff(); logAudit('Changed ' + s.name + '\'s role to ' + s.role); renderTopbar();
+  if (staffBody) staffBody.addEventListener('click', function (e) {
+    var ddBtn = e.target.closest('.adm-staff-role-dd .adm-dd-btn');
+    if (ddBtn) {
+      if (ddBtn.disabled) return;
+      var dd = ddBtn.closest('.adm-staff-role-dd');
+      var menu = dd.querySelector('.adm-dd-menu');
+      var wasOpen = !menu.hidden;
+      staffBody.querySelectorAll('.adm-staff-role-dd').forEach(function (d) { d.classList.remove('open'); d.querySelector('.adm-dd-menu').hidden = true; });
+      if (!wasOpen) { dd.classList.add('open'); menu.hidden = false; }
+      return;
+    }
+    var opt = e.target.closest('.adm-staff-role-dd .adm-dd-opt');
+    if (opt) {
+      if (!can('owner')) return;
+      var tr = opt.closest('tr'); var id = tr.getAttribute('data-id');
+      var s = STAFF.filter(function (x) { return x.id === id; })[0]; if (!s) return;
+      s.role = opt.getAttribute('data-value');
+      saveStaff(); logAudit('Changed ' + s.name + '\'s role to ' + s.role); renderTopbar(); renderStaff();
+      return;
+    }
+  });
+  document.addEventListener('click', function (e) {
+    if (e.target.closest('.adm-staff-role-dd')) return;
+    document.querySelectorAll('.adm-staff-role-dd.open').forEach(function (d) { d.classList.remove('open'); d.querySelector('.adm-dd-menu').hidden = true; });
   });
   if (staffBody) staffBody.addEventListener('click', function (e) {
     if (!e.target.classList.contains('adm-staff-remove')) return;
@@ -1686,6 +1748,12 @@
     ADMIN_WHITELIST = ADMIN_WHITELIST.filter(function (x) { return x !== s.discordId; });
     saveStaff(); logAudit('Removed staff member ' + s.name); renderStaff(); renderTopbar();
   });
+  var newStaffRoleDropdown = makeDropdown($('admNewStaffRoleDD'), { valueInput: $('admNewStaffRole') });
+  newStaffRoleDropdown.setOptions([
+    { value: 'support', label: 'Support agent' },
+    { value: 'admin', label: 'Admin' },
+    { value: 'owner', label: 'Owner' }
+  ], 'support');
   var addStaffForm = $('admAddStaffForm');
   if (addStaffForm) addStaffForm.addEventListener('submit', function (e) {
     e.preventDefault();
@@ -1698,7 +1766,7 @@
     STAFF.push({ id: id, name: name, discordId: discordId, role: role });
     if (discordId) ADMIN_WHITELIST.push(discordId);
     saveStaff(); logAudit('Added staff member ' + name + ' (' + role + ')');
-    addStaffForm.reset(); renderStaff();
+    addStaffForm.reset(); newStaffRoleDropdown.setValue('support', true); renderStaff();
   });
 
   /* ================================================================

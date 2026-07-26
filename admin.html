@@ -34,7 +34,13 @@
       <span class="adm-mode-flag" id="admModeBanner"></span>
       <div class="adm-topbar-right">
         <label class="adm-role-label">Viewing as
-          <select id="admRoleSelect" class="adm-select"></select>
+          <div class="adm-dd adm-dd-inline" id="admRoleSelectDD">
+            <button type="button" class="adm-dd-btn" aria-haspopup="listbox" aria-expanded="false">
+              <span class="adm-dd-val"></span>
+              <svg class="adm-dd-chev" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+            </button>
+            <div class="adm-dd-menu" role="listbox" aria-label="Viewing as" hidden></div>
+          </div>
         </label>
         <span class="dash-av" id="admAvatar">A</span>
         <a class="btn btn-ghost adm-btn-sm" href="index.html">Exit to site</a>
@@ -387,12 +393,13 @@
             <div class="dash-head"><h1>Order management</h1><p>Every order placed on the storefront.</p></div>
             <div class="adm-toolbar">
               <input type="text" id="admOrderSearch" class="adm-input" placeholder="Search order #, product, or buyer…" />
-              <select id="admOrderStatusFilter" class="adm-select">
-                <option value="all">All statuses</option>
-                <option value="completed">Completed</option>
-                <option value="pending">Pending</option>
-                <option value="refunded">Refunded</option>
-              </select>
+              <div class="adm-dd adm-dd-inline" id="admOrderStatusFilterDD">
+                <button type="button" class="adm-dd-btn" aria-haspopup="listbox" aria-expanded="false">
+                  <span class="adm-dd-val"></span>
+                  <svg class="adm-dd-chev" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                </button>
+                <div class="adm-dd-menu" role="listbox" aria-label="Order status" hidden></div>
+              </div>
             </div>
             <div class="dash-card glass dash-tablewrap">
               <table class="dash-table">
@@ -424,12 +431,13 @@
           <section class="dash-panel" id="adm-panel-reviews" hidden>
             <div class="dash-head"><h1>Review moderation</h1><p>Approve or hide product reviews before they go public.</p></div>
             <div class="adm-toolbar">
-              <select id="admReviewFilter" class="adm-select">
-                <option value="pending" selected>Pending</option>
-                <option value="approved">Approved</option>
-                <option value="hidden">Hidden</option>
-                <option value="all">All</option>
-              </select>
+              <div class="adm-dd adm-dd-inline" id="admReviewFilterDD">
+                <button type="button" class="adm-dd-btn" aria-haspopup="listbox" aria-expanded="false">
+                  <span class="adm-dd-val"></span>
+                  <svg class="adm-dd-chev" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                </button>
+                <div class="adm-dd-menu" role="listbox" aria-label="Review status" hidden></div>
+              </div>
             </div>
             <div id="admReviewsList"></div>
           </section>
@@ -448,8 +456,22 @@
             <div class="dash-card glass">
               <div class="dash-card-head"><h2>Manual product grant</h2></div>
               <form class="adm-form" id="admGrantForm">
-                <select id="admGrantUser" class="adm-select"></select>
-                <select id="admGrantProduct" class="adm-select"></select>
+                <div class="adm-dd adm-dd-inline" id="admGrantUserDD">
+                  <button type="button" class="adm-dd-btn" aria-haspopup="listbox" aria-expanded="false">
+                    <span class="adm-dd-val placeholder">Select user</span>
+                    <svg class="adm-dd-chev" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                  </button>
+                  <div class="adm-dd-menu" role="listbox" aria-label="User" hidden></div>
+                </div>
+                <input type="hidden" id="admGrantUser" />
+                <div class="adm-dd adm-dd-inline" id="admGrantProductDD">
+                  <button type="button" class="adm-dd-btn" aria-haspopup="listbox" aria-expanded="false">
+                    <span class="adm-dd-val placeholder">Select product</span>
+                    <svg class="adm-dd-chev" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                  </button>
+                  <div class="adm-dd-menu" role="listbox" aria-label="Product" hidden></div>
+                </div>
+                <input type="hidden" id="admGrantProduct" />
                 <button class="btn btn-primary adm-btn-sm" type="submit">Grant access</button>
                 <span class="adm-note" id="admGrantMsg"></span>
               </form>
@@ -580,7 +602,14 @@
               <form class="adm-form" id="admAddStaffForm">
                 <input type="text" id="admNewStaffName" class="adm-input" placeholder="Name" required />
                 <input type="text" id="admNewStaffDiscord" class="adm-input" placeholder="Discord user ID" />
-                <select id="admNewStaffRole" class="adm-select"><option value="support">Support agent</option><option value="admin">Admin</option><option value="owner">Owner</option></select>
+                <div class="adm-dd adm-dd-inline" id="admNewStaffRoleDD">
+                  <button type="button" class="adm-dd-btn" aria-haspopup="listbox" aria-expanded="false">
+                    <span class="adm-dd-val"></span>
+                    <svg class="adm-dd-chev" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                  </button>
+                  <div class="adm-dd-menu" role="listbox" aria-label="Role" hidden></div>
+                </div>
+                <input type="hidden" id="admNewStaffRole" value="support" />
                 <button class="btn btn-primary adm-btn-sm" type="submit">Add staff</button>
               </form>
             </div>

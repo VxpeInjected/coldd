@@ -100,10 +100,25 @@
 
   var COUPONS = seedIfEmpty('coldd_admin_coupons_v1', function () {
     return [
-      { code: 'SAVE10', type: 'pct', val: 10, active: true, limit: null },
-      { code: 'COLDD20', type: 'pct', val: 20, active: true, limit: 500 },
-      { code: 'WELCOME5', type: 'flat', val: 5, active: true, limit: null },
-      { code: 'SUMMER25', type: 'pct', val: 25, active: false, limit: 200 }
+      { code: 'SAVE10', type: 'pct', val: 10, active: true, limit: null, expiresAt: null, scope: 'sitewide', platform: null, category: null },
+      { code: 'COLDD20', type: 'pct', val: 20, active: true, limit: 500, expiresAt: null, scope: 'sitewide', platform: null, category: null },
+      { code: 'WELCOME5', type: 'flat', val: 5, active: true, limit: null, expiresAt: null, scope: 'sitewide', platform: null, category: null },
+      { code: 'SUMMER25', type: 'pct', val: 25, active: false, limit: 200, expiresAt: null, scope: 'sitewide', platform: null, category: null }
+    ];
+  });
+
+  // Sale Events replace the site's hardcoded "Spring Sale" announcement
+  // banner (assets.html/minecraft.html) with real admin-managed data - the
+  // seed below matches that banner's original copy so nothing visually
+  // changes until an admin edits or adds an event.
+  var SALE_EVENTS = seedIfEmpty('coldd_admin_sale_events_v1', function () {
+    return [
+      {
+        id: 'ev1', title: 'Spring Sale',
+        message: 'Spring Sale is live — 30% off every Roblox template through Sunday.',
+        percentOff: 30, scope: 'platform', platform: 'Roblox', category: null,
+        startDate: '2026-07-20', endDate: '2026-08-02', active: true
+      }
     ];
   });
 
@@ -210,6 +225,7 @@
   function saveOrders() { lsSet('coldd_admin_orders_v1', ORDERS); }
   function saveUsers() { lsSet('coldd_admin_users_v1', USERS); }
   function saveCoupons() { lsSet('coldd_admin_coupons_v1', COUPONS); }
+  function saveSaleEvents() { lsSet('coldd_admin_sale_events_v1', SALE_EVENTS); }
   function saveStaff() { lsSet('coldd_admin_staff_v1', STAFF); }
   function saveReviews() { lsSet('coldd_admin_reviews_v1', REVIEWS); }
   function saveProdOv() { lsSet('coldd_admin_prod_ov_v1', PROD_OV); }
@@ -413,7 +429,7 @@
   /* ================================================================
      NAV / PANEL SWITCHING
      ================================================================ */
-  var PANELS = ['home', 'analytics', 'products', 'product-edit', 'product-update', 'orders', 'refunds', 'reviews', 'users', 'coupons', 'posts', 'tutorials', 'releases', 'staff', 'audit'];
+  var PANELS = ['home', 'analytics', 'products', 'product-edit', 'product-update', 'orders', 'refunds', 'reviews', 'users', 'sales', 'posts', 'tutorials', 'releases', 'staff', 'audit'];
   var curPanel = 'home';
   function showPanel(name) {
     if (PANELS.indexOf(name) < 0) name = 'home';
@@ -434,7 +450,7 @@
     else if (name === 'refunds') renderRefunds();
     else if (name === 'reviews') renderReviews();
     else if (name === 'users') renderUsers();
-    else if (name === 'coupons') renderCoupons();
+    else if (name === 'sales') { renderEvents(); renderCoupons(); }
     else if (name === 'posts') renderPosts();
     else if (name === 'tutorials') renderTutorials();
     else if (name === 'releases') renderReleases();
@@ -1351,45 +1367,198 @@
   });
 
   /* ================================================================
-     COUPONS PANEL
+     SALES & DISCOUNTS PANEL (Sale Events + Discount Codes)
      ================================================================ */
+  function buildScopeOptions() {
+    var out = [{ value: 'sitewide', label: 'Sitewide' }];
+    Object.keys(CATEGORIES_BY_PLATFORM).forEach(function (platform) {
+      out.push({ value: 'platform:' + platform, label: platform + ' — All categories' });
+      CATEGORIES_BY_PLATFORM[platform].forEach(function (cat) {
+        out.push({ value: 'category:' + platform + ':' + cat, label: platform + ' — ' + cat });
+      });
+    });
+    return out;
+  }
+  function parseScopeValue(value) {
+    var parts = String(value || 'sitewide').split(':');
+    if (parts[0] === 'platform') return { scope: 'platform', platform: parts[1], category: null };
+    if (parts[0] === 'category') return { scope: 'category', platform: parts[1], category: parts.slice(2).join(':') };
+    return { scope: 'sitewide', platform: null, category: null };
+  }
+  function scopeValueFor(item) {
+    if (item.scope === 'platform') return 'platform:' + item.platform;
+    if (item.scope === 'category') return 'category:' + item.platform + ':' + item.category;
+    return 'sitewide';
+  }
+  function scopeLabel(item) {
+    if (item.scope === 'platform') return item.platform;
+    if (item.scope === 'category') return item.platform + ': ' + item.category;
+    return 'Sitewide';
+  }
+
+  var salesTypeToggle = $('admSalesTypeToggle');
+  if (salesTypeToggle) salesTypeToggle.addEventListener('click', function (e) {
+    var btn = e.target.closest('.adm-sales-type-btn'); if (!btn) return;
+    var type = btn.getAttribute('data-type');
+    salesTypeToggle.querySelectorAll('.adm-sales-type-btn').forEach(function (b) { b.classList.toggle('active', b === btn); });
+    $('admSalesEventsView').hidden = type !== 'events';
+    $('admDiscountCodesView').hidden = type !== 'codes';
+  });
+
+  /* ---- Sale Events ---- */
+  function eventStatus(ev) {
+    var today = new Date().toISOString().slice(0, 10);
+    if (!ev.active) return 'inactive';
+    if (today < ev.startDate) return 'scheduled';
+    if (today > ev.endDate) return 'ended';
+    return 'live';
+  }
+  var eventScopeDropdown = makeDropdown($('admEventScopeDD'), { valueInput: $('admEventScope') });
+  eventScopeDropdown.setOptions(buildScopeOptions(), 'sitewide');
+
+  function renderEvents() {
+    $('admEventsBody').innerHTML = SALE_EVENTS.map(function (ev) {
+      var status = eventStatus(ev);
+      var badge = status === 'live' ? '<span class="dt-badge ok">Live now</span>' : status === 'scheduled' ? '<span class="dt-badge">Scheduled</span>' : status === 'ended' ? '<span class="dt-badge err">Ended</span>' : '<span class="dt-badge err">Inactive</span>';
+      return '<tr data-id="' + ev.id + '"><td>' + esc(ev.title) + '</td><td>' + ev.percentOff + '% off</td><td>' + esc(scopeLabel(ev)) + '</td><td>' + esc(ev.startDate) + ' – ' + esc(ev.endDate) + '</td><td>' + badge + '</td>' +
+        '<td class="adm-row-actions">' + (can('admin') ? '<button class="btn btn-ghost adm-btn-sm adm-event-edit" type="button">Edit</button><button class="btn btn-ghost adm-btn-sm adm-event-toggle" type="button">' + (ev.active ? 'Deactivate' : 'Activate') + '</button><button class="btn btn-ghost adm-btn-sm adm-event-del" type="button">Delete</button>' : '') + '</td></tr>';
+    }).join('') || '<tr><td colspan="6" class="adm-empty">No sale events yet.</td></tr>';
+  }
+  function resetEventForm() {
+    $('admEventEditId').value = '';
+    $('admEventTitle').value = ''; $('admEventMessage').value = ''; $('admEventPercent').value = '';
+    eventScopeDropdown.setValue('sitewide');
+    $('admEventStart').value = ''; $('admEventEnd').value = '';
+    $('admEventFormTitle').textContent = 'Create sale event';
+    $('admEventSubmitBtn').textContent = 'Create event';
+    $('admEventCancelBtn').hidden = true;
+  }
+  function fillEventForm(ev) {
+    $('admEventEditId').value = ev.id;
+    $('admEventTitle').value = ev.title; $('admEventMessage').value = ev.message; $('admEventPercent').value = ev.percentOff;
+    eventScopeDropdown.setValue(scopeValueFor(ev));
+    $('admEventStart').value = ev.startDate; $('admEventEnd').value = ev.endDate;
+    $('admEventFormTitle').textContent = 'Edit sale event';
+    $('admEventSubmitBtn').textContent = 'Save changes';
+    $('admEventCancelBtn').hidden = false;
+  }
+  var eventsBody = $('admEventsBody');
+  if (eventsBody) eventsBody.addEventListener('click', function (e) {
+    var tr = e.target.closest('tr'); if (!tr) return;
+    var id = tr.getAttribute('data-id');
+    var ev = SALE_EVENTS.filter(function (x) { return x.id === id; })[0]; if (!ev) return;
+    if (!can('admin')) return;
+    if (e.target.classList.contains('adm-event-edit')) { fillEventForm(ev); }
+    else if (e.target.classList.contains('adm-event-toggle')) {
+      ev.active = !ev.active; saveSaleEvents(); logAudit((ev.active ? 'Activated' : 'Deactivated') + ' sale event "' + ev.title + '"'); renderEvents();
+    } else if (e.target.classList.contains('adm-event-del')) {
+      if (!confirm('Delete sale event "' + ev.title + '"? This can\'t be undone.')) return;
+      SALE_EVENTS = SALE_EVENTS.filter(function (x) { return x.id !== id; });
+      saveSaleEvents(); logAudit('Deleted sale event "' + ev.title + '"'); renderEvents();
+      if ($('admEventEditId').value === id) resetEventForm();
+    }
+  });
+  var eventCancelBtn = $('admEventCancelBtn');
+  if (eventCancelBtn) eventCancelBtn.addEventListener('click', resetEventForm);
+  var eventForm = $('admEventForm');
+  if (eventForm) eventForm.addEventListener('submit', function (e) {
+    e.preventDefault();
+    if (!can('admin')) return;
+    var id = $('admEventEditId').value;
+    var scopeInfo = parseScopeValue($('admEventScope').value);
+    var fields = {
+      title: $('admEventTitle').value.trim(),
+      message: $('admEventMessage').value.trim(),
+      percentOff: Math.max(1, Math.min(90, parseInt($('admEventPercent').value, 10) || 0)),
+      scope: scopeInfo.scope, platform: scopeInfo.platform, category: scopeInfo.category,
+      startDate: $('admEventStart').value, endDate: $('admEventEnd').value
+    };
+    if (!fields.title || !fields.message || !fields.startDate || !fields.endDate) return;
+    if (id) {
+      var ev = SALE_EVENTS.filter(function (x) { return x.id === id; })[0]; if (!ev) return;
+      Object.assign(ev, fields);
+      logAudit('Updated sale event "' + fields.title + '"');
+    } else {
+      SALE_EVENTS.push(Object.assign({ id: 'ev' + Date.now().toString(36), active: true }, fields));
+      logAudit('Created sale event "' + fields.title + '"');
+    }
+    saveSaleEvents(); resetEventForm(); renderEvents();
+  });
+
+  /* ---- Discount Codes ---- */
+  var couponTypeDropdown = makeDropdown($('admNewCouponTypeDD'), { valueInput: $('admNewCouponType') });
+  couponTypeDropdown.setOptions([{ value: 'pct', label: '% off' }, { value: 'flat', label: '$ off' }], 'pct');
+  var couponScopeDropdown = makeDropdown($('admCouponScopeDD'), { valueInput: $('admCouponScope') });
+  couponScopeDropdown.setOptions(buildScopeOptions(), 'sitewide');
+
   function renderCoupons() {
     var cs = couponStats();
-    $('admCouponsBody').innerHTML = COUPONS.map(function (c, i) {
+    $('admCouponsBody').innerHTML = COUPONS.map(function (c) {
       var stat = cs.filter(function (x) { return x.code === c.code; })[0] || { uses: 0, discountGiven: 0 };
-      return '<tr data-code="' + esc(c.code) + '"><td class="dt-mono">' + esc(c.code) + '</td><td>' + (c.type === 'pct' ? c.val + '%' : usd(c.val)) + '</td><td>' + stat.uses + (c.limit ? ' / ' + c.limit : '') + '</td><td>' + usd(stat.discountGiven) + '</td>' +
+      return '<tr data-code="' + esc(c.code) + '"><td class="dt-mono">' + esc(c.code) + '</td><td>' + (c.type === 'pct' ? c.val + '%' : usd(c.val)) + '</td><td>' + esc(scopeLabel(c)) + '</td><td>' + (c.expiresAt ? esc(c.expiresAt) : '—') + '</td><td>' + stat.uses + (c.limit ? ' / ' + c.limit : '') + '</td><td>' + usd(stat.discountGiven) + '</td>' +
         '<td>' + (c.active ? '<span class="dt-badge ok">Active</span>' : '<span class="dt-badge err">Inactive</span>') + '</td>' +
-        '<td class="adm-row-actions">' + (can('admin') ? '<button class="btn btn-ghost adm-btn-sm adm-coupon-toggle" type="button">' + (c.active ? 'Deactivate' : 'Activate') + '</button><button class="btn btn-ghost adm-btn-sm adm-coupon-del" type="button">Delete</button>' : '') + '</td></tr>';
-    }).join('') || '<tr><td colspan="6" class="adm-empty">No coupons yet.</td></tr>';
+        '<td class="adm-row-actions">' + (can('admin') ? '<button class="btn btn-ghost adm-btn-sm adm-coupon-edit" type="button">Edit</button><button class="btn btn-ghost adm-btn-sm adm-coupon-toggle" type="button">' + (c.active ? 'Deactivate' : 'Activate') + '</button><button class="btn btn-ghost adm-btn-sm adm-coupon-del" type="button">Delete</button>' : '') + '</td></tr>';
+    }).join('') || '<tr><td colspan="8" class="adm-empty">No discount codes yet.</td></tr>';
+  }
+  function resetCouponForm() {
+    $('admCouponEditId').value = '';
+    $('admNewCouponCode').value = ''; $('admNewCouponVal').value = ''; $('admNewCouponLimit').value = '';
+    $('admNewCouponExpiry').value = '';
+    couponTypeDropdown.setValue('pct'); couponScopeDropdown.setValue('sitewide');
+    $('admCouponFormTitle').textContent = 'Create discount code';
+    $('admCouponSubmitBtn').textContent = 'Create discount code';
+    $('admCouponCancelBtn').hidden = true;
+  }
+  function fillCouponForm(c) {
+    $('admCouponEditId').value = c.code;
+    $('admNewCouponCode').value = c.code; $('admNewCouponVal').value = c.val; $('admNewCouponLimit').value = c.limit || '';
+    $('admNewCouponExpiry').value = c.expiresAt || '';
+    couponTypeDropdown.setValue(c.type); couponScopeDropdown.setValue(scopeValueFor(c));
+    $('admCouponFormTitle').textContent = 'Edit discount code';
+    $('admCouponSubmitBtn').textContent = 'Save changes';
+    $('admCouponCancelBtn').hidden = false;
   }
   var couponsBody = $('admCouponsBody');
   if (couponsBody) couponsBody.addEventListener('click', function (e) {
     var tr = e.target.closest('tr'); if (!tr) return;
     var code = tr.getAttribute('data-code');
     var c = COUPONS.filter(function (x) { return x.code === code; })[0]; if (!c) return;
-    if (e.target.classList.contains('adm-coupon-toggle')) {
-      if (!can('admin')) return;
+    if (!can('admin')) return;
+    if (e.target.classList.contains('adm-coupon-edit')) { fillCouponForm(c); }
+    else if (e.target.classList.contains('adm-coupon-toggle')) {
       c.active = !c.active; saveCoupons(); logAudit((c.active ? 'Activated' : 'Deactivated') + ' coupon ' + code); renderCoupons();
     } else if (e.target.classList.contains('adm-coupon-del')) {
-      if (!can('admin')) return;
       if (!confirm('Delete coupon ' + code + '? This can\'t be undone.')) return;
       COUPONS = COUPONS.filter(function (x) { return x.code !== code; });
       saveCoupons(); logAudit('Deleted coupon ' + code); renderCoupons();
+      if ($('admCouponEditId').value === code) resetCouponForm();
     }
   });
+  var couponCancelBtn = $('admCouponCancelBtn');
+  if (couponCancelBtn) couponCancelBtn.addEventListener('click', resetCouponForm);
   var addCouponForm = $('admAddCouponForm');
   if (addCouponForm) addCouponForm.addEventListener('submit', function (e) {
     e.preventDefault();
     if (!can('admin')) return;
+    var editId = $('admCouponEditId').value;
     var code = $('admNewCouponCode').value.trim().toUpperCase();
     var type = $('admNewCouponType').value;
     var val = parseFloat($('admNewCouponVal').value) || 0;
     var limit = parseInt($('admNewCouponLimit').value, 10) || null;
+    var expiresAt = $('admNewCouponExpiry').value || null;
+    var scopeInfo = parseScopeValue($('admCouponScope').value);
     if (!code || !val) return;
-    if (COUPONS.some(function (c) { return c.code === code; })) { alert('Coupon code already exists.'); return; }
-    COUPONS.push({ code: code, type: type, val: val, active: true, limit: limit });
-    saveCoupons(); logAudit('Created coupon ' + code);
-    addCouponForm.reset(); renderCoupons();
+    if (editId) {
+      var c = COUPONS.filter(function (x) { return x.code === editId; })[0]; if (!c) return;
+      if (code !== editId && COUPONS.some(function (x) { return x.code === code; })) { alert('Coupon code already exists.'); return; }
+      Object.assign(c, { code: code, type: type, val: val, limit: limit, expiresAt: expiresAt, scope: scopeInfo.scope, platform: scopeInfo.platform, category: scopeInfo.category });
+      logAudit('Updated discount code ' + code);
+    } else {
+      if (COUPONS.some(function (x) { return x.code === code; })) { alert('Coupon code already exists.'); return; }
+      COUPONS.push({ code: code, type: type, val: val, active: true, limit: limit, expiresAt: expiresAt, scope: scopeInfo.scope, platform: scopeInfo.platform, category: scopeInfo.category });
+      logAudit('Created discount code ' + code);
+    }
+    saveCoupons(); resetCouponForm(); renderCoupons();
   });
 
   /* ================================================================

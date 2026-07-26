@@ -58,7 +58,7 @@
             <a href="#" data-panel="refunds"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg><span>Refunds</span></a>
             <a href="#" data-panel="reviews"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m12 2 3 6 6.5 1-4.7 4.6 1.1 6.4L12 17l-5.9 3 1.1-6.4L2.5 9 9 8z"/></svg><span>Reviews</span></a>
             <a href="#" data-panel="users"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="4"/><path d="M2 21c0-4 3.5-6 7-6s7 2 7 6"/><path d="M16 3.5a4 4 0 0 1 0 7.8"/><path d="M18 14.5c2.5.6 4 2.2 4 5.5"/></svg><span>Users</span></a>
-            <a href="#" data-panel="coupons"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5H4a1 1 0 0 0-1 1v4a2.5 2.5 0 0 1 0 5v4a1 1 0 0 0 1 1h5"/><path d="M15 19h5a1 1 0 0 0 1-1v-4a2.5 2.5 0 0 1 0-5V5a1 1 0 0 0-1-1h-5"/><path d="M9 5v14M9 8h.01M9 12h.01M9 16h.01"/></svg><span>Coupons</span></a>
+            <a href="#" data-panel="sales"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5H4a1 1 0 0 0-1 1v4a2.5 2.5 0 0 1 0 5v4a1 1 0 0 0 1 1h5"/><path d="M15 19h5a1 1 0 0 0 1-1v-4a2.5 2.5 0 0 1 0-5V5a1 1 0 0 0-1-1h-5"/><path d="M9 5v14M9 8h.01M9 12h.01M9 16h.01"/></svg><span>Sales &amp; Discounts</span></a>
             <a href="#" data-panel="posts"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4Z"/></svg><span>Blog Posts</span></a>
             <a href="#" data-panel="tutorials"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg><span>Tutorials</span></a>
             <a href="#" data-panel="releases"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg><span>Releases</span></a>
@@ -478,23 +478,79 @@
             </div>
           </section>
 
-          <section class="dash-panel" id="adm-panel-coupons" hidden>
-            <div class="dash-head"><h1>Coupons &amp; discounts</h1><p>Create, disable, or retire promo codes.</p></div>
-            <div class="dash-card glass dash-tablewrap">
-              <table class="dash-table">
-                <thead><tr><th>Code</th><th>Discount</th><th>Uses</th><th>Discount given</th><th>Status</th><th>Actions</th></tr></thead>
-                <tbody id="admCouponsBody"></tbody>
-              </table>
+          <section class="dash-panel" id="adm-panel-sales" hidden>
+            <div class="dash-head"><h1>Sales &amp; discounts</h1><p>Run sitewide sale events or create discount codes.</p></div>
+
+            <div class="adm-platform-toggle" id="admSalesTypeToggle" style="margin-bottom:22px;">
+              <button type="button" class="btn btn-primary adm-sales-type-btn active" data-type="events">Sale Events</button>
+              <button type="button" class="btn btn-minecraft adm-sales-type-btn" data-type="codes">Discount Codes</button>
             </div>
-            <div class="dash-card glass">
-              <div class="dash-card-head"><h2>Create coupon</h2></div>
-              <form class="adm-form" id="admAddCouponForm">
-                <input type="text" id="admNewCouponCode" class="adm-input adm-input-sm" placeholder="CODE" required />
-                <select id="admNewCouponType" class="adm-select"><option value="pct">% off</option><option value="flat">$ off</option></select>
-                <input type="number" id="admNewCouponVal" class="adm-input adm-input-sm" placeholder="Value" min="0" step="1" required />
-                <input type="number" id="admNewCouponLimit" class="adm-input adm-input-sm" placeholder="Use limit (optional)" min="0" step="1" />
-                <button class="btn btn-primary adm-btn-sm" type="submit">Create coupon</button>
-              </form>
+
+            <div id="admSalesEventsView">
+              <div class="dash-card glass dash-tablewrap">
+                <table class="dash-table">
+                  <thead><tr><th>Title</th><th>Discount</th><th>Scope</th><th>Dates</th><th>Status</th><th>Actions</th></tr></thead>
+                  <tbody id="admEventsBody"></tbody>
+                </table>
+              </div>
+              <div class="dash-card glass">
+                <div class="dash-card-head"><h2 id="admEventFormTitle">Create sale event</h2></div>
+                <form class="adm-form" id="admEventForm" style="flex-wrap:wrap;">
+                  <input type="hidden" id="admEventEditId" />
+                  <input type="text" id="admEventTitle" class="adm-input" placeholder="Internal title" required />
+                  <input type="text" id="admEventMessage" class="adm-input" placeholder="Banner message shown to customers" required style="flex:1;min-width:260px;" />
+                  <input type="number" id="admEventPercent" class="adm-input adm-input-sm" placeholder="% off" min="1" max="90" required />
+                  <div class="adm-dd" id="admEventScopeDD" style="max-width:220px;">
+                    <button type="button" class="adm-dd-btn" aria-haspopup="listbox" aria-expanded="false">
+                      <span class="adm-dd-val"></span>
+                      <svg class="adm-dd-chev" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                    </button>
+                    <div class="adm-dd-menu" role="listbox" aria-label="Scope" hidden></div>
+                  </div>
+                  <input type="hidden" id="admEventScope" value="sitewide" />
+                  <label class="adm-field" style="max-width:160px;"><span>Start date</span><input type="date" id="admEventStart" class="adm-input" required /></label>
+                  <label class="adm-field" style="max-width:160px;"><span>End date</span><input type="date" id="admEventEnd" class="adm-input" required /></label>
+                  <button class="btn btn-primary adm-btn-sm" type="submit" id="admEventSubmitBtn">Create event</button>
+                  <button class="btn btn-ghost adm-btn-sm" type="button" id="admEventCancelBtn" hidden>Cancel edit</button>
+                </form>
+              </div>
+            </div>
+
+            <div id="admDiscountCodesView" hidden>
+              <div class="dash-card glass dash-tablewrap">
+                <table class="dash-table">
+                  <thead><tr><th>Code</th><th>Discount</th><th>Scope</th><th>Expires</th><th>Uses</th><th>Discount given</th><th>Status</th><th>Actions</th></tr></thead>
+                  <tbody id="admCouponsBody"></tbody>
+                </table>
+              </div>
+              <div class="dash-card glass">
+                <div class="dash-card-head"><h2 id="admCouponFormTitle">Create discount code</h2></div>
+                <form class="adm-form" id="admAddCouponForm" style="flex-wrap:wrap;">
+                  <input type="hidden" id="admCouponEditId" />
+                  <input type="text" id="admNewCouponCode" class="adm-input adm-input-sm" placeholder="CODE" required />
+                  <div class="adm-dd" id="admNewCouponTypeDD" style="max-width:130px;">
+                    <button type="button" class="adm-dd-btn" aria-haspopup="listbox" aria-expanded="false">
+                      <span class="adm-dd-val"></span>
+                      <svg class="adm-dd-chev" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                    </button>
+                    <div class="adm-dd-menu" role="listbox" aria-label="Discount type" hidden></div>
+                  </div>
+                  <input type="hidden" id="admNewCouponType" value="pct" />
+                  <input type="number" id="admNewCouponVal" class="adm-input adm-input-sm" placeholder="Value" min="0" step="1" required />
+                  <input type="number" id="admNewCouponLimit" class="adm-input adm-input-sm" placeholder="Use limit (optional)" min="0" step="1" />
+                  <label class="adm-field" style="max-width:160px;"><span>Expires (optional)</span><input type="date" id="admNewCouponExpiry" class="adm-input" /></label>
+                  <div class="adm-dd" id="admCouponScopeDD" style="max-width:220px;">
+                    <button type="button" class="adm-dd-btn" aria-haspopup="listbox" aria-expanded="false">
+                      <span class="adm-dd-val"></span>
+                      <svg class="adm-dd-chev" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                    </button>
+                    <div class="adm-dd-menu" role="listbox" aria-label="Scope" hidden></div>
+                  </div>
+                  <input type="hidden" id="admCouponScope" value="sitewide" />
+                  <button class="btn btn-primary adm-btn-sm" type="submit" id="admCouponSubmitBtn">Create discount code</button>
+                  <button class="btn btn-ghost adm-btn-sm" type="button" id="admCouponCancelBtn" hidden>Cancel edit</button>
+                </form>
+              </div>
             </div>
           </section>
 

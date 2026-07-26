@@ -1611,6 +1611,7 @@ a.adm-sub[href] { color: var(--fg-1); cursor: pointer; text-decoration: underlin
 .adm-file-row { display: flex; align-items: center; gap: 12px; margin-top: 6px; flex-wrap: wrap; }
 .adm-edit-actions { display: flex; align-items: center; gap: 12px; margin-top: 22px; }
 #admEditDeleteBtn[hidden] { display: none; }
+#admEventCancelBtn[hidden], #admCouponCancelBtn[hidden] { display: none; }
 .adm-edit-msg { font-size: 13px; color: var(--price); margin-top: 10px; min-height: 1em; }
 
 .adm-platform-toggle { display: flex; gap: 10px; margin-top: 8px; }

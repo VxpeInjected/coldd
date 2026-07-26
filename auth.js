@@ -19,6 +19,11 @@
     btn.classList.toggle('is-loading', loading);
     if (spinner) spinner.hidden = !loading;
   }
+  function setStatus(form, text) {
+    var card = form.closest('.auth-card'); if (!card) return;
+    var el = card.querySelector('.auth-status'); if (!el) return;
+    if (text) { el.textContent = text; el.hidden = false; } else { el.hidden = true; }
+  }
   function withMinDelay(promise, ms) {
     var start = Date.now();
     return promise.then(function (res) {
@@ -117,11 +122,16 @@
         return;
       }
       window.coldAuth.isEmailVerified().then(function (verified) {
-        setLoading(si, false);
         if (!verified) {
-          window.coldAuth.requestEmailOtp().then(function () { showVerifyStep(email); });
+          setStatus(si, "Hold tight, we're sending you a verification code…");
+          window.coldAuth.requestEmailOtp().then(function () {
+            setLoading(si, false);
+            setStatus(si, '');
+            showVerifyStep(email);
+          });
           return;
         }
+        setLoading(si, false);
         location.href = 'dashboard.html';
       });
     });
@@ -142,8 +152,10 @@
     setLoading(su, true);
     withMinDelay(window.coldAuth.signUpEmail(email, pass, username), 1500).then(function (res) {
       if (res.error) { setLoading(su, false); flash(su, res.error.message); return; }
+      setStatus(su, "Hold tight, we're sending you a verification code…");
       window.coldAuth.requestEmailOtp().then(function (otpRes) {
         setLoading(su, false);
+        setStatus(su, '');
         if (otpRes.error) flash(su, "Account created, but we couldn't send the code. Try resending on the next screen.");
         showVerifyStep(email);
       });

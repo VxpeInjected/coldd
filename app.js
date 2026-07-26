@@ -1501,8 +1501,14 @@
       }
 
       var so = document.getElementById('dashSignout');
-      if (so) so.addEventListener('click', function () {
-        if (!window.confirm('Sign out of coldd?')) return;
+      var soOverlay = document.getElementById('signoutOverlay');
+      var soCancel = document.getElementById('signoutCancel');
+      var soConfirm = document.getElementById('signoutConfirm');
+      if (so && soOverlay) so.addEventListener('click', function () { soOverlay.hidden = false; });
+      if (soCancel) soCancel.addEventListener('click', function () { soOverlay.hidden = true; });
+      if (soOverlay) soOverlay.addEventListener('click', function (e) { if (e.target === soOverlay) soOverlay.hidden = true; });
+      if (soConfirm) soConfirm.addEventListener('click', function () {
+        soOverlay.hidden = true;
         setState(false);
         if (window.coldAuth) window.coldAuth.signOut();
         if (window.__go) window.__go('home'); else location.href = 'index.html';

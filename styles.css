@@ -1898,3 +1898,17 @@ body.auth-page { background: #050505; }
   .auth-split-right { display: none; }
   .auth-split-left { flex: 1 1 auto; max-width: none; padding: 118px 24px 56px; }
 }
+
+/* auth status text (e.g. "sending code" while spinner runs) */
+.auth-status { margin: 8px 0 0; font-size: 12.5px; color: #ff4d44; }
+.auth-status[hidden] { display: none; }
+
+/* sign-out confirm modal */
+.confirm-overlay { position: fixed; inset: 0; z-index: 400; background: rgba(6,7,10,0.6);
+  display: none; align-items: center; justify-content: center; padding: 24px; }
+.confirm-overlay:not([hidden]) { display: flex; }
+.confirm-modal { width: 380px; max-width: 96vw; background: #0b0b0b; border: 1px solid var(--hairline);
+  border-radius: 10px; padding: 28px; text-align: center; }
+.confirm-modal p { margin: 0 0 20px; font-size: 14.5px; color: var(--fg); }
+.confirm-actions { display: flex; gap: 10px; }
+.confirm-actions .btn { flex: 1; justify-content: center; }

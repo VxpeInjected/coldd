@@ -1636,7 +1636,7 @@
         var btn = e.target.closest('.co-pay-btn'); if (!btn) return;
         setPayMethod(btn.getAttribute('data-key'));
       });
-      setPayMethod('card');
+      setPayMethod('stripe');
 
       var placeBtn = document.getElementById('coPlace'), msg = document.getElementById('coMsg'), agreeErr = document.getElementById('coAgreeErr');
       if (placeBtn) placeBtn.addEventListener('click', function () {

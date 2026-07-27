@@ -218,8 +218,6 @@
     return out.sort(function (a, b) { return new Date(b.date) - new Date(a.date); });
   });
 
-  var PROD_OV = lsGet('coldd_admin_prod_ov_v1', {});
-  var EXTRA_PRODUCTS = lsGet('coldd_admin_extra_products_v1', []);
   var AUDIT = lsGet('coldd_admin_audit_v1', []);
 
   function saveOrders() { lsSet('coldd_admin_orders_v1', ORDERS); }
@@ -228,8 +226,6 @@
   function saveSaleEvents() { lsSet('coldd_admin_sale_events_v1', SALE_EVENTS); }
   function saveStaff() { lsSet('coldd_admin_staff_v1', STAFF); }
   function saveReviews() { lsSet('coldd_admin_reviews_v1', REVIEWS); }
-  function saveProdOv() { lsSet('coldd_admin_prod_ov_v1', PROD_OV); }
-  function saveExtraProducts() { lsSet('coldd_admin_extra_products_v1', EXTRA_PRODUCTS); }
   function saveReferrals() { lsSet('coldd_admin_referrals_v1', REFERRALS); }
 
   function logAudit(action) {
@@ -252,7 +248,12 @@
   function can(minRole) { return ROLES[currentRole().role] >= ROLES[minRole]; }
 
   /* ================================================================
-     PRODUCT VIEW MODEL (catalog + admin overrides + extra products)
+     PRODUCT VIEW MODEL — real data from public.products/product_legal,
+     read via the signed-in admin's own session (RLS: products_select_admin
+     / product_legal_select_admin let is_admin=true profiles see everything,
+     not just is_active=true rows). Writes go through the admin-upsert-product
+     / admin-delete-product Edge Functions (service role, re-checks is_admin
+     server-side) - never written directly from here.
      ================================================================ */
   function defaultLegal() {
     return { tos: '', proofFiles: [], devProofFiles: [], contacts: [], licenseCost: 0, licenseCostCurrency: 'usd', licensePurchasedAt: '', minSaleUsd: 0, minSaleRobux: 0, canBeFree: false, disallowSales: false };
@@ -272,54 +273,92 @@
     if (bytes >= 1024) return (bytes / 1024).toFixed(1) + ' KB';
     return bytes + ' B';
   }
-  function allProducts() {
-    var base = CATALOG.map(function (p) {
-      var ov = PROD_OV[p.id] || {};
-      return Object.assign({}, p, {
-        title: ov.title != null ? ov.title : p.title,
-        price: ov.price != null ? ov.price : p.priceNum,
-        cat: ov.cat != null ? ov.cat : p.cat,
-        desc: ov.desc != null ? ov.desc : p.desc,
-        longDesc: ov.longDesc || '',
-        image: ov.image != null ? ov.image : p.image,
-        gallery: ov.gallery || [],
-        video: ov.video || '',
-        resell: ov.resell != null ? ov.resell : p.resell,
-        resellPrice: ov.resellPrice != null ? ov.resellPrice : null,
-        robuxPrice: ov.robuxPrice != null ? ov.robuxPrice : null,
-        tech: Object.assign(defaultTech(), ov.tech || {}),
-        legal: Object.assign(defaultLegal(), ov.legal || {}),
-        versions: ov.versions || [],
-        visible: ov.visible !== false,
-        extra: false
-      });
-    });
-    var extra = EXTRA_PRODUCTS.map(function (p) {
-      return Object.assign({}, p, {
-        longDesc: p.longDesc || '',
-        gallery: p.gallery || [],
-        video: p.video || '',
-        resellPrice: p.resellPrice != null ? p.resellPrice : null,
-        robuxPrice: p.robuxPrice != null ? p.robuxPrice : null,
-        tech: Object.assign(defaultTech(), p.tech || {}),
-        legal: Object.assign(defaultLegal(), p.legal || {}),
-        versions: p.versions || [],
-        extra: true,
-        visible: p.visible !== false
-      });
-    });
-    return base.concat(extra);
+  var PRODUCTS_CACHE = [];
+  function mapProductRow(row) {
+    var legalRaw = Array.isArray(row.product_legal) ? (row.product_legal[0] || {}) : (row.product_legal || {});
+    return {
+      id: row.slug,
+      dbId: row.id,
+      title: row.title,
+      price: Number(row.price_usd) || 0,
+      priceNum: Number(row.price_usd) || 0,
+      cat: row.cat,
+      subcat: row.subcat,
+      desc: row.description || '',
+      longDesc: row.long_description || '',
+      image: row.image,
+      gallery: row.gallery || [],
+      video: row.video || '',
+      resell: !!row.resell_available,
+      resellPrice: row.resell_price_usd != null ? Number(row.resell_price_usd) : null,
+      robuxPrice: row.robux_price != null ? Number(row.robux_price) : null,
+      tech: Object.assign(defaultTech(), row.tech || {}),
+      legal: Object.assign(defaultLegal(), {
+        tos: legalRaw.tos, proofFiles: legalRaw.proof_files, devProofFiles: legalRaw.dev_proof_files,
+        contacts: legalRaw.contacts, licenseCost: legalRaw.license_cost, licenseCostCurrency: legalRaw.license_cost_currency,
+        licensePurchasedAt: legalRaw.license_purchased_at, minSaleUsd: legalRaw.min_sale_usd, minSaleRobux: legalRaw.min_sale_robux,
+        canBeFree: legalRaw.can_be_free, disallowSales: legalRaw.disallow_sales
+      }),
+      versions: row.versions || [],
+      visible: !!row.is_active,
+      platform: row.platform,
+      page: row.page,
+      reviews: row.reviews_count || 0,
+      rating: Number(row.rating) || 0
+    };
   }
+  function refreshProducts() {
+    if (!window.coldSupabase) return Promise.resolve();
+    return window.coldSupabase.from('products').select('*, product_legal(*)').order('title').then(function (res) {
+      if (res.error) { console.error('[admin] failed to load products:', res.error.message); return; }
+      PRODUCTS_CACHE = (res.data || []).map(mapProductRow);
+      renderAll();
+    });
+  }
+  function allProducts() { return PRODUCTS_CACHE; }
   function findProduct(id) { return allProducts().filter(function (p) { return p.id === id; })[0]; }
-  function saveProductFields(id, isExtra, fields) {
-    if (isExtra) {
-      var ep = EXTRA_PRODUCTS.filter(function (x) { return x.id === id; })[0];
-      if (ep) Object.assign(ep, fields);
-      saveExtraProducts();
-    } else {
-      PROD_OV[id] = Object.assign({}, PROD_OV[id], fields);
-      saveProdOv();
-    }
+
+  // Builds the full admin-upsert-product payload from a product's current
+  // view-model plus whatever's changing - the Edge Function replaces every
+  // field on each call (it's a full upsert, not a patch), so every call site
+  // must always send the complete current state, not just a delta.
+  function upsertPayloadFor(p, overrides) {
+    return Object.assign({
+      id: p.dbId,
+      title: p.title,
+      platform: p.platform,
+      price: p.priceNum,
+      cat: p.cat,
+      subcat: p.subcat,
+      desc: p.desc,
+      longDesc: p.longDesc,
+      image: p.image,
+      gallery: p.gallery,
+      video: p.video,
+      resell: p.resell,
+      resellPrice: p.resellPrice,
+      robuxPrice: p.robuxPrice,
+      visible: p.visible,
+      tech: p.tech,
+      versions: p.versions,
+      legal: p.legal
+    }, overrides || {});
+  }
+  function callUpsertProduct(payload) {
+    return window.coldSupabase.functions.invoke('admin-upsert-product', { body: payload }).then(function (res) {
+      if (res.error || !res.data || !res.data.ok) {
+        throw new Error((res.data && res.data.error) || (res.error && res.error.message) || 'Save failed.');
+      }
+      return res.data;
+    });
+  }
+  function callDeleteProduct(dbId) {
+    return window.coldSupabase.functions.invoke('admin-delete-product', { body: { id: dbId } }).then(function (res) {
+      if (res.error || !res.data || !res.data.ok) {
+        throw new Error((res.data && res.data.error) || (res.error && res.error.message) || 'Delete failed.');
+      }
+      return res.data;
+    });
   }
 
   /* ================================================================
@@ -605,7 +644,7 @@
       var rating = (p.rating || 0).toFixed(1);
       return '<tr data-id="' + esc(p.id) + '">' +
         '<td><span class="dr-thumb" style="background-image:url(\'' + p.image + '\');width:52px;height:38px;display:inline-block;vertical-align:middle;border-radius:7px;"></span></td>' +
-        '<td><a class="dt-link" href="product.html?id=' + esc(p.id) + '" target="_blank" rel="noopener">' + esc(p.title) + '</a>' + (p.extra ? ' <span class="adm-sub">(admin-only)</span>' : '') + '</td>' +
+        '<td><a class="dt-link" href="product.html?id=' + esc(p.id) + '" target="_blank" rel="noopener">' + esc(p.title) + '</a></td>' +
         '<td><span class="adm-cat-tag">' + esc(p.cat || 'Uncategorized') + '</span></td>' +
         '<td>' + (p.visible
           ? '<button type="button" class="dt-badge ok adm-prod-toggle"' + (can('admin') ? '' : ' disabled') + '>Released</button>'
@@ -625,15 +664,15 @@
     var p = findProduct(id); if (!p) return;
     if (e.target.closest('.adm-prod-toggle')) {
       if (!can('admin')) return;
-      if (p.extra) {
-        var ep = EXTRA_PRODUCTS.filter(function (x) { return x.id === id; })[0];
-        if (ep) { ep.visible = !(ep.visible !== false); saveExtraProducts(); }
-      } else {
-        PROD_OV[id] = Object.assign({}, PROD_OV[id], { visible: !p.visible });
-        saveProdOv();
-      }
-      logAudit((p.visible ? 'Unreleased' : 'Released') + ' product "' + p.title + '"');
-      renderProducts();
+      var toggleBtn = e.target.closest('.adm-prod-toggle');
+      toggleBtn.disabled = true;
+      callUpsertProduct(upsertPayloadFor(p, { visible: !p.visible })).then(function () {
+        logAudit((p.visible ? 'Unreleased' : 'Released') + ' product "' + p.title + '"');
+        return refreshProducts();
+      }).catch(function (err) {
+        toggleBtn.disabled = false;
+        alert(err.message || 'Could not update product.');
+      });
     } else if (e.target.closest('.adm-prod-download')) {
       var a = document.createElement('a');
       a.href = 'placeholder.zip'; a.download = p.title.replace(/[^a-z0-9]+/gi, '-') + '.zip';
@@ -779,14 +818,14 @@
     $('admEditPrice').value = p.price;
     $('admEditRobuxPrice').value = p.robuxPrice != null ? p.robuxPrice : '';
     setEditPlatform(p.platform, p.cat);
-    document.querySelectorAll('#admEditPlatformToggle .adm-platform-btn').forEach(function (b) { b.disabled = !p.extra; });
+    document.querySelectorAll('#admEditPlatformToggle .adm-platform-btn').forEach(function (b) { b.disabled = false; });
     $('admEditSubtext').value = p.desc || '';
     $('admEditLongDesc').value = p.longDesc || '';
     $('admEditResell').checked = !!p.resell;
     $('admEditResellPrice').value = p.resellPrice != null ? p.resellPrice : '';
     $('admEditResellPriceWrap').hidden = !p.resell;
     $('admEditReleased').checked = !!p.visible;
-    $('admEditDeleteBtn').hidden = !p.extra;
+    $('admEditDeleteBtn').hidden = false;
     $('admEditHeading').textContent = 'Edit: ' + p.title;
     $('admEditSaveBtn').textContent = 'Save changes';
     $('admEditMsg').textContent = '';
@@ -1029,44 +1068,61 @@
     var isCreate = !id;
     var platform = $('admEditPlatform').value;
     var msg = $('admEditMsg');
+    var saveBtn = $('admEditSaveBtn');
 
     if (isCreate) {
       var title = $('admEditTitleInput').value.trim();
       if (!title) { if (msg) msg.textContent = 'Enter a title.'; return; }
-      var fields = Object.assign({ title: title }, collectEditFields());
+      var fields = Object.assign({ title: title, platform: platform }, collectEditFields());
       if (!fields.image) fields.image = 'banner.jpg';
-      var newId = title.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-' + Date.now().toString(36);
-      EXTRA_PRODUCTS.push(Object.assign({
-        id: newId, platform: platform,
-        page: platform === 'Minecraft' ? 'minecraft.html' : 'assets.html',
-        priceNum: fields.price, rating: 0, reviews: 0, versions: []
-      }, fields));
-      saveExtraProducts();
-      logAudit('Created product "' + title + '"');
-      openProductEdit(newId);
-      if (msg) msg.textContent = 'Created.';
-      renderProducts();
+      if (saveBtn) saveBtn.disabled = true;
+      if (msg) msg.textContent = 'Creating…';
+      callUpsertProduct(fields).then(function (res) {
+        logAudit('Created product "' + title + '"');
+        return refreshProducts().then(function () {
+          if (saveBtn) saveBtn.disabled = false;
+          var created = allProducts().filter(function (p) { return p.dbId === res.id; })[0];
+          if (created) openProductEdit(created.id);
+          if (msg) msg.textContent = 'Created.';
+        });
+      }).catch(function (err) {
+        if (saveBtn) saveBtn.disabled = false;
+        if (msg) msg.textContent = err.message || 'Could not create product.';
+      });
       return;
     }
 
     var p = findProduct(id); if (!p) return;
-    var fields = Object.assign({ title: $('admEditTitleInput').value.trim() || p.title }, collectEditFields());
-    if (p.extra) fields.platform = platform;
-    saveProductFields(id, p.extra, fields);
-    logAudit('Updated product "' + fields.title + '"');
-    if (msg) msg.textContent = 'Saved.';
-    renderProducts();
+    var fields = Object.assign({ title: $('admEditTitleInput').value.trim() || p.title, platform: platform }, collectEditFields());
+    if (saveBtn) saveBtn.disabled = true;
+    if (msg) msg.textContent = 'Saving…';
+    callUpsertProduct(upsertPayloadFor(p, fields)).then(function () {
+      logAudit('Updated product "' + fields.title + '"');
+      return refreshProducts();
+    }).then(function () {
+      if (saveBtn) saveBtn.disabled = false;
+      if (msg) msg.textContent = 'Saved.';
+    }).catch(function (err) {
+      if (saveBtn) saveBtn.disabled = false;
+      if (msg) msg.textContent = err.message || 'Could not save product.';
+    });
   });
   var editDeleteBtn = $('admEditDeleteBtn');
   if (editDeleteBtn) editDeleteBtn.addEventListener('click', function () {
     if (!can('admin')) return;
     var id = $('admEditId').value;
     var p = findProduct(id); if (!p) return;
-    if (!confirm('Delete "' + p.title + '"? This can\'t be undone.')) return;
-    EXTRA_PRODUCTS = EXTRA_PRODUCTS.filter(function (x) { return x.id !== id; });
-    saveExtraProducts();
-    logAudit('Deleted admin-only product "' + p.title + '"');
-    showPanel('products');
+    if (!confirm('Remove "' + p.title + '" from the storefront? You can bring it back later by editing it and turning Released back on.')) return;
+    editDeleteBtn.disabled = true;
+    callDeleteProduct(p.dbId).then(function () {
+      logAudit('Removed product "' + p.title + '"');
+      return refreshProducts();
+    }).then(function () {
+      showPanel('products');
+    }).catch(function (err) {
+      editDeleteBtn.disabled = false;
+      alert(err.message || 'Could not remove product.');
+    });
   });
 
   /* ================================================================
@@ -1154,16 +1210,24 @@
 
     var versions = (p.versions || []).slice();
     versions.push({ version: version, changelog: changelog, date: new Date().toISOString() });
-    var fields = { versions: versions };
-    if (!$('admUpdDescWrap').hidden) fields.longDesc = $('admUpdDescInput').value.trim();
+    var overrides = { versions: versions };
+    if (!$('admUpdDescWrap').hidden) overrides.longDesc = $('admUpdDescInput').value.trim();
 
-    saveProductFields(updSelectedId, p.extra, fields);
-    logAudit('Pushed update ' + version + ' for "' + p.title + '"');
-    if (msg) msg.textContent = 'Update pushed.';
-    $('admUpdVersion').value = '';
-    $('admUpdChangelog').value = '';
-    renderUpdHistory(findProduct(updSelectedId));
-    renderProducts();
+    updSubmitBtn.disabled = true;
+    if (msg) msg.textContent = 'Pushing…';
+    callUpsertProduct(upsertPayloadFor(p, overrides)).then(function () {
+      logAudit('Pushed update ' + version + ' for "' + p.title + '"');
+      return refreshProducts();
+    }).then(function () {
+      updSubmitBtn.disabled = false;
+      if (msg) msg.textContent = 'Update pushed.';
+      $('admUpdVersion').value = '';
+      $('admUpdChangelog').value = '';
+      renderUpdHistory(findProduct(updSelectedId));
+    }).catch(function (err) {
+      updSubmitBtn.disabled = false;
+      if (msg) msg.textContent = err.message || 'Could not push update.';
+    });
   });
 
   /* ================================================================
@@ -1950,4 +2014,5 @@
      ================================================================ */
   renderTopbar();
   showPanel('home');
+  refreshProducts();
 })();

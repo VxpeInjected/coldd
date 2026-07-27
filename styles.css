@@ -1416,7 +1416,9 @@ button.dt-badge:disabled { cursor: default; opacity: 0.6; }
   color: var(--fg-2); padding: 7px 14px; border-radius: 999px; background: var(--bg-3); border: 1px solid var(--hairline); }
 .he-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 10px var(--accent); }
 .hero-h1 { font-size: clamp(40px, 5.6vw, 66px); font-weight: 800; line-height: 1.03; letter-spacing: -0.04em; margin: 22px 0 0; }
-.hero-h1 .hl { color: var(--accent); }
+.hero-h1 .hl { color: var(--accent); display: inline-block; transition: opacity .35s ease; }
+.hero-h1 .hl.hl-fade { opacity: 0; }
+.hero-h1 .hl.hl-minecraft { color: #6cc25c; }
 .hero-sub { font-size: clamp(16px, 1.5vw, 18.5px); color: var(--fg-2); line-height: 1.62; max-width: 520px; margin: 20px 0 0; }
 .hero-copy .hero-cta { display: flex; justify-content: flex-start; gap: 12px; flex-wrap: wrap; margin-top: 30px; }
 .hero-copy .hero-cta .btn { min-height: 50px; padding: 0 30px; font-size: 15px; }

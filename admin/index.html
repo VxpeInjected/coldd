@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 
-  <link rel="stylesheet" href="/styles.css?v=20260727e" />
+  <link rel="stylesheet" href="/styles.css?v=20260727f" />
 </head>
 <body class="adm-body">
   <div class="backdrop"></div>
@@ -204,6 +204,16 @@
                       <div class="adm-dd-menu" role="listbox" aria-label="Category" hidden></div>
                     </div>
                     <input type="hidden" id="admEditCat" />
+                  </label>
+                  <label class="adm-field"><span>Subcategory</span>
+                    <div class="adm-dd" id="admEditSubcatDD">
+                      <button type="button" class="adm-dd-btn" aria-haspopup="listbox" aria-expanded="false">
+                        <span class="adm-dd-val placeholder">None</span>
+                        <svg class="adm-dd-chev" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                      </button>
+                      <div class="adm-dd-menu" role="listbox" aria-label="Subcategory" hidden></div>
+                    </div>
+                    <input type="hidden" id="admEditSubcat" />
                   </label>
                   <label class="adm-field"><span>Price (USD)</span><input type="number" min="0" step="0.01" id="admEditPrice" class="adm-input" required /></label>
                   <label class="adm-field">
@@ -695,6 +705,6 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script src="/supabase-init.js?v=20260727a"></script>
-  <script src="/catalog.js?v=20260727f" data-then="/blog.js?v=20260727c,/reviews.js?v=20260727c,/admin.js?v=20260727e"></script>
+  <script src="/catalog.js?v=20260727f" data-then="/blog.js?v=20260727c,/reviews.js?v=20260727c,/admin.js?v=20260727f"></script>
 </body>
 </html>

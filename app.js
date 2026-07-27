@@ -199,6 +199,27 @@
     }
 
     (function () {
+      const el = document.getElementById('heroHl');
+      if (!el) return;
+      const WORDS = [
+        { text: 'Roblox game', hold: 6000, minecraft: false },
+        { text: 'Minecraft server', hold: 1800, minecraft: true }
+      ];
+      let i = 0;
+      function next() {
+        el.classList.add('hl-fade');
+        setTimeout(function () {
+          i = (i + 1) % WORDS.length;
+          el.textContent = WORDS[i].text;
+          el.classList.toggle('hl-minecraft', WORDS[i].minecraft);
+          el.classList.remove('hl-fade');
+          setTimeout(next, WORDS[i].hold);
+        }, 350);
+      }
+      setTimeout(next, WORDS[0].hold);
+    })();
+
+    (function () {
       const track = document.getElementById('nrTrack');
       if (!track) return;
       const dotsWrap = document.getElementById('nrDots');

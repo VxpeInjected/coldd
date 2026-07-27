@@ -730,6 +730,21 @@
     Roblox: ['Finished Games & Templates', 'Maps', 'Scripts & UI', 'Graphics', 'Buildings', 'Assets', 'Uniforms & Gear', 'Boats', 'Weapons', 'Vehicles', 'Animations & VFX'],
     Minecraft: ['Hubs', 'Lobbies', 'Maps', 'Builds', 'Plugins', 'Full Setups']
   };
+  // Mirrors the sidebar subcategory filter tree on assets.html/minecraft.html
+  // (Minecraft categories have no subcategories at all, hence no entries here).
+  var SUBCATS_BY_CAT = {
+    'Finished Games & Templates': [['finished-games', 'Finished Games'], ['game-templates', 'Game Templates']],
+    'Maps': [['cities-towns', 'Cities & Towns'], ['houses-estates', 'Houses & Estates'], ['military-government', 'Military & Government'], ['nature-terrain', 'Nature & Terrain'], ['scpf', 'SCPF'], ['sci-fi', 'Sci-Fi'], ['airports-aviation', 'Airports & Aviation'], ['medieval', 'Medieval'], ['lobby-spawns', 'Lobby & Spawns'], ['cafes-retail', 'Cafes & Retail'], ['ugc-showcase-homestores', 'UGC Showcase & Homestores'], ['combat', 'Combat'], ['low-poly-simulator', 'Low Poly & Simulator']],
+    'Scripts & UI': [['scripted-systems', 'Scripted Systems'], ['non-scripted-ui', 'Non-Scripted UI'], ['ui-packs', 'UI Packs'], ['roleplay', 'Roleplay'], ['military', 'Military'], ['combat', 'Combat'], ['economy', 'Economy']],
+    'Graphics': [['military', 'Military'], ['scpf', 'SCPF'], ['logos', 'Logos']],
+    'Buildings': [['filler', 'Filler'], ['furnished', 'Furnished'], ['roleplay', 'Roleplay'], ['building-packs', 'Building Packs'], ['military', 'Military'], ['houses-residential', 'Houses & Residential'], ['government', 'Government'], ['medieval', 'Medieval'], ['scpf', 'SCPF'], ['sci-fi', 'Sci-Fi'], ['stores-commercial', 'Stores & Commercial']],
+    'Assets': [['asset-packs', 'Asset Packs'], ['realistic', 'Realistic'], ['medieval', 'Medieval'], ['sci-fi', 'Sci-Fi'], ['low-poly', 'Low Poly'], ['aviation', 'Aviation'], ['scpf', 'SCPF'], ['furniture', 'Furniture'], ['nature', 'Nature']],
+    'Uniforms & Gear': [['2d-uniforms', '2D Uniforms'], ['3d-gear', '3D Gear'], ['military-government', 'Military & Government'], ['roleplay', 'Roleplay'], ['aviation', 'Aviation'], ['morphs', 'Morphs']],
+    'Boats': [['military', 'Military'], ['civilian', 'Civilian'], ['commercial', 'Commercial']],
+    'Weapons': [['military', 'Military'], ['medieval', 'Medieval'], ['scripted', 'Scripted'], ['firearms', 'Firearms'], ['melees', 'Melees']],
+    'Vehicles': [['scripted', 'Scripted'], ['military', 'Military'], ['civilian', 'Civilian'], ['trains-locomotives', 'Trains & Locomotives'], ['emergency-services', 'Emergency Services']],
+    'Animations & VFX': [['vfx', 'VFX'], ['animations', 'Animations'], ['vfx-packs', 'VFX Packs'], ['combat', 'Combat'], ['auras', 'Auras']]
+  };
   var editContacts = [];
   var editProofFiles = [];
   var editDevProofFiles = [];
@@ -827,18 +842,31 @@
     { value: 'price-asc', label: 'Price: Low to High' }
   ], PROD_SORT);
 
-  var catDropdown = makeDropdown($('admEditCatDD'), { valueInput: $('admEditCat'), placeholder: 'Select category' });
-  function populateCategorySelect(platform, selected) {
+  var subcatDropdown = makeDropdown($('admEditSubcatDD'), { valueInput: $('admEditSubcat'), placeholder: 'None' });
+  function populateSubcatSelect(cat, selected) {
+    var subs = SUBCATS_BY_CAT[cat] || [];
+    var opts = subs.map(function (s) { return { value: s[0], label: s[1] }; });
+    if (selected && opts.filter(function (o) { return o.value === selected; }).length === 0) opts = opts.concat([{ value: selected, label: selected }]);
+    opts = [{ value: '', label: 'None' }].concat(opts);
+    subcatDropdown.setOptions(opts, selected || '');
+  }
+  var catDropdown = makeDropdown($('admEditCatDD'), {
+    valueInput: $('admEditCat'), placeholder: 'Select category',
+    onChange: function (cat) { populateSubcatSelect(cat, null); }
+  });
+  function populateCategorySelect(platform, selected, subcatToKeep) {
     var cats = CATEGORIES_BY_PLATFORM[platform] || [];
     if (selected && cats.indexOf(selected) < 0) cats = cats.concat([selected]);
-    catDropdown.setOptions(cats, selected || cats[0] || '');
+    var finalCat = selected || cats[0] || '';
+    catDropdown.setOptions(cats, finalCat);
+    populateSubcatSelect(finalCat, subcatToKeep);
   }
-  function setEditPlatform(platform, catToKeep) {
+  function setEditPlatform(platform, catToKeep, subcatToKeep) {
     $('admEditPlatform').value = platform;
     document.querySelectorAll('#admEditPlatformToggle .adm-platform-btn').forEach(function (b) {
       b.classList.toggle('active', b.getAttribute('data-platform') === platform);
     });
-    populateCategorySelect(platform, catToKeep);
+    populateCategorySelect(platform, catToKeep, subcatToKeep);
   }
   function updateDevexHint() {
     var usdPrice = parseFloat($('admEditPrice').value) || 0;
@@ -905,7 +933,7 @@
     $('admEditTitleInput').value = p.title;
     $('admEditPrice').value = p.price;
     $('admEditRobuxPrice').value = p.robuxPrice != null ? p.robuxPrice : '';
-    setEditPlatform(p.platform, p.cat);
+    setEditPlatform(p.platform, p.cat, p.subcat);
     document.querySelectorAll('#admEditPlatformToggle .adm-platform-btn').forEach(function (b) { b.disabled = false; });
     $('admEditSubtext').value = p.desc || '';
     $('admEditLongDesc').value = p.longDesc || '';
@@ -1121,6 +1149,7 @@
       price: Math.max(0, parseFloat($('admEditPrice').value) || 0),
       robuxPrice: $('admEditRobuxPrice').value === '' ? null : Math.max(0, parseFloat($('admEditRobuxPrice').value) || 0),
       cat: $('admEditCat').value,
+      subcat: $('admEditSubcat').value || null,
       desc: $('admEditSubtext').value.trim(),
       longDesc: $('admEditLongDesc').value.trim(),
       resell: $('admEditResell').checked,

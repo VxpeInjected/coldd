@@ -266,6 +266,15 @@
 
       start();
       document.addEventListener('visibilitychange', function () { document.hidden ? stop() : start(); });
+
+      // Without this, the slide can auto-advance out from under the cursor
+      // between the user reading a slide and clicking it, sending them to
+      // whatever product rotated in next instead of the one they saw.
+      var frame = track.closest('.nr-frame') || track;
+      frame.addEventListener('mouseenter', stop);
+      frame.addEventListener('mouseleave', start);
+      frame.addEventListener('focusin', stop);
+      frame.addEventListener('focusout', start);
     })();
 
     const tpanels = document.querySelectorAll('.tpanel');
@@ -528,11 +537,15 @@
           Array.prototype.slice.call(grid.querySelectorAll('.product')).forEach(function (el) {
             var nameEl = el.querySelector('.p-name');
             var t = nameEl ? nameEl.textContent.trim() : '';
-            existingByCardId[t.toLowerCase().replace(/[^a-z0-9]+/g, '-')] = el;
+            existingByCardId[t.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')] = el;
           });
           (window.__CATALOG || []).filter(function (p) { return p.platform === shopPlatform; }).forEach(function (p) {
             var existing = existingByCardId[p.id];
-            if (existing) { if (p.createdAt) existing.setAttribute('data-created', p.createdAt); return; }
+            if (existing) {
+              existing.setAttribute('data-id', p.id);
+              if (p.createdAt) existing.setAttribute('data-created', p.createdAt);
+              return;
+            }
             var onSale = p.was > p.priceNum;
             var offPct = onSale ? Math.round((1 - p.priceNum / p.was) * 100) : 0;
             var starsHtml = '';
@@ -543,6 +556,7 @@
             }
             var art = document.createElement('article');
             art.className = 'product';
+            art.setAttribute('data-id', p.id);
             art.setAttribute('data-cat', catSlugByLabel[p.cat] || '');
             art.setAttribute('data-price', p.priceNum);
             art.setAttribute('data-reviews', p.reviews || 0);
@@ -978,7 +992,8 @@
           price = du != null ? (parseFloat(du) || 0) : (parseFloat(priceEl.textContent.replace(/[^0-9.]/g, '')) || 0);
         }
         var mc = !!card.closest('#view-minecraft') || /minecraft/i.test(location.pathname);
-        return { id: title.toLowerCase().replace(/[^a-z0-9]+/g, '-'), title: title, price: price,
+        var cardId = card.getAttribute('data-id') || title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+        return { id: cardId, title: title, price: price,
                  image: m ? m[1] : '', tag: tag,
                  desc: descEl ? descEl.textContent.trim() : '',
                  platform: mc ? 'Minecraft' : 'Roblox',
@@ -1034,7 +1049,7 @@
 
       window.__openProduct = function (data) {
         openModal({
-          id: (data.id || data.title).toString().toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+          id: (data.id || data.title).toString().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, ''),
           title: data.title,
           price: typeof data.price === 'number' ? data.price : (parseFloat(String(data.price).replace(/[^0-9.]/g, '')) || 0),
           image: data.image || '',
@@ -1229,7 +1244,7 @@
           return h;
         }
         function relatedCard(p) {
-          return '<article class="product" data-resell="' + (p.resell ? 'yes' : 'no') + '" data-catlabel="' + esc(p.cat) + '" data-price="' + p.priceNum + '">' +
+          return '<article class="product" data-id="' + esc(p.id) + '" data-resell="' + (p.resell ? 'yes' : 'no') + '" data-catlabel="' + esc(p.cat) + '" data-price="' + p.priceNum + '">' +
             '<div class="p-thumb" style="background-image:url(\'' + p.image + '\')"></div>' +
             '<div class="p-body"><h3 class="p-name">' + esc(p.title) + '</h3>' +
             '<div class="p-price-row"><span class="p-price" data-usd="' + p.priceNum + '">' + (window.__money ? window.__money(p.priceNum) : ('$' + p.priceNum)) + '</span></div>' +

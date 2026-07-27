@@ -14,14 +14,14 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>coldd Admin</title>
-  <link rel="icon" type="image/png" href="logo.png" />
+  <link rel="icon" type="image/png" href="/logo.png" />
   <meta name="robots" content="noindex, nofollow" />
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 
-  <link rel="stylesheet" href="styles.css?v=20260727c" />
+  <link rel="stylesheet" href="/styles.css?v=20260727c" />
 </head>
 <body class="adm-body">
   <div class="backdrop"></div>
@@ -30,16 +30,16 @@
 
   <div class="adm-gate" id="admGate" hidden>
     <div class="adm-gate-card glass">
-      <img class="logo" src="logo.png" alt="coldd" />
+      <img class="logo" src="/logo.png" alt="coldd" />
       <h1>Staff access only</h1>
       <p>This dashboard is restricted to whitelisted coldd staff. If you believe this is a mistake, reach out in Discord.</p>
-      <a class="btn btn-primary" href="index.html">Back to site</a>
+      <a class="btn btn-primary" href="/">Back to site</a>
     </div>
   </div>
 
   <div id="admShell" hidden>
     <header class="adm-topbar">
-      <a class="brand" href="index.html" aria-label="coldd home"><img class="logo" src="logo.png" alt="coldd" /></a>
+      <a class="brand" href="/" aria-label="coldd home"><img class="logo" src="/logo.png" alt="coldd" /></a>
       <span class="adm-tag">Admin</span>
       <span class="adm-mode-flag" id="admModeBanner"></span>
       <div class="adm-topbar-right">
@@ -53,7 +53,7 @@
           </div>
         </label>
         <span class="dash-av" id="admAvatar">A</span>
-        <a class="btn btn-ghost adm-btn-sm" href="index.html">Exit to site</a>
+        <a class="btn btn-ghost adm-btn-sm" href="/">Exit to site</a>
       </div>
     </header>
 
@@ -191,8 +191,8 @@
                 <div class="adm-field">
                   <span>Platform</span>
                   <div class="adm-platform-toggle" id="admEditPlatformToggle">
-                    <button type="button" class="btn btn-primary adm-platform-btn active" data-platform="Roblox"><img class="btn-plat-ic" src="roblox-studio.png" alt="" width="20" height="20" /> Roblox</button>
-                    <button type="button" class="btn btn-minecraft adm-platform-btn" data-platform="Minecraft"><img class="btn-plat-ic" src="minecraft-icon.webp" alt="" width="20" height="20" /> Minecraft</button>
+                    <button type="button" class="btn btn-primary adm-platform-btn active" data-platform="Roblox"><img class="btn-plat-ic" src="/roblox-studio.png" alt="" width="20" height="20" /> Roblox</button>
+                    <button type="button" class="btn btn-minecraft adm-platform-btn" data-platform="Minecraft"><img class="btn-plat-ic" src="/minecraft-icon.webp" alt="" width="20" height="20" /> Minecraft</button>
                   </div>
                   <input type="hidden" id="admEditPlatform" value="Roblox" />
                 </div>
@@ -697,7 +697,7 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="supabase-init.js?v=20260727a"></script>
-  <script src="catalog.js?v=20260727b" data-then="blog.js?v=20260727c,reviews.js?v=20260727c,admin.js?v=20260727c"></script>
+  <script src="/supabase-init.js?v=20260727a"></script>
+  <script src="/catalog.js?v=20260727b" data-then="/blog.js?v=20260727c,/reviews.js?v=20260727c,/admin.js?v=20260727c"></script>
 </body>
 </html>

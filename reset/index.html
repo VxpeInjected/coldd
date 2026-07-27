@@ -14,9 +14,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>coldd Development New password</title>
-  <link rel="icon" type="image/png" href="logo.png" />
+  <link rel="icon" type="image/png" href="/logo.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" /><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin /><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css?v=20260727c" />
+  <link rel="stylesheet" href="/styles.css?v=20260727c" />
 </head>
 <body class="auth-page">
   <div class="backdrop"></div>
@@ -25,14 +25,14 @@
   <div class="grain"></div>
   <header class="nav" id="nav">
     <div class="nav-inner">
-      <a class="brand" href="index.html" aria-label="coldd home"><img class="logo" src="logo.png" alt="coldd" /></a>
+      <a class="brand" href="/" aria-label="coldd home"><img class="logo" src="/logo.png" alt="coldd" /></a>
       <nav class="nav-links" aria-label="Primary">
         <span class="nav-set">
-          <a href="index.html">Home</a><a href="assets.html">Shop</a><a href="blog.html">Blog &amp; Tutorials</a><a href="about.html">About Us</a>
+          <a href="/">Home</a><a href="/assets">Shop</a><a href="/blog">Blog &amp; Tutorials</a><a href="/about">About Us</a>
         </span>
       </nav>
       <div class="nav-cta">
-        <a class="nav-account" href="dashboard.html" aria-label="Account / dashboard">
+        <a class="nav-account" href="/dashboard" aria-label="Account / dashboard">
           <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>
         </a>
         <a class="btn btn-primary" href="https://discord.gg/coldd" target="_blank" rel="noopener">
@@ -77,16 +77,16 @@
         <button class="btn btn-primary auth-submit" type="submit">Update password</button>
         <div class="auth-msg"></div>
       </form>
-      <p class="auth-alt"><a href="signin.html">← Back to sign in</a></p>
+      <p class="auth-alt"><a href="/signin">← Back to sign in</a></p>
     </div>
     </div>
     <div class="auth-split-right">
-      <div class="auth-split-logo"><img src="logo.png" alt="" /></div>
+      <div class="auth-split-logo"><img src="/logo.png" alt="" /></div>
     </div>
   </main>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="supabase-init.js?v=20260727a"></script>
-  <script src="auth.js"></script>
+  <script src="/supabase-init.js?v=20260727a"></script>
+  <script src="/auth.js"></script>
   <script>
     (function () {
       var hash = location.hash || '';
@@ -98,7 +98,7 @@
       if (form) form.hidden = true;
       if (sub) {
         sub.innerHTML = (desc ? desc.replace(/\+/g, ' ') : 'This reset link is invalid or has expired.') +
-          ' <a href="forgot.html">Request a new link</a>.';
+          ' <a href="/forgot">Request a new link</a>.';
       }
       history.replaceState(null, '', location.pathname);
     })();

@@ -13,20 +13,35 @@
   </div>
 </div>
 <script>
-  // Not real security - this is a client-side visibility gate for a
-  // pre-launch domain, not a secure fortress. Anyone who views this page's
-  // source can read the password below. Delete this file before launch.
-  var PASSWORD = 'coldd.Developers.8283';
+  // Password is checked server-side via a Supabase Edge Function - it is
+  // never present in this file, so it can't be read via view-source or
+  // devtools like the old version could.
+  var SUPABASE_URL = 'https://ekinmytmudjwfaqaqswp.supabase.co';
+  var ANON_KEY = 'sb_publishable_q5JwjFnMT_0Uhu5rAlAkQA_DEGnhwV7';
 
-  document.getElementById('lockForm').addEventListener('submit', function (e) {
+  document.getElementById('lockForm').addEventListener('submit', async function (e) {
     e.preventDefault();
     var v = document.getElementById('lockPw').value;
-    if (v === PASSWORD) {
-      try { sessionStorage.setItem('coldd_unlocked', '1'); } catch (err) {}
-      var params = new URLSearchParams(location.search);
-      var dest = params.get('r');
-      location.replace(dest ? decodeURIComponent(dest) : '/');
-    } else {
+    var btn = e.target.querySelector('button');
+    btn.disabled = true;
+    try {
+      var res = await fetch(SUPABASE_URL + '/functions/v1/lock-check', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'apikey': ANON_KEY },
+        body: JSON.stringify({ password: v })
+      });
+      var data = await res.json();
+      btn.disabled = false;
+      if (data && data.ok) {
+        try { sessionStorage.setItem('coldd_unlocked', '1'); } catch (err) {}
+        var params = new URLSearchParams(location.search);
+        var dest = params.get('r');
+        location.replace(dest ? decodeURIComponent(dest) : '/');
+      } else {
+        document.getElementById('lockErr').style.display = 'block';
+      }
+    } catch (err) {
+      btn.disabled = false;
       document.getElementById('lockErr').style.display = 'block';
     }
   });

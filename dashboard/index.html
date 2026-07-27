@@ -22,22 +22,22 @@
         var raw = localStorage.getItem('sb-ekinmytmudjwfaqaqswp-auth-token');
         var parsed = raw && JSON.parse(raw);
         if (!parsed || !parsed.expires_at || parsed.expires_at * 1000 < Date.now()) {
-          location.href = 'signin.html';
+          location.href = '/signin';
         }
-      } catch (e) { location.href = 'signin.html'; }
+      } catch (e) { location.href = '/signin'; }
     })();
   </script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>coldd Development Dashboard</title>
-  <link rel="icon" type="image/png" href="logo.png" />
+  <link rel="icon" type="image/png" href="/logo.png" />
   <meta name="description" content="coldd is a Roblox development studio. Scripting, environments, modeling, and VFX, building and shipping polished experiences." />
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 
-  <link rel="stylesheet" href="styles.css?v=20260727c" />
+  <link rel="stylesheet" href="/styles.css?v=20260727c" />
 </head>
 <body>
   <div class="backdrop"></div>
@@ -47,19 +47,19 @@
 
   <div class="announce" id="announce">
     <div class="announce-inner">
-      <p class="announce-msg">Spring Sale is live — <strong>30% off</strong> every Roblox template through Sunday. <a class="announce-link" href="assets.html">Shop the sale →</a></p>
+      <p class="announce-msg">Spring Sale is live — <strong>30% off</strong> every Roblox template through Sunday. <a class="announce-link" href="/assets">Shop the sale →</a></p>
     </div>
     <button class="announce-x" id="announceX" type="button" aria-label="Dismiss announcement"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
   </div>
 
   <header class="nav" id="nav">
     <div class="nav-inner">
-      <a class="brand" href="index.html" aria-label="coldd home">
-        <img class="logo" src="logo.png" alt="coldd" />
+      <a class="brand" href="/" aria-label="coldd home">
+        <img class="logo" src="/logo.png" alt="coldd" />
       </a>
       <nav class="nav-links" aria-label="Primary">
         <span class="nav-set">
-          <a href="index.html">Home</a><a href="assets.html" id="shopLink">Shop</a><a href="blog.html" id="blogLink">Blog &amp; Tutorials</a><a href="about.html" id="aboutLink">About Us</a>
+          <a href="/">Home</a><a href="/assets" id="shopLink">Shop</a><a href="/blog" id="blogLink">Blog &amp; Tutorials</a><a href="/about" id="aboutLink">About Us</a>
         </span>
         <span class="nav-search-wrap">
           <button class="nav-search" id="searchBtn" type="button" aria-label="Search"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg></button>
@@ -88,29 +88,29 @@
           <button class="nmt-tab" type="button" data-platform="minecraft" role="tab" aria-selected="false">Minecraft</button>
         </div>
         <div class="nav-mega-cats" data-platform-panel="roblox">
-          <a href="assets.html?cat=game-templates">Finished Games &amp; Templates</a>
-          <a href="assets.html?cat=maps">Maps</a>
-          <a href="assets.html?cat=scripts-ui">Scripts &amp; UI</a>
-          <a href="assets.html?cat=graphics">Graphics</a>
-          <a href="assets.html?cat=buildings">Buildings</a>
-          <a href="assets.html?cat=assets">Assets</a>
-          <a href="assets.html?cat=uniforms-gear">Uniforms &amp; Gear</a>
-          <a href="assets.html?cat=boats">Boats</a>
-          <a href="assets.html?cat=weapons">Weapons</a>
-          <a href="assets.html?cat=vehicles">Vehicles</a>
-          <a href="assets.html?cat=animations-vfx">Animations &amp; VFX</a>
+          <a href="/assets?cat=game-templates">Finished Games &amp; Templates</a>
+          <a href="/assets?cat=maps">Maps</a>
+          <a href="/assets?cat=scripts-ui">Scripts &amp; UI</a>
+          <a href="/assets?cat=graphics">Graphics</a>
+          <a href="/assets?cat=buildings">Buildings</a>
+          <a href="/assets?cat=assets">Assets</a>
+          <a href="/assets?cat=uniforms-gear">Uniforms &amp; Gear</a>
+          <a href="/assets?cat=boats">Boats</a>
+          <a href="/assets?cat=weapons">Weapons</a>
+          <a href="/assets?cat=vehicles">Vehicles</a>
+          <a href="/assets?cat=animations-vfx">Animations &amp; VFX</a>
         </div>
         <div class="nav-mega-cats" data-platform-panel="minecraft" hidden>
-          <a href="minecraft.html?cat=hubs">Hubs</a>
-          <a href="minecraft.html?cat=lobbies">Lobbies</a>
-          <a href="minecraft.html?cat=maps">Maps</a>
-          <a href="minecraft.html?cat=builds">Builds</a>
-          <a href="minecraft.html?cat=plugins">Plugins</a>
-          <a href="minecraft.html?cat=setups">Full Setups</a>
+          <a href="/minecraft?cat=hubs">Hubs</a>
+          <a href="/minecraft?cat=lobbies">Lobbies</a>
+          <a href="/minecraft?cat=maps">Maps</a>
+          <a href="/minecraft?cat=builds">Builds</a>
+          <a href="/minecraft?cat=plugins">Plugins</a>
+          <a href="/minecraft?cat=setups">Full Setups</a>
         </div>
       </div>
-      <a class="nav-mega-feature" href="assets.html" id="navMegaFeature" data-href-roblox="assets.html" data-href-minecraft="minecraft.html" data-img-roblox="new-release.jpg" data-img-minecraft="minecraft.jpg">
-        <span class="nmf-img" style="background-image:url('new-release.jpg')"></span>
+      <a class="nav-mega-feature" href="/assets" id="navMegaFeature" data-href-roblox="/assets" data-href-minecraft="/minecraft" data-img-roblox="/new-release.jpg" data-img-minecraft="/minecraft.jpg">
+        <span class="nmf-img" style="background-image:url('/new-release.jpg')"></span>
         <span class="nmf-tag">New</span>
         <span class="nmf-title">New Releases</span>
         <span class="nmf-go">Browse all →</span>
@@ -138,7 +138,7 @@
         <a href="#" data-panel="notifications"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg><span>Notifications</span></a>
         <a href="#" data-panel="account"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg><span>Account Settings</span></a>
         </nav>
-        <a class="dash-admin-link" id="dashAdminLink" href="admin.html" hidden><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg> Admin Panel</a>
+        <a class="dash-admin-link" id="dashAdminLink" href="/admin" hidden><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg> Admin Panel</a>
         <button class="dash-signout" id="dashSignout" type="button"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/></svg> Sign out</button>
       </aside>
       <div class="dash-main">
@@ -153,9 +153,9 @@
         <div class="dash-card glass">
           <div class="dash-card-head"><h2>Recent purchases</h2><a href="#" data-panel="purchases">View all</a></div>
           <div class="dash-rows">
-            <div class="dash-row"><span class="dr-thumb" style="background-image:url('premade.jpg')"></span><div class="dr-main"><div class="dr-title">ALL BRAWL Full Game</div><div class="dr-sub">10 Jun 2026 · #CLD-1042</div></div><span class="p-price">$89</span></div>
-            <div class="dash-row"><span class="dr-thumb" style="background-image:url('new-release.jpg')"></span><div class="dr-main"><div class="dr-title">Cyberpunk District</div><div class="dr-sub">2 Jun 2026 · #CLD-0991</div></div><span class="p-price">$45</span></div>
-            <div class="dash-row"><span class="dr-thumb" style="background-image:url('scripts.jpg')"></span><div class="dr-main"><div class="dr-title">Combat HUD Kit</div><div class="dr-sub">21 May 2026 · #CLD-0934</div></div><span class="p-price">$18</span></div>
+            <div class="dash-row"><span class="dr-thumb" style="background-image:url('/premade.jpg')"></span><div class="dr-main"><div class="dr-title">ALL BRAWL Full Game</div><div class="dr-sub">10 Jun 2026 · #CLD-1042</div></div><span class="p-price">$89</span></div>
+            <div class="dash-row"><span class="dr-thumb" style="background-image:url('/new-release.jpg')"></span><div class="dr-main"><div class="dr-title">Cyberpunk District</div><div class="dr-sub">2 Jun 2026 · #CLD-0991</div></div><span class="p-price">$45</span></div>
+            <div class="dash-row"><span class="dr-thumb" style="background-image:url('/scripts.jpg')"></span><div class="dr-main"><div class="dr-title">Combat HUD Kit</div><div class="dr-sub">21 May 2026 · #CLD-0934</div></div><span class="p-price">$18</span></div>
           </div>
         </div>
       </section>
@@ -179,9 +179,9 @@
       <section class="dash-panel" id="panel-wishlist" hidden>
         <div class="dash-head"><h1>Wishlist</h1><p>Saved for later.</p></div>
         <div class="dash-card glass"><div class="dash-rows">
-          <div class="dash-row"><span class="dr-thumb" style="background-image:url('frostline.jpg')"></span><div class="dr-main"><div class="dr-title">Frostline Survival Kit</div><div class="dr-sub"><span class="p-price">$129</span></div></div><div class="dr-actions"><button class="btn btn-ghost dr-cart" type="button">Add to cart</button><button class="wl-remove" type="button" aria-label="Remove">×</button></div></div>
-          <div class="dash-row"><span class="dr-thumb" style="background-image:url('builds.jpg')"></span><div class="dr-main"><div class="dr-title">Containment Site</div><div class="dr-sub"><span class="p-price">$38</span></div></div><div class="dr-actions"><button class="btn btn-ghost dr-cart" type="button">Add to cart</button><button class="wl-remove" type="button" aria-label="Remove">×</button></div></div>
-          <div class="dash-row"><span class="dr-thumb" style="background-image:url('banner.jpg')"></span><div class="dr-main"><div class="dr-title">Logo & Icon Kit</div><div class="dr-sub"><span class="p-price">$20</span></div></div><div class="dr-actions"><button class="btn btn-ghost dr-cart" type="button">Add to cart</button><button class="wl-remove" type="button" aria-label="Remove">×</button></div></div>
+          <div class="dash-row"><span class="dr-thumb" style="background-image:url('/frostline.jpg')"></span><div class="dr-main"><div class="dr-title">Frostline Survival Kit</div><div class="dr-sub"><span class="p-price">$129</span></div></div><div class="dr-actions"><button class="btn btn-ghost dr-cart" type="button">Add to cart</button><button class="wl-remove" type="button" aria-label="Remove">×</button></div></div>
+          <div class="dash-row"><span class="dr-thumb" style="background-image:url('/builds.jpg')"></span><div class="dr-main"><div class="dr-title">Containment Site</div><div class="dr-sub"><span class="p-price">$38</span></div></div><div class="dr-actions"><button class="btn btn-ghost dr-cart" type="button">Add to cart</button><button class="wl-remove" type="button" aria-label="Remove">×</button></div></div>
+          <div class="dash-row"><span class="dr-thumb" style="background-image:url('/banner.jpg')"></span><div class="dr-main"><div class="dr-title">Logo & Icon Kit</div><div class="dr-sub"><span class="p-price">$20</span></div></div><div class="dr-actions"><button class="btn btn-ghost dr-cart" type="button">Add to cart</button><button class="wl-remove" type="button" aria-label="Remove">×</button></div></div>
         </div></div>
       </section>
       <section class="dash-panel" id="panel-referrals" hidden>
@@ -259,30 +259,30 @@
     <div class="wrap">
       <div class="foot-grid">
         <div class="foot-brand">
-          <a class="brand" href="index.html" aria-label="coldd home"><img class="logo" src="logo.png" alt="coldd" /></a>
+          <a class="brand" href="/" aria-label="coldd home"><img class="logo" src="/logo.png" alt="coldd" /></a>
         </div>
 
         <div class="foot-col">
           <h4>Explore</h4>
-          <a href="index.html">Home</a>
-          <a href="blog.html">Blog</a>
-          <a href="blog.html?view=tutorials">Tutorials</a>
-          <a href="releases.html">Releases</a>
-          <a href="assets.html">Products</a>
-          <a href="faq.html">FAQ</a>
+          <a href="/">Home</a>
+          <a href="/blog">Blog</a>
+          <a href="/blog?view=tutorials">Tutorials</a>
+          <a href="/releases">Releases</a>
+          <a href="/assets">Products</a>
+          <a href="/faq">FAQ</a>
         </div>
 
         <div class="foot-col">
           <h4>Our Assets</h4>
-          <a href="assets.html">Roblox</a>
-          <a href="minecraft.html">Minecraft</a>
+          <a href="/assets">Roblox</a>
+          <a href="/minecraft">Minecraft</a>
         </div>
 
         <div class="foot-col">
           <h4>Account</h4>
-          <a href="signin.html">Sign in</a>
-          <a href="signup.html">Create Account</a>
-          <a href="dashboard.html">Dashboard</a>
+          <a href="/signin">Sign in</a>
+          <a href="/signup">Create Account</a>
+          <a href="/dashboard">Dashboard</a>
         </div>
 
         <div class="foot-col">
@@ -293,10 +293,10 @@
 
         <div class="foot-col">
           <h4>Legal</h4>
-          <a href="privacy.html">Privacy Policy</a>
-          <a href="terms.html">Terms of Service</a>
-          <a href="refund.html">Refund Policy</a>
-          <a href="resell-license.html">Resell License Terms</a>
+          <a href="/privacy-policy">Privacy Policy</a>
+          <a href="/terms-of-service">Terms of Service</a>
+          <a href="/refund-policy">Refund Policy</a>
+          <a href="/resell-license">Resell License Terms</a>
         </div>
       </div>
 
@@ -444,7 +444,7 @@
             <div class="auth-input-wrap"><input id="m-su-pass" name="password" type="password" autocomplete="new-password" placeholder="At least 8 characters" /><button class="auth-pw-toggle" type="button" aria-label="Show password"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></div><span class="auth-err"></span></div>
           <div class="auth-field" data-for="confirm"><label for="m-su-conf">Confirm password</label>
             <div class="auth-input-wrap"><input id="m-su-conf" name="confirm" type="password" autocomplete="new-password" placeholder="••••••••" /><button class="auth-pw-toggle" type="button" aria-label="Show password"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></div><span class="auth-err"></span></div>
-          <label class="auth-check"><input type="checkbox" name="tos" /> <span>I agree to the <a href="terms.html">Terms of Service</a> and <a href="privacy.html">Privacy Policy</a>.</span></label>
+          <label class="auth-check"><input type="checkbox" name="tos" /> <span>I agree to the <a href="/terms-of-service">Terms of Service</a> and <a href="/privacy-policy">Privacy Policy</a>.</span></label>
           <span class="auth-err" data-for="tos"></span>
           <button class="btn btn-primary auth-submit" type="submit">Create account</button>
           <div class="auth-msg"></div>
@@ -477,7 +477,7 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="supabase-init.js?v=20260727a"></script>
-  <script src="catalog.js?v=20260727b" data-then="app.js?v=20260727c"></script>
+  <script src="/supabase-init.js?v=20260727a"></script>
+  <script src="/catalog.js?v=20260727b" data-then="/app.js?v=20260727c"></script>
 </body>
 </html>

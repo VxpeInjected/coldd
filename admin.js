@@ -303,7 +303,7 @@
       subcat: row.subcat,
       desc: row.description || '',
       longDesc: row.long_description || '',
-      image: row.image,
+      image: window.imgUrl(row.image),
       gallery: row.gallery || [],
       video: row.video || '',
       resell: !!row.resell_available,
@@ -662,7 +662,7 @@
       var rating = (p.rating || 0).toFixed(1);
       return '<tr data-id="' + esc(p.id) + '">' +
         '<td><span class="dr-thumb" style="background-image:url(\'' + p.image + '\');width:52px;height:38px;display:inline-block;vertical-align:middle;border-radius:7px;"></span></td>' +
-        '<td><a class="dt-link" href="product.html?id=' + esc(p.id) + '" target="_blank" rel="noopener">' + esc(p.title) + '</a></td>' +
+        '<td><a class="dt-link" href="/product?id=' + esc(p.id) + '" target="_blank" rel="noopener">' + esc(p.title) + '</a></td>' +
         '<td><span class="adm-cat-tag">' + esc(p.cat || 'Uncategorized') + '</span></td>' +
         '<td>' + (p.visible
           ? '<button type="button" class="dt-badge ok adm-prod-toggle"' + (can('admin') ? '' : ' disabled') + '>Released</button>'
@@ -1133,7 +1133,7 @@
       var title = $('admEditTitleInput').value.trim();
       if (!title) { if (msg) msg.textContent = 'Enter a title.'; return; }
       var fields = Object.assign({ title: title, platform: platform }, collectEditFields());
-      if (!fields.image) fields.image = 'banner.jpg';
+      if (!fields.image) fields.image = '/banner.jpg';
       if (saveBtn) saveBtn.disabled = true;
       if (msg) msg.textContent = 'Creating…';
       callUpsertProduct(fields).then(function (res) {
@@ -1798,7 +1798,7 @@
       author: $('admNewPostAuthor').value.trim() || 'coldd',
       date: $('admNewPostDate').value,
       readMins: parseInt($('admNewPostRead').value, 10) || 5,
-      cover: $('admNewPostCover').value.trim() || 'banner.jpg',
+      cover: $('admNewPostCover').value.trim() || '/banner.jpg',
       dek: $('admNewPostDek').value.trim(),
       body: $('admNewPostBody').value,
       visible: $('admNewPostPublished').checked
@@ -1902,7 +1902,7 @@
       platform: $('admNewTutPlatform').value,
       order: parseInt($('admNewTutOrder').value, 10) || 1,
       estMins: parseInt($('admNewTutMins').value, 10) || 10,
-      cover: $('admNewTutCover').value.trim() || 'scripts.jpg',
+      cover: $('admNewTutCover').value.trim() || '/scripts.jpg',
       video: $('admNewTutVideo').value.trim(),
       summary: $('admNewTutSummary').value.trim(),
       body: $('admNewTutBody').value,

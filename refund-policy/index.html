@@ -1,17 +1,27 @@
 <!DOCTYPE html>
 <html lang="en" data-ann="on">
 <head>
+  <script>
+    (function () {
+      try {
+        if (sessionStorage.getItem('coldd_unlocked') !== '1') {
+          var dest = encodeURIComponent(location.pathname + location.search + location.hash);
+          location.replace('/lock.html?r=' + dest);
+        }
+      } catch (e) {}
+    })();
+  </script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>coldd Development Resell License Terms</title>
-  <link rel="icon" type="image/png" href="logo.png" />
-  <meta name="description" content="The Resell License Terms that apply to coldd Development products purchased with a resell license." />
+  <title>coldd Development Refund Policy</title>
+  <link rel="icon" type="image/png" href="/logo.png" />
+  <meta name="description" content="coldd Development's Refund Policy for purchases made on coldd.dev." />
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 
-  <link rel="stylesheet" href="styles.css?v=20260727c" />
+  <link rel="stylesheet" href="/styles.css?v=20260727c" />
 </head>
 <body>
   <div class="backdrop"></div>
@@ -21,19 +31,19 @@
 
   <div class="announce" id="announce">
     <div class="announce-inner">
-      <p class="announce-msg">Spring Sale is live — <strong>30% off</strong> every Roblox template through Sunday. <a class="announce-link" href="assets.html">Shop the sale →</a></p>
+      <p class="announce-msg">Spring Sale is live — <strong>30% off</strong> every Roblox template through Sunday. <a class="announce-link" href="/assets">Shop the sale →</a></p>
     </div>
     <button class="announce-x" id="announceX" type="button" aria-label="Dismiss announcement"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
   </div>
 
   <header class="nav" id="nav">
     <div class="nav-inner">
-      <a class="brand" href="index.html" aria-label="coldd home">
-        <img class="logo" src="logo.png" alt="coldd" />
+      <a class="brand" href="/" aria-label="coldd home">
+        <img class="logo" src="/logo.png" alt="coldd" />
       </a>
       <nav class="nav-links" aria-label="Primary">
         <span class="nav-set">
-          <a href="index.html">Home</a><a href="assets.html" id="shopLink">Shop</a><a href="blog.html" id="blogLink">Blog &amp; Tutorials</a><a href="about.html" id="aboutLink">About Us</a>
+          <a href="/">Home</a><a href="/assets" id="shopLink">Shop</a><a href="/blog" id="blogLink">Blog &amp; Tutorials</a><a href="/about" id="aboutLink">About Us</a>
         </span>
         <span class="nav-search-wrap">
           <button class="nav-search" id="searchBtn" type="button" aria-label="Search"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg></button>
@@ -62,29 +72,29 @@
           <button class="nmt-tab" type="button" data-platform="minecraft" role="tab" aria-selected="false">Minecraft</button>
         </div>
         <div class="nav-mega-cats" data-platform-panel="roblox">
-          <a href="assets.html?cat=game-templates">Finished Games &amp; Templates</a>
-          <a href="assets.html?cat=maps">Maps</a>
-          <a href="assets.html?cat=scripts-ui">Scripts &amp; UI</a>
-          <a href="assets.html?cat=graphics">Graphics</a>
-          <a href="assets.html?cat=buildings">Buildings</a>
-          <a href="assets.html?cat=assets">Assets</a>
-          <a href="assets.html?cat=uniforms-gear">Uniforms &amp; Gear</a>
-          <a href="assets.html?cat=boats">Boats</a>
-          <a href="assets.html?cat=weapons">Weapons</a>
-          <a href="assets.html?cat=vehicles">Vehicles</a>
-          <a href="assets.html?cat=animations-vfx">Animations &amp; VFX</a>
+          <a href="/assets?cat=game-templates">Finished Games &amp; Templates</a>
+          <a href="/assets?cat=maps">Maps</a>
+          <a href="/assets?cat=scripts-ui">Scripts &amp; UI</a>
+          <a href="/assets?cat=graphics">Graphics</a>
+          <a href="/assets?cat=buildings">Buildings</a>
+          <a href="/assets?cat=assets">Assets</a>
+          <a href="/assets?cat=uniforms-gear">Uniforms &amp; Gear</a>
+          <a href="/assets?cat=boats">Boats</a>
+          <a href="/assets?cat=weapons">Weapons</a>
+          <a href="/assets?cat=vehicles">Vehicles</a>
+          <a href="/assets?cat=animations-vfx">Animations &amp; VFX</a>
         </div>
         <div class="nav-mega-cats" data-platform-panel="minecraft" hidden>
-          <a href="minecraft.html?cat=hubs">Hubs</a>
-          <a href="minecraft.html?cat=lobbies">Lobbies</a>
-          <a href="minecraft.html?cat=maps">Maps</a>
-          <a href="minecraft.html?cat=builds">Builds</a>
-          <a href="minecraft.html?cat=plugins">Plugins</a>
-          <a href="minecraft.html?cat=setups">Full Setups</a>
+          <a href="/minecraft?cat=hubs">Hubs</a>
+          <a href="/minecraft?cat=lobbies">Lobbies</a>
+          <a href="/minecraft?cat=maps">Maps</a>
+          <a href="/minecraft?cat=builds">Builds</a>
+          <a href="/minecraft?cat=plugins">Plugins</a>
+          <a href="/minecraft?cat=setups">Full Setups</a>
         </div>
       </div>
-      <a class="nav-mega-feature" href="assets.html" id="navMegaFeature" data-href-roblox="assets.html" data-href-minecraft="minecraft.html" data-img-roblox="new-release.jpg" data-img-minecraft="minecraft.jpg">
-        <span class="nmf-img" style="background-image:url('new-release.jpg')"></span>
+      <a class="nav-mega-feature" href="/assets" id="navMegaFeature" data-href-roblox="/assets" data-href-minecraft="/minecraft" data-img-roblox="/new-release.jpg" data-img-minecraft="/minecraft.jpg">
+        <span class="nmf-img" style="background-image:url('/new-release.jpg')"></span>
         <span class="nmf-tag">New</span>
         <span class="nmf-title">New Releases</span>
         <span class="nmf-go">Browse all →</span>
@@ -95,8 +105,8 @@
   <main class="page legal">
     <section class="page-head">
       <div class="wrap">
-        <h1>Resell License Terms</h1>
-        <p>The terms that apply if you've purchased a resell license for a coldd product.</p>
+        <h1>Refund Policy</h1>
+        <p>What to do if something's wrong with your order.</p>
       </div>
     </section>
 
@@ -105,56 +115,15 @@
         <div class="glass legal-card reveal">
           <p class="legal-meta">Last updated: July 24, 2026</p>
 
-          <p>By purchasing or otherwise obtaining a resell license for any coldd product, you agree to be bound by these Terms.</p>
+          <div class="legal-note"><strong>This policy is being finalized.</strong> Full refund terms, including eligibility windows and process, will be published here shortly. Until then, reach out using the details below and we'll handle your request directly.</div>
 
-          <h2>1. Pricing &amp; Sales</h2>
+          <h2>Had an issue with a purchase?</h2>
+          <p>If a product didn't deliver, doesn't work as described, or you were charged incorrectly, contact us and we'll look into it on a case-by-case basis:</p>
           <ul>
-            <li>Products must be sold for at least $0.25 USD or 25 Robux above coldd's listed price. This minimum applies to all currencies, coupons, discounts, promotions and bundles, and the effective sale price must never fall below coldd's listed price.</li>
-            <li>Permanent, near-permanent or recurring discounts are prohibited, although you are allowed to discount products provided the final sale price does not fall below coldd's listed price.</li>
-            <li>coldd products may not be bundled with non-coldd products in a way that obscures their individual price.</li>
+            <li>Email <a href="mailto:support@coldd.dev">support@coldd.dev</a> with your order details</li>
+            <li>Or open a support ticket in our <a href="https://discord.gg/coldd" target="_blank" rel="noopener">Discord</a></li>
           </ul>
-
-          <h2>2. Marketing &amp; Branding</h2>
-          <ul>
-            <li>You may not use coldd's branding, logos, promotional materials or imagery.</li>
-            <li>You may not claim ownership, authorship, exclusivity or any intellectual property rights in any coldd product.</li>
-            <li>You may not advertise or imply features, updates or improvements not officially provided by coldd per your license.</li>
-          </ul>
-
-          <h2>3. Distribution</h2>
-          <ul>
-            <li>You may only sell Personal Use Licenses to buyers.</li>
-            <li>Giveaways, free releases or sales at $0 or equivalent value are prohibited.</li>
-            <li>You must be the majority/primary owner and operator of your store and may not delegate, partner with or authorize others to sell on your behalf.</li>
-            <li>To the maximum extent permitted by law, coldd is not liable for indirect, incidental, consequential or special damages arising from the use or resale of its products.</li>
-          </ul>
-
-          <h2>4. Editing &amp; Modifications</h2>
-          <ul>
-            <li>You may not modify, edit, reverse engineer or otherwise alter any product except to remove features or fix bugs.</li>
-            <li>Bug or error fixes must be reported to coldd within 7 days of resolution.</li>
-            <li>You may not misrepresent removed features.</li>
-          </ul>
-
-          <h2>5. License Conditions</h2>
-          <ul>
-            <li>Your resell license is non-transferable and may not be sold, traded or assigned, including through the sale of any account, group, server or business.</li>
-            <li>Except where required by applicable law, all license purchases are final and non-refundable. Fraudulent chargebacks or payment disputes may result in termination of the resell license.</li>
-            <li>Your license may only be revoked for a breach of these terms.</li>
-            <li>Your resell license does not include product updates. Bug fixes may be provided upon request, but feature updates, new content and other improvements are excluded.</li>
-            <li>coldd is not liable for disputes between resellers and their buyers and has no obligation to support third-party buyers, although we will fix bugs &amp; maintain the product (where applicable) if reported to us.</li>
-            <li>You may not create derivative works, adaptations, forks or modified versions of coldd products for resale or redistribution.</li>
-            <li>coldd products may not be sold by, affiliated with or marketed alongside any individual, store, company or entity engaged in unlawful activity, asset theft, leaking or unauthorized asset distribution.</li>
-          </ul>
-
-          <h2>6. Unauthorized Distribution</h2>
-          <p>Selling, sharing or distributing any coldd product without an explicit resell license is strictly prohibited and may result in immediate DMCA action and any other available legal remedies.</p>
-
-          <hr />
-
-          <p class="legal-sig">By purchasing or otherwise obtaining a resell license, you acknowledge that you have read, understood and agree to be bound by these Terms.</p>
-
-          <p>These terms are governed by the laws of Tasmania, Australia. If any provision is found unenforceable by law, the remaining provisions remain in effect. These terms constitute the entire agreement between coldd and the reseller regarding the resell license.</p>
+          <p>Because coldd products are digital goods delivered instantly on purchase, refund requests are reviewed individually until our full policy is published here.</p>
 
           <p class="legal-meta" style="margin-top:30px;">coldd Development · ABN 34 127 589 633</p>
         </div>
@@ -167,30 +136,30 @@
     <div class="wrap">
       <div class="foot-grid">
         <div class="foot-brand">
-          <a class="brand" href="index.html" aria-label="coldd home"><img class="logo" src="logo.png" alt="coldd" /></a>
+          <a class="brand" href="/" aria-label="coldd home"><img class="logo" src="/logo.png" alt="coldd" /></a>
         </div>
 
         <div class="foot-col">
           <h4>Explore</h4>
-          <a href="index.html">Home</a>
-          <a href="blog.html">Blog</a>
-          <a href="blog.html?view=tutorials">Tutorials</a>
-          <a href="releases.html">Releases</a>
-          <a href="assets.html">Products</a>
-          <a href="faq.html">FAQ</a>
+          <a href="/">Home</a>
+          <a href="/blog">Blog</a>
+          <a href="/blog?view=tutorials">Tutorials</a>
+          <a href="/releases">Releases</a>
+          <a href="/assets">Products</a>
+          <a href="/faq">FAQ</a>
         </div>
 
         <div class="foot-col">
           <h4>Our Assets</h4>
-          <a href="assets.html">Roblox</a>
-          <a href="minecraft.html">Minecraft</a>
+          <a href="/assets">Roblox</a>
+          <a href="/minecraft">Minecraft</a>
         </div>
 
         <div class="foot-col">
           <h4>Account</h4>
-          <a href="signin.html">Sign in</a>
-          <a href="signup.html">Create Account</a>
-          <a href="dashboard.html">Dashboard</a>
+          <a href="/signin">Sign in</a>
+          <a href="/signup">Create Account</a>
+          <a href="/dashboard">Dashboard</a>
         </div>
 
         <div class="foot-col">
@@ -201,10 +170,10 @@
 
         <div class="foot-col">
           <h4>Legal</h4>
-          <a href="privacy.html">Privacy Policy</a>
-          <a href="terms.html">Terms of Service</a>
-          <a href="refund.html">Refund Policy</a>
-          <a href="resell-license.html">Resell License Terms</a>
+          <a href="/privacy-policy">Privacy Policy</a>
+          <a href="/terms-of-service">Terms of Service</a>
+          <a href="/refund-policy">Refund Policy</a>
+          <a href="/resell-license">Resell License Terms</a>
         </div>
       </div>
 
@@ -352,7 +321,7 @@
             <div class="auth-input-wrap"><input id="m-su-pass" name="password" type="password" autocomplete="new-password" placeholder="At least 8 characters" /><button class="auth-pw-toggle" type="button" aria-label="Show password"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></div><span class="auth-err"></span></div>
           <div class="auth-field" data-for="confirm"><label for="m-su-conf">Confirm password</label>
             <div class="auth-input-wrap"><input id="m-su-conf" name="confirm" type="password" autocomplete="new-password" placeholder="••••••••" /><button class="auth-pw-toggle" type="button" aria-label="Show password"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></div><span class="auth-err"></span></div>
-          <label class="auth-check"><input type="checkbox" name="tos" /> <span>I agree to the <a href="terms.html">Terms of Service</a> and <a href="privacy.html">Privacy Policy</a>.</span></label>
+          <label class="auth-check"><input type="checkbox" name="tos" /> <span>I agree to the <a href="/terms-of-service">Terms of Service</a> and <a href="/privacy-policy">Privacy Policy</a>.</span></label>
           <span class="auth-err" data-for="tos"></span>
           <button class="btn btn-primary auth-submit" type="submit">Create account</button>
           <div class="auth-msg"></div>
@@ -375,7 +344,7 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="supabase-init.js?v=20260727a"></script>
-  <script src="catalog.js?v=20260727b" data-then="app.js?v=20260727c"></script>
+  <script src="/supabase-init.js?v=20260727a"></script>
+  <script src="/catalog.js?v=20260727b" data-then="/app.js?v=20260727c"></script>
 </body>
 </html>

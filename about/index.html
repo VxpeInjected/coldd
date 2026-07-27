@@ -1,17 +1,27 @@
 <!DOCTYPE html>
 <html lang="en" data-ann="on">
 <head>
+  <script>
+    (function () {
+      try {
+        if (sessionStorage.getItem('coldd_unlocked') !== '1') {
+          var dest = encodeURIComponent(location.pathname + location.search + location.hash);
+          location.replace('/lock.html?r=' + dest);
+        }
+      } catch (e) {}
+    })();
+  </script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>coldd Development Terms of Service</title>
-  <link rel="icon" type="image/png" href="logo.png" />
-  <meta name="description" content="coldd Development's Terms of Service for using coldd.dev and our Roblox and Minecraft assets." />
+  <title>coldd Development About</title>
+  <link rel="icon" type="image/png" href="/logo.png" />
+  <meta name="description" content="coldd is a Roblox development studio. Scripting, environments, modeling, and VFX, building and shipping polished experiences." />
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 
-  <link rel="stylesheet" href="styles.css?v=20260727c" />
+  <link rel="stylesheet" href="/styles.css?v=20260727c" />
 </head>
 <body>
   <div class="backdrop"></div>
@@ -21,19 +31,19 @@
 
   <div class="announce" id="announce">
     <div class="announce-inner">
-      <p class="announce-msg">Spring Sale is live — <strong>30% off</strong> every Roblox template through Sunday. <a class="announce-link" href="assets.html">Shop the sale →</a></p>
+      <p class="announce-msg">Spring Sale is live — <strong>30% off</strong> every Roblox template through Sunday. <a class="announce-link" href="/assets">Shop the sale →</a></p>
     </div>
     <button class="announce-x" id="announceX" type="button" aria-label="Dismiss announcement"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
   </div>
 
   <header class="nav" id="nav">
     <div class="nav-inner">
-      <a class="brand" href="index.html" aria-label="coldd home">
-        <img class="logo" src="logo.png" alt="coldd" />
+      <a class="brand" href="/" aria-label="coldd home">
+        <img class="logo" src="/logo.png" alt="coldd" />
       </a>
       <nav class="nav-links" aria-label="Primary">
         <span class="nav-set">
-          <a href="index.html">Home</a><a href="assets.html" id="shopLink">Shop</a><a href="blog.html" id="blogLink">Blog &amp; Tutorials</a><a href="about.html" id="aboutLink">About Us</a>
+          <a href="/">Home</a><a href="/assets" id="shopLink">Shop</a><a href="/blog" id="blogLink">Blog &amp; Tutorials</a><a href="/about" id="aboutLink" class="active" aria-current="page">About Us</a>
         </span>
         <span class="nav-search-wrap">
           <button class="nav-search" id="searchBtn" type="button" aria-label="Search"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg></button>
@@ -62,29 +72,29 @@
           <button class="nmt-tab" type="button" data-platform="minecraft" role="tab" aria-selected="false">Minecraft</button>
         </div>
         <div class="nav-mega-cats" data-platform-panel="roblox">
-          <a href="assets.html?cat=game-templates">Finished Games &amp; Templates</a>
-          <a href="assets.html?cat=maps">Maps</a>
-          <a href="assets.html?cat=scripts-ui">Scripts &amp; UI</a>
-          <a href="assets.html?cat=graphics">Graphics</a>
-          <a href="assets.html?cat=buildings">Buildings</a>
-          <a href="assets.html?cat=assets">Assets</a>
-          <a href="assets.html?cat=uniforms-gear">Uniforms &amp; Gear</a>
-          <a href="assets.html?cat=boats">Boats</a>
-          <a href="assets.html?cat=weapons">Weapons</a>
-          <a href="assets.html?cat=vehicles">Vehicles</a>
-          <a href="assets.html?cat=animations-vfx">Animations &amp; VFX</a>
+          <a href="/assets?cat=game-templates">Finished Games &amp; Templates</a>
+          <a href="/assets?cat=maps">Maps</a>
+          <a href="/assets?cat=scripts-ui">Scripts &amp; UI</a>
+          <a href="/assets?cat=graphics">Graphics</a>
+          <a href="/assets?cat=buildings">Buildings</a>
+          <a href="/assets?cat=assets">Assets</a>
+          <a href="/assets?cat=uniforms-gear">Uniforms &amp; Gear</a>
+          <a href="/assets?cat=boats">Boats</a>
+          <a href="/assets?cat=weapons">Weapons</a>
+          <a href="/assets?cat=vehicles">Vehicles</a>
+          <a href="/assets?cat=animations-vfx">Animations &amp; VFX</a>
         </div>
         <div class="nav-mega-cats" data-platform-panel="minecraft" hidden>
-          <a href="minecraft.html?cat=hubs">Hubs</a>
-          <a href="minecraft.html?cat=lobbies">Lobbies</a>
-          <a href="minecraft.html?cat=maps">Maps</a>
-          <a href="minecraft.html?cat=builds">Builds</a>
-          <a href="minecraft.html?cat=plugins">Plugins</a>
-          <a href="minecraft.html?cat=setups">Full Setups</a>
+          <a href="/minecraft?cat=hubs">Hubs</a>
+          <a href="/minecraft?cat=lobbies">Lobbies</a>
+          <a href="/minecraft?cat=maps">Maps</a>
+          <a href="/minecraft?cat=builds">Builds</a>
+          <a href="/minecraft?cat=plugins">Plugins</a>
+          <a href="/minecraft?cat=setups">Full Setups</a>
         </div>
       </div>
-      <a class="nav-mega-feature" href="assets.html" id="navMegaFeature" data-href-roblox="assets.html" data-href-minecraft="minecraft.html" data-img-roblox="new-release.jpg" data-img-minecraft="minecraft.jpg">
-        <span class="nmf-img" style="background-image:url('new-release.jpg')"></span>
+      <a class="nav-mega-feature" href="/assets" id="navMegaFeature" data-href-roblox="/assets" data-href-minecraft="/minecraft" data-img-roblox="/new-release.jpg" data-img-minecraft="/minecraft.jpg">
+        <span class="nmf-img" style="background-image:url('/new-release.jpg')"></span>
         <span class="nmf-tag">New</span>
         <span class="nmf-title">New Releases</span>
         <span class="nmf-go">Browse all →</span>
@@ -92,116 +102,88 @@
     </div>
   </div>
 
-  <main class="page legal">
+    <main class="page about">
     <section class="page-head">
       <div class="wrap">
-        <h1>Terms of Service</h1>
-        <p>The rules for using coldd.dev and the assets you purchase from us.</p>
+        <h1>About coldd</h1>
+        <p>A Roblox and Minecraft studio, scripting, building, UI, and VFX, all in-house. We make the templates, hubs, and systems behind games people actually play.</p>
       </div>
     </section>
 
     <section class="section-pad" style="padding-top: 6px;">
-      <div class="wrap legal-wrap">
-        <div class="glass legal-card reveal">
-          <p class="legal-meta">Last updated: July 24, 2026</p>
-
-          <p>By purchasing any digital product or service from coldd ("the Provider," "we," "us," or "our"), you ("the Customer," "you," or "your") explicitly acknowledge that you have read, understood, and agree to be contractually bound by these Terms of Service, our Digital Product License, and our Community Rules.</p>
-          <p>If you do not agree to these terms, you must not purchase or use our products and/or marketing as well as remain in our Discord server.</p>
-
-          <div class="legal-note">
-            <span class="legal-badge">Operated by coldd | ABN: 34 127 589 633</span>
-            <p style="margin-top:12px;">coldd operates under Australian law while complying with the applicable regulations of all countries in which it operates. Any disputes will be resolved exclusively under Australian jurisdiction.</p>
+      <div class="wrap">
+        <div class="glass about-info reveal">
+          <div class="about-info-head">
+            <h2>We make the parts other studios buy.</h2>
           </div>
-
-          <h2>§ 1 · Intellectual Property &amp; Digital License</h2>
-
-          <div class="legal-sub">
-            <h3>§ 1.1 · Grant Of License</h3>
-            <div class="legal-clause"><p><strong>§1.1(a)</strong> — Upon successful payment, coldd grants you a limited, non-exclusive, non-transferable, revocable, worldwide Personal Use License for downloaded digital products, strictly conditional upon ongoing compliance with these Terms.</p></div>
-            <div class="legal-clause"><p><strong>§1.1(b)</strong> — This license permits Customer to use the digital product within projects owned and operated by Customer, including commercial monetization under § 1.1(c). It prohibits use on behalf of, for the benefit of, or as a deliverable to any third party, including freelance, contract, or commissioned work, without a separate agreement. Unauthorized use constitutes a material breach, resulting in immediate termination of licensing rights.</p></div>
-            <div class="legal-clause"><p><strong>§1.1(c)</strong> — Notwithstanding § 1.1(b), Customer may commercially monetize the product as a standalone experience, game, or integrated component, including via Robux, in-game purchases, or advertising. This applies to the product as delivered or modified under § 1.3, solely for Customer's own published use. It strictly prohibits selling, sublicensing, sharing, or distributing the product, source files, or derivatives.</p></div>
+          <div class="about-info-body">
+            <p>coldd started the way most good things do, a few people in a Discord, trading builds late at night because what was for sale just wasn't good enough.</p>
+            <p>That bar never moved. Today we're a full studio shipping <strong>800+ Roblox assets</strong> and a fast-growing Minecraft catalog, with work running inside <strong>100k+ creators'</strong> games. Scripting, building, UI, and VFX, all handled in-house, by the same people who started it.</p>
+            <p>We build what we'd actually want to buy, deliver it the second you check out, and stick around when you need a hand. No outsourcing, no filler, no disappearing after the sale.</p>
           </div>
+        </div>
 
-          <div class="legal-sub">
-            <h3>§ 1.2 · Restrictions on Use</h3>
-            <div class="legal-clause"><p><strong>§1.2(a)</strong> — You may not sell, rent, distribute, or share the product, source files, or documentation. This includes uploading assets to public repositories, file-sharing servers, or secondary marketplaces without coldd's prior written authorization.</p></div>
-            <div class="legal-clause"><p><strong>§1.2(b)</strong> — You may use the product within a shared team project if it remains embedded in that workflow. The product must not be extracted, copied, or redistributed as a standalone asset for use outside that project.</p></div>
-            <div class="legal-clause"><p><strong>§1.2(c)</strong> — This license excludes any right to resell or sublicense the product unless coldd grants a product-specific Resell Licence in writing. If issued, you may sell that specific product under your own storefront, solely per the <a href="resell-license.html">Resell Licence terms</a>. This license applies only to the named product, excluding other versions. coldd may revoke it at any time; continued resale after revocation violates § 1.2.</p></div>
+        <div class="glass about-figures reveal d1">
+          <div class="fig"><div class="fn">800+</div><div class="fl">Roblox assets shipped</div></div>
+          <div class="fig"><div class="fn">50+</div><div class="fl">Minecraft drops &amp; growing</div></div>
+          <div class="fig"><div class="fn">100k+</div><div class="fl">Products sold to creators</div></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section-pad" style="padding-top: 0;">
+      <div class="wrap">
+        <div class="glass about-info reveal">
+          <div class="about-info-head">
+            <span class="eyebrow"><span class="dot"></span> What we do</span>
+            <h2>Everything that goes into a game.</h2>
           </div>
-
-          <div class="legal-sub">
-            <h3>§ 1.3 · Modifications</h3>
-            <div class="legal-clause"><p><strong>§1.3(a)</strong> — You are permitted to modify, alter, adapt, or slice the digital product's underlying assets exclusively for the purpose of integration into your permitted personal projects. These structural modifications are allowed solely to tailor the asset to your specific non-commercial technical requirements, and do not grant you any additional proprietary rights over the underlying material.</p></div>
-            <div class="legal-clause"><p><strong>§1.3(b)</strong> — You are prohibited from distributing, sharing, licensing, or selling any modified or altered versions of the product, whether for profit or free. Any modified versions are legally classified as derivative works belonging fundamentally to the original copyright holder, and distribution without a distinct license will be met with immediate legal enforcement.</p></div>
+          <div class="about-info-body">
+            <p>From a single script to a launch-ready hub. If it ships inside a Roblox or Minecraft experience, there's a good chance we make it, and a better chance we've already made it well.</p>
+            <div class="about-tags">
+              <span>Game Templates</span><span>Maps &amp; Environments</span><span>Scripts &amp; Systems</span>
+              <span>UI / UX</span><span>Graphics</span><span>Builds</span><span>Hubs &amp; Lobbies</span>
+              <span>Plugins</span><span>Uniforms &amp; Gear</span><span>VFX &amp; Animations</span>
+            </div>
           </div>
+        </div>
+      </div>
+    </section>
 
-          <div class="legal-sub">
-            <h3>§ 1.4 · Ownership Retention</h3>
-            <div class="legal-clause"><p><strong>§1.4(a)</strong> — Your purchase represents the acquisition of a conditional license to utilize the digital asset under defined parameters; under no circumstances does it constitute a transfer of ownership, title, or copyright. The transaction grants no proprietary interest, patent rights, or intellectual property claims over the products.</p></div>
-            <div class="legal-clause"><p><strong>§1.4(b)</strong> — All intellectual property rights, titles, interests, trademarks, and copyrights relating to the digital products remain exclusively vested with coldd. The design patterns, code structures, and visual elements are protected under domestic and international intellectual property frameworks.</p></div>
-            <div class="legal-clause"><p><strong>§1.4(c)</strong> — We reserve all rights to pursue civil and criminal remedies internationally against any individual or entity violating our proprietary rights. This includes but is not limited to seeking injunctions, statutory damages, and the recovery of all legal fees incurred during enforcement.</p></div>
+    <section class="section-pad" style="padding-top: 0;">
+      <div class="wrap">
+        <div class="sec-head reveal">
+          <h2>One studio, two worlds.</h2>
+          <p>Same standard on both, pick your platform.</p>
+        </div>
+        <div class="asset-duo">
+          <a class="glass asset-visual reveal d1" href="/assets">
+            <div class="v" style="background: linear-gradient(180deg, rgba(8,9,12,0.12) 0%, rgba(8,9,12,0.55) 52%, rgba(8,9,12,0.93) 100%), url('/builds.jpg') center / cover no-repeat, #100d0f;">
+              <span class="tag">Roblox</span>
+              <h3>Roblox</h3>
+              <p>Game templates, maps, scripts, UI, and VFX, 800+ drops and counting.</p>
+            </div>
+          </a>
+          <a class="glass asset-visual reveal d2" href="/minecraft">
+            <div class="v" style="background: linear-gradient(180deg, rgba(8,9,12,0.12) 0%, rgba(8,9,12,0.55) 52%, rgba(8,9,12,0.93) 100%), url('/minecraft.jpg') center / cover no-repeat, #100d0f;">
+              <span class="tag">Minecraft</span>
+              <h3>Minecraft</h3>
+              <p>Hubs, lobbies, plugins, and full server setups, built to launch.</p>
+            </div>
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <section id="join" class="section-pad" style="padding-top: 0;">
+      <div class="wrap">
+        <div class="glass cta reveal">
+          <h2>Join the coldd community.</h2>
+          <p>Get access to sneak peeks, free assets, and a community ready to welcome you.</p>
+          <div class="hero-cta" style="margin-top:28px;">
+            <a class="btn btn-primary" href="https://discord.gg/coldd" target="_blank" rel="noopener">Join the Discord</a>
+            <a class="btn btn-ghost" href="/assets">Explore assets</a>
           </div>
-
-          <h2>§ 2 · Financial Terms &amp; Consumer Guarantees</h2>
-
-          <div class="legal-sub">
-            <h3>§ 2.1 · Consumer Guarantees &amp; Refunds</h3>
-            <div class="legal-clause"><p><strong>§2.1(a)</strong> — Due to the immediate, digital, and intangible nature of digital downloads, which cannot be physically returned or restored to an unaccessed state once delivery has occurred, we maintain a strict policy wherein all sales are final. Consequently, we do not offer refunds, credits, charge reversals, or product exchanges for reasons involving a change of mind, user oversight, accidental purchase, technical incompatibility with unlisted software, or instances where you determine you no longer require the asset after access has been initiated.</p></div>
-            <div class="legal-clause"><p><strong>§2.1(b)</strong> — If you are a consumer residing within the Commonwealth of Australia, our digital goods come equipped with statutory consumer guarantees that cannot be excluded, restricted, or modified under the Australian Consumer Law (ACL). In accordance with these regulations, you remain fully entitled to a replacement product or a complete financial refund in the event of a major failure, as well as compensation for any other reasonably foreseeable loss or damage resulting from a fundamental defect. Furthermore, you are entitled to have the digital goods repaired or replaced if they fail to meet acceptable, merchantable quality standards and the underlying technical failure does not amount to a major defect.</p></div>
-            <div class="legal-clause"><p><strong>§2.1(c)</strong> — For users operating outside the jurisdiction of Australia, requests for financial refunds will only be evaluated on a discretionary case-by-case basis if the digital asset is conclusively proven to be broken, structurally corrupted, or fundamentally misrepresented in the official product description. Such an evaluation requires that our dedicated technical support team has been notified and granted a reasonable opportunity to remedy the defect, and has subsequently failed to rectify the operational issue within a reasonable timeframe.</p></div>
-          </div>
-
-          <h2>§ 3 · User Conduct &amp; Ticket Compliance</h2>
-
-          <div class="legal-sub">
-            <h3>§ 3.1 · Community &amp; Platform Compliance</h3>
-            <div class="legal-clause"><p><strong>§3.1(a)</strong> — Your ongoing license to utilize our digital products is strictly conditional upon your continuous adherence to the established coldd Community Rules and server guidelines. The operational relationship between the provider and the user requires mutual respect, and any violation of community decorum directly impacts your authorization to remain a licensed user of our network assets.</p></div>
-            <div class="legal-clause"><p><strong>§3.1(b)</strong> — Engaging in toxic behavior, targeted harassment, malicious defamation, community disruption, or severe rule-breaking within our server infrastructure may result in an immediate administrative review of your account status. Such reviews can lead to the permanent suspension of your account and the total forfeiture of your active product licenses without financial compensation. Further rules are available using the button provided below.</p>
-            <a class="legal-btn-link" href="https://discord.gg/coldd" target="_blank" rel="noopener">View coldd Community Guidelines <span aria-hidden="true">↗</span></a></div>
-          </div>
-
-          <div class="legal-sub">
-            <h3>§ 3.2 · Dispute Resolution &amp; Support Tickets</h3>
-            <div class="legal-clause"><p><strong>§3.2(a)</strong> — Prior to executing any formal payment dispute, financial chargeback, or initiating a public negative review campaign, you are contractually obligated to open an official support ticket within the designated coldd communication server. This step serves as the mandatory first tier of alternative dispute resolution to ensure that technical grievances are addressed in good faith.</p></div>
-            <div class="legal-clause"><p><strong>§3.2(b)</strong> — You explicitly agree to provide our support team with all necessary data, system logs, error screenshots, and a clear, detailed description of the technical issue encountered during product implementation. You further agree to grant our staff a reasonable administrative window of not less than fourteen business days to investigate, diagnose, and assist you in resolving the operational problem before pursuing external escalation.</p></div>
-          </div>
-
-          <h2>§ 4 · Enforcement &amp; License Revocation</h2>
-
-          <div class="legal-sub">
-            <h3>§ 4.1 · Right to Revoke</h3>
-            <div class="legal-clause"><p><strong>§4.1(a)</strong> — coldd reserves the absolute right to immediately terminate your access to our product repositories and revoke your digital licenses without prior notice if you are found to be in violation of any clause, restriction, or obligation detailed within these Terms of Service or the associated Product License.</p></div>
-            <div class="legal-clause"><p><strong>§4.1(b)</strong> — Your access to our digital distribution channels and all associated licenses will be revoked instantly and permanently if you engage in fraudulent financial practices. This includes initiating unauthorized banking chargebacks, friendly fraud, or payment reversals without completing the mandatory support ticket resolution process.</p></div>
-            <div class="legal-clause"><p><strong>§4.1(c)</strong> — Your active licenses will be terminated immediately if your identity or account is blacklisted from our digital services due to severe proprietary violations, attempts to reverse-engineer our assets, or repeated community-wide behavioral infractions.</p></div>
-          </div>
-
-          <div class="legal-sub">
-            <h3>§ 4.2 · Liability Disclaimer</h3>
-            <div class="legal-clause"><p><strong>§4.2(a)</strong> — To the maximum extent permitted under applicable statutory law, including the Australian Consumer Law and United States Federal Trade Commission guidelines, coldd provides its digital products strictly on an "as is" and "as available" basis. We disclaim all implied warranties of merchantability, fitness for a particular purpose, or non-infringement.</p></div>
-            <div class="legal-clause"><p><strong>§4.2(b)</strong> — We do not warrant or guarantee that the digital products will operate completely error-free, uninterrupted, or remain perfectly compatible with all past, present, or future third-party software, operating systems, or platforms that have not been explicitly itemized in the product's official feature list.</p></div>
-          </div>
-
-          <h2>§ 5 · Governing Law &amp; Jurisdiction</h2>
-
-          <div class="legal-sub">
-            <h3>§ 5.1 · Governing Law</h3>
-            <div class="legal-clause"><p><strong>§5.1(a)</strong> — These Terms of Service, the digital product license, and all transactional relationships arising from your purchases shall be exclusively governed by, interpreted, and construed in accordance with the laws of the State of Tasmania, Australia, without giving effect to any principles regarding conflicts of law.</p></div>
-            <div class="legal-clause"><p><strong>§5.1(b)</strong> — These terms have been specifically structured to maintain harmony with international consumer protection frameworks, ensuring that transactions involving digital consumers inside the United States respect the federal guidelines enforced by the Federal Trade Commission regarding digital goods and services.</p></div>
-            <div class="legal-clause"><p><strong>§5.1(c)</strong> — Any formal legal action, judicial proceeding, or litigation arising directly or indirectly out of these terms shall be brought exclusively before the courts located in Tasmania, Australia. You hereby irrevocably submit and consent to the personal and exclusive jurisdiction of such courts for the adjudication of any legal disputes.</p></div>
-          </div>
-
-          <h2>§ 6 · Modifications to Terms</h2>
-
-          <div class="legal-sub">
-            <h3>§ 6.1 · Policy Updates</h3>
-            <div class="legal-clause"><p><strong>§6.1(a)</strong> — coldd reserves the right to modify, amend, update, or replace any portion of these Terms of Service or the associated Product License at any given time to reflect changes in our operational procedures, marketplace standards, or statutory legal obligations.</p></div>
-            <div class="legal-clause"><p><strong>§6.1(b)</strong> — All updates or structural revisions to these terms will be posted clearly within our dedicated server announcement channels, and the effective date listed at the top of the document will be updated accordingly to reflect the date of the revision.</p></div>
-            <div class="legal-clause"><p><strong>§6.1(c)</strong> — Your continued usage of our digital products, software assets, or server infrastructure following the publication of any modifications constitutes your explicit, binding, and irrevocable acceptance of the newly revised Terms of Service.</p></div>
-          </div>
-
-          <p style="margin-top:26px;">Questions about these Terms? Email <a href="mailto:support@coldd.dev">support@coldd.dev</a> or reach us on <a href="https://discord.gg/coldd" target="_blank" rel="noopener">Discord</a>.</p>
-
-          <p class="legal-meta" style="margin-top:30px;">coldd Development · ABN 34 127 589 633</p>
         </div>
       </div>
     </section>
@@ -212,30 +194,30 @@
     <div class="wrap">
       <div class="foot-grid">
         <div class="foot-brand">
-          <a class="brand" href="index.html" aria-label="coldd home"><img class="logo" src="logo.png" alt="coldd" /></a>
+          <a class="brand" href="/" aria-label="coldd home"><img class="logo" src="/logo.png" alt="coldd" /></a>
         </div>
 
         <div class="foot-col">
           <h4>Explore</h4>
-          <a href="index.html">Home</a>
-          <a href="blog.html">Blog</a>
-          <a href="blog.html?view=tutorials">Tutorials</a>
-          <a href="releases.html">Releases</a>
-          <a href="assets.html">Products</a>
-          <a href="faq.html">FAQ</a>
+          <a href="/">Home</a>
+          <a href="/blog">Blog</a>
+          <a href="/blog?view=tutorials">Tutorials</a>
+          <a href="/releases">Releases</a>
+          <a href="/assets">Products</a>
+          <a href="/faq">FAQ</a>
         </div>
 
         <div class="foot-col">
           <h4>Our Assets</h4>
-          <a href="assets.html">Roblox</a>
-          <a href="minecraft.html">Minecraft</a>
+          <a href="/assets">Roblox</a>
+          <a href="/minecraft">Minecraft</a>
         </div>
 
         <div class="foot-col">
           <h4>Account</h4>
-          <a href="signin.html">Sign in</a>
-          <a href="signup.html">Create Account</a>
-          <a href="dashboard.html">Dashboard</a>
+          <a href="/signin">Sign in</a>
+          <a href="/signup">Create Account</a>
+          <a href="/dashboard">Dashboard</a>
         </div>
 
         <div class="foot-col">
@@ -246,10 +228,10 @@
 
         <div class="foot-col">
           <h4>Legal</h4>
-          <a href="privacy.html">Privacy Policy</a>
-          <a href="terms.html">Terms of Service</a>
-          <a href="refund.html">Refund Policy</a>
-          <a href="resell-license.html">Resell License Terms</a>
+          <a href="/privacy-policy">Privacy Policy</a>
+          <a href="/terms-of-service">Terms of Service</a>
+          <a href="/refund-policy">Refund Policy</a>
+          <a href="/resell-license">Resell License Terms</a>
         </div>
       </div>
 
@@ -397,7 +379,7 @@
             <div class="auth-input-wrap"><input id="m-su-pass" name="password" type="password" autocomplete="new-password" placeholder="At least 8 characters" /><button class="auth-pw-toggle" type="button" aria-label="Show password"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></div><span class="auth-err"></span></div>
           <div class="auth-field" data-for="confirm"><label for="m-su-conf">Confirm password</label>
             <div class="auth-input-wrap"><input id="m-su-conf" name="confirm" type="password" autocomplete="new-password" placeholder="••••••••" /><button class="auth-pw-toggle" type="button" aria-label="Show password"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></div><span class="auth-err"></span></div>
-          <label class="auth-check"><input type="checkbox" name="tos" /> <span>I agree to the <a href="terms.html">Terms of Service</a> and <a href="privacy.html">Privacy Policy</a>.</span></label>
+          <label class="auth-check"><input type="checkbox" name="tos" /> <span>I agree to the <a href="/terms-of-service">Terms of Service</a> and <a href="/privacy-policy">Privacy Policy</a>.</span></label>
           <span class="auth-err" data-for="tos"></span>
           <button class="btn btn-primary auth-submit" type="submit">Create account</button>
           <div class="auth-msg"></div>
@@ -420,7 +402,7 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="supabase-init.js?v=20260727a"></script>
-  <script src="catalog.js?v=20260727b" data-then="app.js?v=20260727c"></script>
+  <script src="/supabase-init.js?v=20260727a"></script>
+  <script src="/catalog.js?v=20260727b" data-then="/app.js?v=20260727c"></script>
 </body>
 </html>

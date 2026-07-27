@@ -55,7 +55,7 @@
         return;
       }
       try { localStorage.setItem('coldd_auth', 'in'); } catch (e) {}
-      location.href = 'dashboard.html';
+      location.href = '/dashboard';
     });
   });
 
@@ -158,7 +158,7 @@
           setLoading(si, false);
           if (!exists) {
             var card = si.closest('.auth-card'), msg = card && card.querySelector('.auth-msg');
-            if (msg) { msg.innerHTML = 'No account found for that email. <a href="signup.html">Create one instead?</a>'; msg.classList.add('show'); }
+            if (msg) { msg.innerHTML = 'No account found for that email. <a href="/signup">Create one instead?</a>'; msg.classList.add('show'); }
             return;
           }
           var m = /confirm/i.test(res.error.message) ? 'Please confirm your email first — check your inbox.' : 'Incorrect password.';
@@ -177,7 +177,7 @@
           return;
         }
         setLoading(si, false);
-        location.href = 'dashboard.html';
+        location.href = '/dashboard';
       });
     });
   });
@@ -222,7 +222,7 @@
         return;
       }
       fieldErr(sv, 'code', '');
-      location.href = 'dashboard.html';
+      location.href = '/dashboard';
     });
   });
 
@@ -293,7 +293,7 @@
       setLoading(frc, false);
       if (res.error) { flash(frc, 'Incorrect or expired code.'); return; }
       flash(frc, 'Password updated! Redirecting…');
-      setTimeout(function () { location.href = 'dashboard.html'; }, 900);
+      setTimeout(function () { location.href = '/dashboard'; }, 900);
     });
   });
 
@@ -323,7 +323,7 @@
     window.coldAuth.updatePassword(pass).then(function (res) {
       if (res.error) { flash(rs, res.error.message); return; }
       flash(rs, 'Password updated — you can sign in now.');
-      setTimeout(function () { location.href = 'signin.html'; }, 1200);
+      setTimeout(function () { location.href = '/signin'; }, 1200);
     });
   });
 })();

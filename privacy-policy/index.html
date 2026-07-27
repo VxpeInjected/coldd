@@ -1,17 +1,27 @@
 <!DOCTYPE html>
 <html lang="en" data-ann="on">
 <head>
+  <script>
+    (function () {
+      try {
+        if (sessionStorage.getItem('coldd_unlocked') !== '1') {
+          var dest = encodeURIComponent(location.pathname + location.search + location.hash);
+          location.replace('/lock.html?r=' + dest);
+        }
+      } catch (e) {}
+    })();
+  </script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>coldd Development Tutorials</title>
-  <link rel="icon" type="image/png" href="logo.png" />
-  <meta name="description" content="Step-by-step scripting, building, and server-setup tutorials for Roblox and Minecraft, written by the coldd team." />
+  <title>coldd Development Privacy Policy</title>
+  <link rel="icon" type="image/png" href="/logo.png" />
+  <meta name="description" content="Read coldd Development's Privacy Policy to learn what information we collect and how we use it." />
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 
-  <link rel="stylesheet" href="styles.css?v=20260727c" />
+  <link rel="stylesheet" href="/styles.css?v=20260727c" />
 </head>
 <body>
   <div class="backdrop"></div>
@@ -21,19 +31,19 @@
 
   <div class="announce" id="announce">
     <div class="announce-inner">
-      <p class="announce-msg">Spring Sale is live — <strong>30% off</strong> every Roblox template through Sunday. <a class="announce-link" href="assets.html">Shop the sale →</a></p>
+      <p class="announce-msg">Spring Sale is live — <strong>30% off</strong> every Roblox template through Sunday. <a class="announce-link" href="/assets">Shop the sale →</a></p>
     </div>
     <button class="announce-x" id="announceX" type="button" aria-label="Dismiss announcement"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
   </div>
 
   <header class="nav" id="nav">
     <div class="nav-inner">
-      <a class="brand" href="index.html" aria-label="coldd home">
-        <img class="logo" src="logo.png" alt="coldd" />
+      <a class="brand" href="/" aria-label="coldd home">
+        <img class="logo" src="/logo.png" alt="coldd" />
       </a>
       <nav class="nav-links" aria-label="Primary">
         <span class="nav-set">
-          <a href="index.html">Home</a><a href="assets.html" id="shopLink">Shop</a><a href="blog.html" id="blogLink" class="active" aria-current="page">Blog &amp; Tutorials</a><a href="about.html" id="aboutLink">About Us</a>
+          <a href="/">Home</a><a href="/assets" id="shopLink">Shop</a><a href="/blog" id="blogLink">Blog &amp; Tutorials</a><a href="/about" id="aboutLink">About Us</a>
         </span>
         <span class="nav-search-wrap">
           <button class="nav-search" id="searchBtn" type="button" aria-label="Search"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg></button>
@@ -62,29 +72,29 @@
           <button class="nmt-tab" type="button" data-platform="minecraft" role="tab" aria-selected="false">Minecraft</button>
         </div>
         <div class="nav-mega-cats" data-platform-panel="roblox">
-          <a href="assets.html?cat=game-templates">Finished Games &amp; Templates</a>
-          <a href="assets.html?cat=maps">Maps</a>
-          <a href="assets.html?cat=scripts-ui">Scripts &amp; UI</a>
-          <a href="assets.html?cat=graphics">Graphics</a>
-          <a href="assets.html?cat=buildings">Buildings</a>
-          <a href="assets.html?cat=assets">Assets</a>
-          <a href="assets.html?cat=uniforms-gear">Uniforms &amp; Gear</a>
-          <a href="assets.html?cat=boats">Boats</a>
-          <a href="assets.html?cat=weapons">Weapons</a>
-          <a href="assets.html?cat=vehicles">Vehicles</a>
-          <a href="assets.html?cat=animations-vfx">Animations &amp; VFX</a>
+          <a href="/assets?cat=game-templates">Finished Games &amp; Templates</a>
+          <a href="/assets?cat=maps">Maps</a>
+          <a href="/assets?cat=scripts-ui">Scripts &amp; UI</a>
+          <a href="/assets?cat=graphics">Graphics</a>
+          <a href="/assets?cat=buildings">Buildings</a>
+          <a href="/assets?cat=assets">Assets</a>
+          <a href="/assets?cat=uniforms-gear">Uniforms &amp; Gear</a>
+          <a href="/assets?cat=boats">Boats</a>
+          <a href="/assets?cat=weapons">Weapons</a>
+          <a href="/assets?cat=vehicles">Vehicles</a>
+          <a href="/assets?cat=animations-vfx">Animations &amp; VFX</a>
         </div>
         <div class="nav-mega-cats" data-platform-panel="minecraft" hidden>
-          <a href="minecraft.html?cat=hubs">Hubs</a>
-          <a href="minecraft.html?cat=lobbies">Lobbies</a>
-          <a href="minecraft.html?cat=maps">Maps</a>
-          <a href="minecraft.html?cat=builds">Builds</a>
-          <a href="minecraft.html?cat=plugins">Plugins</a>
-          <a href="minecraft.html?cat=setups">Full Setups</a>
+          <a href="/minecraft?cat=hubs">Hubs</a>
+          <a href="/minecraft?cat=lobbies">Lobbies</a>
+          <a href="/minecraft?cat=maps">Maps</a>
+          <a href="/minecraft?cat=builds">Builds</a>
+          <a href="/minecraft?cat=plugins">Plugins</a>
+          <a href="/minecraft?cat=setups">Full Setups</a>
         </div>
       </div>
-      <a class="nav-mega-feature" href="assets.html" id="navMegaFeature" data-href-roblox="assets.html" data-href-minecraft="minecraft.html" data-img-roblox="new-release.jpg" data-img-minecraft="minecraft.jpg">
-        <span class="nmf-img" style="background-image:url('new-release.jpg')"></span>
+      <a class="nav-mega-feature" href="/assets" id="navMegaFeature" data-href-roblox="/assets" data-href-minecraft="/minecraft" data-img-roblox="/new-release.jpg" data-img-minecraft="/minecraft.jpg">
+        <span class="nmf-img" style="background-image:url('/new-release.jpg')"></span>
         <span class="nmf-tag">New</span>
         <span class="nmf-title">New Releases</span>
         <span class="nmf-go">Browse all →</span>
@@ -92,37 +102,98 @@
     </div>
   </div>
 
-  <main class="page tut-page">
-    <section class="section-pad" style="padding-top:132px;" id="tutView"></section>
+  <main class="page legal">
+    <section class="page-head">
+      <div class="wrap">
+        <h1>Privacy Policy</h1>
+        <p>How coldd Development collects, uses, and protects your information.</p>
+      </div>
+    </section>
+
+    <section class="section-pad" style="padding-top: 6px;">
+      <div class="wrap legal-wrap">
+        <div class="glass legal-card reveal">
+          <p class="legal-meta">Last updated: July 24, 2026</p>
+
+          <p>This Privacy Policy explains what information coldd Development ("coldd", "we", "us") collects when you use coldd.dev (the "Site"), why we collect it, and how it's handled. By using the Site, you agree to this Policy.</p>
+
+          <h2>1. Information We Collect</h2>
+          <p><strong>Account information.</strong> When you create a coldd account with email and password, we store your email address and a securely hashed version of your password. We never store your password in plain text.</p>
+          <p><strong>Third-party sign-in.</strong> If you sign in with Google, Discord, or Roblox, that provider shares basic profile details with us, typically your name or username, account ID, and email address, so we can create and secure your coldd account.</p>
+          <p><strong>Payment information.</strong> Card payments are processed by Stripe, and we also support PayPal and Robux (via Roblox) as payment methods. coldd does not receive or store your full card number, PayPal credentials, or Roblox password, that information is handled directly by the payment processor. We keep a record of the transaction itself (amount, date, product, payment method used) for order history and support purposes.</p>
+          <p><strong>Cookies and analytics.</strong> We use cookies and similar technologies to keep you signed in, remember your cart and currency preference, and understand how the Site is used so we can improve it.</p>
+          <p><strong>Support communications.</strong> If you contact us by email or through our Discord server, we retain that correspondence to help resolve your request.</p>
+
+          <h2>2. How We Use Your Information</h2>
+          <ul>
+            <li>Create and maintain your account</li>
+            <li>Process orders and deliver purchased assets</li>
+            <li>Provide customer support and respond to inquiries</li>
+            <li>Detect and prevent fraud, chargebacks, and abuse of our license terms</li>
+            <li>Improve the Site and our products</li>
+            <li>Send order confirmations and important account or policy updates</li>
+          </ul>
+
+          <h2>3. How We Share Information</h2>
+          <p>We share information only where necessary to operate the Site:</p>
+          <ul>
+            <li><strong>Payment processors</strong> (Stripe, PayPal, Roblox) to complete purchases</li>
+            <li><strong>OAuth providers</strong> (Google, Discord, Roblox) when you choose to sign in through them</li>
+            <li><strong>Service providers</strong> who help us host and run the Site, bound to only use data to provide that service</li>
+            <li>Where required by law, or to protect coldd's rights and users' safety</li>
+          </ul>
+          <p>We do not sell your personal information.</p>
+
+          <h2>4. Data Retention</h2>
+          <p>We keep account and order information for as long as your account is active, or as needed to comply with legal, tax, and accounting obligations. You can request deletion of your account as described below.</p>
+
+          <h2>5. Your Rights</h2>
+          <p>You can request access to, correction of, or deletion of your personal information at any time by emailing <a href="mailto:support@coldd.dev">support@coldd.dev</a>. We'll respond as soon as reasonably possible.</p>
+
+          <h2>6. Children's Privacy</h2>
+          <p>coldd is not directed at children under 13, and we do not knowingly collect personal information from children under 13.</p>
+
+          <h2>7. Changes to This Policy</h2>
+          <p>We may update this Policy from time to time. Material changes will be reflected by updating the "Last updated" date above.</p>
+
+          <h2>8. Contact</h2>
+          <p>Questions about this Policy? Email <a href="mailto:support@coldd.dev">support@coldd.dev</a> or reach us on <a href="https://discord.gg/coldd" target="_blank" rel="noopener">Discord</a>.</p>
+
+          <p class="legal-meta" style="margin-top:30px;">coldd Development · ABN 34 127 589 633</p>
+        </div>
+      </div>
+    </section>
   </main>
+
 
   <footer>
     <div class="wrap">
       <div class="foot-grid">
         <div class="foot-brand">
-          <a class="brand" href="index.html" aria-label="coldd home"><img class="logo" src="logo.png" alt="coldd" /></a>
+          <a class="brand" href="/" aria-label="coldd home"><img class="logo" src="/logo.png" alt="coldd" /></a>
         </div>
 
         <div class="foot-col">
           <h4>Explore</h4>
-          <a href="index.html">Home</a>
-          <a href="blog.html">Blog</a>
-          <a href="blog.html?view=tutorials">Tutorials</a>
-          <a href="releases.html">Releases</a>
-          <a href="assets.html">Products</a>
+          <a href="/">Home</a>
+          <a href="/blog">Blog</a>
+          <a href="/blog?view=tutorials">Tutorials</a>
+          <a href="/releases">Releases</a>
+          <a href="/assets">Products</a>
+          <a href="/faq">FAQ</a>
         </div>
 
         <div class="foot-col">
           <h4>Our Assets</h4>
-          <a href="assets.html">Roblox</a>
-          <a href="minecraft.html">Minecraft</a>
+          <a href="/assets">Roblox</a>
+          <a href="/minecraft">Minecraft</a>
         </div>
 
         <div class="foot-col">
           <h4>Account</h4>
-          <a href="signin.html">Sign in</a>
-          <a href="signup.html">Create Account</a>
-          <a href="dashboard.html">Dashboard</a>
+          <a href="/signin">Sign in</a>
+          <a href="/signup">Create Account</a>
+          <a href="/dashboard">Dashboard</a>
         </div>
 
         <div class="foot-col">
@@ -133,10 +204,10 @@
 
         <div class="foot-col">
           <h4>Legal</h4>
-          <a href="privacy.html">Privacy Policy</a>
-          <a href="terms.html">Terms of Service</a>
-          <a href="refund.html">Refund Policy</a>
-          <a href="resell-license.html">Resell License Terms</a>
+          <a href="/privacy-policy">Privacy Policy</a>
+          <a href="/terms-of-service">Terms of Service</a>
+          <a href="/refund-policy">Refund Policy</a>
+          <a href="/resell-license">Resell License Terms</a>
         </div>
       </div>
 
@@ -144,8 +215,7 @@
         <span class="muted">© 2026 coldd Development · Not affiliated with Roblox Corporation or Mojang Studios · ABN: 34 127 589 633</span>
         <div class="foot-social">
           <a href="https://discord.gg/coldd" target="_blank" rel="noopener" aria-label="coldd on Discord"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.4189-2.1568 2.4189Z"/></svg></a>
-          <a href="#" aria-label="coldd on X"><svg viewBox="0 0 24 24" width="17" height="17" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg></a>
-          <a href="#" aria-label="coldd on YouTube"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg></a>
+          <a href="https://x.com/ColddDev" target="_blank" rel="noopener" aria-label="coldd on X"><svg viewBox="0 0 24 24" width="17" height="17" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg></a>
         </div>
       </div>
     </div>
@@ -166,6 +236,8 @@
     <span class="cart-fab-total" id="cartFabTotal">$0</span>
   </button>
   </div>
+
+
 
   <div class="cart-overlay" id="cartOverlay" hidden></div>
   <aside class="cart-drawer" id="cartDrawer" aria-hidden="true" aria-label="Shopping cart">
@@ -283,7 +355,7 @@
             <div class="auth-input-wrap"><input id="m-su-pass" name="password" type="password" autocomplete="new-password" placeholder="At least 8 characters" /><button class="auth-pw-toggle" type="button" aria-label="Show password"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></div><span class="auth-err"></span></div>
           <div class="auth-field" data-for="confirm"><label for="m-su-conf">Confirm password</label>
             <div class="auth-input-wrap"><input id="m-su-conf" name="confirm" type="password" autocomplete="new-password" placeholder="••••••••" /><button class="auth-pw-toggle" type="button" aria-label="Show password"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></div><span class="auth-err"></span></div>
-          <label class="auth-check"><input type="checkbox" name="tos" /> <span>I agree to the <a href="terms.html">Terms of Service</a> and <a href="privacy.html">Privacy Policy</a>.</span></label>
+          <label class="auth-check"><input type="checkbox" name="tos" /> <span>I agree to the <a href="/terms-of-service">Terms of Service</a> and <a href="/privacy-policy">Privacy Policy</a>.</span></label>
           <span class="auth-err" data-for="tos"></span>
           <button class="btn btn-primary auth-submit" type="submit">Create account</button>
           <div class="auth-msg"></div>
@@ -306,7 +378,7 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="supabase-init.js?v=20260727a"></script>
-  <script src="catalog.js?v=20260727b" data-then="blog.js?v=20260727c,app.js?v=20260727c"></script>
+  <script src="/supabase-init.js?v=20260727a"></script>
+  <script src="/catalog.js?v=20260727b" data-then="/app.js?v=20260727c"></script>
 </body>
 </html>

@@ -1,17 +1,43 @@
 <!DOCTYPE html>
 <html lang="en" data-ann="on">
 <head>
+  <script>
+    (function () {
+      try {
+        if (sessionStorage.getItem('coldd_unlocked') !== '1') {
+          var dest = encodeURIComponent(location.pathname + location.search + location.hash);
+          location.replace('/lock.html?r=' + dest);
+        }
+      } catch (e) {}
+    })();
+  </script>
+  <script>
+    // Fast, optimistic pre-check reading the Supabase SDK's own persisted
+    // session directly, before the SDK has even loaded - avoids a flash of
+    // dashboard content for obviously-signed-out visitors. The authoritative
+    // check (which also covers a stale/expired token this misses) happens
+    // once supabase-init.js loads, further down the page.
+    (function () {
+      try {
+        var raw = localStorage.getItem('sb-ekinmytmudjwfaqaqswp-auth-token');
+        var parsed = raw && JSON.parse(raw);
+        if (!parsed || !parsed.expires_at || parsed.expires_at * 1000 < Date.now()) {
+          location.href = '/signin';
+        }
+      } catch (e) { location.href = '/signin'; }
+    })();
+  </script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>coldd Development Roblox</title>
-  <link rel="icon" type="image/png" href="logo.png" />
+  <title>coldd Development Dashboard</title>
+  <link rel="icon" type="image/png" href="/logo.png" />
   <meta name="description" content="coldd is a Roblox development studio. Scripting, environments, modeling, and VFX, building and shipping polished experiences." />
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 
-  <link rel="stylesheet" href="styles.css?v=20260727c" />
+  <link rel="stylesheet" href="/styles.css?v=20260727c" />
 </head>
 <body>
   <div class="backdrop"></div>
@@ -21,19 +47,19 @@
 
   <div class="announce" id="announce">
     <div class="announce-inner">
-      <p class="announce-msg">Spring Sale is live — <strong>30% off</strong> every Roblox template through Sunday. <a class="announce-link" href="assets.html">Shop the sale →</a></p>
+      <p class="announce-msg">Spring Sale is live — <strong>30% off</strong> every Roblox template through Sunday. <a class="announce-link" href="/assets">Shop the sale →</a></p>
     </div>
     <button class="announce-x" id="announceX" type="button" aria-label="Dismiss announcement"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
   </div>
 
   <header class="nav" id="nav">
     <div class="nav-inner">
-      <a class="brand" href="index.html" aria-label="coldd home">
-        <img class="logo" src="logo.png" alt="coldd" />
+      <a class="brand" href="/" aria-label="coldd home">
+        <img class="logo" src="/logo.png" alt="coldd" />
       </a>
       <nav class="nav-links" aria-label="Primary">
         <span class="nav-set">
-          <a href="index.html">Home</a><a href="assets.html" id="shopLink" class="active" aria-current="page">Shop</a><a href="blog.html" id="blogLink">Blog &amp; Tutorials</a><a href="about.html" id="aboutLink">About Us</a>
+          <a href="/">Home</a><a href="/assets" id="shopLink">Shop</a><a href="/blog" id="blogLink">Blog &amp; Tutorials</a><a href="/about" id="aboutLink">About Us</a>
         </span>
         <span class="nav-search-wrap">
           <button class="nav-search" id="searchBtn" type="button" aria-label="Search"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg></button>
@@ -62,29 +88,29 @@
           <button class="nmt-tab" type="button" data-platform="minecraft" role="tab" aria-selected="false">Minecraft</button>
         </div>
         <div class="nav-mega-cats" data-platform-panel="roblox">
-          <a href="assets.html?cat=game-templates">Finished Games &amp; Templates</a>
-          <a href="assets.html?cat=maps">Maps</a>
-          <a href="assets.html?cat=scripts-ui">Scripts &amp; UI</a>
-          <a href="assets.html?cat=graphics">Graphics</a>
-          <a href="assets.html?cat=buildings">Buildings</a>
-          <a href="assets.html?cat=assets">Assets</a>
-          <a href="assets.html?cat=uniforms-gear">Uniforms &amp; Gear</a>
-          <a href="assets.html?cat=boats">Boats</a>
-          <a href="assets.html?cat=weapons">Weapons</a>
-          <a href="assets.html?cat=vehicles">Vehicles</a>
-          <a href="assets.html?cat=animations-vfx">Animations &amp; VFX</a>
+          <a href="/assets?cat=game-templates">Finished Games &amp; Templates</a>
+          <a href="/assets?cat=maps">Maps</a>
+          <a href="/assets?cat=scripts-ui">Scripts &amp; UI</a>
+          <a href="/assets?cat=graphics">Graphics</a>
+          <a href="/assets?cat=buildings">Buildings</a>
+          <a href="/assets?cat=assets">Assets</a>
+          <a href="/assets?cat=uniforms-gear">Uniforms &amp; Gear</a>
+          <a href="/assets?cat=boats">Boats</a>
+          <a href="/assets?cat=weapons">Weapons</a>
+          <a href="/assets?cat=vehicles">Vehicles</a>
+          <a href="/assets?cat=animations-vfx">Animations &amp; VFX</a>
         </div>
         <div class="nav-mega-cats" data-platform-panel="minecraft" hidden>
-          <a href="minecraft.html?cat=hubs">Hubs</a>
-          <a href="minecraft.html?cat=lobbies">Lobbies</a>
-          <a href="minecraft.html?cat=maps">Maps</a>
-          <a href="minecraft.html?cat=builds">Builds</a>
-          <a href="minecraft.html?cat=plugins">Plugins</a>
-          <a href="minecraft.html?cat=setups">Full Setups</a>
+          <a href="/minecraft?cat=hubs">Hubs</a>
+          <a href="/minecraft?cat=lobbies">Lobbies</a>
+          <a href="/minecraft?cat=maps">Maps</a>
+          <a href="/minecraft?cat=builds">Builds</a>
+          <a href="/minecraft?cat=plugins">Plugins</a>
+          <a href="/minecraft?cat=setups">Full Setups</a>
         </div>
       </div>
-      <a class="nav-mega-feature" href="assets.html" id="navMegaFeature" data-href-roblox="assets.html" data-href-minecraft="minecraft.html" data-img-roblox="new-release.jpg" data-img-minecraft="minecraft.jpg">
-        <span class="nmf-img" style="background-image:url('new-release.jpg')"></span>
+      <a class="nav-mega-feature" href="/assets" id="navMegaFeature" data-href-roblox="/assets" data-href-minecraft="/minecraft" data-img-roblox="/new-release.jpg" data-img-minecraft="/minecraft.jpg">
+        <span class="nmf-img" style="background-image:url('/new-release.jpg')"></span>
         <span class="nmf-tag">New</span>
         <span class="nmf-title">New Releases</span>
         <span class="nmf-go">Browse all →</span>
@@ -98,98 +124,133 @@
     </div>
   </div>
 
-  <main class="page product-page" id="view-product" hidden>
-    <div class="pd">
-      <nav class="pd-crumb" id="pdCrumb" aria-label="Breadcrumb"></nav>
-      <div class="pd-head">
-        <h1 class="pd-title" id="pdTitle"></h1>
-        <p class="pd-sub" id="pdSub"></p>
-      </div>
-      <div class="pd-grid">
-        <div class="pd-left">
-          <div class="pd-gallery">
-            <div class="pd-main"><span class="pd-sale" id="pdSale" hidden>Sale</span><img id="pdImg" alt="" decoding="async" /></div>
-            <div class="pd-thumbs" id="pdThumbs"></div>
-          </div>
-          <div class="pd-video" id="pdVideo" hidden>
-            <div class="pd-embed"><iframe id="pdVideoFrame" src="" title="Video demo" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>
-          </div>
-          <div class="pd-tabs" id="pdTabs" role="tablist">
-            <button class="pd-tab active" type="button" data-tab="overview">Overview</button>
-            <button class="pd-tab" type="button" data-tab="updates" id="pdTabUpdates" hidden>Updates <span class="pd-tab-n" id="pdUpdCount"></span></button>
-            <button class="pd-tab" type="button" data-tab="reviews" id="pdTabReviews">Reviews <span class="pd-tab-n" id="pdRevCount"></span></button>
-          </div>
-          <div class="pd-panelbox">
-            <section class="pd-tabpane" data-pane="overview" id="pdPaneOverview">
-              <div class="pd-hi">
-                <span class="pd-hi-ic"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg></span>
-                <div class="pd-hi-tx"><h4>Instant delivery</h4><p>Get files immediately after your purchase.</p></div>
-              </div>
-              <div class="pd-about" id="pdAbout"></div>
-            </section>
-            <section class="pd-tabpane" data-pane="updates" id="pdPaneUpdates" hidden></section>
-            <section class="pd-tabpane" data-pane="reviews" id="pdPaneReviews" hidden></section>
+    <main class="page dash-page">
+    <div class="wrap dash">
+      <aside class="dash-side glass">
+        <div class="dash-user"><span class="dash-av" id="dashAvatar">K</span><div class="dash-user-info"><div class="dash-name" id="dashName">Kaden R.</div><div class="dash-email" id="dashEmail">kaden@example.com</div></div></div>
+        <nav class="dash-nav">
+        <a href="#" data-panel="overview" class="active"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg><span>Overview</span></a>
+        <a href="#" data-panel="purchases"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg><span>Purchase History</span></a>
+        <a href="#" data-panel="owned"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m12 2 7 4v6c0 5-3.5 8-7 10-3.5-2-7-5-7-10V6z"/><path d="m9 12 2 2 4-4"/></svg><span>Owned & Licences</span></a>
+        <a href="#" data-panel="downloads"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg><span>Download Centre</span></a>
+        <a href="#" data-panel="wishlist"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z"/></svg><span>Wishlist</span></a>
+        <a href="#" data-panel="referrals"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 13.5 6.8 4M15.4 6.5l-6.8 4"/></svg><span>Referrals</span></a>
+        <a href="#" data-panel="notifications"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg><span>Notifications</span></a>
+        <a href="#" data-panel="account"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg><span>Account Settings</span></a>
+        </nav>
+        <a class="dash-admin-link" id="dashAdminLink" href="/admin" hidden><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg> Admin Panel</a>
+        <button class="dash-signout" id="dashSignout" type="button"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/></svg> Sign out</button>
+      </aside>
+      <div class="dash-main">
+      <section class="dash-panel" id="panel-overview">
+        <div class="dash-head"><h1>Welcome back, <span id="dashWelcomeName">Kaden</span>.</h1><p>Here's a snapshot of your coldd account.</p></div>
+        <div class="dash-stats">
+          <div class="dash-stat glass"><span class="ds-label">Total spent (USD)</span><span class="ds-num ds-money">$418</span></div>
+          <div class="dash-stat glass"><span class="ds-label">Total spent (Robux)</span><span class="ds-num ds-money">R$ 33,440</span></div>
+          <div class="dash-stat glass"><span class="ds-label">Products owned</span><span class="ds-num">7</span></div>
+          <div class="dash-stat glass"><span class="ds-label">Wishlist</span><span class="ds-num">3</span></div>
+        </div>
+        <div class="dash-card glass">
+          <div class="dash-card-head"><h2>Recent purchases</h2><a href="#" data-panel="purchases">View all</a></div>
+          <div class="dash-rows">
+            <div class="dash-row"><span class="dr-thumb" style="background-image:url('/premade.jpg')"></span><div class="dr-main"><div class="dr-title">ALL BRAWL Full Game</div><div class="dr-sub">10 Jun 2026 · #CLD-1042</div></div><span class="p-price">$89</span></div>
+            <div class="dash-row"><span class="dr-thumb" style="background-image:url('/new-release.jpg')"></span><div class="dr-main"><div class="dr-title">Cyberpunk District</div><div class="dr-sub">2 Jun 2026 · #CLD-0991</div></div><span class="p-price">$45</span></div>
+            <div class="dash-row"><span class="dr-thumb" style="background-image:url('/scripts.jpg')"></span><div class="dr-main"><div class="dr-title">Combat HUD Kit</div><div class="dr-sub">21 May 2026 · #CLD-0934</div></div><span class="p-price">$18</span></div>
           </div>
         </div>
-        <aside class="pd-right">
-          <div class="pd-buycard">
-            <div class="pd-price-row">
-              <div class="pd-price-main"><span class="pd-price" id="pdPrice"></span><span class="pd-price-was" id="pdPriceWas" hidden></span></div>
-              <div class="pd-price-rbx" id="pdPriceRbx"></div>
-            </div>
-            <p class="pd-price-note" id="pdPriceNote">USD pricing is up to 50% cheaper than Robux!</p>
-            <div class="pd-buy" id="pdBuy">
-              <div class="pd-cta">
-                <button class="btn btn-primary" id="pdBuyBtn" type="button">Buy now</button>
-                <button class="btn btn-ghost" id="pdAddBtn" type="button">Add to cart</button>
-              </div>
-              <button class="pd-wish" id="pdWish" type="button"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z"/></svg><span id="pdWishTx">Add to wishlist</span></button>
-            </div>
-            <div class="pd-owned" id="pdOwned" hidden>
-              <div class="pd-owned-badge">You own this product</div>
-              <div class="pd-cta">
-                <button class="btn btn-primary" id="pdDownload" type="button">Download</button>
-                <button class="btn btn-ghost" id="pdReview" type="button">Leave a review</button>
-              </div>
-              <button class="btn btn-ghost pd-upgrade" id="pdUpgrade" type="button" hidden>Upgrade to resell license</button>
-            </div>
-            <span class="pd-lic-label" id="pdLicLabel">License</span>
-            <div class="pm-licence pd-licence" id="pdLicence">
-              <button class="pm-lic active" type="button" data-lic="standard">
-                <span class="pm-lic-radio"></span>
-                <span class="pm-lic-text"><span class="pm-lic-name">Personal use</span><span class="pm-lic-note">Use and monetize in your own games and projects</span></span>
-                <span class="pm-lic-price" data-licprice="standard"></span>
-              </button>
-              <button class="pm-lic" type="button" data-lic="resell" id="pdLicResell" hidden>
-                <span class="pm-lic-radio"></span>
-                <span class="pm-lic-text"><span class="pm-lic-name">Resell license</span><span class="pm-lic-note">Resell in your own store</span></span>
-                <span class="pm-lic-price" data-licprice="resell"></span>
-              </button>
-            </div>
+      </section>
+      <section class="dash-panel" id="panel-purchases" hidden>
+        <div class="dash-head"><h1>Purchase history</h1><p>Every order on your account.</p></div>
+        <div class="dash-card glass dash-tablewrap">
+          <table class="dash-table">
+            <thead><tr><th>Date</th><th>Product</th><th>Order</th><th>Amount</th><th>Status</th></tr></thead>
+            <tbody id="dashPurchasesBody"><tr><td colspan="5">Loading…</td></tr></tbody>
+          </table>
+        </div>
+      </section>
+      <section class="dash-panel" id="panel-owned" hidden>
+        <div class="dash-head"><h1>Owned products &amp; licences</h1><p>Everything you have access to.</p></div>
+        <div class="dash-grid" id="dashOwnedGrid"><p class="dash-empty-note">Loading…</p></div>
+      </section>
+      <section class="dash-panel" id="panel-downloads" hidden>
+        <div class="dash-head"><h1>Download centre</h1><p>Download the files for everything you own.</p></div>
+        <div id="dashDownloadsList"><p class="dash-empty-note">Loading…</p></div>
+      </section>
+      <section class="dash-panel" id="panel-wishlist" hidden>
+        <div class="dash-head"><h1>Wishlist</h1><p>Saved for later.</p></div>
+        <div class="dash-card glass"><div class="dash-rows">
+          <div class="dash-row"><span class="dr-thumb" style="background-image:url('/frostline.jpg')"></span><div class="dr-main"><div class="dr-title">Frostline Survival Kit</div><div class="dr-sub"><span class="p-price">$129</span></div></div><div class="dr-actions"><button class="btn btn-ghost dr-cart" type="button">Add to cart</button><button class="wl-remove" type="button" aria-label="Remove">×</button></div></div>
+          <div class="dash-row"><span class="dr-thumb" style="background-image:url('/builds.jpg')"></span><div class="dr-main"><div class="dr-title">Containment Site</div><div class="dr-sub"><span class="p-price">$38</span></div></div><div class="dr-actions"><button class="btn btn-ghost dr-cart" type="button">Add to cart</button><button class="wl-remove" type="button" aria-label="Remove">×</button></div></div>
+          <div class="dash-row"><span class="dr-thumb" style="background-image:url('/banner.jpg')"></span><div class="dr-main"><div class="dr-title">Logo & Icon Kit</div><div class="dr-sub"><span class="p-price">$20</span></div></div><div class="dr-actions"><button class="btn btn-ghost dr-cart" type="button">Add to cart</button><button class="wl-remove" type="button" aria-label="Remove">×</button></div></div>
+        </div></div>
+      </section>
+      <section class="dash-panel" id="panel-referrals" hidden>
+        <div class="dash-head"><h1>Referrals</h1><p>Refer friends to coldd or to a specific product and earn on every sale.</p></div>
+        <div class="dash-stats">
+          <div class="dash-stat glass"><span class="ds-label">Total earned</span><span class="ds-num"><span class="p-price">$428</span></span></div>
+          <div class="dash-stat glass"><span class="ds-label">Pending</span><span class="ds-num"><span class="p-price">$64</span></span></div>
+          <div class="dash-stat glass"><span class="ds-label">Paid out</span><span class="ds-num"><span class="p-price">$364</span></span></div>
+          <div class="dash-stat glass"><span class="ds-label">This month</span><span class="ds-num"><span class="p-price">$92</span></span></div>
+        </div>
+        <div class="ref-tabs">
+          <button class="ref-tab active" type="button" data-reftab="account">Account referral</button>
+          <button class="ref-tab" type="button" data-reftab="product">Product referrals</button>
+        </div>
+        <div class="ref-pane" data-refpane="account">
+          <div class="dash-card glass ref-link"><span class="ref-label">Your sign-up referral link</span><div class="ref-box"><input id="refLink" type="text" readonly value="https://coldd.gg/r/kaden" /><button class="btn btn-primary" id="refCopy" type="button">Copy</button></div><p class="ref-note">Earn 20% of every purchase made by users who sign up through your link.</p></div>
+          <div class="dash-stats">
+            <div class="dash-stat glass"><span class="ds-label">Link clicks</span><span class="ds-num">342</span></div>
+            <div class="dash-stat glass"><span class="ds-label">Sign-ups</span><span class="ds-num">28</span></div>
+            <div class="dash-stat glass"><span class="ds-label">Conversions</span><span class="ds-num">12</span></div>
+            <div class="dash-stat glass"><span class="ds-label">Conversion rate</span><span class="ds-num">3.5%</span></div>
           </div>
-          <div class="pd-block pd-tech">
-            <h3 class="pd-sec-h">Technical information</h3>
-            <dl class="pd-tech-list" id="pdTechList"></dl>
-          </div>
-          <div class="pd-refer">
-            <h3 class="pd-refer-h">Refer this product</h3>
-            <p class="pd-refer-p">Refer a friend to this product and <strong id="pdReferEarn"></strong> for each purchase.</p>
-            <div class="pd-refer-btns">
-              <button class="btn btn-ghost" id="pdReferCopy" type="button">Copy Referral Link</button>
-              <button class="btn btn-ghost" id="pdReferLearn" type="button">Learn More</button>
-            </div>
-          </div>
-        </aside>
+          <div class="dash-card glass dash-tablewrap"><div class="dash-card-head"><h2>Referral activity</h2></div><table class="dash-table"><thead><tr><th>Date</th><th>Source</th><th>Status</th><th>Earned</th></tr></thead><tbody>
+            <tr><td>9 Jun 2026</td><td>discord</td><td><span class="dt-badge ok">Converted</span></td><td><span class="p-price">$26.70</span></td></tr>
+            <tr><td>4 Jun 2026</td><td>youtube</td><td><span class="dt-badge ok">Converted</span></td><td><span class="p-price">$13.50</span></td></tr>
+            <tr><td>1 Jun 2026</td><td>twitter</td><td><span class="dt-badge warn">Signed up</span></td><td></td></tr>
+          </tbody></table></div>
+          <div class="dash-card glass dash-tablewrap"><div class="dash-card-head"><h2>Payout history</h2></div><table class="dash-table"><thead><tr><th>Date</th><th>Method</th><th>Amount</th><th>Status</th></tr></thead><tbody>
+            <tr><td>1 Jun 2026</td><td>PayPal</td><td><span class="p-price">$182</span></td><td><span class="dt-badge ok">Paid</span></td></tr>
+            <tr><td>1 May 2026</td><td>PayPal</td><td><span class="p-price">$182</span></td><td><span class="dt-badge ok">Paid</span></td></tr>
+            <tr><td>1 Jul 2026</td><td>PayPal</td><td><span class="p-price">$64</span></td><td><span class="dt-badge warn">Scheduled</span></td></tr>
+          </tbody></table></div>
+        </div>
+        <div class="ref-pane" data-refpane="product" hidden>
+          <p class="ref-note ref-note-top">Share a link to any single product and earn 20% of its price on every purchase made through your link.</p>
+          <div class="dash-card glass dash-tablewrap"><table class="dash-table ref-prod-table"><thead><tr><th>Product</th><th>Earn per sale</th><th>Sales</th><th>Earned</th><th></th></tr></thead><tbody id="refProdBody"></tbody></table></div>
+        </div>
+      </section>
+      <section class="dash-panel" id="panel-notifications" hidden>
+        <div class="dash-head"><h1>Notification preferences</h1><p>Choose how and when we reach you.</p></div>
+        <div class="dash-card glass"><div class="dash-card-head"><h2>Email</h2></div>
+          <div class="ntf-row"><div class="ntf-text"><div class="ntf-label">Order receipts</div><div class="ntf-sub">Confirmations and invoices</div></div><label class="switch"><input type="checkbox" checked /><span class="track"></span></label></div>
+          <div class="ntf-row"><div class="ntf-text"><div class="ntf-label">Product updates</div><div class="ntf-sub">New versions of things you own</div></div><label class="switch"><input type="checkbox" checked /><span class="track"></span></label></div>
+          <div class="ntf-row"><div class="ntf-text"><div class="ntf-label">Promotions & sales</div><div class="ntf-sub">Occasional deals and drops</div></div><label class="switch"><input type="checkbox" /><span class="track"></span></label></div>
+        </div>
+        <div class="dash-card glass"><div class="dash-card-head"><h2>Discord</h2></div>
+          <div class="ntf-row"><div class="ntf-text"><div class="ntf-label">Sale DMs</div><div class="ntf-sub">Get pinged when a sale starts</div></div><label class="switch"><input type="checkbox" checked /><span class="track"></span></label></div>
+          <div class="ntf-row"><div class="ntf-text"><div class="ntf-label">Role sync</div><div class="ntf-sub">Keep your buyer roles up to date</div></div><label class="switch"><input type="checkbox" checked /><span class="track"></span></label></div>
+          <div class="ntf-row"><div class="ntf-text"><div class="ntf-label">Support replies</div><div class="ntf-sub">DM me when staff respond</div></div><label class="switch"><input type="checkbox" checked /><span class="track"></span></label></div>
+        </div>
+      </section>
+      <section class="dash-panel" id="panel-account" hidden>
+        <div class="dash-head"><h1>Account settings</h1><p>Update your details or close your account.</p></div>
+        <div class="dash-card glass"><div class="dash-card-head"><h2>Change account details</h2></div>
+          <form class="auth-form" id="acctForm" novalidate style="max-width:420px;">
+            <div class="auth-field" data-for="name"><label for="ac-name">Display name</label><input id="ac-name" name="name" type="text" value="Kaden R." /><span class="auth-err"></span></div>
+            <div class="auth-field" data-for="email"><label for="ac-email">Email</label><input id="ac-email" name="email" type="email" value="kaden@example.com" /><span class="auth-err"></span></div>
+            <div class="auth-field" data-for="password"><label for="ac-pass">New password</label><div class="auth-input-wrap"><input id="ac-pass" name="password" type="password" placeholder="Leave blank to keep current" /><button class="auth-pw-toggle" type="button" aria-label="Show password"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></div><span class="auth-err"></span></div>
+            <button class="btn btn-primary auth-submit" type="submit" style="width:auto;align-self:flex-start;">Save changes</button>
+            <div class="auth-msg"></div>
+          </form>
+        </div>
+        <div class="dash-card glass danger"><div class="dash-card-head"><h2>Delete account</h2></div>
+          <p class="danger-text">This permanently removes your account, licences, and download access. This can't be undone.</p>
+          <button class="btn danger-btn" id="delAcct" type="button">Delete my account</button>
+          <div class="danger-confirm" id="delConfirm" hidden><p>Are you sure? Type <strong>DELETE</strong> to confirm.</p><div class="danger-row"><input id="delInput" type="text" placeholder="DELETE" /><button class="btn danger-btn" id="delFinal" type="button">Confirm delete</button><button class="btn btn-ghost" id="delCancel" type="button">Cancel</button></div></div>
+        </div>
+      </section>
       </div>
-      <section class="pd-related" id="pdRelatedWrap">
-        <h2 class="pd-related-h">Related products</h2>
-        <div class="product-grid featured-grid" id="pdRelated"></div>
-      </section>
-      <section class="pd-faq" id="pdFaqWrap">
-        <h2 class="pd-faq-h">Frequently asked questions</h2>
-        <div class="pd-faq-list" id="pdFaqList"></div>
-        <p class="pd-faq-contact">Still have questions? Contact us at <a href="mailto:support@coldd.dev">support@coldd.dev</a></p>
-      </section>
     </div>
   </main>
 
@@ -198,30 +259,30 @@
     <div class="wrap">
       <div class="foot-grid">
         <div class="foot-brand">
-          <a class="brand" href="index.html" aria-label="coldd home"><img class="logo" src="logo.png" alt="coldd" /></a>
+          <a class="brand" href="/" aria-label="coldd home"><img class="logo" src="/logo.png" alt="coldd" /></a>
         </div>
 
         <div class="foot-col">
           <h4>Explore</h4>
-          <a href="index.html">Home</a>
-          <a href="blog.html">Blog</a>
-          <a href="blog.html?view=tutorials">Tutorials</a>
-          <a href="releases.html">Releases</a>
-          <a href="assets.html">Products</a>
-          <a href="faq.html">FAQ</a>
+          <a href="/">Home</a>
+          <a href="/blog">Blog</a>
+          <a href="/blog?view=tutorials">Tutorials</a>
+          <a href="/releases">Releases</a>
+          <a href="/assets">Products</a>
+          <a href="/faq">FAQ</a>
         </div>
 
         <div class="foot-col">
           <h4>Our Assets</h4>
-          <a href="assets.html">Roblox</a>
-          <a href="minecraft.html">Minecraft</a>
+          <a href="/assets">Roblox</a>
+          <a href="/minecraft">Minecraft</a>
         </div>
 
         <div class="foot-col">
           <h4>Account</h4>
-          <a href="signin.html">Sign in</a>
-          <a href="signup.html">Create Account</a>
-          <a href="dashboard.html">Dashboard</a>
+          <a href="/signin">Sign in</a>
+          <a href="/signup">Create Account</a>
+          <a href="/dashboard">Dashboard</a>
         </div>
 
         <div class="foot-col">
@@ -232,10 +293,10 @@
 
         <div class="foot-col">
           <h4>Legal</h4>
-          <a href="privacy.html">Privacy Policy</a>
-          <a href="terms.html">Terms of Service</a>
-          <a href="refund.html">Refund Policy</a>
-          <a href="resell-license.html">Resell License Terms</a>
+          <a href="/privacy-policy">Privacy Policy</a>
+          <a href="/terms-of-service">Terms of Service</a>
+          <a href="/refund-policy">Refund Policy</a>
+          <a href="/resell-license">Resell License Terms</a>
         </div>
       </div>
 
@@ -383,7 +444,7 @@
             <div class="auth-input-wrap"><input id="m-su-pass" name="password" type="password" autocomplete="new-password" placeholder="At least 8 characters" /><button class="auth-pw-toggle" type="button" aria-label="Show password"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></div><span class="auth-err"></span></div>
           <div class="auth-field" data-for="confirm"><label for="m-su-conf">Confirm password</label>
             <div class="auth-input-wrap"><input id="m-su-conf" name="confirm" type="password" autocomplete="new-password" placeholder="••••••••" /><button class="auth-pw-toggle" type="button" aria-label="Show password"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></div><span class="auth-err"></span></div>
-          <label class="auth-check"><input type="checkbox" name="tos" /> <span>I agree to the <a href="terms.html">Terms of Service</a> and <a href="privacy.html">Privacy Policy</a>.</span></label>
+          <label class="auth-check"><input type="checkbox" name="tos" /> <span>I agree to the <a href="/terms-of-service">Terms of Service</a> and <a href="/privacy-policy">Privacy Policy</a>.</span></label>
           <span class="auth-err" data-for="tos"></span>
           <button class="btn btn-primary auth-submit" type="submit">Create account</button>
           <div class="auth-msg"></div>
@@ -405,8 +466,18 @@
     </div>
   </div>
 
+  <div class="confirm-overlay" id="signoutOverlay" hidden>
+    <div class="confirm-modal">
+      <p>Sign out of coldd?</p>
+      <div class="confirm-actions">
+        <button class="btn" id="signoutCancel" type="button">Cancel</button>
+        <button class="btn btn-primary" id="signoutConfirm" type="button">Sign out</button>
+      </div>
+    </div>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="supabase-init.js?v=20260727a"></script>
-  <script src="catalog.js?v=20260727b" data-then="reviews.js?v=20260727c,app.js?v=20260727c"></script>
+  <script src="/supabase-init.js?v=20260727a"></script>
+  <script src="/catalog.js?v=20260727b" data-then="/app.js?v=20260727c"></script>
 </body>
 </html>

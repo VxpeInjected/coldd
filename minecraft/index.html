@@ -1,17 +1,27 @@
 <!DOCTYPE html>
 <html lang="en" data-ann="on">
 <head>
+  <script>
+    (function () {
+      try {
+        if (sessionStorage.getItem('coldd_unlocked') !== '1') {
+          var dest = encodeURIComponent(location.pathname + location.search + location.hash);
+          location.replace('/lock.html?r=' + dest);
+        }
+      } catch (e) {}
+    })();
+  </script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>coldd Development Minecraft</title>
-  <link rel="icon" type="image/png" href="logo.png" />
+  <link rel="icon" type="image/png" href="/logo.png" />
   <meta name="description" content="coldd is a Roblox development studio. Scripting, environments, modeling, and VFX, building and shipping polished experiences." />
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 
-  <link rel="stylesheet" href="styles.css?v=20260727c" />
+  <link rel="stylesheet" href="/styles.css?v=20260727c" />
 </head>
 <body>
   <div class="backdrop"></div>
@@ -21,19 +31,19 @@
 
   <div class="announce" id="announce">
     <div class="announce-inner">
-      <p class="announce-msg">Spring Sale is live — <strong>30% off</strong> every Roblox template through Sunday. <a class="announce-link" href="assets.html">Shop the sale →</a></p>
+      <p class="announce-msg">Spring Sale is live — <strong>30% off</strong> every Roblox template through Sunday. <a class="announce-link" href="/assets">Shop the sale →</a></p>
     </div>
     <button class="announce-x" id="announceX" type="button" aria-label="Dismiss announcement"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
   </div>
 
   <header class="nav" id="nav">
     <div class="nav-inner">
-      <a class="brand" href="index.html" aria-label="coldd home">
-        <img class="logo" src="logo.png" alt="coldd" />
+      <a class="brand" href="/" aria-label="coldd home">
+        <img class="logo" src="/logo.png" alt="coldd" />
       </a>
       <nav class="nav-links" aria-label="Primary">
         <span class="nav-set">
-          <a href="index.html">Home</a><a href="assets.html" id="shopLink" class="active" aria-current="page">Shop</a><a href="blog.html" id="blogLink">Blog &amp; Tutorials</a><a href="about.html" id="aboutLink">About Us</a>
+          <a href="/">Home</a><a href="/assets" id="shopLink" class="active" aria-current="page">Shop</a><a href="/blog" id="blogLink">Blog &amp; Tutorials</a><a href="/about" id="aboutLink">About Us</a>
         </span>
         <span class="nav-search-wrap">
           <button class="nav-search" id="searchBtn" type="button" aria-label="Search"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg></button>
@@ -62,29 +72,29 @@
           <button class="nmt-tab" type="button" data-platform="minecraft" role="tab" aria-selected="false">Minecraft</button>
         </div>
         <div class="nav-mega-cats" data-platform-panel="roblox">
-          <a href="assets.html?cat=game-templates">Finished Games &amp; Templates</a>
-          <a href="assets.html?cat=maps">Maps</a>
-          <a href="assets.html?cat=scripts-ui">Scripts &amp; UI</a>
-          <a href="assets.html?cat=graphics">Graphics</a>
-          <a href="assets.html?cat=buildings">Buildings</a>
-          <a href="assets.html?cat=assets">Assets</a>
-          <a href="assets.html?cat=uniforms-gear">Uniforms &amp; Gear</a>
-          <a href="assets.html?cat=boats">Boats</a>
-          <a href="assets.html?cat=weapons">Weapons</a>
-          <a href="assets.html?cat=vehicles">Vehicles</a>
-          <a href="assets.html?cat=animations-vfx">Animations &amp; VFX</a>
+          <a href="/assets?cat=game-templates">Finished Games &amp; Templates</a>
+          <a href="/assets?cat=maps">Maps</a>
+          <a href="/assets?cat=scripts-ui">Scripts &amp; UI</a>
+          <a href="/assets?cat=graphics">Graphics</a>
+          <a href="/assets?cat=buildings">Buildings</a>
+          <a href="/assets?cat=assets">Assets</a>
+          <a href="/assets?cat=uniforms-gear">Uniforms &amp; Gear</a>
+          <a href="/assets?cat=boats">Boats</a>
+          <a href="/assets?cat=weapons">Weapons</a>
+          <a href="/assets?cat=vehicles">Vehicles</a>
+          <a href="/assets?cat=animations-vfx">Animations &amp; VFX</a>
         </div>
         <div class="nav-mega-cats" data-platform-panel="minecraft" hidden>
-          <a href="minecraft.html?cat=hubs">Hubs</a>
-          <a href="minecraft.html?cat=lobbies">Lobbies</a>
-          <a href="minecraft.html?cat=maps">Maps</a>
-          <a href="minecraft.html?cat=builds">Builds</a>
-          <a href="minecraft.html?cat=plugins">Plugins</a>
-          <a href="minecraft.html?cat=setups">Full Setups</a>
+          <a href="/minecraft?cat=hubs">Hubs</a>
+          <a href="/minecraft?cat=lobbies">Lobbies</a>
+          <a href="/minecraft?cat=maps">Maps</a>
+          <a href="/minecraft?cat=builds">Builds</a>
+          <a href="/minecraft?cat=plugins">Plugins</a>
+          <a href="/minecraft?cat=setups">Full Setups</a>
         </div>
       </div>
-      <a class="nav-mega-feature" href="assets.html" id="navMegaFeature" data-href-roblox="assets.html" data-href-minecraft="minecraft.html" data-img-roblox="new-release.jpg" data-img-minecraft="minecraft.jpg">
-        <span class="nmf-img" style="background-image:url('new-release.jpg')"></span>
+      <a class="nav-mega-feature" href="/assets" id="navMegaFeature" data-href-roblox="/assets" data-href-minecraft="/minecraft" data-img-roblox="/new-release.jpg" data-img-minecraft="/minecraft.jpg">
+        <span class="nmf-img" style="background-image:url('/new-release.jpg')"></span>
         <span class="nmf-tag">New</span>
         <span class="nmf-title">New Releases</span>
         <span class="nmf-go">Browse all →</span>
@@ -93,21 +103,21 @@
   </div>
 
     <main class="page">
-    <section class="shop shop-notitle" data-page="minecraft.html">
+    <section class="shop shop-notitle" data-page="/minecraft">
       <div class="wrap">
         <div class="shop-toolbar">
           <div class="plat-select" id="platSelect">
             <button type="button" class="plat-btn" id="platBtn" aria-haspopup="listbox" aria-expanded="false">
-              <img class="plat-btn-ic" src="minecraft-icon.webp" alt="" />
+              <img class="plat-btn-ic" src="/minecraft-icon.webp" alt="" />
               <span class="plat-btn-label">Minecraft</span>
               <svg class="plat-chev" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
             </button>
             <div class="plat-menu" id="platMenu" role="listbox" aria-label="Choose platform" hidden>
-              <a class="plat-opt" href="assets.html" role="option" aria-selected="false">
-                <img src="roblox-studio.png" alt="" /><span>Roblox</span>
+              <a class="plat-opt" href="/assets" role="option" aria-selected="false">
+                <img src="/roblox-studio.png" alt="" /><span>Roblox</span>
               </a>
-              <a class="plat-opt active" href="minecraft.html" role="option" aria-selected="true">
-                <img src="minecraft-icon.webp" alt="" /><span>Minecraft</span>
+              <a class="plat-opt active" href="/minecraft" role="option" aria-selected="true">
+                <img src="/minecraft-icon.webp" alt="" /><span>Minecraft</span>
               </a>
             </div>
           </div>
@@ -133,7 +143,7 @@
             <div class="shop-resultsbar"><span class="shop-count"></span></div>
             <div class="product-grid" id="grid">
           <article class="product" data-cat="hubs" data-price="45" data-reviews="134" data-rating="5" data-catlabel="Hubs" data-resell="yes">
-            <div class="p-thumb" style="background-image:url('minecraft.jpg')"></div>
+            <div class="p-thumb" style="background-image:url('/minecraft.jpg')"></div>
             <div class="p-body">
               <h3 class="p-name">Skyblock Network Hub</h3>
               <div class="p-price-row"><span class="p-price">$45</span></div>
@@ -143,7 +153,7 @@
             </div>
           </article>
           <article class="product" data-cat="hubs" data-price="38" data-reviews="52" data-rating="4" data-catlabel="Hubs" data-resell="yes">
-            <div class="p-thumb" style="background-image:url('new-release.jpg')"></div>
+            <div class="p-thumb" style="background-image:url('/new-release.jpg')"></div>
             <div class="p-body">
               <h3 class="p-name">Fantasy Spawn</h3>
               <div class="p-price-row"><span class="p-price">$38</span></div>
@@ -153,7 +163,7 @@
             </div>
           </article>
           <article class="product" data-cat="lobbies" data-price="30" data-reviews="71" data-rating="4" data-catlabel="Lobbies">
-            <div class="p-thumb" style="background-image:url('builds.jpg')"></div>
+            <div class="p-thumb" style="background-image:url('/builds.jpg')"></div>
             <div class="p-body">
               <h3 class="p-name">Minigames Lobby</h3>
               <div class="p-price-row"><span class="p-price">$30</span></div>
@@ -163,7 +173,7 @@
             </div>
           </article>
           <article class="product" data-cat="lobbies" data-price="28" data-reviews="96" data-rating="5" data-catlabel="Lobbies">
-            <div class="p-thumb" style="background-image:url('products.jpg')"></div>
+            <div class="p-thumb" style="background-image:url('/products.jpg')"></div>
             <div class="p-body">
               <h3 class="p-name">Practice PvP Lobby</h3>
               <div class="p-price-row"><span class="p-price">$28</span></div>
@@ -173,7 +183,7 @@
             </div>
           </article>
           <article class="product" data-cat="maps" data-price="42" data-reviews="40" data-rating="4" data-catlabel="Maps">
-            <div class="p-thumb" style="background-image:url('frostline.jpg')"></div>
+            <div class="p-thumb" style="background-image:url('/frostline.jpg')"></div>
             <div class="p-body">
               <h3 class="p-name">Survival World</h3>
               <div class="p-price-row"><span class="p-price">$42</span></div>
@@ -183,7 +193,7 @@
             </div>
           </article>
           <article class="product" data-cat="maps" data-price="36" data-reviews="0" data-rating="0" data-catlabel="Maps">
-            <div class="p-thumb" style="background-image:url('premade.jpg')"></div>
+            <div class="p-thumb" style="background-image:url('/premade.jpg')"></div>
             <div class="p-body">
               <h3 class="p-name">Adventure Map</h3>
               <div class="p-price-row"><span class="p-price">$36</span></div>
@@ -192,7 +202,7 @@
             </div>
           </article>
           <article class="product" data-cat="builds" data-price="25" data-reviews="118" data-rating="5" data-catlabel="Builds" data-resell="yes">
-            <div class="p-thumb" style="background-image:url('builds.jpg')"></div>
+            <div class="p-thumb" style="background-image:url('/builds.jpg')"></div>
             <div class="p-body">
               <h3 class="p-name">Medieval Castle</h3>
               <div class="p-price-row"><span class="p-price">$25</span></div>
@@ -202,7 +212,7 @@
             </div>
           </article>
           <article class="product" data-cat="builds" data-price="60" data-reviews="63" data-rating="4" data-was="80" data-catlabel="Builds" data-resell="yes">
-            <div class="p-thumb" style="background-image:url('products.jpg')"><span class="p-off">-25%</span></div>
+            <div class="p-thumb" style="background-image:url('/products.jpg')"><span class="p-off">-25%</span></div>
             <div class="p-body">
               <h3 class="p-name">Modern City Pack</h3>
               <div class="p-price-row"><span class="p-was">$80</span><span class="p-price">$60</span></div>
@@ -212,7 +222,7 @@
             </div>
           </article>
           <article class="product" data-cat="plugins" data-price="20" data-reviews="205" data-rating="5" data-catlabel="Plugins">
-            <div class="p-thumb" style="background-image:url('scripts.jpg')"></div>
+            <div class="p-thumb" style="background-image:url('/scripts.jpg')"></div>
             <div class="p-body">
               <h3 class="p-name">Custom Enchants</h3>
               <div class="p-price-row"><span class="p-price">$20</span></div>
@@ -222,7 +232,7 @@
             </div>
           </article>
           <article class="product" data-cat="plugins" data-price="18" data-reviews="58" data-rating="4" data-catlabel="Plugins">
-            <div class="p-thumb" style="background-image:url('banner.jpg')"></div>
+            <div class="p-thumb" style="background-image:url('/banner.jpg')"></div>
             <div class="p-body">
               <h3 class="p-name">Cosmetics Plugin</h3>
               <div class="p-price-row"><span class="p-price">$18</span></div>
@@ -232,7 +242,7 @@
             </div>
           </article>
           <article class="product" data-cat="setups" data-price="120" data-reviews="76" data-rating="5" data-catlabel="Full Setups" data-resell="yes">
-            <div class="p-thumb" style="background-image:url('premade.jpg')"></div>
+            <div class="p-thumb" style="background-image:url('/premade.jpg')"></div>
             <div class="p-body">
               <h3 class="p-name">Skyblock Full Setup</h3>
               <div class="p-price-row"><span class="p-price">$120</span></div>
@@ -242,7 +252,7 @@
             </div>
           </article>
           <article class="product" data-cat="setups" data-price="99" data-reviews="25" data-rating="4" data-catlabel="Full Setups">
-            <div class="p-thumb" style="background-image:url('cta-bg.jpg')"></div>
+            <div class="p-thumb" style="background-image:url('/cta-bg.jpg')"></div>
             <div class="p-body">
               <h3 class="p-name">Prison Full Setup</h3>
               <div class="p-price-row"><span class="p-price">$99</span></div>
@@ -252,7 +262,7 @@
             </div>
           </article>
           <article class="product" data-cat="skins" data-price="12" data-reviews="25" data-rating="4" data-catlabel="Skins">
-            <div class="p-thumb" style="background-image:url('team-bg.jpg')"></div>
+            <div class="p-thumb" style="background-image:url('/team-bg.jpg')"></div>
             <div class="p-body">
               <h3 class="p-name">Ranger Skin Pack</h3>
               <div class="p-price-row"><span class="p-price">$12</span></div>
@@ -262,7 +272,7 @@
             </div>
           </article>
           <article class="product" data-cat="models" data-price="35" data-reviews="25" data-rating="4" data-catlabel="Models">
-            <div class="p-thumb" style="background-image:url('new-release.jpg')"></div>
+            <div class="p-thumb" style="background-image:url('/new-release.jpg')"></div>
             <div class="p-body">
               <h3 class="p-name">Custom Mob Models</h3>
               <div class="p-price-row"><span class="p-price">$35</span></div>
@@ -272,7 +282,7 @@
             </div>
           </article>
           <article class="product" data-cat="guis" data-price="15" data-reviews="25" data-rating="4" data-catlabel="Guis">
-            <div class="p-thumb" style="background-image:url('scripts.jpg')"></div>
+            <div class="p-thumb" style="background-image:url('/scripts.jpg')"></div>
             <div class="p-body">
               <h3 class="p-name">Menu GUI Pack</h3>
               <div class="p-price-row"><span class="p-price">$15</span></div>
@@ -282,7 +292,7 @@
             </div>
           </article>
           <article class="product" data-cat="schematics" data-price="22" data-reviews="25" data-rating="4" data-catlabel="Schematics">
-            <div class="p-thumb" style="background-image:url('frostline.jpg')"></div>
+            <div class="p-thumb" style="background-image:url('/frostline.jpg')"></div>
             <div class="p-body">
               <h3 class="p-name">Spawn Schematic Bundle</h3>
               <div class="p-price-row"><span class="p-price">$22</span></div>
@@ -292,7 +302,7 @@
             </div>
           </article>
           <article class="product" data-cat="textures" data-price="26" data-reviews="25" data-rating="4" data-catlabel="Textures">
-            <div class="p-thumb" style="background-image:url('banner.jpg')"></div>
+            <div class="p-thumb" style="background-image:url('/banner.jpg')"></div>
             <div class="p-body">
               <h3 class="p-name">Fantasy Texture Pack</h3>
               <div class="p-price-row"><span class="p-price">$26</span></div>
@@ -356,30 +366,30 @@
     <div class="wrap">
       <div class="foot-grid">
         <div class="foot-brand">
-          <a class="brand" href="index.html" aria-label="coldd home"><img class="logo" src="logo.png" alt="coldd" /></a>
+          <a class="brand" href="/" aria-label="coldd home"><img class="logo" src="/logo.png" alt="coldd" /></a>
         </div>
 
         <div class="foot-col">
           <h4>Explore</h4>
-          <a href="index.html">Home</a>
-          <a href="blog.html">Blog</a>
-          <a href="blog.html?view=tutorials">Tutorials</a>
-          <a href="releases.html">Releases</a>
-          <a href="assets.html">Products</a>
-          <a href="faq.html">FAQ</a>
+          <a href="/">Home</a>
+          <a href="/blog">Blog</a>
+          <a href="/blog?view=tutorials">Tutorials</a>
+          <a href="/releases">Releases</a>
+          <a href="/assets">Products</a>
+          <a href="/faq">FAQ</a>
         </div>
 
         <div class="foot-col">
           <h4>Our Assets</h4>
-          <a href="assets.html">Roblox</a>
-          <a href="minecraft.html">Minecraft</a>
+          <a href="/assets">Roblox</a>
+          <a href="/minecraft">Minecraft</a>
         </div>
 
         <div class="foot-col">
           <h4>Account</h4>
-          <a href="signin.html">Sign in</a>
-          <a href="signup.html">Create Account</a>
-          <a href="dashboard.html">Dashboard</a>
+          <a href="/signin">Sign in</a>
+          <a href="/signup">Create Account</a>
+          <a href="/dashboard">Dashboard</a>
         </div>
 
         <div class="foot-col">
@@ -390,10 +400,10 @@
 
         <div class="foot-col">
           <h4>Legal</h4>
-          <a href="privacy.html">Privacy Policy</a>
-          <a href="terms.html">Terms of Service</a>
-          <a href="refund.html">Refund Policy</a>
-          <a href="resell-license.html">Resell License Terms</a>
+          <a href="/privacy-policy">Privacy Policy</a>
+          <a href="/terms-of-service">Terms of Service</a>
+          <a href="/refund-policy">Refund Policy</a>
+          <a href="/resell-license">Resell License Terms</a>
         </div>
       </div>
 
@@ -541,7 +551,7 @@
             <div class="auth-input-wrap"><input id="m-su-pass" name="password" type="password" autocomplete="new-password" placeholder="At least 8 characters" /><button class="auth-pw-toggle" type="button" aria-label="Show password"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></div><span class="auth-err"></span></div>
           <div class="auth-field" data-for="confirm"><label for="m-su-conf">Confirm password</label>
             <div class="auth-input-wrap"><input id="m-su-conf" name="confirm" type="password" autocomplete="new-password" placeholder="••••••••" /><button class="auth-pw-toggle" type="button" aria-label="Show password"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></div><span class="auth-err"></span></div>
-          <label class="auth-check"><input type="checkbox" name="tos" /> <span>I agree to the <a href="terms.html">Terms of Service</a> and <a href="privacy.html">Privacy Policy</a>.</span></label>
+          <label class="auth-check"><input type="checkbox" name="tos" /> <span>I agree to the <a href="/terms-of-service">Terms of Service</a> and <a href="/privacy-policy">Privacy Policy</a>.</span></label>
           <span class="auth-err" data-for="tos"></span>
           <button class="btn btn-primary auth-submit" type="submit">Create account</button>
           <div class="auth-msg"></div>
@@ -564,7 +574,7 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="supabase-init.js?v=20260727a"></script>
-  <script src="catalog.js?v=20260727b" data-then="app.js?v=20260727c"></script>
+  <script src="/supabase-init.js?v=20260727a"></script>
+  <script src="/catalog.js?v=20260727b" data-then="/app.js?v=20260727c"></script>
 </body>
 </html>

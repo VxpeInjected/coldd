@@ -4,7 +4,13 @@
   // fetch callbacks below.
   var thisScript = document.currentScript;
 
-  window.__CATEGORIES = [{"label": "Resell License", "slug": "resell", "platform": "Roblox", "page": "assets.html"}, {"label": "Finished Games & Templates", "slug": "game-templates", "platform": "Roblox", "page": "assets.html"}, {"label": "Maps", "slug": "maps", "platform": "Roblox", "page": "assets.html"}, {"label": "Scripts & UI", "slug": "scripts-ui", "platform": "Roblox", "page": "assets.html"}, {"label": "Graphics", "slug": "graphics", "platform": "Roblox", "page": "assets.html"}, {"label": "Buildings", "slug": "buildings", "platform": "Roblox", "page": "assets.html"}, {"label": "Assets", "slug": "assets", "platform": "Roblox", "page": "assets.html"}, {"label": "Uniforms & Gear", "slug": "uniforms-gear", "platform": "Roblox", "page": "assets.html"}, {"label": "Boats", "slug": "boats", "platform": "Roblox", "page": "assets.html"}, {"label": "Weapons", "slug": "weapons", "platform": "Roblox", "page": "assets.html"}, {"label": "Vehicles", "slug": "vehicles", "platform": "Roblox", "page": "assets.html"}, {"label": "Animations & VFX", "slug": "animations-vfx", "platform": "Roblox", "page": "assets.html"}];
+  window.imgUrl = function (p) {
+    if (!p) return '/banner.jpg';
+    if (p.charAt(0) === '/' || /^https?:\/\//.test(p) || p.indexOf('data:') === 0 || p.indexOf('blob:') === 0) return p;
+    return '/' + p;
+  };
+
+  window.__CATEGORIES = [{"label": "Resell License", "slug": "resell", "platform": "Roblox", "page": "/assets"}, {"label": "Finished Games & Templates", "slug": "game-templates", "platform": "Roblox", "page": "/assets"}, {"label": "Maps", "slug": "maps", "platform": "Roblox", "page": "/assets"}, {"label": "Scripts & UI", "slug": "scripts-ui", "platform": "Roblox", "page": "/assets"}, {"label": "Graphics", "slug": "graphics", "platform": "Roblox", "page": "/assets"}, {"label": "Buildings", "slug": "buildings", "platform": "Roblox", "page": "/assets"}, {"label": "Assets", "slug": "assets", "platform": "Roblox", "page": "/assets"}, {"label": "Uniforms & Gear", "slug": "uniforms-gear", "platform": "Roblox", "page": "/assets"}, {"label": "Boats", "slug": "boats", "platform": "Roblox", "page": "/assets"}, {"label": "Weapons", "slug": "weapons", "platform": "Roblox", "page": "/assets"}, {"label": "Vehicles", "slug": "vehicles", "platform": "Roblox", "page": "/assets"}, {"label": "Animations & VFX", "slug": "animations-vfx", "platform": "Roblox", "page": "/assets"}];
 
   function loadDependents() {
     var target = thisScript && thisScript.parentNode ? thisScript.parentNode : document.body;
@@ -13,7 +19,7 @@
     // pages chain different scripts here (app.js alone; blog.js+app.js;
     // reviews.js+app.js; blog.js+reviews.js+admin.js with no app.js at all).
     var attr = thisScript && thisScript.getAttribute('data-then');
-    var scripts = attr ? attr.split(',').map(function (s) { return s.trim(); }).filter(Boolean) : ['app.js'];
+    var scripts = attr ? attr.split(',').map(function (s) { return s.trim(); }).filter(Boolean) : ['/app.js'];
 
     function loadNext(i) {
       if (i >= scripts.length) return;
@@ -36,7 +42,7 @@
       title: row.title,
       price: fmtPrice(priceNum),
       priceNum: priceNum,
-      image: row.image,
+      image: window.imgUrl(row.image),
       cat: row.cat,
       desc: row.description,
       resell: !!row.resell_available,

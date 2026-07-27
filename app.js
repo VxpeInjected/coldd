@@ -288,10 +288,10 @@
       function showPanel() { if (panel) { positionPanel(); panel.classList.add('open'); } }
 
       const PAGES = [
-        { label: 'Home', href: 'index.html' },
-        { label: 'Roblox', href: 'assets.html' },
-        { label: 'Minecraft', href: 'minecraft.html' },
-        { label: 'About Us', href: 'about.html' }
+        { label: 'Home', href: '/' },
+        { label: 'Roblox', href: '/assets' },
+        { label: 'Minecraft', href: '/minecraft' },
+        { label: 'About Us', href: '/about' }
       ];
       function groupHeader(label) {
         const h = document.createElement('div'); h.className = 'search-group'; h.textContent = label;
@@ -473,7 +473,7 @@
         const sortOpts = sortMenu ? Array.prototype.slice.call(sortMenu.querySelectorAll('.sort-opt')) : [];
         const clearBtn = shop.querySelector('.fc-clear');
         const countEl = shop.querySelector('.shop-count');
-        const base = shop.getAttribute('data-page') || (location.pathname.split('/').pop() || 'assets.html');
+        const base = shop.getAttribute('data-page') || (location.pathname.split('/').pop() || '/assets');
         const products = Array.prototype.slice.call(grid.querySelectorAll('.product'));
         const PER_PAGE = 12;
         let page = 1;
@@ -668,10 +668,10 @@
       document.addEventListener('click', function (e) {
         const a = e.target.closest('a'); if (!a || a.target === '_blank') return;
         const href = a.getAttribute('href') || '';
-        if (!/^(index\.html|assets\.html|minecraft\.html|about\.html|blog\.html|post\.html|tutorial\.html|releases\.html)(\?|#|$)/.test(href)) return;
+        if (!/^\/(assets|minecraft|about|blog|post|tutorial|releases)?(\?|#|$)/.test(href)) return;
 
-        const here = location.pathname.split('/').pop() || 'index.html';
-        const target = href.split(/[?#]/)[0] || 'index.html';
+        const here = location.pathname.split('/').pop() || '/';
+        const target = href.split(/[?#]/)[0] || '/';
         if (href.charAt(0) === '#' || (target === here && href.indexOf('#') !== -1 && href.indexOf('?') === -1)) return;
         if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
         e.preventDefault();
@@ -817,7 +817,7 @@
       if (checkout) checkout.addEventListener('click', function () {
         if (!cart.length) return;
         closeCart();
-        if (window.__goCheckout) window.__goCheckout(); else location.href = 'checkout.html';
+        if (window.__goCheckout) window.__goCheckout(); else location.href = '/checkout';
       });
 
       var pmOverlay = document.getElementById('pmOverlay');
@@ -956,7 +956,7 @@
         if (e.target.closest('.p-add')) { add(readCard(card)); openCart(); }
         else {
           var a = document.createElement('a');
-          a.href = 'product.html?id=' + encodeURIComponent(readCard(card).id);
+          a.href = '/product?id=' + encodeURIComponent(readCard(card).id);
           a.target = '_blank'; a.rel = 'noopener';
           a.click();
         }
@@ -968,12 +968,12 @@
       if (pmBuy) pmBuy.addEventListener('click', function () {
         if (!active) return;
         add(active); closeModal();
-        if (window.__goCheckout) window.__goCheckout(); else location.href = 'checkout.html';
+        if (window.__goCheckout) window.__goCheckout(); else location.href = '/checkout';
       });
       if (pmDetails) pmDetails.addEventListener('click', function () {
         if (!active) return;
         if (window.__go) { if (window.__renderProduct) window.__renderProduct(active.id); window.__go('product'); closeModal(); return; }
-        location.href = 'product.html?id=' + encodeURIComponent(active.id);
+        location.href = '/product?id=' + encodeURIComponent(active.id);
       });
 
       document.addEventListener('keydown', function (e) {
@@ -1169,10 +1169,10 @@
                   price: p.priceNum, licence: 'standard', resell: p.resell, platform: p.platform };
 
           var catSlug = (p.cat || '').toLowerCase().replace(/&/g, 'and').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-          var crumb = '<a href="' + (p.page || 'assets.html') + '">' + esc(p.platform) + '</a><span>›</span>' +
-            '<a href="' + (p.page || 'assets.html') + '?cat=' + catSlug + '">' + esc(p.cat) + '</a>';
+          var crumb = '<a href="' + (p.page || '/assets') + '">' + esc(p.platform) + '</a><span>›</span>' +
+            '<a href="' + (p.page || '/assets') + '?cat=' + catSlug + '">' + esc(p.cat) + '</a>';
           if (p.subcat) crumb += '<span>›</span><span class="pd-crumb-cur">' + esc(humanize(p.subcat)) + '</span>';
-          else crumb = crumb.replace('<a href="' + (p.page || 'assets.html') + '?cat=' + catSlug + '">' + esc(p.cat) + '</a>', '<span class="pd-crumb-cur">' + esc(p.cat) + '</span>');
+          else crumb = crumb.replace('<a href="' + (p.page || '/assets') + '?cat=' + catSlug + '">' + esc(p.cat) + '</a>', '<span class="pd-crumb-cur">' + esc(p.cat) + '</span>');
           if (pdCrumb) pdCrumb.innerHTML = crumb;
 
           if (pdTitle) pdTitle.innerHTML = esc(p.title) + ' <span class="pd-ver">' + version + '</span>';
@@ -1245,7 +1245,7 @@
         if ($('pdAddBtn')) $('pdAddBtn').addEventListener('click', function () { if (cur) { add(cur); openCart(); } });
         if ($('pdBuyBtn')) $('pdBuyBtn').addEventListener('click', function () {
           if (!cur) return; add(cur);
-          if (window.__goCheckout) window.__goCheckout(); else if (!window.__go) location.href = 'checkout.html'; else window.__go('checkout');
+          if (window.__goCheckout) window.__goCheckout(); else if (!window.__go) location.href = '/checkout'; else window.__go('checkout');
         });
         if (pdWish) pdWish.addEventListener('click', function () {
           if (!cur) return; var w = lsGet(WISH), i = w.indexOf(cur.id);
@@ -1298,7 +1298,7 @@
           ? '<span class="account-menu-av" style="background-image:url(' + p.avatar + ')"></span>'
           : '<span class="account-menu-av">' + initial + '</span>';
         menu.innerHTML =
-          '<a href="dashboard.html" class="account-menu-item">' + avatarHtml + '<span>Your Account</span></a>' +
+          '<a href="/dashboard" class="account-menu-item">' + avatarHtml + '<span>Your Account</span></a>' +
           '<button type="button" class="account-menu-item account-menu-signout" id="menuSignout">' +
           '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/></svg>' +
           '<span>Sign out</span></button>';
@@ -1332,7 +1332,7 @@
           overlay.hidden = true;
           try { localStorage.setItem('coldd_auth', 'out'); } catch (e) {}
           if (window.coldAuth) window.coldAuth.signOut();
-          location.href = 'index.html';
+          location.href = '/';
         });
       }
       function openConfirm() { if (!overlay) buildConfirm(); overlay.hidden = false; }
@@ -1340,7 +1340,7 @@
       btn.addEventListener('click', function (e) {
         e.preventDefault();
         if (isLoggedIn()) toggleMenu();
-        else location.href = 'signin.html';
+        else location.href = '/signin';
       });
       document.addEventListener('click', function (e) {
         if (menu && !menu.hidden && !e.target.closest('.account-menu') && e.target !== btn && !e.target.closest('#accountBtn')) closeMenu();
@@ -1356,7 +1356,7 @@
 
       window.__goDashboard = function () {
         if (window.__go) window.__go('dashboard');
-        else location.href = 'dashboard.html';
+        else location.href = '/dashboard';
       };
       window.__demoLogin = function () { setState(true); window.__goDashboard(); };
 
@@ -1443,7 +1443,7 @@
           grid.innerHTML = '';
           if (!owned.length) grid.innerHTML = '<p class="dash-empty-note">You don\'t own any products yet.</p>';
           else owned.forEach(function (item) {
-            var img = item.products && item.products.image ? item.products.image : 'banner.jpg';
+            var img = item.products && item.products.image ? window.imgUrl(item.products.image) : '/banner.jpg';
             var card = document.createElement('div'); card.className = 'dash-prod glass';
             card.innerHTML = '<div class="dp-thumb" style="background-image:url(\'' + img + '\')"></div>' +
               '<div class="dp-body"><div class="dp-name"></div><span class="dp-lic"></span></div>';
@@ -1487,7 +1487,7 @@
       if (window.coldSupabase) {
         window.coldSupabase.auth.getSession().then(function (res) {
           var session = res && res.data ? res.data.session : null;
-          if (!session) { location.href = 'signin.html'; return; }
+          if (!session) { location.href = '/signin'; return; }
           loadRealData(session.user.id);
         });
       }
@@ -1516,7 +1516,7 @@
           var h = hh(p.id), sales = h % 9, earn = Math.round(p.priceNum * 0.2 * 100) / 100;
           return '<tr><td>' + p.title + '</td><td><span class="p-price" data-usd="' + earn + '">' + fmt(earn) + '</span></td>' +
             '<td>' + sales + '</td><td><span class="p-price" data-usd="' + (earn * sales) + '">' + fmt(earn * sales) + '</span></td>' +
-            '<td><button class="btn btn-ghost ref-prod-copy" type="button" data-link="' + (p.page || 'product.html') + '?id=' + p.id + '&ref=you">Copy link</button></td></tr>';
+            '<td><button class="btn btn-ghost ref-prod-copy" type="button" data-link="' + (p.page || '/product') + '?id=' + p.id + '&ref=you">Copy link</button></td></tr>';
         }).join('');
         refProdBody.querySelectorAll('.ref-prod-copy').forEach(function (b) {
           b.addEventListener('click', function () {
@@ -1553,7 +1553,7 @@
         if (fin) fin.addEventListener('click', function () {
           if (inp && inp.value.trim().toUpperCase() === 'DELETE') {
             setState(false); window.__authClose && window.__authClose();
-            if (window.__go) window.__go('home'); else location.href = 'index.html';
+            if (window.__go) window.__go('home'); else location.href = '/';
           } else if (inp) { inp.style.borderColor = 'var(--accent)'; inp.focus(); }
         });
       }
@@ -1569,7 +1569,7 @@
         soOverlay.hidden = true;
         setState(false);
         if (window.coldAuth) window.coldAuth.signOut();
-        if (window.__go) window.__go('home'); else location.href = 'index.html';
+        if (window.__go) window.__go('home'); else location.href = '/';
       });
     })();
 
@@ -1577,7 +1577,7 @@
       var root = document.querySelector('.checkout');
       window.__goCheckout = function () {
         if (root) { cart = load(); render(); }
-        if (window.__go) window.__go('checkout'); else location.href = 'checkout.html';
+        if (window.__go) window.__go('checkout'); else location.href = '/checkout';
       };
       if (!root) return;
 
@@ -1665,7 +1665,7 @@
       if (window.coldSupabase) window.coldSupabase.auth.onAuthStateChange(function () { refreshSession(); });
 
       var coSigninBtn = document.getElementById('coSigninBtn');
-      if (coSigninBtn) coSigninBtn.addEventListener('click', function () { location.href = 'signin.html'; });
+      if (coSigninBtn) coSigninBtn.addEventListener('click', function () { location.href = '/signin'; });
 
       var couponInput = document.getElementById('coCouponInput'), couponApplyBtn = document.getElementById('coCouponApply'), couponMsg = document.getElementById('coCouponMsg');
       if (couponApplyBtn) couponApplyBtn.addEventListener('click', function () {
@@ -1777,7 +1777,7 @@
         loader.hidden = false;
         requestAnimationFrame(function () { loader.classList.add('show'); });
         var base = href.split('?')[0];
-        var view = base === 'index.html' ? 'home' : base.replace('.html', '');
+        var view = base === '/' ? 'home' : base.replace('.html', '');
         setTimeout(function () {
           if (window.__go) {
             window.__go(view, 'all');

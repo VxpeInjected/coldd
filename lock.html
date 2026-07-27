@@ -1,0 +1,50 @@
+<!doctype html>
+<html>
+<head><meta charset="utf-8"><title>Private</title></head>
+<body>
+<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;text-align:center;">
+  <div>
+    <p>This domain is private. Enter the password to unlock.</p>
+    <form id="lockForm">
+      <input type="password" id="lockPw" autocomplete="off" />
+      <button type="submit">Go</button>
+    </form>
+    <p id="lockErr" style="display:none;">Incorrect password.</p>
+  </div>
+</div>
+<script>
+  // Password is checked server-side via a Supabase Edge Function - it is
+  // never present in this file, so it can't be read via view-source or
+  // devtools like the old version could.
+  var SUPABASE_URL = 'https://ekinmytmudjwfaqaqswp.supabase.co';
+  var ANON_KEY = 'sb_publishable_q5JwjFnMT_0Uhu5rAlAkQA_DEGnhwV7';
+
+  document.getElementById('lockForm').addEventListener('submit', async function (e) {
+    e.preventDefault();
+    var v = document.getElementById('lockPw').value;
+    var btn = e.target.querySelector('button');
+    btn.disabled = true;
+    try {
+      var res = await fetch(SUPABASE_URL + '/functions/v1/lock-check', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'apikey': ANON_KEY },
+        body: JSON.stringify({ password: v })
+      });
+      var data = await res.json();
+      btn.disabled = false;
+      if (data && data.ok) {
+        try { sessionStorage.setItem('coldd_unlocked', '1'); } catch (err) {}
+        var params = new URLSearchParams(location.search);
+        var dest = params.get('r');
+        location.replace(dest ? decodeURIComponent(dest) : '/');
+      } else {
+        document.getElementById('lockErr').style.display = 'block';
+      }
+    } catch (err) {
+      btn.disabled = false;
+      document.getElementById('lockErr').style.display = 'block';
+    }
+  });
+</script>
+</body>
+</html>

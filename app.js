@@ -388,7 +388,7 @@
     })();
 
     (function () {
-      const trigger = document.getElementById('assetsLink');
+      const trigger = document.getElementById('shopLink');
       const mega = document.getElementById('navMega');
       if (!trigger || !mega) return;
       let hideT;
@@ -411,6 +411,41 @@
       mega.addEventListener('mouseenter', function () { clearTimeout(hideT); });
       mega.addEventListener('mouseleave', close);
       window.addEventListener('resize', function () { if (mega.classList.contains('open')) position(); });
+
+      const tabs = mega.querySelectorAll('.nmt-tab');
+      const panels = mega.querySelectorAll('.nav-mega-cats[data-platform-panel]');
+      const feature = document.getElementById('navMegaFeature');
+      function setPlatform(platform) {
+        tabs.forEach(function (t) {
+          const active = t.getAttribute('data-platform') === platform;
+          t.classList.toggle('active', active);
+          t.setAttribute('aria-selected', active ? 'true' : 'false');
+        });
+        panels.forEach(function (p) { p.hidden = p.getAttribute('data-platform-panel') !== platform; });
+        if (feature) {
+          feature.setAttribute('href', feature.getAttribute('data-href-' + platform) || feature.getAttribute('href'));
+          const img = feature.querySelector('.nmf-img');
+          const url = feature.getAttribute('data-img-' + platform);
+          if (img && url) img.style.backgroundImage = "url('" + url + "')";
+        }
+        if (mega.classList.contains('open')) position();
+      }
+      tabs.forEach(function (t) {
+        t.addEventListener('click', function () { setPlatform(t.getAttribute('data-platform')); });
+        t.addEventListener('mouseenter', function () { setPlatform(t.getAttribute('data-platform')); });
+      });
+    })();
+
+    (function () {
+      const wrap = document.getElementById('platSelect');
+      const btn = document.getElementById('platBtn');
+      const menu = document.getElementById('platMenu');
+      if (!wrap || !btn || !menu) return;
+      function close() { wrap.classList.remove('open'); menu.hidden = true; btn.setAttribute('aria-expanded', 'false'); }
+      function open() { wrap.classList.add('open'); menu.hidden = false; btn.setAttribute('aria-expanded', 'true'); }
+      btn.addEventListener('click', function (e) { e.stopPropagation(); menu.hidden ? open() : close(); });
+      document.addEventListener('click', function (e) { if (!wrap.contains(e.target)) close(); });
+      document.addEventListener('keydown', function (e) { if (e.key === 'Escape') close(); });
     })();
 
     (function () {
@@ -429,6 +464,15 @@
         const prMaxVal = shop.querySelector('.pr-maxval');
         const empty = shop.querySelector('.shop-empty');
         const pager = shop.querySelector('.shop-pager');
+        const saleBox = shop.querySelector('.fc-sale');
+        const freeBox = shop.querySelector('.fc-free');
+        const sortField = shop.querySelector('.sort-field');
+        const sortBtn = shop.querySelector('.sort-btn');
+        const sortMenu = shop.querySelector('.sort-menu');
+        const sortBtnVal = shop.querySelector('.sort-btn-val');
+        const sortOpts = sortMenu ? Array.prototype.slice.call(sortMenu.querySelectorAll('.sort-opt')) : [];
+        const clearBtn = shop.querySelector('.fc-clear');
+        const countEl = shop.querySelector('.shop-count');
         const base = shop.getAttribute('data-page') || (location.pathname.split('/').pop() || 'assets.html');
         const products = Array.prototype.slice.call(grid.querySelectorAll('.product'));
         const PER_PAGE = 12;
@@ -438,13 +482,13 @@
         products.forEach(function (p) { maxPrice = Math.max(maxPrice, parseFloat(p.getAttribute('data-price')) || 0); });
         maxPrice = Math.max(10, Math.ceil(maxPrice / 10) * 10);
         if (prMin && prMax) { prMin.max = prMax.max = maxPrice; prMin.value = 0; prMax.value = maxPrice; }
-        let curCat = 'all', curSub = null, query = '', lo = 0, hi = maxPrice;
+        if (prMinVal && prMaxVal) { prMinVal.max = prMaxVal.max = maxPrice; prMinVal.value = 0; prMaxVal.value = maxPrice; }
+        let curCat = 'all', curSub = null, query = '', lo = 0, hi = maxPrice, onSale = false, onFree = false, sortMode = 'recommended';
 
-        function money(n) { return window.__money ? window.__money(n) : ('$' + n); }
         function paintRange() {
           if (prFill) { prFill.style.left = (lo / maxPrice * 100) + '%'; prFill.style.width = ((hi - lo) / maxPrice * 100) + '%'; }
-          if (prMinVal) prMinVal.textContent = money(lo);
-          if (prMaxVal) prMaxVal.textContent = money(hi);
+          if (prMinVal && document.activeElement !== prMinVal) prMinVal.value = Math.round(lo);
+          if (prMaxVal && document.activeElement !== prMaxVal) prMaxVal.value = Math.round(hi);
         }
         function syncCats() {
           if (chips) chips.querySelectorAll('.chip').forEach(function (c) { c.classList.toggle('active', c.getAttribute('data-cat') === curCat); });
@@ -461,7 +505,32 @@
                       : curCat === 'resell' ? p.getAttribute('data-resell') === 'yes'
                       : p.getAttribute('data-cat') === curCat;
           const okSub = !curSub || p.getAttribute('data-subcat') === curSub;
-          return okCat && okSub && (!query || title.indexOf(query) >= 0) && price >= lo && price <= hi;
+          const okSale = !onSale || p.hasAttribute('data-was');
+          const okFree = !onFree || p.getAttribute('data-free') === 'yes';
+          return okCat && okSub && okSale && okFree && (!query || title.indexOf(query) >= 0) && price >= lo && price <= hi;
+        }
+        function isFiltered() {
+          return curCat !== 'all' || !!curSub || !!query || lo > 0 || hi < maxPrice || onSale || onFree;
+        }
+        function sortMatches(arr) {
+          const mode = sortMode || 'recommended';
+          if (mode === 'recommended' || mode === 'oldest') return arr;
+          if (mode === 'newest') return arr.slice().reverse();
+          const withMeta = arr.map(function (p, i) {
+            return {
+              p: p, i: i,
+              price: parseFloat(p.getAttribute('data-price')) || 0,
+              rating: parseFloat(p.getAttribute('data-rating')) || 0,
+              reviews: parseFloat(p.getAttribute('data-reviews')) || 0
+            };
+          });
+          withMeta.sort(function (a, b) {
+            if (mode === 'price-asc') return (a.price - b.price) || (a.i - b.i);
+            if (mode === 'price-desc') return (b.price - a.price) || (a.i - b.i);
+            if (mode === 'featured') return (b.rating - a.rating) || (b.reviews - a.reviews) || (a.i - b.i);
+            return a.i - b.i;
+          });
+          return withMeta.map(function (m) { return m.p; });
         }
         function renderPager(pages) {
           if (!pager) return;
@@ -483,14 +552,21 @@
         }
         function refilter(resetPage) {
           if (resetPage) page = 1;
-          const matched = products.filter(matches);
+          const matched = sortMatches(products.filter(matches));
           const pages = Math.max(1, Math.ceil(matched.length / PER_PAGE));
           if (page > pages) page = pages;
           const start = (page - 1) * PER_PAGE;
+          const visible = matched.slice(start, start + PER_PAGE);
           products.forEach(function (p) { p.style.display = 'none'; });
-          matched.slice(start, start + PER_PAGE).forEach(function (p) { p.style.display = ''; });
+          visible.forEach(function (p) { p.style.display = ''; grid.appendChild(p); });
           if (empty) empty.hidden = matched.length > 0;
           renderPager(pages);
+          if (countEl) {
+            countEl.textContent = matched.length === products.length
+              ? matched.length + (matched.length === 1 ? ' result' : ' results')
+              : 'Showing ' + matched.length + ' of ' + products.length + ' results';
+          }
+          if (clearBtn) clearBtn.hidden = !isFiltered();
         }
         function setCat(cat) { curCat = cat; curSub = null; syncCats(); refilter(true); }
         function setSub(cat, sub) { curCat = cat; curSub = sub; syncCats(); refilter(true); }
@@ -523,7 +599,62 @@
           paintRange(); refilter(true);
         }
         if (prMin && prMax) { prMin.addEventListener('input', onRange); prMax.addEventListener('input', onRange); }
+        function onPriceBox() {
+          let a = parseFloat(prMinVal.value); let b = parseFloat(prMaxVal.value);
+          if (isNaN(a)) a = 0;
+          if (isNaN(b)) b = maxPrice;
+          a = Math.max(0, Math.min(a, maxPrice));
+          b = Math.max(0, Math.min(b, maxPrice));
+          lo = Math.min(a, b); hi = Math.max(a, b);
+          if (prMin && prMax) { prMin.value = lo; prMax.value = hi; }
+          paintRange(); refilter(true);
+        }
+        if (prMinVal && prMaxVal) {
+          prMinVal.addEventListener('change', onPriceBox);
+          prMaxVal.addEventListener('change', onPriceBox);
+          [prMinVal, prMaxVal].forEach(function (el) {
+            el.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); el.blur(); } });
+          });
+        }
         window.addEventListener('currencychange', paintRange);
+
+        if (saleBox) saleBox.addEventListener('change', function () { onSale = saleBox.checked; refilter(true); });
+        if (freeBox) freeBox.addEventListener('change', function () { onFree = freeBox.checked; refilter(true); });
+
+        function closeSort() { if (sortField) sortField.classList.remove('open'); if (sortMenu) sortMenu.hidden = true; if (sortBtn) sortBtn.setAttribute('aria-expanded', 'false'); }
+        function openSort() { if (sortField) sortField.classList.add('open'); if (sortMenu) sortMenu.hidden = false; if (sortBtn) sortBtn.setAttribute('aria-expanded', 'true'); }
+        function setSort(mode, label) {
+          sortMode = mode;
+          if (sortBtnVal) sortBtnVal.textContent = label;
+          sortOpts.forEach(function (o) {
+            var active = o.getAttribute('data-sort') === mode;
+            o.classList.toggle('active', active);
+            o.setAttribute('aria-selected', active ? 'true' : 'false');
+          });
+          refilter(true);
+        }
+        if (sortBtn) sortBtn.addEventListener('click', function (e) {
+          e.stopPropagation();
+          if (sortMenu && sortMenu.hidden) openSort(); else closeSort();
+        });
+        sortOpts.forEach(function (o) {
+          o.addEventListener('click', function () {
+            var label = o.querySelector('span') ? o.querySelector('span').textContent : o.textContent;
+            setSort(o.getAttribute('data-sort'), label);
+            closeSort();
+          });
+        });
+        document.addEventListener('click', function (e) { if (sortField && !sortField.contains(e.target)) closeSort(); });
+        document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeSort(); });
+
+        if (clearBtn) clearBtn.addEventListener('click', function () {
+          curCat = 'all'; curSub = null; query = ''; lo = 0; hi = maxPrice; onSale = false; onFree = false;
+          if (searchEl) searchEl.value = '';
+          if (saleBox) saleBox.checked = false;
+          if (freeBox) freeBox.checked = false;
+          syncCats(); paintRange(); refilter(true);
+          try { history.replaceState(null, '', base); } catch (_) {}
+        });
 
         paintRange();
         const initial = new URLSearchParams(location.search).get('cat');
@@ -821,6 +952,7 @@
         var card = e.target.closest('.product');
         if (!card) return;
         e.preventDefault();
+        if (card.getAttribute('data-free') === 'yes') { window.open('https://discord.gg/coldd', '_blank', 'noopener'); return; }
         if (e.target.closest('.p-add')) { add(readCard(card)); openCart(); }
         else {
           var a = document.createElement('a');
@@ -879,28 +1011,16 @@
         function lsSet(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (_) {} }
         var WISH = 'coldd_wish_v1', OWN = 'coldd_owned_v1';
 
-        var NAMES = ['deonte123', 'mrbuilds', 'vortex_dev', 'skylar', 'notacow', 'jaydengg', 'rblxpro', 'emberkid', 'q_zen', 'frostbyte', 'halcyon', 'devkai'];
-        var RTEXT = ['works great, exactly what i needed for my game', 'clean code and easy to set up, would recommend to anyone', 'in roblox studio its a little laggy but overall a solid pack', 'good value for the price and the support was really helpful', 'took me a bit to figure out the setup but works well now', 'amazing quality, already planning to buy more', 'does exactly what it says, no complaints at all', 'honestly better than i expected for the price'];
-        var ORIGINS = ['BuiltByBit', '', '', 'Discord', '', ''];
         var UDATES = ['Jun 6, 2026', 'Jun 1, 2026', 'May 20, 2026', 'Apr 23, 2026', 'Mar 14, 2026', 'Feb 2, 2026'];
         var UNOTES = ['Fixed a bug where parts floated after respawning.', 'Added new configuration options and cleaned up the code.', 'Updated the setup instructions and documentation.', 'Improved performance and general optimizations.', 'Fixed a rare edge case that could error on load.'];
         var FEATURES = ['Fully optimized and production ready', 'Clean, well organized and easy to edit files', 'Simple drag and drop setup', 'Free updates and lifetime support included', 'Works in unlimited games and projects'];
 
+        function fmtRevDate(iso) {
+          try { return new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }); }
+          catch (e) { return iso; }
+        }
         function reviewsFor(p) {
-          if (!p.reviews) return [];
-          var n = (hsh(p.id + 'r') % 3) + 1, out = [], i;
-          for (i = 0; i < n; i++) {
-            var h = hsh(p.id + 'r' + i);
-            out.push({
-              name: NAMES[(h + i * 5) % NAMES.length],
-              stars: 3 + (h % 3),
-              text: RTEXT[((h >> 3) + i * 3) % RTEXT.length],
-              date: UDATES[((h >> 5) + i) % UDATES.length],
-              version: 'v1.' + (h % 4),
-              origin: ORIGINS[((h >> 7) + i) % ORIGINS.length]
-            });
-          }
-          return out;
+          return window.__reviews ? window.__reviews.productReviews(p.id) : [];
         }
         function updatesFor(p) {
           var n = hsh(p.id + 'u') % 3, out = [], i;
@@ -1087,12 +1207,11 @@
           if (pdRevCount) pdRevCount.textContent = '(' + revs.length + ')';
           if (pdPaneReviews) {
             pdPaneReviews.innerHTML = revs.length ? revs.map(function (r) {
-              var sub = r.origin ? '<div class="pd-rev-origin">Originally reviewed on ' + esc(r.origin) + '</div>' : '';
-              return '<div class="pd-rev"><div class="pd-rev-head"><span class="pd-rev-name">' + esc(r.name) + '</span>' +
+              var reply = r.reply ? '<div class="pd-rev-reply"><div class="pd-rev-reply-head">coldd team replied</div><p>' + esc(r.reply.text) + '</p></div>' : '';
+              return '<div class="pd-rev"><div class="pd-rev-head"><span class="pd-rev-name">' + esc(r.user) + '</span>' +
                 '<span class="pd-rev-dot">·</span><span class="pd-rev-stars">' + starRow(r.stars) + '</span>' +
-                '<span class="pd-rev-dot">·</span><span class="pd-rev-meta">' + esc(r.date) + '</span>' +
-                '<span class="pd-rev-dot">·</span><span class="pd-rev-meta">Version: ' + esc(r.version) + '</span></div>' +
-                '<p class="pd-rev-body">' + esc(r.text) + '</p>' + sub + '</div>';
+                '<span class="pd-rev-dot">·</span><span class="pd-rev-meta">' + esc(fmtRevDate(r.date)) + '</span></div>' +
+                '<p class="pd-rev-body">' + esc(r.text) + '</p>' + reply + '</div>';
             }).join('') : '<p class="pd-empty">No reviews yet. Be the first to review this product.</p>';
           }
 
@@ -1162,73 +1281,71 @@
     })();
 
     (function () {
-      var overlay = document.getElementById('authOverlay');
       var btn = document.getElementById('accountBtn');
-      if (!overlay) return;
-      var VIEWS = ['signin', 'signup', 'forgot'];
-      function showView(v) {
-        VIEWS.forEach(function (k) { var el = document.getElementById('av-' + k); if (el) el.hidden = (k !== v); });
-      }
-      function open(v) { showView(v || 'signin'); overlay.hidden = false; document.body.classList.add('no-scroll'); }
-      function close() { overlay.hidden = true; document.body.classList.remove('no-scroll'); }
-      window.__authClose = close;
+      if (!btn) return;
 
-      if (btn) btn.addEventListener('click', function (e) {
-        e.preventDefault();
-        if (window.__isLoggedIn && window.__isLoggedIn()) { if (window.__goDashboard) window.__goDashboard(); }
-        else open('signin');
-      });
-      overlay.addEventListener('click', function (e) {
-        if (e.target === overlay) { close(); return; }
-        if (e.target.closest('.auth-x')) { close(); return; }
-        var sw = e.target.closest('[data-auth-view]');
-        if (sw) { e.preventDefault(); showView(sw.getAttribute('data-auth-view')); }
-      });
-      document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !overlay.hidden) close(); });
+      function isLoggedIn() { try { return localStorage.getItem('coldd_auth') === 'in'; } catch (e) { return false; } }
 
-      function emailOk(v) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v); }
-      function val(f, n) { var el = f.querySelector('[name="' + n + '"]'); return el ? el.value.trim() : ''; }
-      function fieldErr(f, n, m) {
-        var fl = f.querySelector('.auth-field[data-for="' + n + '"]'); if (!fl) return;
-        fl.classList.toggle('invalid', !!m); var e = fl.querySelector('.auth-err'); if (e) e.textContent = m || '';
-      }
-      function flash(f, t) { var c = f.closest('.auth-card'); if (!c) return; var m = c.querySelector('.auth-msg'); if (m) { m.textContent = t; m.classList.add('show'); } }
+      var menu = null, overlay = null;
 
-      overlay.querySelectorAll('.auth-pw-toggle').forEach(function (b) {
-        b.addEventListener('click', function () {
-          var i = b.parentNode.querySelector('input'); if (!i) return;
-          var s = i.type === 'password'; i.type = s ? 'text' : 'password';
-          b.setAttribute('aria-label', s ? 'Hide password' : 'Show password');
+      function buildMenu() {
+        menu = document.createElement('div');
+        menu.className = 'account-menu';
+        menu.hidden = true;
+        var p = window.coldAuth && window.coldAuth.getProfile ? window.coldAuth.getProfile() : null;
+        var initial = (p && p.name) ? p.name.trim().charAt(0).toUpperCase() : '?';
+        var avatarHtml = p && p.avatar
+          ? '<span class="account-menu-av" style="background-image:url(' + p.avatar + ')"></span>'
+          : '<span class="account-menu-av">' + initial + '</span>';
+        menu.innerHTML =
+          '<a href="dashboard.html" class="account-menu-item">' + avatarHtml + '<span>Your Account</span></a>' +
+          '<button type="button" class="account-menu-item account-menu-signout" id="menuSignout">' +
+          '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/></svg>' +
+          '<span>Sign out</span></button>';
+        btn.parentNode.style.position = 'relative';
+        btn.parentNode.appendChild(menu);
+        menu.querySelector('#menuSignout').addEventListener('click', function () {
+          closeMenu();
+          openConfirm();
         });
-      });
+      }
 
-      overlay.querySelectorAll('.auth-oauth').forEach(function (b) {
-        b.addEventListener('click', function () { close(); if (window.__demoLogin) window.__demoLogin(); });
+      function toggleMenu() {
+        if (!menu) buildMenu();
+        menu.hidden = !menu.hidden;
+      }
+      function closeMenu() { if (menu) menu.hidden = true; }
+
+      function buildConfirm() {
+        overlay = document.createElement('div');
+        overlay.className = 'confirm-overlay';
+        overlay.hidden = true;
+        overlay.innerHTML =
+          '<div class="confirm-modal"><p>Sign out of coldd?</p><div class="confirm-actions">' +
+          '<button class="btn" type="button" id="navSignoutCancel">Cancel</button>' +
+          '<button class="btn btn-primary" type="button" id="navSignoutConfirm">Sign out</button>' +
+          '</div></div>';
+        document.body.appendChild(overlay);
+        overlay.addEventListener('click', function (e) { if (e.target === overlay) overlay.hidden = true; });
+        overlay.querySelector('#navSignoutCancel').addEventListener('click', function () { overlay.hidden = true; });
+        overlay.querySelector('#navSignoutConfirm').addEventListener('click', function () {
+          overlay.hidden = true;
+          try { localStorage.setItem('coldd_auth', 'out'); } catch (e) {}
+          if (window.coldAuth) window.coldAuth.signOut();
+          location.href = 'index.html';
+        });
+      }
+      function openConfirm() { if (!overlay) buildConfirm(); overlay.hidden = false; }
+
+      btn.addEventListener('click', function (e) {
+        e.preventDefault();
+        if (isLoggedIn()) toggleMenu();
+        else location.href = 'signin.html';
       });
-      var si = document.getElementById('form-signin');
-      if (si) si.addEventListener('submit', function (e) {
-        e.preventDefault(); var ok = true, em = val(si, 'email'), pw = val(si, 'password');
-        if (!emailOk(em)) { fieldErr(si, 'email', 'Enter a valid email.'); ok = false; } else fieldErr(si, 'email', '');
-        if (!pw) { fieldErr(si, 'password', 'Enter your password.'); ok = false; } else fieldErr(si, 'password', '');
-        if (ok) { close(); if (window.__demoLogin) window.__demoLogin(); }
+      document.addEventListener('click', function (e) {
+        if (menu && !menu.hidden && !e.target.closest('.account-menu') && e.target !== btn && !e.target.closest('#accountBtn')) closeMenu();
       });
-      var su = document.getElementById('form-signup');
-      if (su) su.addEventListener('submit', function (e) {
-        e.preventDefault(); var ok = true, em = val(su, 'email'), pw = val(su, 'password'), cf = val(su, 'confirm');
-        var tos = su.querySelector('[name="tos"]');
-        if (!emailOk(em)) { fieldErr(su, 'email', 'Enter a valid email.'); ok = false; } else fieldErr(su, 'email', '');
-        if (pw.length < 8) { fieldErr(su, 'password', 'Use at least 8 characters.'); ok = false; } else fieldErr(su, 'password', '');
-        if (!cf || cf !== pw) { fieldErr(su, 'confirm', "Passwords don't match."); ok = false; } else fieldErr(su, 'confirm', '');
-        var te = su.querySelector('.auth-err[data-for="tos"]');
-        if (tos && !tos.checked) { if (te) te.textContent = 'Please accept the Terms to continue.'; ok = false; } else if (te) te.textContent = '';
-        if (ok) { close(); if (window.__demoLogin) window.__demoLogin(); }
-      });
-      var fo = document.getElementById('form-forgot');
-      if (fo) fo.addEventListener('submit', function (e) {
-        e.preventDefault(); var em = val(fo, 'email');
-        if (!emailOk(em)) { fieldErr(fo, 'email', 'Enter a valid email.'); return; } fieldErr(fo, 'email', '');
-        flash(fo, 'If an account exists for ' + em + ", we'll email a reset link shortly.");
-      });
+      document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeMenu(); });
     })();
 
     (function () {
@@ -1245,6 +1362,10 @@
 
       var dash = document.querySelector('.dash');
       if (!dash) return;
+
+      var adminLink = document.getElementById('dashAdminLink');
+      if (adminLink && window.coldAuth && window.coldAuth.isAdminWhitelisted()) adminLink.hidden = false;
+
       var panels = dash.querySelectorAll('.dash-panel');
       var navlinks = dash.querySelectorAll('.dash-nav a, [data-panel]');
       function showPanel(name) {
@@ -1256,6 +1377,120 @@
         var a = e.target.closest('[data-panel]');
         if (a) { e.preventDefault(); showPanel(a.getAttribute('data-panel')); }
       });
+
+      var initialPanel = new URLSearchParams(location.search).get('panel');
+      if (initialPanel && dash.querySelector('#panel-' + initialPanel)) showPanel(initialPanel);
+
+      // Real purchase/ownership data, read live from Supabase (RLS already
+      // scopes orders/order_items to the signed-in user).
+      function fmtDate(iso) {
+        try { return new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }); }
+        catch (e) { return iso; }
+      }
+      function shortOrderId(id) { return '#' + String(id).slice(0, 8).toUpperCase(); }
+
+      function renderPurchases(orders) {
+        var body = document.getElementById('dashPurchasesBody');
+        if (!body) return;
+        if (!orders.length) { body.innerHTML = '<tr><td colspan="5">No orders yet.</td></tr>'; return; }
+        body.innerHTML = orders.map(function (o) {
+          var items = o.order_items || [];
+          var titles = items.map(function (i) { return i.title; }).join(', ') || '—';
+          var badge = o.status === 'paid' ? 'ok' : 'warn';
+          var label = o.status.charAt(0).toUpperCase() + o.status.slice(1);
+          var money = window.__money ? window.__money(o.total_usd) : ('$' + o.total_usd);
+          return '<tr><td>' + fmtDate(o.created_at) + '</td><td>' + titles + '</td><td class="dt-mono">' + shortOrderId(o.id) + '</td>' +
+            '<td><span class="p-price" data-usd="' + o.total_usd + '">' + money + '</span></td>' +
+            '<td><span class="dt-badge ' + badge + '">' + label + '</span></td></tr>';
+        }).join('');
+      }
+
+      function ownedFromOrders(orders) {
+        var bySlug = {};
+        orders.forEach(function (o) {
+          if (o.status !== 'paid') return;
+          (o.order_items || []).forEach(function (i) {
+            var existing = bySlug[i.product_slug];
+            if (!existing || i.licence === 'resell') bySlug[i.product_slug] = i;
+          });
+        });
+        return Object.keys(bySlug).map(function (slug) { return bySlug[slug]; });
+      }
+
+      function downloadBtn(item, cls) {
+        var btn = document.createElement('button');
+        btn.type = 'button'; btn.className = cls; btn.textContent = 'Download';
+        btn.addEventListener('click', function () {
+          var prev = btn.textContent;
+          btn.disabled = true; btn.textContent = 'Preparing…';
+          window.coldSupabase.functions.invoke('get-download-url', { body: { slug: item.product_slug } })
+            .then(function (res) {
+              var data = res && res.data;
+              if (data && data.ok) { window.open(data.url, '_blank', 'noopener'); btn.disabled = false; btn.textContent = prev; }
+              else { btn.textContent = (data && data.error) || 'Unavailable'; }
+            })
+            .catch(function () { btn.disabled = false; btn.textContent = prev; });
+        });
+        return btn;
+      }
+
+      function renderOwnedAndDownloads(orders) {
+        var owned = ownedFromOrders(orders);
+        var grid = document.getElementById('dashOwnedGrid');
+        var list = document.getElementById('dashDownloadsList');
+
+        if (grid) {
+          grid.innerHTML = '';
+          if (!owned.length) grid.innerHTML = '<p class="dash-empty-note">You don\'t own any products yet.</p>';
+          else owned.forEach(function (item) {
+            var img = item.products && item.products.image ? item.products.image : 'banner.jpg';
+            var card = document.createElement('div'); card.className = 'dash-prod glass';
+            card.innerHTML = '<div class="dp-thumb" style="background-image:url(\'' + img + '\')"></div>' +
+              '<div class="dp-body"><div class="dp-name"></div><span class="dp-lic"></span></div>';
+            card.querySelector('.dp-name').textContent = item.title;
+            card.querySelector('.dp-lic').textContent = item.licence === 'resell' ? 'Resell licence' : 'Standard licence';
+            card.querySelector('.dp-body').appendChild(downloadBtn(item, 'btn btn-ghost dp-btn'));
+            grid.appendChild(card);
+          });
+        }
+
+        if (list) {
+          list.innerHTML = '';
+          if (!owned.length) list.innerHTML = '<p class="dash-empty-note">Nothing to download yet — your purchases will appear here.</p>';
+          else owned.forEach(function (item) {
+            var card = document.createElement('div'); card.className = 'dash-card glass dl-item';
+            card.innerHTML = '<div class="dl-top"><div class="dl-info"><div class="dl-name"></div><div class="dl-meta"></div></div></div>';
+            card.querySelector('.dl-name').textContent = item.title;
+            card.querySelector('.dl-meta').textContent = item.licence === 'resell' ? 'Resell licence' : 'Standard licence';
+            card.querySelector('.dl-top').appendChild(downloadBtn(item, 'btn btn-primary dl-get'));
+            list.appendChild(card);
+          });
+        }
+      }
+
+      function loadRealData(userId) {
+        window.coldSupabase
+          .from('orders')
+          .select('id, created_at, status, total_usd, order_items(product_slug, title, qty, licence, products(image))')
+          .eq('user_id', userId)
+          .order('created_at', { ascending: false })
+          .then(function (res) {
+            var orders = (res && res.data) || [];
+            renderPurchases(orders);
+            renderOwnedAndDownloads(orders);
+          });
+      }
+
+      // Authoritative session check - redirects if the fast <head> pre-check
+      // let a stale/expired token slip through, and drives all real-data
+      // rendering above once we know who's signed in.
+      if (window.coldSupabase) {
+        window.coldSupabase.auth.getSession().then(function (res) {
+          var session = res && res.data ? res.data.session : null;
+          if (!session) { location.href = 'signin.html'; return; }
+          loadRealData(session.user.id);
+        });
+      }
 
       var refCopy = document.getElementById('refCopy');
       if (refCopy) refCopy.addEventListener('click', function () {
@@ -1324,8 +1559,16 @@
       }
 
       var so = document.getElementById('dashSignout');
-      if (so) so.addEventListener('click', function () {
+      var soOverlay = document.getElementById('signoutOverlay');
+      var soCancel = document.getElementById('signoutCancel');
+      var soConfirm = document.getElementById('signoutConfirm');
+      if (so && soOverlay) so.addEventListener('click', function () { soOverlay.hidden = false; });
+      if (soCancel) soCancel.addEventListener('click', function () { soOverlay.hidden = true; });
+      if (soOverlay) soOverlay.addEventListener('click', function (e) { if (e.target === soOverlay) soOverlay.hidden = true; });
+      if (soConfirm) soConfirm.addEventListener('click', function () {
+        soOverlay.hidden = true;
         setState(false);
+        if (window.coldAuth) window.coldAuth.signOut();
         if (window.__go) window.__go('home'); else location.href = 'index.html';
       });
     })();
@@ -1333,33 +1576,31 @@
     (function () {
       var root = document.querySelector('.checkout');
       window.__goCheckout = function () {
-
-        if (root) { cart = load(); coupon = null; render(); buildSuggestions(); }
+        if (root) { cart = load(); render(); }
         if (window.__go) window.__go('checkout'); else location.href = 'checkout.html';
       };
       if (!root) return;
 
       var CART_KEY = 'coldd_cart_v1';
-      var TAX_RATE = 0;
-      var COUPONS = { SAVE10: { type: 'pct', val: 10, label: 'SAVE10 (−10%)' },
-                      COLDD20: { type: 'pct', val: 20, label: 'COLDD20 (−20%)' },
-                      WELCOME5: { type: 'flat', val: 5, label: 'WELCOME5 (−$5)' } };
       var money = function (n) { return window.__money ? window.__money(n) : ('$' + n); };
-      var usd = function (n) { return window.__usd ? window.__usd(n) : ('$' + n); };
       function load() { try { return JSON.parse(localStorage.getItem(CART_KEY) || '[]') || []; } catch (e) { return []; } }
       function save(c) { try { localStorage.setItem(CART_KEY, JSON.stringify(c)); } catch (e) {} }
       var cart = load();
-      var coupon = null;
 
       var itemsEl = document.getElementById('coItems'), emptyEl = document.getElementById('coEmpty');
 
-      function subtotal() { return cart.reduce(function (s, i) { return s + (i.basePrice || i.price) * i.qty; }, 0); }
+      function subtotal() { return cart.reduce(function (s, i) { return s + i.price * i.qty; }, 0); }
 
-      function bundleSavings() { return cart.reduce(function (s, i) { return s + ((i.basePrice || i.price) - i.price) * i.qty; }, 0); }
-      function couponAmount(net) {
-        if (!coupon) return 0;
-        return coupon.type === 'pct' ? net * coupon.val / 100 : Math.min(coupon.val, net);
+      var appliedCoupon = null;
+      function readCoupons() {
+        try { return JSON.parse(localStorage.getItem('coldd_admin_coupons_v1') || '[]') || []; } catch (e) { return []; }
       }
+      function computeDiscount(sub) {
+        if (!appliedCoupon) return 0;
+        var d = appliedCoupon.type === 'pct' ? sub * (appliedCoupon.val / 100) : appliedCoupon.val;
+        return Math.max(0, Math.min(d, sub));
+      }
+
       function renderItems() {
         if (!itemsEl) return;
         itemsEl.innerHTML = '';
@@ -1375,28 +1616,22 @@
       }
       function renderTotals() {
         var sub = subtotal();
-        var bundle = bundleSavings();
-        var net = sub - bundle;
-        var disc = bundle + couponAmount(net);
-        if (disc > sub) disc = sub;
-        var taxed = (sub - disc) * TAX_RATE;
-        var total = sub - disc + taxed;
+        var disc = computeDiscount(sub);
+        var total = Math.max(0, sub - disc);
         var set = function (id, v) { var el = document.getElementById(id); if (el) el.textContent = v; };
         set('coSubtotal', money(sub));
-        var dl = document.getElementById('coDiscLine');
-        if (dl) dl.hidden = disc <= 0;
-        set('coDiscount', '−' + money(disc));
-        set('coTax', money(taxed));
-        set('coTotal', money(total));
-        var rob = document.getElementById('coRobuxAmt'); if (rob) rob.textContent = window.__robux ? window.__robux(total) : ('R$ ' + Math.round(total * 80));
-
-        var fx = document.getElementById('coFx');
-        if (fx) {
-          var cur = window.__currency ? window.__currency() : 'usd';
-          fx.textContent = (window.__money && window.__money(total) !== usd(total))
-            ? 'Charged in USD (' + usd(total) + '). Shown in your selected currency (' + money(total) + ').'
-            : 'All prices in USD. Card is charged in USD.';
+        var discLine = document.getElementById('coDiscLine');
+        if (discLine) {
+          discLine.hidden = disc <= 0;
+          if (disc > 0) {
+            set('coDiscLabel', 'Discount (' + appliedCoupon.code + ')');
+            set('coDiscAmt', '-' + money(disc));
+          }
         }
+        set('coTax', money(0));
+        set('coTotal', money(total));
+        var fx = document.getElementById('coFx');
+        if (fx) fx.textContent = 'All prices in USD. Your card is charged in USD via Stripe.';
         return total;
       }
       function render() { renderItems(); renderTotals(); updateResell(); }
@@ -1406,87 +1641,112 @@
         if (wrap) wrap.hidden = !cart.some(function (i) { return i.licence === 'resell'; });
       }
 
-      var loggedIn = window.__isLoggedIn && window.__isLoggedIn();
-      var g = document.getElementById('coGuest'), u = document.getElementById('coUser'), mode = document.getElementById('coMode');
-      if (loggedIn) { if (g) g.hidden = true; if (u) u.hidden = false; if (mode) mode.textContent = 'Signed in'; }
-      var coSignin = document.getElementById('coSignin');
-      if (coSignin) coSignin.addEventListener('click', function (e) { e.preventDefault(); var b = document.getElementById('accountBtn'); if (b) b.click(); });
+      var loggedIn = false;
+      var g = document.getElementById('coGuest'), u = document.getElementById('coUser');
+      function applySessionUI() {
+        if (g) g.hidden = loggedIn;
+        if (u) u.hidden = !loggedIn;
+      }
+      function refreshSession() {
+        if (!window.coldSupabase) { loggedIn = false; applySessionUI(); return; }
+        window.coldSupabase.auth.getSession().then(function (res) {
+          var session = res && res.data ? res.data.session : null;
+          loggedIn = !!session;
+          applySessionUI();
+        }).catch(function () { loggedIn = false; applySessionUI(); });
+      }
+      refreshSession();
+      if (window.coldSupabase) window.coldSupabase.auth.onAuthStateChange(function () { refreshSession(); });
 
-      var applyBtn = document.getElementById('coApply'), cInput = document.getElementById('coCoupon'), cMsg = document.getElementById('coCouponMsg');
-      if (applyBtn) applyBtn.addEventListener('click', function () {
-        var code = (cInput.value || '').trim().toUpperCase();
-        if (COUPONS[code]) { coupon = COUPONS[code]; cMsg.textContent = 'Applied ' + coupon.label; cMsg.className = 'co-coupon-msg ok'; }
-        else { coupon = null; cMsg.textContent = code ? 'That code isn\'t valid.' : ''; cMsg.className = 'co-coupon-msg no'; }
+      var coSigninBtn = document.getElementById('coSigninBtn');
+      if (coSigninBtn) coSigninBtn.addEventListener('click', function () { location.href = 'signin.html'; });
+
+      var couponInput = document.getElementById('coCouponInput'), couponApplyBtn = document.getElementById('coCouponApply'), couponMsg = document.getElementById('coCouponMsg');
+      if (couponApplyBtn) couponApplyBtn.addEventListener('click', function () {
+        var code = (couponInput && couponInput.value || '').trim().toUpperCase();
+        if (!code) return;
+        var match = readCoupons().filter(function (c) { return String(c.code || '').toUpperCase() === code; })[0];
+        if (!match || !match.active) {
+          appliedCoupon = null;
+          if (couponMsg) { couponMsg.className = 'co-coupon-msg no'; couponMsg.textContent = 'That code is invalid or no longer active.'; }
+        } else {
+          appliedCoupon = match;
+          if (couponMsg) { couponMsg.className = 'co-coupon-msg ok'; couponMsg.textContent = 'Code "' + match.code + '" applied!'; }
+        }
         renderTotals();
       });
 
-      document.querySelectorAll('.co-pay-tab').forEach(function (t) {
-        t.addEventListener('click', function () {
-          document.querySelectorAll('.co-pay-tab').forEach(function (x) { x.classList.toggle('active', x === t); });
-          var pay = t.getAttribute('data-pay');
-          var c = document.getElementById('payCard'), r = document.getElementById('payRobux');
-          if (c) c.hidden = pay !== 'card'; if (r) r.hidden = pay !== 'robux';
+      var payMethod = 'stripe';
+      var payMethodsWrap = document.getElementById('coPayMethods');
+      function setPayMethod(key) {
+        var btns = payMethodsWrap ? payMethodsWrap.querySelectorAll('.co-pay-btn') : [];
+        var picked = null;
+        btns.forEach(function (b) {
+          var isMatch = b.getAttribute('data-key') === key;
+          b.classList.toggle('active', isMatch);
+          if (isMatch) picked = b;
         });
-      });
-
-      function buildSuggestions() {
-        var box = document.getElementById('coSuggest'), list = document.getElementById('coSuggestList');
-        if (!box || !list) return;
-        var cat = (window.__CATALOG || []);
-        var have = {}; cart.forEach(function (i) { have[i.title] = 1; });
-        var picks = cat.filter(function (p) { return !have[p.title]; }).slice(0, 3);
-        if (!picks.length || !cart.length) { box.hidden = true; return; }
-        box.hidden = false; list.innerHTML = '';
-        picks.forEach(function (p) {
-          var base = parseFloat(String(p.price).replace(/[^0-9.]/g, '')) || 0;
-          var now = Math.round(base * 0.8 * 100) / 100;
-          var el = document.createElement('div'); el.className = 'co-suggest-item';
-          el.innerHTML = '<span class="co-sg-thumb" style="background-image:url(\'' + p.image + '\')"></span>' +
-            '<div class="co-sg-info"><div class="co-sg-title">' + p.title + '</div>' +
-            '<div class="co-sg-price"><span class="co-sg-was">' + money(base) + '</span><span class="co-sg-now">' + money(now) + '</span></div></div>' +
-            '<button class="co-sg-add" type="button">Add</button>';
-          el.querySelector('.co-sg-add').addEventListener('click', function () {
-            var id = (p.title.toLowerCase().replace(/[^a-z0-9]+/g, '-')) + '--bundle';
-            if (!cart.some(function (i) { return i.id === id; })) {
-              cart.push({ id: id, title: p.title, price: now, basePrice: base, image: p.image, tag: p.cat || '', licence: 'standard', qty: 1 });
-              save(cart); render(); buildSuggestions();
-            }
-          });
-          list.appendChild(el);
+        var method = picked ? picked.getAttribute('data-method') : 'stripe';
+        payMethod = method;
+        document.querySelectorAll('.co-pay-panel').forEach(function (p) {
+          p.hidden = p.getAttribute('data-method-panel') !== method;
         });
+        var placeBtnEl = document.getElementById('coPlace');
+        if (placeBtnEl) {
+          if (method === 'stripe') { placeBtnEl.disabled = false; placeBtnEl.textContent = 'Place order'; }
+          else { placeBtnEl.disabled = true; placeBtnEl.textContent = (method === 'crypto' ? 'Crypto' : 'Robux') + ' checkout coming soon'; }
+        }
+        var carouselWrap = document.getElementById('coPayCarouselWrap');
+        if (carouselWrap) carouselWrap.hidden = key !== 'stripe';
       }
+      if (payMethodsWrap) payMethodsWrap.addEventListener('click', function (e) {
+        var btn = e.target.closest('.co-pay-btn'); if (!btn) return;
+        setPayMethod(btn.getAttribute('data-key'));
+      });
+      setPayMethod('stripe');
 
       var placeBtn = document.getElementById('coPlace'), msg = document.getElementById('coMsg'), agreeErr = document.getElementById('coAgreeErr');
-      function emailOk(v) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v); }
       if (placeBtn) placeBtn.addEventListener('click', function () {
-        if (!cart.length) { return; }
-        var ok = true;
-        if (!loggedIn) {
-          var em = (document.getElementById('co-email') || {}).value || '';
-          var ef = root.querySelector('.auth-field[data-for="email"]');
-          if (!emailOk(em.trim())) { ok = false; if (ef) { ef.classList.add('invalid'); ef.querySelector('.auth-err').textContent = 'Enter a valid email for your receipt.'; } }
-          else if (ef) { ef.classList.remove('invalid'); ef.querySelector('.auth-err').textContent = ''; }
-        }
+        if (!cart.length) return;
+        if (payMethod !== 'stripe') return;
+
+        // Signing in is optional - a guest can check out fine (create-checkout-session
+        // leaves orders.user_id null for them); this just ties the order to an
+        // account when one exists, for dashboard history and easier redownloads.
+
         var tos = document.getElementById('coTos'), resellWrap = document.getElementById('coResellWrap'), resell = document.getElementById('coResell');
-        var agreeMsgs = [];
+        var ok = true, agreeMsgs = [];
         if (tos && !tos.checked) { ok = false; agreeMsgs.push('accept the Terms of Service'); }
         if (resellWrap && !resellWrap.hidden && resell && !resell.checked) { ok = false; agreeMsgs.push('accept the Resell Licence Terms'); }
         if (agreeErr) agreeErr.textContent = agreeMsgs.length ? 'Please ' + agreeMsgs.join(' and ') + '.' : '';
-        var payCardOn = document.querySelector('.co-pay-tab.active') && document.querySelector('.co-pay-tab.active').getAttribute('data-pay') === 'card';
-        if (payCardOn) {
-          var card = (document.getElementById('co-card') || {}).value || '';
-          var cf = root.querySelector('.auth-field[data-for="card"]');
-          if (card.replace(/\s/g, '').length < 12) { ok = false; if (cf) { cf.classList.add('invalid'); cf.querySelector('.auth-err').textContent = 'Enter a valid card number.'; } }
-          else if (cf) { cf.classList.remove('invalid'); cf.querySelector('.auth-err').textContent = ''; }
-        }
         if (!ok) { if (msg) { msg.className = 'co-msg err show'; msg.textContent = 'Please fix the highlighted fields above.'; } return; }
-        if (msg) { msg.className = 'co-msg show'; msg.textContent = 'Order placed (demo). Connect Stripe/Robux on the backend to charge for real and email a receipt.'; }
-        cart = []; save(cart); render(); buildSuggestions();
-        window.dispatchEvent(new Event('currencychange'));
+
+        var items = cart.map(function (i) {
+          var licence = i.id.indexOf('--resell') !== -1 ? 'resell' : 'standard';
+          var slug = i.id.replace(/--resell$/, '').replace(/--bundle$/, '');
+          return { slug: slug, qty: i.qty, licence: licence };
+        });
+
+        var prevText = placeBtn.textContent;
+        placeBtn.disabled = true; placeBtn.textContent = 'Redirecting to secure checkout…';
+        if (msg) { msg.className = 'co-msg show'; msg.textContent = ''; }
+
+        window.coldSupabase.functions.invoke('create-checkout-session', { body: { items: items } })
+          .then(function (res) {
+            var data = res && res.data, error = res && res.error;
+            if (error || !data || !data.ok) {
+              throw new Error((data && data.error) || (error && error.message) || 'Could not start checkout.');
+            }
+            location.href = data.url;
+          })
+          .catch(function (err) {
+            placeBtn.disabled = false; placeBtn.textContent = prevText;
+            if (msg) { msg.className = 'co-msg err show'; msg.textContent = (err && err.message) || 'Something went wrong. Please try again.'; }
+          });
       });
 
-      window.addEventListener('currencychange', function () { renderTotals(); renderItems(); buildSuggestions(); });
-      render(); buildSuggestions();
+      window.addEventListener('currencychange', function () { renderTotals(); renderItems(); });
+      render();
     })();
 
     (function () {
@@ -1514,4 +1774,76 @@
           }
         }, DELAY);
       }, true);
+    })();
+
+    (function () {
+      var root = document.querySelector('.success-page');
+      if (!root) return;
+
+      var itemsEl = document.getElementById('successItems');
+      var titleEl = document.getElementById('successTitle');
+      var subEl = document.getElementById('successSub');
+      var sessionId = new URLSearchParams(location.search).get('session_id');
+
+      try { localStorage.setItem('coldd_cart_v1', '[]'); } catch (e) {}
+      window.dispatchEvent(new Event('currencychange'));
+
+      function renderItems(items) {
+        if (!itemsEl) return;
+        itemsEl.innerHTML = '';
+        items.forEach(function (it) {
+          var card = document.createElement('div');
+          card.className = 'dash-card glass dl-item';
+          card.innerHTML =
+            '<div class="dl-top"><div class="dl-info"><div class="dl-name"></div><div class="dl-meta"></div></div>' +
+            '<button class="btn btn-primary dl-get" type="button">Download</button></div>';
+          card.querySelector('.dl-name').textContent = it.title;
+          card.querySelector('.dl-meta').textContent =
+            (it.licence === 'resell' ? 'Resell licence' : 'Standard licence') + ' · Qty ' + it.qty;
+          var btn = card.querySelector('.dl-get');
+          btn.addEventListener('click', function () {
+            var prev = btn.textContent;
+            btn.disabled = true; btn.textContent = 'Preparing…';
+            window.coldSupabase.functions.invoke('get-download-url', { body: { slug: it.product_slug, sessionId: sessionId } })
+              .then(function (res) {
+                var data = res && res.data;
+                if (data && data.ok) { window.open(data.url, '_blank', 'noopener'); btn.disabled = false; btn.textContent = prev; }
+                else { btn.textContent = (data && data.error) || 'Could not get download.'; }
+              })
+              .catch(function () { btn.disabled = false; btn.textContent = prev; });
+          });
+          itemsEl.appendChild(card);
+        });
+      }
+
+      function poll(triesLeft) {
+        if (!sessionId) { if (subEl) subEl.textContent = 'No order found.'; return; }
+        if (!window.coldSupabase) { if (subEl) subEl.textContent = 'Could not connect. Please refresh.'; return; }
+        // Looked up by Stripe session id via a service-role function, not a
+        // direct table read - a guest order has no user_id for RLS to match,
+        // so this is the only way (guest or signed-in) to see it right after paying.
+        window.coldSupabase.functions.invoke('get-order-by-session', { body: { sessionId: sessionId } })
+          .then(function (res) {
+            var data = res && res.data;
+            if (!data || !data.ok) {
+              if (triesLeft > 0) { setTimeout(function () { poll(triesLeft - 1); }, 1500); return; }
+              if (subEl) subEl.textContent = "We couldn't find that order.";
+              return;
+            }
+            if (data.status === 'paid') {
+              if (titleEl) titleEl.textContent = 'Payment confirmed!';
+              if (subEl) subEl.textContent = 'Your files are ready below.';
+              renderItems(data.items || []);
+            } else if (triesLeft > 0) {
+              setTimeout(function () { poll(triesLeft - 1); }, 1500);
+            } else if (subEl) {
+              subEl.textContent = 'Still finalizing your payment — check the Download Centre in your dashboard shortly.';
+            }
+          })
+          .catch(function () {
+            if (triesLeft > 0) setTimeout(function () { poll(triesLeft - 1); }, 1500);
+          });
+      }
+
+      poll(10);
     })();

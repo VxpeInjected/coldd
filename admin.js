@@ -3,19 +3,12 @@
 
   /* ================================================================
      ACCESS GATE
-     TEMP: dashboard is open to anyone while Discord login is built.
-     Flip ADMIN_TESTING_OPEN to false once Discord OAuth is wired up —
-     access will then be restricted to Discord user IDs in ADMIN_WHITELIST
-     (see the Staff panel, which manages this same list).
+     Restricted to the Discord IDs in supabase-init.js's ADMIN_WHITELIST
+     (window.coldAuth.isAdminWhitelisted) - single source of truth shared
+     with the admin-panel link on dashboard.html.
      ================================================================ */
-  var ADMIN_TESTING_OPEN = true;
-  var ADMIN_WHITELIST = []; // future: approved Discord user IDs
-
-  function currentDiscordId() {
-    try { return localStorage.getItem('coldd_discord_id') || null; } catch (_) { return null; }
-  }
   function isAllowed() {
-    return ADMIN_TESTING_OPEN || ADMIN_WHITELIST.indexOf(currentDiscordId()) >= 0;
+    return !!(window.coldAuth && window.coldAuth.isAdminWhitelisted());
   }
 
   var gate = document.getElementById('admGate');
@@ -44,7 +37,7 @@
   function rnd(seed) { return (hsh(seed) % 10000) / 10000; }
   function pick(arr, seed) { return arr[hsh(seed) % arr.length]; }
   var ROBUX_PER_USD = 80;
-  var DEVEX_USD_PER_ROBUX = 0.0035;
+  var DEVEX_USD_PER_ROBUX = 0.0038;
   var AUD_RATE = 1.52;
   function usd(n) { return '$' + (Math.round((Number(n) || 0) * 100) / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
   function usd0(n) { return '$' + Math.round(Number(n) || 0).toLocaleString('en-US'); }
@@ -107,10 +100,25 @@
 
   var COUPONS = seedIfEmpty('coldd_admin_coupons_v1', function () {
     return [
-      { code: 'SAVE10', type: 'pct', val: 10, active: true, limit: null },
-      { code: 'COLDD20', type: 'pct', val: 20, active: true, limit: 500 },
-      { code: 'WELCOME5', type: 'flat', val: 5, active: true, limit: null },
-      { code: 'SUMMER25', type: 'pct', val: 25, active: false, limit: 200 }
+      { code: 'SAVE10', type: 'pct', val: 10, active: true, limit: null, expiresAt: null, scope: 'sitewide', platform: null, category: null },
+      { code: 'COLDD20', type: 'pct', val: 20, active: true, limit: 500, expiresAt: null, scope: 'sitewide', platform: null, category: null },
+      { code: 'WELCOME5', type: 'flat', val: 5, active: true, limit: null, expiresAt: null, scope: 'sitewide', platform: null, category: null },
+      { code: 'SUMMER25', type: 'pct', val: 25, active: false, limit: 200, expiresAt: null, scope: 'sitewide', platform: null, category: null }
+    ];
+  });
+
+  // Sale Events replace the site's hardcoded "Spring Sale" announcement
+  // banner (assets.html/minecraft.html) with real admin-managed data - the
+  // seed below matches that banner's original copy so nothing visually
+  // changes until an admin edits or adds an event.
+  var SALE_EVENTS = seedIfEmpty('coldd_admin_sale_events_v1', function () {
+    return [
+      {
+        id: 'ev1', title: 'Spring Sale',
+        message: 'Spring Sale is live — 30% off every Roblox template through Sunday.',
+        percentOff: 30, scope: 'platform', platform: 'Roblox', category: null,
+        startDate: '2026-07-20', endDate: '2026-08-02', active: true
+      }
     ];
   });
 
@@ -185,30 +193,7 @@
     return out;
   });
 
-  var REVIEWS = seedIfEmpty('coldd_admin_reviews_v1', function () {
-    var RTEXT = ['works great, exactly what i needed for my game', 'clean code and easy to set up, would recommend', 'in studio its a little laggy but overall solid', 'good value and support was really helpful', 'took a bit to figure out setup but works well', 'amazing quality, already planning to buy more', 'does exactly what it says, no complaints', 'better than expected for the price', 'the file was broken on first download, had to redownload', 'kind of overpriced for what it is honestly'];
-    var out = [], id = 1;
-    CATALOG.slice(0, 22).forEach(function (p) {
-      var n = (hsh(p.id + 'rv') % 3) + 1;
-      for (var i = 0; i < n; i++) {
-        var s = p.id + 'rv' + i;
-        var h = hsh(s);
-        var stars = 2 + (h % 4);
-        var statusRoll = h % 100;
-        out.push({
-          id: 'rv' + (id++),
-          productId: p.id,
-          productTitle: p.title,
-          user: pick(USER_NAMES, s),
-          stars: stars,
-          text: RTEXT[(h >> 3) % RTEXT.length],
-          date: daysAgo(h % 90).toISOString(),
-          status: statusRoll < 10 ? 'pending' : (statusRoll < 15 ? 'hidden' : 'approved')
-        });
-      }
-    });
-    return out;
-  });
+  var REVIEWS = seedIfEmpty('coldd_admin_reviews_v1', function () { return (window.__REVIEWS || []).slice(); });
 
   var TRAFFIC = seedIfEmpty('coldd_admin_traffic_v1', function () {
     var out = [];
@@ -240,6 +225,7 @@
   function saveOrders() { lsSet('coldd_admin_orders_v1', ORDERS); }
   function saveUsers() { lsSet('coldd_admin_users_v1', USERS); }
   function saveCoupons() { lsSet('coldd_admin_coupons_v1', COUPONS); }
+  function saveSaleEvents() { lsSet('coldd_admin_sale_events_v1', SALE_EVENTS); }
   function saveStaff() { lsSet('coldd_admin_staff_v1', STAFF); }
   function saveReviews() { lsSet('coldd_admin_reviews_v1', REVIEWS); }
   function saveProdOv() { lsSet('coldd_admin_prod_ov_v1', PROD_OV); }
@@ -268,19 +254,73 @@
   /* ================================================================
      PRODUCT VIEW MODEL (catalog + admin overrides + extra products)
      ================================================================ */
+  function defaultLegal() {
+    return { tos: '', proofFiles: [], devProofFiles: [], contacts: [], licenseCost: 0, licenseCostCurrency: 'usd', licensePurchasedAt: '', minSaleUsd: 0, minSaleRobux: 0, canBeFree: false, disallowSales: false };
+  }
+  function toYouTubeEmbed(url) {
+    url = (url || '').trim();
+    if (!url) return '';
+    var m = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([a-zA-Z0-9_-]{6,})/);
+    return m ? ('https://www.youtube.com/embed/' + m[1]) : url;
+  }
+  function defaultTech() {
+    return { format: '', size: '', fileName: '', parts: '', meshParts: '', unions: '', scripts: '' };
+  }
+  function formatFileSize(bytes) {
+    if (bytes >= 1024 * 1024 * 1024) return (bytes / (1024 * 1024 * 1024)).toFixed(1) + ' GB';
+    if (bytes >= 1024 * 1024) return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+    if (bytes >= 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return bytes + ' B';
+  }
   function allProducts() {
     var base = CATALOG.map(function (p) {
       var ov = PROD_OV[p.id] || {};
       return Object.assign({}, p, {
+        title: ov.title != null ? ov.title : p.title,
         price: ov.price != null ? ov.price : p.priceNum,
+        cat: ov.cat != null ? ov.cat : p.cat,
+        desc: ov.desc != null ? ov.desc : p.desc,
+        longDesc: ov.longDesc || '',
+        image: ov.image != null ? ov.image : p.image,
+        gallery: ov.gallery || [],
+        video: ov.video || '',
+        resell: ov.resell != null ? ov.resell : p.resell,
+        resellPrice: ov.resellPrice != null ? ov.resellPrice : null,
+        robuxPrice: ov.robuxPrice != null ? ov.robuxPrice : null,
+        tech: Object.assign(defaultTech(), ov.tech || {}),
+        legal: Object.assign(defaultLegal(), ov.legal || {}),
+        versions: ov.versions || [],
         visible: ov.visible !== false,
         extra: false
       });
     });
-    var extra = EXTRA_PRODUCTS.map(function (p) { return Object.assign({}, p, { extra: true, visible: p.visible !== false }); });
+    var extra = EXTRA_PRODUCTS.map(function (p) {
+      return Object.assign({}, p, {
+        longDesc: p.longDesc || '',
+        gallery: p.gallery || [],
+        video: p.video || '',
+        resellPrice: p.resellPrice != null ? p.resellPrice : null,
+        robuxPrice: p.robuxPrice != null ? p.robuxPrice : null,
+        tech: Object.assign(defaultTech(), p.tech || {}),
+        legal: Object.assign(defaultLegal(), p.legal || {}),
+        versions: p.versions || [],
+        extra: true,
+        visible: p.visible !== false
+      });
+    });
     return base.concat(extra);
   }
   function findProduct(id) { return allProducts().filter(function (p) { return p.id === id; })[0]; }
+  function saveProductFields(id, isExtra, fields) {
+    if (isExtra) {
+      var ep = EXTRA_PRODUCTS.filter(function (x) { return x.id === id; })[0];
+      if (ep) Object.assign(ep, fields);
+      saveExtraProducts();
+    } else {
+      PROD_OV[id] = Object.assign({}, PROD_OV[id], fields);
+      saveProdOv();
+    }
+  }
 
   /* ================================================================
      DATE RANGE
@@ -389,7 +429,7 @@
   /* ================================================================
      NAV / PANEL SWITCHING
      ================================================================ */
-  var PANELS = ['home', 'analytics', 'products', 'orders', 'refunds', 'reviews', 'users', 'coupons', 'posts', 'tutorials', 'releases', 'staff', 'audit'];
+  var PANELS = ['home', 'analytics', 'products', 'product-edit', 'product-update', 'orders', 'refunds', 'reviews', 'users', 'sales', 'posts', 'tutorials', 'releases', 'staff', 'audit'];
   var curPanel = 'home';
   function showPanel(name) {
     if (PANELS.indexOf(name) < 0) name = 'home';
@@ -410,7 +450,7 @@
     else if (name === 'refunds') renderRefunds();
     else if (name === 'reviews') renderReviews();
     else if (name === 'users') renderUsers();
-    else if (name === 'coupons') renderCoupons();
+    else if (name === 'sales') { renderEvents(); renderCoupons(); }
     else if (name === 'posts') renderPosts();
     else if (name === 'tutorials') renderTutorials();
     else if (name === 'releases') renderReleases();
@@ -427,16 +467,15 @@
   /* ================================================================
      TOPBAR
      ================================================================ */
+  var roleDropdown = makeDropdown($('admRoleSelectDD'), {
+    placeholder: 'Select viewer',
+    onChange: function (id) { if (id) setRole(id); }
+  });
   function renderTopbar() {
     var r = currentRole();
-    var sel = $('admRoleSelect');
-    if (sel) {
-      sel.innerHTML = STAFF.map(function (s) { return '<option value="' + s.id + '"' + (s.id === r.id ? ' selected' : '') + '>' + esc(s.name) + ' — ' + esc(s.role) + '</option>'; }).join('');
-    }
+    roleDropdown.setOptions(STAFF.map(function (s) { return { value: s.id, label: s.name + ' — ' + s.role }; }), r.id);
     var av = $('admAvatar'); if (av) av.textContent = r.name.charAt(0).toUpperCase();
   }
-  var roleSelect = $('admRoleSelect');
-  if (roleSelect) roleSelect.addEventListener('change', function () { setRole(roleSelect.value); });
 
   document.querySelectorAll('.adm-range button').forEach(function (b) {
     b.addEventListener('click', function () { setRange(+b.getAttribute('data-range')); });
@@ -462,8 +501,7 @@
     var recent = ORDERS.slice().sort(function (a, b) { return new Date(b.date) - new Date(a.date); }).slice(0, 6);
     $('admHomeRecent').innerHTML = recent.map(orderRowHTML).join('') || '<p class="adm-empty">No orders yet.</p>';
 
-    var mode = ADMIN_TESTING_OPEN ? '<span class="dt-badge warn">Open testing mode — anyone can view this dashboard</span>' : '<span class="dt-badge ok">Whitelist enforced</span>';
-    var banner = $('admModeBanner'); if (banner) banner.innerHTML = mode;
+    var banner = $('admModeBanner'); if (banner) banner.innerHTML = '<span class="dt-badge ok">Whitelist enforced</span>';
   }
   function orderRowHTML(o) {
     return '<div class="dash-row"><span class="dr-thumb" style="background-image:url(\'' + o.image + '\')"></span>' +
@@ -551,55 +589,41 @@
   }
 
   /* ================================================================
-     PRODUCTS PANEL (management + bulk actions)
+     PRODUCTS PANEL
      ================================================================ */
-  var selectedProducts = {};
+  var ADM_ICON_DOWNLOAD = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>';
+  var ADM_ICON_KEBAB = '<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><circle cx="12" cy="5" r="1.75"/><circle cx="12" cy="12" r="1.75"/><circle cx="12" cy="19" r="1.75"/></svg>';
+
+  function purchaseCount(id) {
+    return ORDERS.filter(function (o) { return o.productId === id && o.status !== 'refunded'; }).length;
+  }
   function renderProducts() {
     var q = ($('admProdSearch') || {}).value || '';
     q = q.trim().toLowerCase();
     var rows = allProducts().filter(function (p) { return !q || p.title.toLowerCase().indexOf(q) >= 0; });
     $('admProdBody').innerHTML = rows.map(function (p) {
-      var checked = selectedProducts[p.id] ? ' checked' : '';
+      var rating = (p.rating || 0).toFixed(1);
       return '<tr data-id="' + esc(p.id) + '">' +
-        '<td><input type="checkbox" class="adm-prod-check"' + checked + ' /></td>' +
-        '<td><span class="dr-thumb" style="background-image:url(\'' + p.image + '\');width:44px;height:32px;display:inline-block;vertical-align:middle;border-radius:6px;"></span></td>' +
-        '<td>' + esc(p.title) + (p.extra ? ' <span class="adm-sub">(admin-only, add to catalog.js to publish)</span>' : '') + '</td>' +
-        '<td>' + esc(p.cat) + '</td>' +
-        '<td>' + esc(p.platform) + '</td>' +
-        '<td><input type="number" step="1" min="0" class="adm-price-input" value="' + p.price + '" ' + (can('admin') ? '' : 'disabled') + ' /></td>' +
-        '<td>' + (p.visible ? '<span class="dt-badge ok">Visible</span>' : '<span class="dt-badge err">Hidden</span>') + '</td>' +
+        '<td><span class="dr-thumb" style="background-image:url(\'' + p.image + '\');width:52px;height:38px;display:inline-block;vertical-align:middle;border-radius:7px;"></span></td>' +
+        '<td><a class="dt-link" href="product.html?id=' + esc(p.id) + '" target="_blank" rel="noopener">' + esc(p.title) + '</a>' + (p.extra ? ' <span class="adm-sub">(admin-only)</span>' : '') + '</td>' +
+        '<td><span class="adm-cat-tag">' + esc(p.cat || 'Uncategorized') + '</span></td>' +
+        '<td>' + (p.visible
+          ? '<button type="button" class="dt-badge ok adm-prod-toggle"' + (can('admin') ? '' : ' disabled') + '>Released</button>'
+          : '<button type="button" class="dt-badge warn adm-prod-toggle"' + (can('admin') ? '' : ' disabled') + '>Unreleased</button>') + '</td>' +
+        '<td>' + rating + '<span class="adm-star">★</span></td>' +
+        '<td>' + purchaseCount(p.id) + '</td>' +
         '<td class="adm-row-actions">' +
-          '<button class="btn btn-ghost adm-btn-sm adm-prod-toggle" type="button"' + (can('admin') ? '' : ' disabled') + '>' + (p.visible ? 'Hide' : 'Show') + '</button>' +
-          (p.extra ? '<button class="btn btn-ghost adm-btn-sm adm-prod-del" type="button"' + (can('admin') ? '' : ' disabled') + '>Delete</button>' : '') +
+          '<button class="adm-icon-btn adm-prod-download" type="button" title="Download product file" aria-label="Download">' + ADM_ICON_DOWNLOAD + '</button>' +
+          '<button class="adm-icon-btn adm-prod-edit" type="button" title="Edit product" aria-label="Edit">' + ADM_ICON_KEBAB + '</button>' +
         '</td></tr>';
-    }).join('') || '<tr><td colspan="8" class="adm-empty">No products match.</td></tr>';
-    updateBulkBar();
-  }
-  function updateBulkBar() {
-    var n = Object.keys(selectedProducts).filter(function (k) { return selectedProducts[k]; }).length;
-    var bar = $('admBulkBar');
-    if (bar) { bar.hidden = n === 0; $('admBulkCount').textContent = n + ' selected'; }
+    }).join('') || '<tr><td colspan="7" class="adm-empty">No products match.</td></tr>';
   }
   var prodBody = $('admProdBody');
-  if (prodBody) prodBody.addEventListener('change', function (e) {
-    var tr = e.target.closest('tr'); if (!tr) return;
-    var id = tr.getAttribute('data-id');
-    if (e.target.classList.contains('adm-prod-check')) {
-      selectedProducts[id] = e.target.checked; updateBulkBar();
-    } else if (e.target.classList.contains('adm-price-input')) {
-      if (!can('admin')) return;
-      var p = findProduct(id); if (!p) return;
-      var v = Math.max(0, parseFloat(e.target.value) || 0);
-      PROD_OV[id] = Object.assign({}, PROD_OV[id], { price: v });
-      saveProdOv();
-      logAudit('Set price of "' + p.title + '" to ' + usd(v));
-    }
-  });
   if (prodBody) prodBody.addEventListener('click', function (e) {
     var tr = e.target.closest('tr'); if (!tr) return;
     var id = tr.getAttribute('data-id');
     var p = findProduct(id); if (!p) return;
-    if (e.target.classList.contains('adm-prod-toggle')) {
+    if (e.target.closest('.adm-prod-toggle')) {
       if (!can('admin')) return;
       if (p.extra) {
         var ep = EXTRA_PRODUCTS.filter(function (x) { return x.id === id; })[0];
@@ -608,86 +632,554 @@
         PROD_OV[id] = Object.assign({}, PROD_OV[id], { visible: !p.visible });
         saveProdOv();
       }
-      logAudit((p.visible ? 'Hid' : 'Unhid') + ' product "' + p.title + '"');
+      logAudit((p.visible ? 'Unreleased' : 'Released') + ' product "' + p.title + '"');
       renderProducts();
-    } else if (e.target.classList.contains('adm-prod-del')) {
-      if (!can('admin')) return;
-      if (!confirm('Delete "' + p.title + '"? This can\'t be undone.')) return;
-      EXTRA_PRODUCTS = EXTRA_PRODUCTS.filter(function (x) { return x.id !== id; });
-      saveExtraProducts();
-      logAudit('Deleted admin-only product "' + p.title + '"');
-      renderProducts();
+    } else if (e.target.closest('.adm-prod-download')) {
+      var a = document.createElement('a');
+      a.href = 'placeholder.zip'; a.download = p.title.replace(/[^a-z0-9]+/gi, '-') + '.zip';
+      document.body.appendChild(a); a.click(); a.remove();
+    } else if (e.target.closest('.adm-prod-edit')) {
+      openProductEdit(id);
     }
   });
   var prodSearch = $('admProdSearch');
   if (prodSearch) prodSearch.addEventListener('input', renderProducts);
 
-  var bulkVisBtn = $('admBulkVisibility'), bulkPriceBtn = $('admBulkPriceApply'), bulkPriceInput = $('admBulkPriceInput');
-  if (bulkVisBtn) bulkVisBtn.addEventListener('click', function () {
-    if (!can('admin')) return;
-    var ids = Object.keys(selectedProducts).filter(function (k) { return selectedProducts[k]; });
-    ids.forEach(function (id) {
-      var p = findProduct(id); if (!p) return;
-      if (p.extra) {
-        var ep = EXTRA_PRODUCTS.filter(function (x) { return x.id === id; })[0];
-        if (ep) ep.visible = !(ep.visible !== false);
-      } else {
-        PROD_OV[id] = Object.assign({}, PROD_OV[id], { visible: !p.visible });
+  /* ---- Product edit panel ---- */
+  var ADM_ICON_TRASH = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>';
+  var CATEGORIES_BY_PLATFORM = {
+    Roblox: ['Finished Games & Templates', 'Maps', 'Scripts & UI', 'Graphics', 'Buildings', 'Assets', 'Uniforms & Gear', 'Boats', 'Weapons', 'Vehicles', 'Animations & VFX'],
+    Minecraft: ['Hubs', 'Lobbies', 'Maps', 'Builds', 'Plugins', 'Full Setups']
+  };
+  var editContacts = [];
+  var editProofFiles = [];
+  var editDevProofFiles = [];
+  var editGallery = [];
+
+  /* ---- Reusable custom dropdown (replaces native <select> everywhere in admin) ----
+     root must contain .adm-dd-btn (with .adm-dd-val + chevron) and .adm-dd-menu,
+     matching the markup already used for the product category picker. */
+  function makeDropdown(root, opts) {
+    opts = opts || {};
+    if (!root) return { setOptions: function () {}, setValue: function () {}, getValue: function () { return ''; }, close: function () {} };
+    var btn = root.querySelector('.adm-dd-btn');
+    var valEl = root.querySelector('.adm-dd-val');
+    var menu = root.querySelector('.adm-dd-menu');
+    var valueInput = opts.valueInput || null;
+    var placeholder = opts.placeholder || 'Select…';
+    var current = '';
+    var optionList = [];
+
+    function close() { root.classList.remove('open'); if (menu) menu.hidden = true; if (btn) btn.setAttribute('aria-expanded', 'false'); }
+    function open() { root.classList.add('open'); if (menu) menu.hidden = false; if (btn) btn.setAttribute('aria-expanded', 'true'); }
+    function labelFor(value) {
+      var found = optionList.filter(function (o) { return o.value === value; })[0];
+      return found ? found.label : value;
+    }
+    function setValue(value, silent) {
+      current = value || '';
+      if (valEl) { valEl.textContent = current ? labelFor(current) : placeholder; valEl.classList.toggle('placeholder', !current); }
+      if (valueInput) valueInput.value = current;
+      if (menu) Array.prototype.forEach.call(menu.querySelectorAll('.adm-dd-opt'), function (o) {
+        o.classList.toggle('active', o.getAttribute('data-value') === current);
+      });
+      if (!silent && typeof opts.onChange === 'function') opts.onChange(current);
+    }
+    function setOptions(list, selected) {
+      optionList = list.map(function (o) { return typeof o === 'string' ? { value: o, label: o } : o; });
+      if (menu) {
+        menu.innerHTML = optionList.map(function (o) {
+          var isActive = o.value === selected;
+          return '<button type="button" class="adm-dd-opt' + (isActive ? ' active' : '') + '" data-value="' + esc(o.value) + '" role="option" aria-selected="' + (isActive ? 'true' : 'false') + '"><span>' + esc(o.label) + '</span><span class="adm-dd-radio"></span></button>';
+        }).join('');
+        Array.prototype.forEach.call(menu.querySelectorAll('.adm-dd-opt'), function (o) {
+          o.addEventListener('click', function () { setValue(o.getAttribute('data-value')); close(); });
+        });
       }
+      setValue(selected != null ? selected : current, true);
+    }
+    if (btn) btn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      if (menu && menu.hidden) open(); else close();
     });
-    saveProdOv(); saveExtraProducts();
-    logAudit('Bulk toggled visibility on ' + ids.length + ' product(s)');
-    renderProducts();
+    document.addEventListener('click', function (e) { if (!root.contains(e.target)) close(); });
+
+    return { setOptions: setOptions, setValue: setValue, getValue: function () { return current; }, close: close };
+  }
+
+  var catDropdown = makeDropdown($('admEditCatDD'), { valueInput: $('admEditCat'), placeholder: 'Select category' });
+  function populateCategorySelect(platform, selected) {
+    var cats = CATEGORIES_BY_PLATFORM[platform] || [];
+    if (selected && cats.indexOf(selected) < 0) cats = cats.concat([selected]);
+    catDropdown.setOptions(cats, selected || cats[0] || '');
+  }
+  function setEditPlatform(platform, catToKeep) {
+    $('admEditPlatform').value = platform;
+    document.querySelectorAll('#admEditPlatformToggle .adm-platform-btn').forEach(function (b) {
+      b.classList.toggle('active', b.getAttribute('data-platform') === platform);
+    });
+    populateCategorySelect(platform, catToKeep);
+  }
+  function updateDevexHint() {
+    var usdPrice = parseFloat($('admEditPrice').value) || 0;
+    var hint = $('admEditDevexHint'); if (!hint) return;
+    hint.textContent = usdPrice > 0
+      ? ('DevEx equivalent of ' + usd(usdPrice) + ' ≈ R$ ' + Math.round(usdPrice / DEVEX_USD_PER_ROBUX).toLocaleString('en-US'))
+      : '';
+  }
+  function renderFileList(listId, files, removeClass) {
+    var list = $(listId); if (!list) return;
+    list.innerHTML = files.map(function (f, i) {
+      var name = typeof f === 'string' ? f : (f.name || '');
+      var url = typeof f === 'string' ? null : f.url;
+      var nameHtml = url
+        ? '<a href="' + esc(url) + '" target="_blank" rel="noopener">' + esc(name) + '</a>'
+        : '<span>' + esc(name) + '</span>';
+      return '<div class="adm-file-item">' + nameHtml + '<button type="button" class="adm-icon-btn ' + removeClass + '" data-i="' + i + '">' + ADM_ICON_TRASH + '</button></div>';
+    }).join('') || '<p class="adm-empty" style="padding:8px 0;">No files uploaded yet.</p>';
+  }
+  function renderProofList() { renderFileList('admLegalProofList', editProofFiles, 'adm-proof-remove'); }
+  function renderDevProofList() { renderFileList('admLegalDevProofList', editDevProofFiles, 'adm-dev-proof-remove'); }
+  function renderGalleryList() {
+    var list = $('admEditGalleryList'); if (!list) return;
+    list.innerHTML = editGallery.map(function (src, i) {
+      return '<div class="adm-gallery-item"><a href="' + esc(src) + '" target="_blank" rel="noopener"><img src="' + esc(src) + '" alt="" /></a><button type="button" class="adm-gallery-remove" data-i="' + i + '">' + ADM_ICON_TRASH + '</button></div>';
+    }).join('');
+  }
+  function updateThumbPreview() {
+    var img = $('admEditThumbPreview'); if (!img) return;
+    var url = $('admEditThumbUrl').value.trim();
+    img.src = url;
+    $('admEditThumbEmpty').hidden = !!url;
+    $('admEditThumbPreviewWrap').hidden = !url;
+  }
+  function addThumbFile(file) {
+    if (!file) return;
+    $('admEditThumbUrl').value = URL.createObjectURL(file);
+    updateThumbPreview();
+  }
+  function addGalleryFiles(files) {
+    Array.prototype.forEach.call(files, function (f) { editGallery.push(URL.createObjectURL(f)); });
+    renderGalleryList();
+  }
+  function renderContactList() {
+    var list = $('admLegalContactList'); if (!list) return;
+    list.innerHTML = editContacts.map(function (c, i) {
+      return '<div class="adm-contact-row" data-i="' + i + '">' +
+        '<input type="text" class="adm-input adm-contact-label" placeholder="Label (e.g. Discord username)" value="' + esc(c.label || '') + '" />' +
+        '<input type="text" class="adm-input adm-contact-value" placeholder="Value" value="' + esc(c.value || '') + '" />' +
+        '<button type="button" class="adm-icon-btn adm-contact-remove">' + ADM_ICON_TRASH + '</button></div>';
+    }).join('');
+  }
+
+  function openProductEdit(id) {
+    var p = findProduct(id); if (!p) return;
+    $('admEditId').value = p.id;
+    $('admEditTitleInput').value = p.title;
+    $('admEditPrice').value = p.price;
+    $('admEditRobuxPrice').value = p.robuxPrice != null ? p.robuxPrice : '';
+    setEditPlatform(p.platform, p.cat);
+    document.querySelectorAll('#admEditPlatformToggle .adm-platform-btn').forEach(function (b) { b.disabled = !p.extra; });
+    $('admEditSubtext').value = p.desc || '';
+    $('admEditLongDesc').value = p.longDesc || '';
+    $('admEditResell').checked = !!p.resell;
+    $('admEditResellPrice').value = p.resellPrice != null ? p.resellPrice : '';
+    $('admEditResellPriceWrap').hidden = !p.resell;
+    $('admEditReleased').checked = !!p.visible;
+    $('admEditDeleteBtn').hidden = !p.extra;
+    $('admEditHeading').textContent = 'Edit: ' + p.title;
+    $('admEditSaveBtn').textContent = 'Save changes';
+    $('admEditMsg').textContent = '';
+    updateDevexHint();
+
+    var tech = p.tech || {};
+    $('admEditTechFormat').value = tech.format || '';
+    $('admEditTechSize').value = tech.size || '';
+    $('admEditTechFileName').value = tech.fileName || '';
+    $('admEditFileInput').value = '';
+    var fileNote = $('admEditFileNote');
+    fileNote.textContent = tech.fileName ? ('Selected: ' + tech.fileName) : 'Currently: shared placeholder file';
+    fileNote.removeAttribute('href');
+    $('admEditTechParts').value = tech.parts || '';
+    $('admEditTechMeshParts').value = tech.meshParts || '';
+    $('admEditTechUnions').value = tech.unions || '';
+    $('admEditTechScripts').value = tech.scripts || '';
+
+    $('admEditThumbUrl').value = p.image || '';
+    updateThumbPreview();
+    editGallery = (p.gallery || []).slice();
+    renderGalleryList();
+    $('admEditVideoUrl').value = p.video || '';
+
+    var legal = p.legal || defaultLegal();
+    $('admLegalTos').value = legal.tos || '';
+    editContacts = (legal.contacts || []).map(function (c) { return Object.assign({}, c); });
+    editProofFiles = (legal.proofFiles || []).map(function (f) { return typeof f === 'string' ? { name: f, url: null } : f; });
+    editDevProofFiles = (legal.devProofFiles || []).map(function (f) { return typeof f === 'string' ? { name: f, url: null } : f; });
+    renderContactList(); renderProofList(); renderDevProofList();
+    $('admLegalCostAmount').value = legal.licenseCost || 0;
+    setCostCurrency(legal.licenseCostCurrency || 'usd');
+    $('admLegalPurchasedAt').value = legal.licensePurchasedAt || '';
+    $('admLegalMinUsd').value = legal.minSaleUsd || 0;
+    $('admLegalMinRobux').value = legal.minSaleRobux || 0;
+    $('admLegalCanBeFree').checked = !!legal.canBeFree;
+    $('admLegalDisallowSales').checked = !!legal.disallowSales;
+
+    showPanel('product-edit');
+  }
+
+  function wireDropzone(dropEl, inputEl, onFiles) {
+    if (!dropEl || !inputEl) return;
+    dropEl.addEventListener('click', function () { inputEl.click(); });
+    inputEl.addEventListener('change', function () { onFiles(inputEl.files); inputEl.value = ''; });
+    dropEl.addEventListener('dragover', function (e) { e.preventDefault(); dropEl.classList.add('dragover'); });
+    dropEl.addEventListener('dragleave', function () { dropEl.classList.remove('dragover'); });
+    dropEl.addEventListener('drop', function (e) {
+      e.preventDefault();
+      dropEl.classList.remove('dragover');
+      if (e.dataTransfer && e.dataTransfer.files.length) onFiles(e.dataTransfer.files);
+    });
+  }
+
+  wireDropzone($('admEditFileDrop'), $('admEditFileInput'), function (files) {
+    var f = files[0]; if (!f) return;
+    var dot = f.name.lastIndexOf('.');
+    $('admEditTechFormat').value = dot >= 0 ? f.name.slice(dot).toLowerCase() : '';
+    $('admEditTechSize').value = formatFileSize(f.size);
+    $('admEditTechFileName').value = f.name;
+    var fileNote = $('admEditFileNote');
+    fileNote.textContent = 'Selected: ' + f.name;
+    fileNote.href = URL.createObjectURL(f);
   });
-  if (bulkPriceBtn) bulkPriceBtn.addEventListener('click', function () {
-    if (!can('admin')) return;
-    var pctVal = parseFloat(bulkPriceInput.value);
-    if (!pctVal) return;
-    var ids = Object.keys(selectedProducts).filter(function (k) { return selectedProducts[k]; });
-    ids.forEach(function (id) {
-      var p = findProduct(id); if (!p) return;
-      var newPrice = Math.max(0, Math.round(p.price * (1 + pctVal / 100) * 100) / 100);
-      if (p.extra) {
-        var ep = EXTRA_PRODUCTS.filter(function (x) { return x.id === id; })[0];
-        if (ep) ep.price = newPrice;
-      } else {
-        PROD_OV[id] = Object.assign({}, PROD_OV[id], { price: newPrice });
-      }
-    });
-    saveProdOv(); saveExtraProducts();
-    logAudit('Bulk price adjust ' + (pctVal > 0 ? '+' : '') + pctVal + '% on ' + ids.length + ' product(s)');
-    renderProducts();
+  var fileNoteLink = $('admEditFileNote');
+  if (fileNoteLink) fileNoteLink.addEventListener('click', function (e) { if (!fileNoteLink.getAttribute('href')) e.preventDefault(); });
+
+  wireDropzone($('admEditThumbDrop'), $('admEditThumbInput'), function (files) { addThumbFile(files[0]); });
+  var thumbRemoveBtn = $('admEditThumbRemove');
+  if (thumbRemoveBtn) thumbRemoveBtn.addEventListener('click', function (e) {
+    e.stopPropagation();
+    $('admEditThumbUrl').value = '';
+    updateThumbPreview();
   });
-  var selectAllBox = $('admProdSelectAll');
-  if (selectAllBox) selectAllBox.addEventListener('change', function () {
-    document.querySelectorAll('#admProdBody tr[data-id]').forEach(function (tr) {
-      selectedProducts[tr.getAttribute('data-id')] = selectAllBox.checked;
-    });
-    renderProducts();
+  var thumbPreviewImg = $('admEditThumbPreview');
+  if (thumbPreviewImg) thumbPreviewImg.addEventListener('click', function (e) {
+    e.stopPropagation();
+    var url = $('admEditThumbUrl').value.trim();
+    if (url) window.open(url, '_blank');
   });
 
-  var addProdForm = $('admAddProdForm');
-  if (addProdForm) addProdForm.addEventListener('submit', function (e) {
+  wireDropzone($('admEditGalleryDrop'), $('admEditGalleryInput'), addGalleryFiles);
+  var galleryList = $('admEditGalleryList');
+  if (galleryList) galleryList.addEventListener('click', function (e) {
+    var btn = e.target.closest('.adm-gallery-remove'); if (!btn) return;
+    editGallery.splice(+btn.getAttribute('data-i'), 1);
+    renderGalleryList();
+  });
+
+  function setCostCurrency(currency) {
+    $('admLegalCostCurrency').value = currency;
+    document.querySelectorAll('#admLegalCostCurrencyToggle button').forEach(function (b) {
+      b.classList.toggle('active', b.getAttribute('data-currency') === currency);
+    });
+  }
+  document.querySelectorAll('#admLegalCostCurrencyToggle button').forEach(function (b) {
+    b.addEventListener('click', function () { setCostCurrency(b.getAttribute('data-currency')); });
+  });
+
+  document.querySelectorAll('#admEditPlatformToggle .adm-platform-btn').forEach(function (b) {
+    b.addEventListener('click', function () {
+      if (b.disabled) return;
+      setEditPlatform(b.getAttribute('data-platform'), null);
+    });
+  });
+  var editPriceInput = $('admEditPrice');
+  if (editPriceInput) editPriceInput.addEventListener('input', updateDevexHint);
+  var editResellBox = $('admEditResell');
+  if (editResellBox) editResellBox.addEventListener('change', function () { $('admEditResellPriceWrap').hidden = !editResellBox.checked; });
+
+  var contactAddBtn = $('admLegalContactAdd');
+  if (contactAddBtn) contactAddBtn.addEventListener('click', function () { editContacts.push({ label: '', value: '' }); renderContactList(); });
+  var contactList = $('admLegalContactList');
+  if (contactList) {
+    contactList.addEventListener('click', function (e) {
+      var btn = e.target.closest('.adm-contact-remove'); if (!btn) return;
+      var i = +btn.closest('.adm-contact-row').getAttribute('data-i');
+      editContacts.splice(i, 1); renderContactList();
+    });
+    contactList.addEventListener('input', function (e) {
+      var row = e.target.closest('.adm-contact-row'); if (!row) return;
+      var i = +row.getAttribute('data-i');
+      if (!editContacts[i]) return;
+      if (e.target.classList.contains('adm-contact-label')) editContacts[i].label = e.target.value;
+      else if (e.target.classList.contains('adm-contact-value')) editContacts[i].value = e.target.value;
+    });
+  }
+
+  wireDropzone($('admLegalProofDrop'), $('admLegalProofInput'), function (files) {
+    Array.prototype.forEach.call(files, function (f) { editProofFiles.push({ name: f.name, url: URL.createObjectURL(f) }); });
+    renderProofList();
+  });
+  var proofList = $('admLegalProofList');
+  if (proofList) proofList.addEventListener('click', function (e) {
+    var btn = e.target.closest('.adm-proof-remove'); if (!btn) return;
+    editProofFiles.splice(+btn.getAttribute('data-i'), 1);
+    renderProofList();
+  });
+
+  wireDropzone($('admLegalDevProofDrop'), $('admLegalDevProofInput'), function (files) {
+    Array.prototype.forEach.call(files, function (f) { editDevProofFiles.push({ name: f.name, url: URL.createObjectURL(f) }); });
+    renderDevProofList();
+  });
+  var devProofList = $('admLegalDevProofList');
+  if (devProofList) devProofList.addEventListener('click', function (e) {
+    var btn = e.target.closest('.adm-dev-proof-remove'); if (!btn) return;
+    editDevProofFiles.splice(+btn.getAttribute('data-i'), 1);
+    renderDevProofList();
+  });
+
+  function openProductCreate() {
+    $('admEditId').value = '';
+    $('admEditTitleInput').value = '';
+    $('admEditPrice').value = 0;
+    $('admEditRobuxPrice').value = '';
+    setEditPlatform('Roblox', null);
+    document.querySelectorAll('#admEditPlatformToggle .adm-platform-btn').forEach(function (b) { b.disabled = false; });
+    $('admEditSubtext').value = '';
+    $('admEditLongDesc').value = '';
+    $('admEditResell').checked = false;
+    $('admEditResellPrice').value = '';
+    $('admEditResellPriceWrap').hidden = true;
+    $('admEditReleased').checked = false;
+    $('admEditDeleteBtn').hidden = true;
+    $('admEditHeading').textContent = 'Create new product';
+    $('admEditSaveBtn').textContent = 'Create product';
+    $('admEditMsg').textContent = '';
+    updateDevexHint();
+
+    ['admEditTechFormat', 'admEditTechSize', 'admEditTechFileName', 'admEditTechParts', 'admEditTechMeshParts', 'admEditTechUnions', 'admEditTechScripts'].forEach(function (id) { $(id).value = ''; });
+    $('admEditFileInput').value = '';
+    $('admEditFileNote').textContent = 'Currently: shared placeholder file';
+    $('admEditFileNote').removeAttribute('href');
+
+    $('admEditThumbUrl').value = '';
+    updateThumbPreview();
+    editGallery = [];
+    renderGalleryList();
+    $('admEditVideoUrl').value = '';
+
+    $('admLegalTos').value = '';
+    editContacts = []; editProofFiles = []; editDevProofFiles = [];
+    renderContactList(); renderProofList(); renderDevProofList();
+    $('admLegalCostAmount').value = 0;
+    setCostCurrency('usd');
+    $('admLegalPurchasedAt').value = '';
+    $('admLegalMinUsd').value = 0;
+    $('admLegalMinRobux').value = 0;
+    $('admLegalCanBeFree').checked = false;
+    $('admLegalDisallowSales').checked = false;
+
+    showPanel('product-edit');
+  }
+  var createBtn = $('admOpenCreatePanel');
+  if (createBtn) createBtn.addEventListener('click', function () { if (can('admin')) openProductCreate(); });
+
+  function collectEditFields() {
+    return {
+      price: Math.max(0, parseFloat($('admEditPrice').value) || 0),
+      robuxPrice: $('admEditRobuxPrice').value === '' ? null : Math.max(0, parseFloat($('admEditRobuxPrice').value) || 0),
+      cat: $('admEditCat').value,
+      desc: $('admEditSubtext').value.trim(),
+      longDesc: $('admEditLongDesc').value.trim(),
+      resell: $('admEditResell').checked,
+      resellPrice: $('admEditResell').checked && $('admEditResellPrice').value !== '' ? Math.max(0, parseFloat($('admEditResellPrice').value) || 0) : null,
+      visible: $('admEditReleased').checked,
+      image: $('admEditThumbUrl').value.trim(),
+      gallery: editGallery.slice(),
+      video: toYouTubeEmbed($('admEditVideoUrl').value.trim()),
+      tech: {
+        format: $('admEditTechFormat').value.trim(),
+        size: $('admEditTechSize').value.trim(),
+        fileName: $('admEditTechFileName').value,
+        parts: $('admEditTechParts').value,
+        meshParts: $('admEditTechMeshParts').value,
+        unions: $('admEditTechUnions').value,
+        scripts: $('admEditTechScripts').value
+      },
+      legal: {
+        tos: $('admLegalTos').value.trim(),
+        proofFiles: editProofFiles.slice(),
+        devProofFiles: editDevProofFiles.slice(),
+        contacts: editContacts.filter(function (c) { return c.label || c.value; }),
+        licenseCost: Math.max(0, parseFloat($('admLegalCostAmount').value) || 0),
+        licenseCostCurrency: $('admLegalCostCurrency').value,
+        licensePurchasedAt: $('admLegalPurchasedAt').value,
+        minSaleUsd: Math.max(0, parseFloat($('admLegalMinUsd').value) || 0),
+        minSaleRobux: Math.max(0, parseFloat($('admLegalMinRobux').value) || 0),
+        canBeFree: $('admLegalCanBeFree').checked,
+        disallowSales: $('admLegalDisallowSales').checked
+      }
+    };
+  }
+
+  var editForm = $('admEditForm');
+  if (editForm) editForm.addEventListener('submit', function (e) {
     e.preventDefault();
     if (!can('admin')) return;
-    var title = $('admNewProdTitle').value.trim();
-    var price = parseFloat($('admNewProdPrice').value) || 0;
-    var cat = $('admNewProdCat').value.trim() || 'Uncategorized';
-    var platform = $('admNewProdPlatform').value;
-    if (!title) return;
-    var id = title.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-' + Date.now().toString(36);
-    EXTRA_PRODUCTS.push({ id: id, title: title, priceNum: price, price: price, cat: cat, platform: platform, image: 'banner.jpg', desc: '', resell: false, visible: true, page: platform === 'Minecraft' ? 'minecraft.html' : 'assets.html' });
+    var id = $('admEditId').value;
+    var isCreate = !id;
+    var platform = $('admEditPlatform').value;
+    var msg = $('admEditMsg');
+
+    if (isCreate) {
+      var title = $('admEditTitleInput').value.trim();
+      if (!title) { if (msg) msg.textContent = 'Enter a title.'; return; }
+      var fields = Object.assign({ title: title }, collectEditFields());
+      if (!fields.image) fields.image = 'banner.jpg';
+      var newId = title.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-' + Date.now().toString(36);
+      EXTRA_PRODUCTS.push(Object.assign({
+        id: newId, platform: platform,
+        page: platform === 'Minecraft' ? 'minecraft.html' : 'assets.html',
+        priceNum: fields.price, rating: 0, reviews: 0, versions: []
+      }, fields));
+      saveExtraProducts();
+      logAudit('Created product "' + title + '"');
+      openProductEdit(newId);
+      if (msg) msg.textContent = 'Created.';
+      renderProducts();
+      return;
+    }
+
+    var p = findProduct(id); if (!p) return;
+    var fields = Object.assign({ title: $('admEditTitleInput').value.trim() || p.title }, collectEditFields());
+    if (p.extra) fields.platform = platform;
+    saveProductFields(id, p.extra, fields);
+    logAudit('Updated product "' + fields.title + '"');
+    if (msg) msg.textContent = 'Saved.';
+    renderProducts();
+  });
+  var editDeleteBtn = $('admEditDeleteBtn');
+  if (editDeleteBtn) editDeleteBtn.addEventListener('click', function () {
+    if (!can('admin')) return;
+    var id = $('admEditId').value;
+    var p = findProduct(id); if (!p) return;
+    if (!confirm('Delete "' + p.title + '"? This can\'t be undone.')) return;
+    EXTRA_PRODUCTS = EXTRA_PRODUCTS.filter(function (x) { return x.id !== id; });
     saveExtraProducts();
-    logAudit('Added product "' + title + '"');
-    addProdForm.reset();
+    logAudit('Deleted admin-only product "' + p.title + '"');
+    showPanel('products');
+  });
+
+  /* ================================================================
+     PRODUCT UPDATE PANEL (version/changelog/file pushes)
+     ================================================================ */
+  var updSelectedId = null;
+
+  function openUpdatePanel() {
+    updSelectedId = null;
+    var search = $('admUpdSearch'); if (search) search.value = '';
+    $('admUpdResults').innerHTML = '';
+    $('admUpdSelected').hidden = true;
+    showPanel('product-update');
+  }
+  var openUpdateBtn = $('admOpenUpdatePanel');
+  if (openUpdateBtn) openUpdateBtn.addEventListener('click', openUpdatePanel);
+
+  function renderUpdResults() {
+    var q = ($('admUpdSearch').value || '').trim().toLowerCase();
+    var results = $('admUpdResults');
+    if (!q) { results.innerHTML = ''; return; }
+    var matches = allProducts().filter(function (p) { return p.title.toLowerCase().indexOf(q) >= 0; }).slice(0, 8);
+    results.innerHTML = matches.map(function (p) {
+      return '<button type="button" class="adm-upd-result" data-id="' + esc(p.id) + '">' +
+        '<span class="dr-thumb" style="width:36px;height:26px;border-radius:6px;flex:0 0 auto;background-image:url(\'' + p.image + '\')"></span>' +
+        '<span>' + esc(p.title) + '</span></button>';
+    }).join('') || '<p class="adm-empty" style="padding:8px 0;">No products match.</p>';
+  }
+  var updSearchInput = $('admUpdSearch');
+  if (updSearchInput) updSearchInput.addEventListener('input', renderUpdResults);
+
+  function renderUpdHistory(p) {
+    var box = $('admUpdHistory'); if (!box) return;
+    var versions = (p.versions || []).slice().sort(function (a, b) { return new Date(b.date) - new Date(a.date); });
+    box.innerHTML = '<div class="dash-card-head"><h2>Version history</h2></div>' + (versions.map(function (v) {
+      return '<div class="adm-ver-item"><span class="adm-ver-num">' + esc(v.version) + '</span>' +
+        '<span class="adm-ver-date">' + fmtDate(new Date(v.date)) + '</span>' +
+        '<span class="adm-ver-note">' + esc(v.changelog) + '</span></div>';
+    }).join('') || '<p class="adm-empty">No versions pushed yet.</p>');
+  }
+
+  function selectUpdateProduct(id) {
+    var p = findProduct(id); if (!p) return;
+    updSelectedId = id;
+    $('admUpdThumb').style.backgroundImage = "url('" + p.image + "')";
+    $('admUpdSelectedName').textContent = p.title;
+    $('admUpdVersion').value = '';
+    $('admUpdChangelog').value = '';
+    $('admUpdDescWrap').hidden = true;
+    $('admUpdDescInput').value = '';
+    $('admUpdMsg').textContent = '';
+    $('admUpdResults').innerHTML = '';
+    $('admUpdSearch').value = p.title;
+    $('admUpdSelected').hidden = false;
+    renderUpdHistory(p);
+  }
+  var updResults = $('admUpdResults');
+  if (updResults) updResults.addEventListener('click', function (e) {
+    var btn = e.target.closest('.adm-upd-result'); if (!btn) return;
+    selectUpdateProduct(btn.getAttribute('data-id'));
+  });
+  var updChangeBtn = $('admUpdChange');
+  if (updChangeBtn) updChangeBtn.addEventListener('click', openUpdatePanel);
+
+  var updDescToggle = $('admUpdDescToggle');
+  if (updDescToggle) updDescToggle.addEventListener('click', function () {
+    var wrap = $('admUpdDescWrap');
+    var opening = wrap.hidden;
+    wrap.hidden = !opening;
+    if (opening && updSelectedId) {
+      var p = findProduct(updSelectedId);
+      $('admUpdDescInput').value = (p && p.longDesc) || '';
+    }
+  });
+
+  var updSubmitBtn = $('admUpdSubmit');
+  if (updSubmitBtn) updSubmitBtn.addEventListener('click', function () {
+    if (!can('admin')) return;
+    if (!updSelectedId) return;
+    var p = findProduct(updSelectedId); if (!p) return;
+    var version = $('admUpdVersion').value.trim();
+    var changelog = $('admUpdChangelog').value.trim();
+    var msg = $('admUpdMsg');
+    if (!version || !changelog) { if (msg) msg.textContent = 'Enter a version number and changelog.'; return; }
+
+    var versions = (p.versions || []).slice();
+    versions.push({ version: version, changelog: changelog, date: new Date().toISOString() });
+    var fields = { versions: versions };
+    if (!$('admUpdDescWrap').hidden) fields.longDesc = $('admUpdDescInput').value.trim();
+
+    saveProductFields(updSelectedId, p.extra, fields);
+    logAudit('Pushed update ' + version + ' for "' + p.title + '"');
+    if (msg) msg.textContent = 'Update pushed.';
+    $('admUpdVersion').value = '';
+    $('admUpdChangelog').value = '';
+    renderUpdHistory(findProduct(updSelectedId));
     renderProducts();
   });
 
   /* ================================================================
      ORDERS PANEL
      ================================================================ */
+  var orderStatusDropdown = makeDropdown($('admOrderStatusFilterDD'), {
+    onChange: function () { renderOrders(); }
+  });
+  orderStatusDropdown.setOptions([
+    { value: 'all', label: 'All statuses' },
+    { value: 'completed', label: 'Completed' },
+    { value: 'pending', label: 'Pending' },
+    { value: 'refunded', label: 'Refunded' }
+  ], 'all');
   function renderOrders() {
-    var statusF = ($('admOrderStatusFilter') || {}).value || 'all';
+    var statusF = orderStatusDropdown.getValue() || 'all';
     var q = (($('admOrderSearch') || {}).value || '').trim().toLowerCase();
     var rows = ORDERS.filter(function (o) {
       var okStatus = statusF === 'all' || o.status === statusF;
@@ -725,9 +1217,8 @@
       renderOrders(); renderRefunds();
     }
   });
-  ['admOrderStatusFilter', 'admOrderSearch'].forEach(function (id) {
-    var elx = $(id); if (elx) elx.addEventListener('input', renderOrders);
-  });
+  var orderSearchInput = $('admOrderSearch');
+  if (orderSearchInput) orderSearchInput.addEventListener('input', renderOrders);
 
   /* ================================================================
      REFUNDS PANEL
@@ -762,8 +1253,17 @@
   /* ================================================================
      REVIEWS PANEL
      ================================================================ */
+  var reviewFilterDropdown = makeDropdown($('admReviewFilterDD'), {
+    onChange: function () { renderReviews(); }
+  });
+  reviewFilterDropdown.setOptions([
+    { value: 'pending', label: 'Pending' },
+    { value: 'approved', label: 'Approved' },
+    { value: 'hidden', label: 'Hidden' },
+    { value: 'all', label: 'All' }
+  ], 'pending');
   function renderReviews() {
-    var f = ($('admReviewFilter') || {}).value || 'pending';
+    var f = reviewFilterDropdown.getValue() || 'pending';
     var rows = REVIEWS.filter(function (r) { return f === 'all' || r.status === f; }).sort(function (a, b) { return new Date(b.date) - new Date(a.date); });
     $('admReviewsList').innerHTML = rows.map(function (r) {
       var stars = '';
@@ -772,9 +1272,16 @@
         '<div class="adm-review-head"><strong>' + esc(r.user) + '</strong><span class="adm-sub">on ' + esc(r.productTitle) + '</span><span class="adm-sub">' + fmtDate(new Date(r.date)) + '</span>' + statusBadge(r.status === 'approved' ? 'completed' : (r.status === 'hidden' ? 'refunded' : 'pending')) + '</div>' +
         '<div class="pd-rev-stars">' + stars + '</div>' +
         '<p class="adm-review-text">' + esc(r.text) + '</p>' +
+        (r.reply ? '<div class="adm-review-reply"><strong>Your reply</strong><p>' + esc(r.reply.text) + '</p></div>' : '') +
+        '<div class="adm-review-reply-form" hidden>' +
+          '<textarea class="adm-input adm-textarea adm-rev-reply-input" rows="2" placeholder="Write a public reply to this review…">' + esc(r.reply ? r.reply.text : '') + '</textarea>' +
+          '<button type="button" class="btn btn-primary adm-btn-sm adm-rev-reply-save">Save reply</button>' +
+        '</div>' +
         '<div class="adm-row-actions">' +
           (r.status !== 'approved' ? '<button class="btn btn-ghost adm-btn-sm adm-rev-approve" type="button">Approve</button>' : '') +
           (r.status !== 'hidden' ? '<button class="btn btn-ghost adm-btn-sm adm-rev-hide" type="button">Hide</button>' : '') +
+          '<button class="btn btn-ghost adm-btn-sm adm-rev-reply-toggle" type="button">' + (r.reply ? 'Edit reply' : 'Reply') + '</button>' +
+          '<button class="btn btn-ghost adm-btn-sm adm-rev-goto" type="button">Go to product</button>' +
         '</div></div>';
     }).join('') || '<p class="adm-empty">Nothing here.</p>';
   }
@@ -783,14 +1290,25 @@
     var card = e.target.closest('.adm-review'); if (!card) return;
     var id = card.getAttribute('data-id');
     var r = REVIEWS.filter(function (x) { return x.id === id; })[0]; if (!r) return;
-    if (e.target.classList.contains('adm-rev-approve')) { r.status = 'approved'; logAudit('Approved review by ' + r.user + ' on "' + r.productTitle + '"'); }
-    else if (e.target.classList.contains('adm-rev-hide')) { r.status = 'hidden'; logAudit('Hid review by ' + r.user + ' on "' + r.productTitle + '"'); }
-    else return;
-    saveReviews(); renderReviews();
+    if (e.target.classList.contains('adm-rev-approve')) {
+      r.status = 'approved'; logAudit('Approved review by ' + r.user + ' on "' + r.productTitle + '"');
+      saveReviews(); renderReviews();
+    } else if (e.target.classList.contains('adm-rev-hide')) {
+      r.status = 'hidden'; logAudit('Hid review by ' + r.user + ' on "' + r.productTitle + '"');
+      saveReviews(); renderReviews();
+    } else if (e.target.classList.contains('adm-rev-reply-toggle')) {
+      var form = card.querySelector('.adm-review-reply-form');
+      form.hidden = !form.hidden;
+      if (!form.hidden) form.querySelector('textarea').focus();
+    } else if (e.target.classList.contains('adm-rev-reply-save')) {
+      var text = card.querySelector('.adm-rev-reply-input').value.trim();
+      r.reply = text ? { text: text, date: new Date().toISOString() } : null;
+      logAudit((text ? 'Replied to' : 'Removed reply on') + ' review by ' + r.user + ' on "' + r.productTitle + '"');
+      saveReviews(); renderReviews();
+    } else if (e.target.classList.contains('adm-rev-goto')) {
+      openProductEdit(r.productId);
+    }
   });
-  var reviewFilter = $('admReviewFilter');
-  if (reviewFilter) reviewFilter.addEventListener('change', renderReviews);
-
   /* ================================================================
      USERS PANEL (+ manual product grants)
      ================================================================ */
@@ -798,6 +1316,8 @@
     return ORDERS.filter(function (o) { return o.userId === userId && o.status === 'completed'; }).reduce(function (s, o) { return s + o.total; }, 0);
   }
   function userOrderCount(userId) { return ORDERS.filter(function (o) { return o.userId === userId; }).length; }
+  var grantUserDropdown = makeDropdown($('admGrantUserDD'), { valueInput: $('admGrantUser'), placeholder: 'Select user' });
+  var grantProductDropdown = makeDropdown($('admGrantProductDD'), { valueInput: $('admGrantProduct'), placeholder: 'Select product' });
   function renderUsers() {
     var q = (($('admUserSearch') || {}).value || '').trim().toLowerCase();
     var rows = USERS.filter(function (u) { return !q || u.name.toLowerCase().indexOf(q) >= 0 || u.email.toLowerCase().indexOf(q) >= 0; });
@@ -809,10 +1329,8 @@
         '</td></tr>';
     }).join('') || '<tr><td colspan="7" class="adm-empty">No users match.</td></tr>';
 
-    var sel = $('admGrantUser');
-    if (sel) sel.innerHTML = USERS.map(function (u) { return '<option value="' + u.id + '">' + esc(u.name) + '</option>'; }).join('');
-    var psel = $('admGrantProduct');
-    if (psel) psel.innerHTML = allProducts().map(function (p) { return '<option value="' + p.id + '">' + esc(p.title) + '</option>'; }).join('');
+    grantUserDropdown.setOptions(USERS.map(function (u) { return { value: u.id, label: u.name }; }), grantUserDropdown.getValue());
+    grantProductDropdown.setOptions(allProducts().map(function (p) { return { value: p.id, label: p.title }; }), grantProductDropdown.getValue());
   }
   var usersBody = $('admUsersBody');
   if (usersBody) usersBody.addEventListener('click', function (e) {
@@ -849,45 +1367,198 @@
   });
 
   /* ================================================================
-     COUPONS PANEL
+     SALES & DISCOUNTS PANEL (Sale Events + Discount Codes)
      ================================================================ */
+  function buildScopeOptions() {
+    var out = [{ value: 'sitewide', label: 'Sitewide' }];
+    Object.keys(CATEGORIES_BY_PLATFORM).forEach(function (platform) {
+      out.push({ value: 'platform:' + platform, label: platform + ' — All categories' });
+      CATEGORIES_BY_PLATFORM[platform].forEach(function (cat) {
+        out.push({ value: 'category:' + platform + ':' + cat, label: platform + ' — ' + cat });
+      });
+    });
+    return out;
+  }
+  function parseScopeValue(value) {
+    var parts = String(value || 'sitewide').split(':');
+    if (parts[0] === 'platform') return { scope: 'platform', platform: parts[1], category: null };
+    if (parts[0] === 'category') return { scope: 'category', platform: parts[1], category: parts.slice(2).join(':') };
+    return { scope: 'sitewide', platform: null, category: null };
+  }
+  function scopeValueFor(item) {
+    if (item.scope === 'platform') return 'platform:' + item.platform;
+    if (item.scope === 'category') return 'category:' + item.platform + ':' + item.category;
+    return 'sitewide';
+  }
+  function scopeLabel(item) {
+    if (item.scope === 'platform') return item.platform;
+    if (item.scope === 'category') return item.platform + ': ' + item.category;
+    return 'Sitewide';
+  }
+
+  var salesTypeToggle = $('admSalesTypeToggle');
+  if (salesTypeToggle) salesTypeToggle.addEventListener('click', function (e) {
+    var btn = e.target.closest('.adm-sales-type-btn'); if (!btn) return;
+    var type = btn.getAttribute('data-type');
+    salesTypeToggle.querySelectorAll('.adm-sales-type-btn').forEach(function (b) { b.classList.toggle('active', b === btn); });
+    $('admSalesEventsView').hidden = type !== 'events';
+    $('admDiscountCodesView').hidden = type !== 'codes';
+  });
+
+  /* ---- Sale Events ---- */
+  function eventStatus(ev) {
+    var today = new Date().toISOString().slice(0, 10);
+    if (!ev.active) return 'inactive';
+    if (today < ev.startDate) return 'scheduled';
+    if (today > ev.endDate) return 'ended';
+    return 'live';
+  }
+  var eventScopeDropdown = makeDropdown($('admEventScopeDD'), { valueInput: $('admEventScope') });
+  eventScopeDropdown.setOptions(buildScopeOptions(), 'sitewide');
+
+  function renderEvents() {
+    $('admEventsBody').innerHTML = SALE_EVENTS.map(function (ev) {
+      var status = eventStatus(ev);
+      var badge = status === 'live' ? '<span class="dt-badge ok">Live now</span>' : status === 'scheduled' ? '<span class="dt-badge">Scheduled</span>' : status === 'ended' ? '<span class="dt-badge err">Ended</span>' : '<span class="dt-badge err">Inactive</span>';
+      return '<tr data-id="' + ev.id + '"><td>' + esc(ev.title) + '</td><td>' + ev.percentOff + '% off</td><td>' + esc(scopeLabel(ev)) + '</td><td>' + esc(ev.startDate) + ' – ' + esc(ev.endDate) + '</td><td>' + badge + '</td>' +
+        '<td class="adm-row-actions">' + (can('admin') ? '<button class="btn btn-ghost adm-btn-sm adm-event-edit" type="button">Edit</button><button class="btn btn-ghost adm-btn-sm adm-event-toggle" type="button">' + (ev.active ? 'Deactivate' : 'Activate') + '</button><button class="btn btn-ghost adm-btn-sm adm-event-del" type="button">Delete</button>' : '') + '</td></tr>';
+    }).join('') || '<tr><td colspan="6" class="adm-empty">No sale events yet.</td></tr>';
+  }
+  function resetEventForm() {
+    $('admEventEditId').value = '';
+    $('admEventTitle').value = ''; $('admEventMessage').value = ''; $('admEventPercent').value = '';
+    eventScopeDropdown.setValue('sitewide');
+    $('admEventStart').value = ''; $('admEventEnd').value = '';
+    $('admEventFormTitle').textContent = 'Create sale event';
+    $('admEventSubmitBtn').textContent = 'Create event';
+    $('admEventCancelBtn').hidden = true;
+  }
+  function fillEventForm(ev) {
+    $('admEventEditId').value = ev.id;
+    $('admEventTitle').value = ev.title; $('admEventMessage').value = ev.message; $('admEventPercent').value = ev.percentOff;
+    eventScopeDropdown.setValue(scopeValueFor(ev));
+    $('admEventStart').value = ev.startDate; $('admEventEnd').value = ev.endDate;
+    $('admEventFormTitle').textContent = 'Edit sale event';
+    $('admEventSubmitBtn').textContent = 'Save changes';
+    $('admEventCancelBtn').hidden = false;
+  }
+  var eventsBody = $('admEventsBody');
+  if (eventsBody) eventsBody.addEventListener('click', function (e) {
+    var tr = e.target.closest('tr'); if (!tr) return;
+    var id = tr.getAttribute('data-id');
+    var ev = SALE_EVENTS.filter(function (x) { return x.id === id; })[0]; if (!ev) return;
+    if (!can('admin')) return;
+    if (e.target.classList.contains('adm-event-edit')) { fillEventForm(ev); }
+    else if (e.target.classList.contains('adm-event-toggle')) {
+      ev.active = !ev.active; saveSaleEvents(); logAudit((ev.active ? 'Activated' : 'Deactivated') + ' sale event "' + ev.title + '"'); renderEvents();
+    } else if (e.target.classList.contains('adm-event-del')) {
+      if (!confirm('Delete sale event "' + ev.title + '"? This can\'t be undone.')) return;
+      SALE_EVENTS = SALE_EVENTS.filter(function (x) { return x.id !== id; });
+      saveSaleEvents(); logAudit('Deleted sale event "' + ev.title + '"'); renderEvents();
+      if ($('admEventEditId').value === id) resetEventForm();
+    }
+  });
+  var eventCancelBtn = $('admEventCancelBtn');
+  if (eventCancelBtn) eventCancelBtn.addEventListener('click', resetEventForm);
+  var eventForm = $('admEventForm');
+  if (eventForm) eventForm.addEventListener('submit', function (e) {
+    e.preventDefault();
+    if (!can('admin')) return;
+    var id = $('admEventEditId').value;
+    var scopeInfo = parseScopeValue($('admEventScope').value);
+    var fields = {
+      title: $('admEventTitle').value.trim(),
+      message: $('admEventMessage').value.trim(),
+      percentOff: Math.max(1, Math.min(90, parseInt($('admEventPercent').value, 10) || 0)),
+      scope: scopeInfo.scope, platform: scopeInfo.platform, category: scopeInfo.category,
+      startDate: $('admEventStart').value, endDate: $('admEventEnd').value
+    };
+    if (!fields.title || !fields.message || !fields.startDate || !fields.endDate) return;
+    if (id) {
+      var ev = SALE_EVENTS.filter(function (x) { return x.id === id; })[0]; if (!ev) return;
+      Object.assign(ev, fields);
+      logAudit('Updated sale event "' + fields.title + '"');
+    } else {
+      SALE_EVENTS.push(Object.assign({ id: 'ev' + Date.now().toString(36), active: true }, fields));
+      logAudit('Created sale event "' + fields.title + '"');
+    }
+    saveSaleEvents(); resetEventForm(); renderEvents();
+  });
+
+  /* ---- Discount Codes ---- */
+  var couponTypeDropdown = makeDropdown($('admNewCouponTypeDD'), { valueInput: $('admNewCouponType') });
+  couponTypeDropdown.setOptions([{ value: 'pct', label: '% off' }, { value: 'flat', label: '$ off' }], 'pct');
+  var couponScopeDropdown = makeDropdown($('admCouponScopeDD'), { valueInput: $('admCouponScope') });
+  couponScopeDropdown.setOptions(buildScopeOptions(), 'sitewide');
+
   function renderCoupons() {
     var cs = couponStats();
-    $('admCouponsBody').innerHTML = COUPONS.map(function (c, i) {
+    $('admCouponsBody').innerHTML = COUPONS.map(function (c) {
       var stat = cs.filter(function (x) { return x.code === c.code; })[0] || { uses: 0, discountGiven: 0 };
-      return '<tr data-code="' + esc(c.code) + '"><td class="dt-mono">' + esc(c.code) + '</td><td>' + (c.type === 'pct' ? c.val + '%' : usd(c.val)) + '</td><td>' + stat.uses + (c.limit ? ' / ' + c.limit : '') + '</td><td>' + usd(stat.discountGiven) + '</td>' +
+      return '<tr data-code="' + esc(c.code) + '"><td class="dt-mono">' + esc(c.code) + '</td><td>' + (c.type === 'pct' ? c.val + '%' : usd(c.val)) + '</td><td>' + esc(scopeLabel(c)) + '</td><td>' + (c.expiresAt ? esc(c.expiresAt) : '—') + '</td><td>' + stat.uses + (c.limit ? ' / ' + c.limit : '') + '</td><td>' + usd(stat.discountGiven) + '</td>' +
         '<td>' + (c.active ? '<span class="dt-badge ok">Active</span>' : '<span class="dt-badge err">Inactive</span>') + '</td>' +
-        '<td class="adm-row-actions">' + (can('admin') ? '<button class="btn btn-ghost adm-btn-sm adm-coupon-toggle" type="button">' + (c.active ? 'Deactivate' : 'Activate') + '</button><button class="btn btn-ghost adm-btn-sm adm-coupon-del" type="button">Delete</button>' : '') + '</td></tr>';
-    }).join('') || '<tr><td colspan="6" class="adm-empty">No coupons yet.</td></tr>';
+        '<td class="adm-row-actions">' + (can('admin') ? '<button class="btn btn-ghost adm-btn-sm adm-coupon-edit" type="button">Edit</button><button class="btn btn-ghost adm-btn-sm adm-coupon-toggle" type="button">' + (c.active ? 'Deactivate' : 'Activate') + '</button><button class="btn btn-ghost adm-btn-sm adm-coupon-del" type="button">Delete</button>' : '') + '</td></tr>';
+    }).join('') || '<tr><td colspan="8" class="adm-empty">No discount codes yet.</td></tr>';
+  }
+  function resetCouponForm() {
+    $('admCouponEditId').value = '';
+    $('admNewCouponCode').value = ''; $('admNewCouponVal').value = ''; $('admNewCouponLimit').value = '';
+    $('admNewCouponExpiry').value = '';
+    couponTypeDropdown.setValue('pct'); couponScopeDropdown.setValue('sitewide');
+    $('admCouponFormTitle').textContent = 'Create discount code';
+    $('admCouponSubmitBtn').textContent = 'Create discount code';
+    $('admCouponCancelBtn').hidden = true;
+  }
+  function fillCouponForm(c) {
+    $('admCouponEditId').value = c.code;
+    $('admNewCouponCode').value = c.code; $('admNewCouponVal').value = c.val; $('admNewCouponLimit').value = c.limit || '';
+    $('admNewCouponExpiry').value = c.expiresAt || '';
+    couponTypeDropdown.setValue(c.type); couponScopeDropdown.setValue(scopeValueFor(c));
+    $('admCouponFormTitle').textContent = 'Edit discount code';
+    $('admCouponSubmitBtn').textContent = 'Save changes';
+    $('admCouponCancelBtn').hidden = false;
   }
   var couponsBody = $('admCouponsBody');
   if (couponsBody) couponsBody.addEventListener('click', function (e) {
     var tr = e.target.closest('tr'); if (!tr) return;
     var code = tr.getAttribute('data-code');
     var c = COUPONS.filter(function (x) { return x.code === code; })[0]; if (!c) return;
-    if (e.target.classList.contains('adm-coupon-toggle')) {
-      if (!can('admin')) return;
+    if (!can('admin')) return;
+    if (e.target.classList.contains('adm-coupon-edit')) { fillCouponForm(c); }
+    else if (e.target.classList.contains('adm-coupon-toggle')) {
       c.active = !c.active; saveCoupons(); logAudit((c.active ? 'Activated' : 'Deactivated') + ' coupon ' + code); renderCoupons();
     } else if (e.target.classList.contains('adm-coupon-del')) {
-      if (!can('admin')) return;
       if (!confirm('Delete coupon ' + code + '? This can\'t be undone.')) return;
       COUPONS = COUPONS.filter(function (x) { return x.code !== code; });
       saveCoupons(); logAudit('Deleted coupon ' + code); renderCoupons();
+      if ($('admCouponEditId').value === code) resetCouponForm();
     }
   });
+  var couponCancelBtn = $('admCouponCancelBtn');
+  if (couponCancelBtn) couponCancelBtn.addEventListener('click', resetCouponForm);
   var addCouponForm = $('admAddCouponForm');
   if (addCouponForm) addCouponForm.addEventListener('submit', function (e) {
     e.preventDefault();
     if (!can('admin')) return;
+    var editId = $('admCouponEditId').value;
     var code = $('admNewCouponCode').value.trim().toUpperCase();
     var type = $('admNewCouponType').value;
     var val = parseFloat($('admNewCouponVal').value) || 0;
     var limit = parseInt($('admNewCouponLimit').value, 10) || null;
+    var expiresAt = $('admNewCouponExpiry').value || null;
+    var scopeInfo = parseScopeValue($('admCouponScope').value);
     if (!code || !val) return;
-    if (COUPONS.some(function (c) { return c.code === code; })) { alert('Coupon code already exists.'); return; }
-    COUPONS.push({ code: code, type: type, val: val, active: true, limit: limit });
-    saveCoupons(); logAudit('Created coupon ' + code);
-    addCouponForm.reset(); renderCoupons();
+    if (editId) {
+      var c = COUPONS.filter(function (x) { return x.code === editId; })[0]; if (!c) return;
+      if (code !== editId && COUPONS.some(function (x) { return x.code === code; })) { alert('Coupon code already exists.'); return; }
+      Object.assign(c, { code: code, type: type, val: val, limit: limit, expiresAt: expiresAt, scope: scopeInfo.scope, platform: scopeInfo.platform, category: scopeInfo.category });
+      logAudit('Updated discount code ' + code);
+    } else {
+      if (COUPONS.some(function (x) { return x.code === code; })) { alert('Coupon code already exists.'); return; }
+      COUPONS.push({ code: code, type: type, val: val, active: true, limit: limit, expiresAt: expiresAt, scope: scopeInfo.scope, platform: scopeInfo.platform, category: scopeInfo.category });
+      logAudit('Created discount code ' + code);
+    }
+    saveCoupons(); resetCouponForm(); renderCoupons();
   });
 
   /* ================================================================
@@ -1193,25 +1864,46 @@
   /* ================================================================
      STAFF PANEL (roles + whitelist management)
      ================================================================ */
+  var ADM_DD_CHEV = '<svg class="adm-dd-chev" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>';
   function renderStaff() {
     $('admStaffBody').innerHTML = STAFF.map(function (s) {
+      var roleMenu = ['owner', 'admin', 'support'].map(function (r) {
+        return '<button type="button" class="adm-dd-opt' + (r === s.role ? ' active' : '') + '" data-value="' + r + '" role="option" aria-selected="' + (r === s.role ? 'true' : 'false') + '"><span>' + r + '</span><span class="adm-dd-radio"></span></button>';
+      }).join('');
       return '<tr data-id="' + s.id + '"><td>' + esc(s.name) + '</td><td class="dt-mono">' + esc(s.discordId || '—') + '</td>' +
-        '<td><select class="adm-staff-role"' + (can('owner') ? '' : ' disabled') + '>' +
-          ['owner', 'admin', 'support'].map(function (r) { return '<option value="' + r + '"' + (r === s.role ? ' selected' : '') + '>' + r + '</option>'; }).join('') +
-        '</select></td>' +
+        '<td><div class="adm-dd adm-dd-inline adm-staff-role-dd"' + (can('owner') ? '' : ' data-disabled="1"') + '>' +
+          '<button type="button" class="adm-dd-btn"' + (can('owner') ? '' : ' disabled') + ' aria-haspopup="listbox" aria-expanded="false"><span class="adm-dd-val">' + esc(s.role) + '</span>' + ADM_DD_CHEV + '</button>' +
+          '<div class="adm-dd-menu" role="listbox" aria-label="Role" hidden>' + roleMenu + '</div>' +
+        '</div></td>' +
         '<td class="adm-row-actions">' + (can('owner') && STAFF.length > 1 ? '<button class="btn btn-ghost adm-btn-sm adm-staff-remove" type="button">Remove</button>' : '') + '</td></tr>';
     }).join('');
-    $('admWhitelistNote').textContent = ADMIN_TESTING_OPEN
-      ? 'Open testing mode is ON — everyone can reach this dashboard regardless of the list below. Discord IDs listed here are only staged for launch.'
-      : 'Whitelist enforced — only the Discord IDs listed here can open this dashboard.';
+    $('admWhitelistNote').textContent = 'Whitelist enforced — only the Discord IDs set in supabase-init.js\'s ADMIN_WHITELIST can open this dashboard. This staff list is separate role-management data and isn\'t the enforcement source.';
   }
   var staffBody = $('admStaffBody');
-  if (staffBody) staffBody.addEventListener('change', function (e) {
-    if (!e.target.classList.contains('adm-staff-role')) return;
-    if (!can('owner')) return;
-    var tr = e.target.closest('tr'); var id = tr.getAttribute('data-id');
-    var s = STAFF.filter(function (x) { return x.id === id; })[0]; if (!s) return;
-    s.role = e.target.value; saveStaff(); logAudit('Changed ' + s.name + '\'s role to ' + s.role); renderTopbar();
+  if (staffBody) staffBody.addEventListener('click', function (e) {
+    var ddBtn = e.target.closest('.adm-staff-role-dd .adm-dd-btn');
+    if (ddBtn) {
+      if (ddBtn.disabled) return;
+      var dd = ddBtn.closest('.adm-staff-role-dd');
+      var menu = dd.querySelector('.adm-dd-menu');
+      var wasOpen = !menu.hidden;
+      staffBody.querySelectorAll('.adm-staff-role-dd').forEach(function (d) { d.classList.remove('open'); d.querySelector('.adm-dd-menu').hidden = true; });
+      if (!wasOpen) { dd.classList.add('open'); menu.hidden = false; }
+      return;
+    }
+    var opt = e.target.closest('.adm-staff-role-dd .adm-dd-opt');
+    if (opt) {
+      if (!can('owner')) return;
+      var tr = opt.closest('tr'); var id = tr.getAttribute('data-id');
+      var s = STAFF.filter(function (x) { return x.id === id; })[0]; if (!s) return;
+      s.role = opt.getAttribute('data-value');
+      saveStaff(); logAudit('Changed ' + s.name + '\'s role to ' + s.role); renderTopbar(); renderStaff();
+      return;
+    }
+  });
+  document.addEventListener('click', function (e) {
+    if (e.target.closest('.adm-staff-role-dd')) return;
+    document.querySelectorAll('.adm-staff-role-dd.open').forEach(function (d) { d.classList.remove('open'); d.querySelector('.adm-dd-menu').hidden = true; });
   });
   if (staffBody) staffBody.addEventListener('click', function (e) {
     if (!e.target.classList.contains('adm-staff-remove')) return;
@@ -1223,6 +1915,12 @@
     ADMIN_WHITELIST = ADMIN_WHITELIST.filter(function (x) { return x !== s.discordId; });
     saveStaff(); logAudit('Removed staff member ' + s.name); renderStaff(); renderTopbar();
   });
+  var newStaffRoleDropdown = makeDropdown($('admNewStaffRoleDD'), { valueInput: $('admNewStaffRole') });
+  newStaffRoleDropdown.setOptions([
+    { value: 'support', label: 'Support agent' },
+    { value: 'admin', label: 'Admin' },
+    { value: 'owner', label: 'Owner' }
+  ], 'support');
   var addStaffForm = $('admAddStaffForm');
   if (addStaffForm) addStaffForm.addEventListener('submit', function (e) {
     e.preventDefault();
@@ -1235,7 +1933,7 @@
     STAFF.push({ id: id, name: name, discordId: discordId, role: role });
     if (discordId) ADMIN_WHITELIST.push(discordId);
     saveStaff(); logAudit('Added staff member ' + name + ' (' + role + ')');
-    addStaffForm.reset(); renderStaff();
+    addStaffForm.reset(); newStaffRoleDropdown.setValue('support', true); renderStaff();
   });
 
   /* ================================================================

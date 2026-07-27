@@ -33,7 +33,7 @@
       </a>
       <nav class="nav-links" aria-label="Primary">
         <span class="nav-set">
-          <a href="index.html">Home</a><a href="assets.html" id="assetsLink">Roblox</a><a href="minecraft.html" id="minecraftLink" class="active" aria-current="page">Minecraft</a><a href="blog.html" id="blogLink">Blogs &amp; Tutorials</a><a href="about.html" id="aboutLink">About Us</a>
+          <a href="index.html">Home</a><a href="assets.html" id="shopLink" class="active" aria-current="page">Shop</a><a href="blog.html" id="blogLink">Blog &amp; Tutorials</a><a href="about.html" id="aboutLink">About Us</a>
         </span>
         <span class="nav-search-wrap">
           <button class="nav-search" id="searchBtn" type="button" aria-label="Search"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg></button>
@@ -56,20 +56,34 @@
 
   <div class="nav-mega" id="navMega" aria-hidden="true">
     <div class="nav-mega-inner glass">
-      <div class="nav-mega-cats">
-        <a href="assets.html?cat=game-templates">Finished Games &amp; Templates</a>
-        <a href="assets.html?cat=maps">Maps</a>
-        <a href="assets.html?cat=scripts-ui">Scripts &amp; UI</a>
-        <a href="assets.html?cat=graphics">Graphics</a>
-        <a href="assets.html?cat=buildings">Buildings</a>
-        <a href="assets.html?cat=assets">Assets</a>
-        <a href="assets.html?cat=uniforms-gear">Uniforms &amp; Gear</a>
-        <a href="assets.html?cat=boats">Boats</a>
-        <a href="assets.html?cat=weapons">Weapons</a>
-        <a href="assets.html?cat=vehicles">Vehicles</a>
-        <a href="assets.html?cat=animations-vfx">Animations &amp; VFX</a>
+      <div class="nav-mega-main">
+        <div class="nav-mega-tabs" role="tablist" aria-label="Shop platform">
+          <button class="nmt-tab active" type="button" data-platform="roblox" role="tab" aria-selected="true">Roblox</button>
+          <button class="nmt-tab" type="button" data-platform="minecraft" role="tab" aria-selected="false">Minecraft</button>
+        </div>
+        <div class="nav-mega-cats" data-platform-panel="roblox">
+          <a href="assets.html?cat=game-templates">Finished Games &amp; Templates</a>
+          <a href="assets.html?cat=maps">Maps</a>
+          <a href="assets.html?cat=scripts-ui">Scripts &amp; UI</a>
+          <a href="assets.html?cat=graphics">Graphics</a>
+          <a href="assets.html?cat=buildings">Buildings</a>
+          <a href="assets.html?cat=assets">Assets</a>
+          <a href="assets.html?cat=uniforms-gear">Uniforms &amp; Gear</a>
+          <a href="assets.html?cat=boats">Boats</a>
+          <a href="assets.html?cat=weapons">Weapons</a>
+          <a href="assets.html?cat=vehicles">Vehicles</a>
+          <a href="assets.html?cat=animations-vfx">Animations &amp; VFX</a>
+        </div>
+        <div class="nav-mega-cats" data-platform-panel="minecraft" hidden>
+          <a href="minecraft.html?cat=hubs">Hubs</a>
+          <a href="minecraft.html?cat=lobbies">Lobbies</a>
+          <a href="minecraft.html?cat=maps">Maps</a>
+          <a href="minecraft.html?cat=builds">Builds</a>
+          <a href="minecraft.html?cat=plugins">Plugins</a>
+          <a href="minecraft.html?cat=setups">Full Setups</a>
+        </div>
       </div>
-      <a class="nav-mega-feature" href="assets.html">
+      <a class="nav-mega-feature" href="assets.html" id="navMegaFeature" data-href-roblox="assets.html" data-href-minecraft="minecraft.html" data-img-roblox="new-release.jpg" data-img-minecraft="minecraft.jpg">
         <span class="nmf-img" style="background-image:url('new-release.jpg')"></span>
         <span class="nmf-tag">New</span>
         <span class="nmf-title">New Releases</span>
@@ -79,17 +93,44 @@
   </div>
 
     <main class="page">
-    <section class="page-head">
+    <section class="shop shop-notitle" data-page="minecraft.html">
       <div class="wrap">
-        <h1>Minecraft Assets</h1>
-        <p>Hubs, lobbies, maps, plugins, and full server setups, built and battle-tested by coldd.</p>
-      </div>
-    </section>
-    <section class="shop" data-page="minecraft.html">
-      <div class="wrap">
-        <div class="shop-searchbar"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg><input class="shop-search" type="text" placeholder="Search products…" aria-label="Search products" /></div>
+        <div class="shop-toolbar">
+          <div class="plat-select" id="platSelect">
+            <button type="button" class="plat-btn" id="platBtn" aria-haspopup="listbox" aria-expanded="false">
+              <img class="plat-btn-ic" src="minecraft-icon.webp" alt="" />
+              <span class="plat-btn-label">Minecraft</span>
+              <svg class="plat-chev" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+            </button>
+            <div class="plat-menu" id="platMenu" role="listbox" aria-label="Choose platform" hidden>
+              <a class="plat-opt" href="assets.html" role="option" aria-selected="false">
+                <img src="roblox-studio.png" alt="" /><span>Roblox</span>
+              </a>
+              <a class="plat-opt active" href="minecraft.html" role="option" aria-selected="true">
+                <img src="minecraft-icon.webp" alt="" /><span>Minecraft</span>
+              </a>
+            </div>
+          </div>
+          <div class="shop-searchbar"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg><input class="shop-search" type="text" placeholder="Search products…" aria-label="Search products" /></div>
+          <div class="sort-field">
+            <button type="button" class="sort-btn" aria-haspopup="listbox" aria-expanded="false">
+              <span class="sf-label">Sort by</span>
+              <span class="sort-btn-val">Recommended</span>
+              <svg class="sort-chev" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+            </button>
+            <div class="sort-menu" role="listbox" aria-label="Sort products" hidden>
+              <button type="button" class="sort-opt active" data-sort="recommended" role="option" aria-selected="true"><span>Recommended</span><span class="sort-radio"></span></button>
+              <button type="button" class="sort-opt" data-sort="featured" role="option" aria-selected="false"><span>Featured</span><span class="sort-radio"></span></button>
+              <button type="button" class="sort-opt" data-sort="price-asc" role="option" aria-selected="false"><span>Lowest Price</span><span class="sort-radio"></span></button>
+              <button type="button" class="sort-opt" data-sort="price-desc" role="option" aria-selected="false"><span>Highest Price</span><span class="sort-radio"></span></button>
+              <button type="button" class="sort-opt" data-sort="newest" role="option" aria-selected="false"><span>Newest</span><span class="sort-radio"></span></button>
+              <button type="button" class="sort-opt" data-sort="oldest" role="option" aria-selected="false"><span>Oldest</span><span class="sort-radio"></span></button>
+            </div>
+          </div>
+        </div>
         <div class="shop-layout">
           <div class="shop-main">
+            <div class="shop-resultsbar"><span class="shop-count"></span></div>
             <div class="product-grid" id="grid">
           <article class="product" data-cat="hubs" data-price="45" data-reviews="134" data-rating="5" data-catlabel="Hubs" data-resell="yes">
             <div class="p-thumb" style="background-image:url('minecraft.jpg')"></div>
@@ -266,7 +307,10 @@
           </div>
           <aside class="shop-side">
             <div class="filter-card">
-              <div class="fc-head"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"/></svg> <span>Filters</span></div>
+              <div class="fc-head">
+                <span class="fc-head-title"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="21" y1="4" x2="14" y2="4"/><line x1="10" y1="4" x2="3" y2="4"/><circle cx="12" cy="4" r="2"/><line x1="21" y1="12" x2="12" y2="12"/><line x1="8" y1="12" x2="3" y2="12"/><circle cx="10" cy="12" r="2"/><line x1="21" y1="20" x2="16" y2="20"/><line x1="12" y1="20" x2="3" y2="20"/><circle cx="14" cy="20" r="2"/></svg> <span>Filters</span></span>
+                <button class="fc-clear" type="button" hidden>Clear all</button>
+              </div>
               <div class="fc-group">
                 <span class="fc-label">Price Range</span>
                 <div class="pr-slider">
@@ -274,7 +318,17 @@
                   <input class="pr-min" type="range" min="0" max="150" value="0" aria-label="Minimum price" />
                   <input class="pr-max" type="range" min="0" max="150" value="150" aria-label="Maximum price" />
                 </div>
-                <div class="pr-vals"><span class="pr-box pr-minval">$0</span><span class="pr-sep">–</span><span class="pr-box pr-maxval">$150</span></div>
+                <div class="pr-vals"><span class="pr-box-wrap"><span class="pr-cur">$</span><input class="pr-box pr-minval" type="number" min="0" inputmode="numeric" aria-label="Minimum price" value="0" /></span><span class="pr-sep">–</span><span class="pr-box-wrap"><span class="pr-cur">$</span><input class="pr-box pr-maxval" type="number" min="0" inputmode="numeric" aria-label="Maximum price" value="150" /></span></div>
+              </div>
+              <div class="fc-group">
+                <span class="fc-label">Availability</span>
+                <div class="fc-check-list">
+                  <label class="fc-check">
+                    <input type="checkbox" class="fc-sale" />
+                    <span class="fc-check-box"></span>
+                    <span class="fc-check-label">On Sale</span>
+                  </label>
+                </div>
               </div>
               <div class="fc-group">
                 <span class="fc-label">Categories</span>
@@ -295,40 +349,6 @@
       </div>
     </section>
 
-    <section class="section-pad free-section">
-      <div class="wrap">
-        <div class="sec-head reveal">
-          <h2>Free this month.</h2>
-          <p>Free Minecraft drops, members only. Join our Discord to unlock the files, new picks every month.</p>
-        </div>
-        <div class="free-grid">
-          <article class="free-card reveal d1">
-            <div class="free-thumb" style="background-image:url('minecraft.jpg')"><span class="free-badge">Free</span></div>
-            <div class="free-body">
-              <h3>Lobby Spawn Lite</h3>
-              <p>A small floating-island spawn to drop straight into your server hub.</p>
-              <a class="btn btn-ghost free-btn" href="https://discord.gg/coldd" target="_blank" rel="noopener">Join Discord to unlock</a>
-            </div>
-          </article>
-          <article class="free-card reveal d2">
-            <div class="free-thumb" style="background-image:url('builds.jpg')"><span class="free-badge">Free</span></div>
-            <div class="free-body">
-              <h3>Hub Config Pack</h3>
-              <p>Ready-made scoreboard, tab, and join-message configs to set up fast.</p>
-              <a class="btn btn-ghost free-btn" href="https://discord.gg/coldd" target="_blank" rel="noopener">Join Discord to unlock</a>
-            </div>
-          </article>
-          <article class="free-card reveal d3">
-            <div class="free-thumb" style="background-image:url('products.jpg')"><span class="free-badge">Free</span></div>
-            <div class="free-body">
-              <h3>Ambience Pack</h3>
-              <p>Looping ambient sounds and particle presets for a livelier world.</p>
-              <a class="btn btn-ghost free-btn" href="https://discord.gg/coldd" target="_blank" rel="noopener">Join Discord to unlock</a>
-            </div>
-          </article>
-        </div>
-      </div>
-    </section>
   </main>
 
 

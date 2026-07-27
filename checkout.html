@@ -33,7 +33,7 @@
       </a>
       <nav class="nav-links" aria-label="Primary">
         <span class="nav-set">
-          <a href="index.html">Home</a><a href="assets.html" id="assetsLink">Roblox</a><a href="minecraft.html" id="minecraftLink">Minecraft</a><a href="blog.html" id="blogLink">Blogs &amp; Tutorials</a><a href="about.html" id="aboutLink">About Us</a>
+          <a href="index.html">Home</a><a href="assets.html" id="shopLink">Shop</a><a href="blog.html" id="blogLink">Blog &amp; Tutorials</a><a href="about.html" id="aboutLink">About Us</a>
         </span>
         <span class="nav-search-wrap">
           <button class="nav-search" id="searchBtn" type="button" aria-label="Search"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg></button>
@@ -56,20 +56,34 @@
 
   <div class="nav-mega" id="navMega" aria-hidden="true">
     <div class="nav-mega-inner glass">
-      <div class="nav-mega-cats">
-        <a href="assets.html?cat=game-templates">Finished Games &amp; Templates</a>
-        <a href="assets.html?cat=maps">Maps</a>
-        <a href="assets.html?cat=scripts-ui">Scripts &amp; UI</a>
-        <a href="assets.html?cat=graphics">Graphics</a>
-        <a href="assets.html?cat=buildings">Buildings</a>
-        <a href="assets.html?cat=assets">Assets</a>
-        <a href="assets.html?cat=uniforms-gear">Uniforms &amp; Gear</a>
-        <a href="assets.html?cat=boats">Boats</a>
-        <a href="assets.html?cat=weapons">Weapons</a>
-        <a href="assets.html?cat=vehicles">Vehicles</a>
-        <a href="assets.html?cat=animations-vfx">Animations &amp; VFX</a>
+      <div class="nav-mega-main">
+        <div class="nav-mega-tabs" role="tablist" aria-label="Shop platform">
+          <button class="nmt-tab active" type="button" data-platform="roblox" role="tab" aria-selected="true">Roblox</button>
+          <button class="nmt-tab" type="button" data-platform="minecraft" role="tab" aria-selected="false">Minecraft</button>
+        </div>
+        <div class="nav-mega-cats" data-platform-panel="roblox">
+          <a href="assets.html?cat=game-templates">Finished Games &amp; Templates</a>
+          <a href="assets.html?cat=maps">Maps</a>
+          <a href="assets.html?cat=scripts-ui">Scripts &amp; UI</a>
+          <a href="assets.html?cat=graphics">Graphics</a>
+          <a href="assets.html?cat=buildings">Buildings</a>
+          <a href="assets.html?cat=assets">Assets</a>
+          <a href="assets.html?cat=uniforms-gear">Uniforms &amp; Gear</a>
+          <a href="assets.html?cat=boats">Boats</a>
+          <a href="assets.html?cat=weapons">Weapons</a>
+          <a href="assets.html?cat=vehicles">Vehicles</a>
+          <a href="assets.html?cat=animations-vfx">Animations &amp; VFX</a>
+        </div>
+        <div class="nav-mega-cats" data-platform-panel="minecraft" hidden>
+          <a href="minecraft.html?cat=hubs">Hubs</a>
+          <a href="minecraft.html?cat=lobbies">Lobbies</a>
+          <a href="minecraft.html?cat=maps">Maps</a>
+          <a href="minecraft.html?cat=builds">Builds</a>
+          <a href="minecraft.html?cat=plugins">Plugins</a>
+          <a href="minecraft.html?cat=setups">Full Setups</a>
+        </div>
       </div>
-      <a class="nav-mega-feature" href="assets.html">
+      <a class="nav-mega-feature" href="assets.html" id="navMegaFeature" data-href-roblox="assets.html" data-href-minecraft="minecraft.html" data-img-roblox="new-release.jpg" data-img-minecraft="minecraft.jpg">
         <span class="nmf-img" style="background-image:url('new-release.jpg')"></span>
         <span class="nmf-tag">New</span>
         <span class="nmf-title">New Releases</span>
@@ -91,27 +105,74 @@
         <h1>Checkout</h1>
 
         <section class="co-sec glass">
-          <div class="co-sec-head"><h2>Contact</h2><span class="co-guest-tag" id="coMode">Guest checkout</span></div>
+          <div class="co-sec-head"><h2>Contact</h2></div>
           <div id="coGuest">
-            <div class="auth-field" data-for="email"><label for="co-email">Email for your receipt</label><input id="co-email" name="email" type="email" placeholder="you@example.com" /><span class="auth-err"></span></div>
-            <p class="co-hint">Checking out as a guest. <a href="#" id="coSignin">Sign in</a> for faster checkout.</p>
+            <p class="co-hint">Sign in to save your purchase history and re-download anytime — or check out as a guest, no account needed.</p>
+            <button class="btn btn-ghost" id="coSigninBtn" type="button">Sign in (optional)</button>
           </div>
-          <div id="coUser" hidden><div class="co-user-row"><span class="dash-av" style="width:38px;height:38px;font-size:14px;">K</span><div><div class="dr-title">Kaden R.</div><div class="dr-sub" id="coUserEmail">kaden@example.com</div></div></div></div>
+          <div id="coUser" hidden><div class="co-user-row"><span class="dash-av" id="coAvatar" style="width:38px;height:38px;font-size:14px;">K</span><div><div class="dr-title" id="coUserName">Kaden R.</div><div class="dr-sub" id="coUserEmail">kaden@example.com</div></div></div></div>
         </section>
 
         <section class="co-sec glass">
           <h2>Payment</h2>
-          <div class="co-pay-tabs"><button class="co-pay-tab active" type="button" data-pay="card">Card</button><button class="co-pay-tab" type="button" data-pay="robux">Robux</button></div>
-          <div id="payCard" class="co-pay-panel">
-            <div class="auth-field" data-for="card"><label for="co-card">Card number</label><input id="co-card" name="card" type="text" inputmode="numeric" placeholder="1234 1234 1234 1234" autocomplete="cc-number" /><span class="auth-err"></span></div>
-            <div class="co-card-row">
-              <div class="auth-field" data-for="exp"><label for="co-exp">Expiry</label><input id="co-exp" name="exp" type="text" placeholder="MM / YY" autocomplete="cc-exp" /><span class="auth-err"></span></div>
-              <div class="auth-field" data-for="cvc"><label for="co-cvc">CVC</label><input id="co-cvc" name="cvc" type="text" inputmode="numeric" placeholder="CVC" autocomplete="cc-csc" /><span class="auth-err"></span></div>
-            </div>
-            <p class="co-hint">Card payments are processed by Stripe. <span class="co-secure">🔒 Secured &amp; encrypted</span></p>
+          <div class="co-pay-methods" id="coPayMethods">
+            <button type="button" class="co-pay-btn co-pay-btn--stripe active" data-key="stripe" data-method="stripe">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+              Stripe
+            </button>
+            <button type="button" class="co-pay-btn co-pay-btn--paypal" data-key="paypal" data-method="stripe">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3h7a4 4 0 0 1 4 4.5c-.4 3-2.7 5-5.7 5H9.5L8 21H4L7 3Z"/><path d="M11 12.5h2.3c3 0 5.3-2 5.7-5"/></svg>
+              PayPal
+            </button>
+            <button type="button" class="co-pay-btn co-pay-btn--crypto" data-key="crypto" data-method="crypto">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9 8h4a2 2 0 1 1 0 4H9m0 0h4a2 2 0 1 1 0 4H9m1.5-9V6m0 12v-1.5"/></svg>
+              Crypto
+            </button>
+            <button type="button" class="co-pay-btn co-pay-btn--robux" data-key="robux" data-method="robux">
+              <span class="co-pay-robux-ic">R$</span>
+              Robux
+            </button>
           </div>
-          <div id="payRobux" class="co-pay-panel" hidden>
-            <div class="co-robux-box"><div><div class="dr-title">Pay with Robux</div><div class="dr-sub">You'll complete payment via a Roblox gamepass.</div></div><div class="co-robux-amt" id="coRobuxAmt">R$ 0</div></div>
+          <div class="co-pay-carousel-wrap" id="coPayCarouselWrap">
+            <span class="co-pay-accepts">Stripe accepts</span>
+            <div class="co-pay-carousel" aria-hidden="true">
+              <div class="co-pay-carousel-track">
+                <span class="co-pay-chip">Visa</span>
+                <span class="co-pay-chip">Mastercard</span>
+                <span class="co-pay-chip">Amex</span>
+                <span class="co-pay-chip">Apple Pay</span>
+                <span class="co-pay-chip">Google Pay</span>
+                <span class="co-pay-chip">Buy Now Pay Later</span>
+                <span class="co-pay-chip">Alipay</span>
+                <span class="co-pay-chip">WeChat Pay</span>
+                <span class="co-pay-chip">Direct Debit</span>
+                <span class="co-pay-chip">iDEAL</span>
+                <span class="co-pay-chip">Bancontact</span>
+                <span class="co-pay-chip">Klarna</span>
+                <span class="co-pay-chip">Visa</span>
+                <span class="co-pay-chip">Mastercard</span>
+                <span class="co-pay-chip">Amex</span>
+                <span class="co-pay-chip">Apple Pay</span>
+                <span class="co-pay-chip">Google Pay</span>
+                <span class="co-pay-chip">Buy Now Pay Later</span>
+                <span class="co-pay-chip">Alipay</span>
+                <span class="co-pay-chip">WeChat Pay</span>
+                <span class="co-pay-chip">Direct Debit</span>
+                <span class="co-pay-chip">iDEAL</span>
+                <span class="co-pay-chip">Bancontact</span>
+                <span class="co-pay-chip">Klarna</span>
+              </div>
+            </div>
+          </div>
+
+          <div id="payCard" class="co-pay-panel" data-method-panel="stripe">
+            <p class="co-hint">You'll choose exactly how to pay on Stripe's secure checkout page after placing your order.</p>
+          </div>
+          <div id="coPayCryptoPanel" class="co-pay-panel" data-method-panel="crypto" hidden>
+            <div class="co-pay-soon">Crypto checkout is coming soon. For now, please pay with Stripe or PayPal above.</div>
+          </div>
+          <div id="coPayRobuxPanel" class="co-pay-panel" data-method-panel="robux" hidden>
+            <div class="co-pay-soon">Robux checkout is coming soon. For now, please pay with Stripe or PayPal above.</div>
           </div>
         </section>
 
@@ -132,22 +193,17 @@
           <div class="co-items" id="coItems"></div>
           <div class="co-empty" id="coEmpty" hidden>Your cart is empty. <a href="assets.html">Browse products →</a></div>
           <div class="co-coupon">
-            <input id="coCoupon" type="text" placeholder="Discount code" />
-            <button class="btn btn-ghost" id="coApply" type="button">Apply</button>
+            <input type="text" id="coCouponInput" placeholder="Discount code" autocomplete="off" />
+            <button type="button" class="btn btn-ghost" id="coCouponApply">Apply</button>
           </div>
           <div class="co-coupon-msg" id="coCouponMsg"></div>
           <div class="co-totals">
             <div class="co-line"><span>Subtotal</span><span id="coSubtotal">$0</span></div>
-            <div class="co-line co-disc" id="coDiscLine" hidden><span id="coDiscLabel">Discount</span><span id="coDiscount">−$0</span></div>
+            <div class="co-line co-disc" id="coDiscLine" hidden><span id="coDiscLabel">Discount</span><span id="coDiscAmt">-$0</span></div>
             <div class="co-line"><span>Tax (est.)</span><span id="coTax">$0</span></div>
             <div class="co-line co-grand"><span>Total</span><span id="coTotal">$0</span></div>
             <div class="co-fx" id="coFx"></div>
           </div>
-        </div>
-        <div class="co-suggest glass" id="coSuggest" hidden>
-          <h3>Frequently bought together</h3>
-          <p class="co-suggest-sub">Add a matching product and save 20%.</p>
-          <div class="co-suggest-list" id="coSuggestList"></div>
         </div>
       </aside>
     </div>
@@ -365,6 +421,8 @@
     </div>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="supabase-init.js"></script>
   <script src="catalog.js"></script>
   <script src="app.js"></script>
 </body>

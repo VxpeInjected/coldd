@@ -34,7 +34,13 @@
       <span class="adm-mode-flag" id="admModeBanner"></span>
       <div class="adm-topbar-right">
         <label class="adm-role-label">Viewing as
-          <select id="admRoleSelect" class="adm-select"></select>
+          <div class="adm-dd adm-dd-inline" id="admRoleSelectDD">
+            <button type="button" class="adm-dd-btn" aria-haspopup="listbox" aria-expanded="false">
+              <span class="adm-dd-val"></span>
+              <svg class="adm-dd-chev" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+            </button>
+            <div class="adm-dd-menu" role="listbox" aria-label="Viewing as" hidden></div>
+          </div>
         </label>
         <span class="dash-av" id="admAvatar">A</span>
         <a class="btn btn-ghost adm-btn-sm" href="index.html">Exit to site</a>
@@ -52,7 +58,7 @@
             <a href="#" data-panel="refunds"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg><span>Refunds</span></a>
             <a href="#" data-panel="reviews"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m12 2 3 6 6.5 1-4.7 4.6 1.1 6.4L12 17l-5.9 3 1.1-6.4L2.5 9 9 8z"/></svg><span>Reviews</span></a>
             <a href="#" data-panel="users"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="4"/><path d="M2 21c0-4 3.5-6 7-6s7 2 7 6"/><path d="M16 3.5a4 4 0 0 1 0 7.8"/><path d="M18 14.5c2.5.6 4 2.2 4 5.5"/></svg><span>Users</span></a>
-            <a href="#" data-panel="coupons"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5H4a1 1 0 0 0-1 1v4a2.5 2.5 0 0 1 0 5v4a1 1 0 0 0 1 1h5"/><path d="M15 19h5a1 1 0 0 0 1-1v-4a2.5 2.5 0 0 1 0-5V5a1 1 0 0 0-1-1h-5"/><path d="M9 5v14M9 8h.01M9 12h.01M9 16h.01"/></svg><span>Coupons</span></a>
+            <a href="#" data-panel="sales"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5H4a1 1 0 0 0-1 1v4a2.5 2.5 0 0 1 0 5v4a1 1 0 0 0 1 1h5"/><path d="M15 19h5a1 1 0 0 0 1-1v-4a2.5 2.5 0 0 1 0-5V5a1 1 0 0 0-1-1h-5"/><path d="M9 5v14M9 8h.01M9 12h.01M9 16h.01"/></svg><span>Sales &amp; Discounts</span></a>
             <a href="#" data-panel="posts"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4Z"/></svg><span>Blog Posts</span></a>
             <a href="#" data-panel="tutorials"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg><span>Tutorials</span></a>
             <a href="#" data-panel="releases"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg><span>Releases</span></a>
@@ -149,29 +155,237 @@
           <section class="dash-panel" id="adm-panel-products" hidden>
             <div class="dash-head"><h1>Product management</h1><p>Edit pricing and visibility, or add admin-only listings.</p></div>
             <div class="adm-toolbar">
-              <input type="text" id="admProdSearch" class="adm-input" placeholder="Search products…" />
-            </div>
-            <div class="adm-bulkbar" id="admBulkBar" hidden>
-              <span id="admBulkCount">0 selected</span>
-              <button class="btn btn-ghost adm-btn-sm" type="button" id="admBulkVisibility">Toggle visibility</button>
-              <span class="adm-bulk-price"><input type="number" id="admBulkPriceInput" class="adm-input adm-input-sm" placeholder="% change, e.g. -10" /><button class="btn btn-ghost adm-btn-sm" type="button" id="admBulkPriceApply">Apply price change</button></span>
+              <input type="text" id="admProdSearch" class="adm-input" placeholder="Search by product name…" />
+              <button class="btn btn-ghost adm-btn-sm" type="button" id="admOpenUpdatePanel">Push Update</button>
+              <button class="btn btn-primary adm-btn-sm" type="button" id="admOpenCreatePanel">+ Create Product</button>
             </div>
             <div class="dash-card glass dash-tablewrap">
               <table class="dash-table adm-table-tight">
-                <thead><tr><th><input type="checkbox" id="admProdSelectAll" /></th><th></th><th>Product</th><th>Category</th><th>Platform</th><th>Price (USD)</th><th>Status</th><th>Actions</th></tr></thead>
+                <thead><tr><th>Thumbnail</th><th>Product Name</th><th>Category</th><th>Status</th><th>Rating</th><th>Purchases</th><th></th></tr></thead>
                 <tbody id="admProdBody"></tbody>
               </table>
             </div>
+          </section>
+
+          <section class="dash-panel" id="adm-panel-product-edit" hidden>
+            <div class="dash-head">
+              <a href="#" class="dt-link" data-panel="products">← Back to Products</a>
+              <h1 id="admEditHeading">Edit product</h1>
+              <p>Update this product's details.</p>
+            </div>
+            <form id="admEditForm">
+              <input type="hidden" id="admEditId" />
+
+              <div class="dash-card glass">
+                <div class="dash-card-head"><h2>Details</h2></div>
+                <div class="adm-field">
+                  <span>Platform</span>
+                  <div class="adm-platform-toggle" id="admEditPlatformToggle">
+                    <button type="button" class="btn btn-primary adm-platform-btn active" data-platform="Roblox"><img class="btn-plat-ic" src="roblox-studio.png" alt="" width="20" height="20" /> Roblox</button>
+                    <button type="button" class="btn btn-minecraft adm-platform-btn" data-platform="Minecraft"><img class="btn-plat-ic" src="minecraft-icon.webp" alt="" width="20" height="20" /> Minecraft</button>
+                  </div>
+                  <input type="hidden" id="admEditPlatform" value="Roblox" />
+                </div>
+                <div class="adm-edit-grid" style="margin-top:20px;">
+                  <label class="adm-field"><span>Title</span><input type="text" id="admEditTitleInput" class="adm-input" required /></label>
+                  <label class="adm-field"><span>Category</span>
+                    <div class="adm-dd" id="admEditCatDD">
+                      <button type="button" class="adm-dd-btn" aria-haspopup="listbox" aria-expanded="false">
+                        <span class="adm-dd-val placeholder">Select category</span>
+                        <svg class="adm-dd-chev" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                      </button>
+                      <div class="adm-dd-menu" role="listbox" aria-label="Category" hidden></div>
+                    </div>
+                    <input type="hidden" id="admEditCat" />
+                  </label>
+                  <label class="adm-field"><span>Price (USD)</span><input type="number" min="0" step="0.01" id="admEditPrice" class="adm-input" required /></label>
+                  <label class="adm-field">
+                    <span>Price (Robux)</span>
+                    <input type="number" min="0" step="1" id="admEditRobuxPrice" class="adm-input" />
+                    <span class="adm-hint" id="admEditDevexHint"></span>
+                  </label>
+                </div>
+
+                <label class="adm-field-check" style="margin-top:20px;"><input type="checkbox" id="admEditResell" /> <span>Resell licence available</span></label>
+                <label class="adm-field" id="admEditResellPriceWrap" hidden style="margin-top:12px;max-width:260px;">
+                  <span>Resell licence price (USD)</span><input type="number" min="0" step="0.01" id="admEditResellPrice" class="adm-input" />
+                </label>
+                <label class="adm-field-check"><input type="checkbox" id="admEditReleased" /> <span>Released (visible on storefront)</span></label>
+
+                <label class="adm-field adm-field-wide" style="margin-top:20px;"><span>Subtext (shown on catalog cards)</span><input type="text" id="admEditSubtext" class="adm-input" maxlength="140" /></label>
+                <label class="adm-field adm-field-wide" style="margin-top:16px;"><span>Description (shown on the product page)</span><textarea id="admEditLongDesc" class="adm-input adm-textarea" rows="4"></textarea></label>
+              </div>
+
+              <div class="dash-card glass">
+                <div class="dash-card-head"><h2>Media</h2></div>
+
+                <div class="adm-field">
+                  <span>Product file</span>
+                  <div class="adm-dropzone" id="admEditFileDrop">
+                    <input type="file" id="admEditFileInput" hidden />
+                    <svg class="adm-dropzone-ic" viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M12 4 7 9M12 4l5 5"/><path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
+                    <p><strong>Click to upload</strong> or drag and drop</p>
+                    <p class="adm-dropzone-hint">Any file type — this becomes the downloadable product file</p>
+                  </div>
+                  <a class="adm-sub" id="admEditFileNote" target="_blank" rel="noopener" style="margin-top:8px;display:inline-block;">Currently: shared placeholder file</a>
+                  <p class="adm-note">File Format and File Size below are read automatically from whatever file you choose here. Actual delivery still uses the shared placeholder until Supabase Storage is connected.</p>
+                  <input type="hidden" id="admEditTechFileName" />
+                </div>
+
+                <div class="adm-field" style="margin-top:20px;">
+                  <span>Thumbnail image</span>
+                  <div class="adm-dropzone" id="admEditThumbDrop">
+                    <input type="file" id="admEditThumbInput" accept="image/*" hidden />
+                    <div class="adm-dropzone-empty" id="admEditThumbEmpty">
+                      <svg class="adm-dropzone-ic" viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M12 4 7 9M12 4l5 5"/><path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
+                      <p><strong>Click to upload</strong> or drag and drop</p>
+                      <p class="adm-dropzone-hint">PNG, JPG, GIF or WEBP</p>
+                    </div>
+                    <div class="adm-dropzone-preview" id="admEditThumbPreviewWrap" hidden>
+                      <img id="admEditThumbPreview" alt="" />
+                      <button type="button" class="adm-icon-btn adm-dropzone-remove" id="admEditThumbRemove"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg></button>
+                    </div>
+                  </div>
+                  <input type="hidden" id="admEditThumbUrl" />
+                  <p class="adm-note">Actual image hosting needs Supabase Storage connected — for now this previews locally and tracks the file name.</p>
+                </div>
+
+                <div class="adm-field" style="margin-top:20px;">
+                  <span>Gallery images</span>
+                  <div class="adm-dropzone adm-dropzone-sm" id="admEditGalleryDrop">
+                    <input type="file" id="admEditGalleryInput" accept="image/*" multiple hidden />
+                    <svg class="adm-dropzone-ic" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M12 4 7 9M12 4l5 5"/><path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
+                    <p><strong>Click to upload</strong> or drag and drop files</p>
+                    <p class="adm-dropzone-hint">PNG, JPG, GIF or WEBP — multiple allowed</p>
+                  </div>
+                  <div class="adm-gallery-grid" id="admEditGalleryList"></div>
+                  <p class="adm-note">Extra images shown in the product page gallery, in order. Same local-preview caveat as above.</p>
+                </div>
+
+                <label class="adm-field" style="margin-top:20px;max-width:420px;"><span>YouTube demo link</span><input type="url" id="admEditVideoUrl" class="adm-input" placeholder="https://youtube.com/watch?v=…" /></label>
+              </div>
+
+              <div class="dash-card glass">
+                <div class="dash-card-head"><h2>Technical details</h2></div>
+                <div class="adm-edit-grid">
+                  <label class="adm-field"><span>File Format</span><input type="text" id="admEditTechFormat" class="adm-input" placeholder="Upload a file above" readonly /></label>
+                  <label class="adm-field"><span>File Size</span><input type="text" id="admEditTechSize" class="adm-input" placeholder="Upload a file above" readonly /></label>
+                  <label class="adm-field"><span>Part Count</span><input type="number" min="0" step="1" id="admEditTechParts" class="adm-input" /></label>
+                  <label class="adm-field"><span>MeshPart Count</span><input type="number" min="0" step="1" id="admEditTechMeshParts" class="adm-input" /></label>
+                  <label class="adm-field"><span>Union Count</span><input type="number" min="0" step="1" id="admEditTechUnions" class="adm-input" /></label>
+                  <label class="adm-field"><span>Script Count</span><input type="number" min="0" step="1" id="admEditTechScripts" class="adm-input" /></label>
+                </div>
+              </div>
+
+              <div class="dash-card glass">
+                <div class="dash-card-head"><h2>Legal</h2></div>
+                <p class="adm-sub">Licensing paperwork and sale restrictions for this product.</p>
+
+                <label class="adm-field adm-field-wide" style="margin-top:16px;"><span>Terms of Service (internal)</span><textarea id="admLegalTos" class="adm-input adm-textarea" rows="4" placeholder="Restrictions the licenser has placed on coldd's use/sale of this product (internal reference only — not shown to customers)."></textarea></label>
+
+                <div class="adm-field" style="margin-top:20px;">
+                  <span>Proof of license</span>
+                  <div class="adm-dropzone adm-dropzone-sm" id="admLegalProofDrop">
+                    <input type="file" id="admLegalProofInput" multiple hidden />
+                    <svg class="adm-dropzone-ic" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M12 4 7 9M12 4l5 5"/><path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
+                    <p><strong>Click to upload</strong> or drag and drop files</p>
+                    <p class="adm-dropzone-hint">Any file type — multiple allowed</p>
+                  </div>
+                  <div class="adm-file-list" id="admLegalProofList"></div>
+                  <p class="adm-note">File storage needs Supabase Storage connected — for now this previews locally and tracks file names.</p>
+                </div>
+
+                <div class="adm-field" style="margin-top:20px;">
+                  <span>Proof of development</span>
+                  <div class="adm-dropzone adm-dropzone-sm" id="admLegalDevProofDrop">
+                    <input type="file" id="admLegalDevProofInput" multiple accept="video/*,.mp4,.mov,.webm,.mkv,.avi" hidden />
+                    <svg class="adm-dropzone-ic" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M12 4 7 9M12 4l5 5"/><path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
+                    <p><strong>Click to upload</strong> or drag and drop files</p>
+                    <p class="adm-dropzone-hint">MP4 and other video formats — multiple allowed</p>
+                  </div>
+                  <div class="adm-file-list" id="admLegalDevProofList"></div>
+                  <p class="adm-note">Screen recordings or clips showing the product being built. Same storage caveat as above — previews locally for now.</p>
+                </div>
+
+                <div class="adm-field" style="margin-top:20px;">
+                  <span>Licenser contact details</span>
+                  <div class="adm-contact-list" id="admLegalContactList"></div>
+                  <button class="btn btn-ghost adm-btn-sm" type="button" id="admLegalContactAdd" style="margin-top:10px;">+ Add contact</button>
+                </div>
+
+                <div class="adm-edit-grid" style="margin-top:20px;">
+                  <label class="adm-field"><span>License cost</span>
+                    <div style="display:flex;gap:8px;">
+                      <input type="number" min="0" step="0.01" id="admLegalCostAmount" class="adm-input" style="flex:1;min-width:0;" />
+                      <div class="adm-cost-toggle" id="admLegalCostCurrencyToggle">
+                        <button type="button" class="active" data-currency="usd">USD</button>
+                        <button type="button" data-currency="robux">Robux</button>
+                      </div>
+                    </div>
+                    <input type="hidden" id="admLegalCostCurrency" value="usd" />
+                  </label>
+                  <label class="adm-field"><span>Date license was purchased</span><input type="date" id="admLegalPurchasedAt" class="adm-input" /></label>
+                </div>
+
+                <div class="adm-edit-grid" style="margin-top:20px;">
+                  <label class="adm-field"><span>Minimum sale price (USD)</span><input type="number" min="0" step="0.01" id="admLegalMinUsd" class="adm-input" /></label>
+                  <label class="adm-field"><span>Minimum sale price (Robux)</span><input type="number" min="0" step="1" id="admLegalMinRobux" class="adm-input" /></label>
+                </div>
+                <p class="adm-note" style="margin-top:6px;">Even during a sale event, the discounted price for this product will never drop below these floors.</p>
+
+                <label class="adm-field-check" style="margin-top:18px;"><input type="checkbox" id="admLegalCanBeFree" /> <span>Can be given away for free (e.g. promos/giveaways)</span></label>
+                <label class="adm-field-check"><input type="checkbox" id="admLegalDisallowSales" /> <span>Disallow from all sales — no discount or sale event can apply, regardless</span></label>
+              </div>
+
+              <div class="adm-edit-actions">
+                <button class="btn btn-primary" type="submit" id="admEditSaveBtn">Save changes</button>
+                <button class="btn btn-ghost" type="button" id="admEditDeleteBtn" hidden>Delete product</button>
+              </div>
+              <div class="adm-edit-msg" id="admEditMsg"></div>
+            </form>
+          </section>
+
+          <section class="dash-panel" id="adm-panel-product-update" hidden>
+            <div class="dash-head">
+              <a href="#" class="dt-link" data-panel="products">← Back to Products</a>
+              <h1>Push product update</h1>
+              <p>Add a new version, changelog, and file to an existing product.</p>
+            </div>
             <div class="dash-card glass">
-              <div class="dash-card-head"><h2>Add admin-only product</h2></div>
-              <form class="adm-form" id="admAddProdForm">
-                <input type="text" id="admNewProdTitle" class="adm-input" placeholder="Title" required />
-                <input type="number" id="admNewProdPrice" class="adm-input adm-input-sm" placeholder="Price USD" min="0" step="1" required />
-                <input type="text" id="admNewProdCat" class="adm-input" placeholder="Category" />
-                <select id="admNewProdPlatform" class="adm-select"><option value="Roblox">Roblox</option><option value="Minecraft">Minecraft</option></select>
-                <button class="btn btn-primary adm-btn-sm" type="submit">Add product</button>
-              </form>
-              <p class="adm-note">Admin-only products are staged here for review — publish them to the live storefront by adding them to catalog.js.</p>
+              <div class="adm-field">
+                <span>Select product</span>
+                <input type="text" id="admUpdSearch" class="adm-input" placeholder="Search by product name…" autocomplete="off" />
+                <div class="adm-upd-results" id="admUpdResults"></div>
+              </div>
+
+              <div id="admUpdSelected" hidden>
+                <div class="adm-upd-selected-card">
+                  <span class="dr-thumb" id="admUpdThumb"></span>
+                  <span id="admUpdSelectedName"></span>
+                  <button type="button" class="dt-link adm-upd-change" id="admUpdChange">Change product</button>
+                </div>
+
+                <div class="adm-edit-grid" style="margin-top:18px;">
+                  <label class="adm-field"><span>Version number</span><input type="text" id="admUpdVersion" class="adm-input" placeholder="v1.1" /></label>
+                  <label class="adm-field adm-field-wide"><span>Changelog</span><textarea id="admUpdChangelog" class="adm-input adm-textarea" rows="3" placeholder="What changed in this version?"></textarea></label>
+                </div>
+
+                <div class="adm-field" style="margin-top:16px;">
+                  <span>File</span>
+                  <input type="file" id="admUpdFileInput" disabled />
+                  <p class="adm-note">File uploads need Supabase Storage connected — coming once the backend is live.</p>
+                </div>
+
+                <button type="button" class="btn btn-ghost adm-btn-sm" id="admUpdDescToggle" style="margin-top:18px;">Update description</button>
+                <label class="adm-field adm-field-wide" id="admUpdDescWrap" hidden style="margin-top:12px;"><span>Description</span><textarea id="admUpdDescInput" class="adm-input adm-textarea" rows="3"></textarea></label>
+
+                <div class="adm-edit-actions">
+                  <button class="btn btn-primary" type="button" id="admUpdSubmit">Push update</button>
+                </div>
+                <div class="adm-edit-msg" id="admUpdMsg"></div>
+
+                <div class="adm-upd-history" id="admUpdHistory"></div>
+              </div>
             </div>
           </section>
 
@@ -179,12 +393,13 @@
             <div class="dash-head"><h1>Order management</h1><p>Every order placed on the storefront.</p></div>
             <div class="adm-toolbar">
               <input type="text" id="admOrderSearch" class="adm-input" placeholder="Search order #, product, or buyer…" />
-              <select id="admOrderStatusFilter" class="adm-select">
-                <option value="all">All statuses</option>
-                <option value="completed">Completed</option>
-                <option value="pending">Pending</option>
-                <option value="refunded">Refunded</option>
-              </select>
+              <div class="adm-dd adm-dd-inline" id="admOrderStatusFilterDD">
+                <button type="button" class="adm-dd-btn" aria-haspopup="listbox" aria-expanded="false">
+                  <span class="adm-dd-val"></span>
+                  <svg class="adm-dd-chev" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                </button>
+                <div class="adm-dd-menu" role="listbox" aria-label="Order status" hidden></div>
+              </div>
             </div>
             <div class="dash-card glass dash-tablewrap">
               <table class="dash-table">
@@ -216,12 +431,13 @@
           <section class="dash-panel" id="adm-panel-reviews" hidden>
             <div class="dash-head"><h1>Review moderation</h1><p>Approve or hide product reviews before they go public.</p></div>
             <div class="adm-toolbar">
-              <select id="admReviewFilter" class="adm-select">
-                <option value="pending" selected>Pending</option>
-                <option value="approved">Approved</option>
-                <option value="hidden">Hidden</option>
-                <option value="all">All</option>
-              </select>
+              <div class="adm-dd adm-dd-inline" id="admReviewFilterDD">
+                <button type="button" class="adm-dd-btn" aria-haspopup="listbox" aria-expanded="false">
+                  <span class="adm-dd-val"></span>
+                  <svg class="adm-dd-chev" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                </button>
+                <div class="adm-dd-menu" role="listbox" aria-label="Review status" hidden></div>
+              </div>
             </div>
             <div id="admReviewsList"></div>
           </section>
@@ -240,31 +456,101 @@
             <div class="dash-card glass">
               <div class="dash-card-head"><h2>Manual product grant</h2></div>
               <form class="adm-form" id="admGrantForm">
-                <select id="admGrantUser" class="adm-select"></select>
-                <select id="admGrantProduct" class="adm-select"></select>
+                <div class="adm-dd adm-dd-inline" id="admGrantUserDD">
+                  <button type="button" class="adm-dd-btn" aria-haspopup="listbox" aria-expanded="false">
+                    <span class="adm-dd-val placeholder">Select user</span>
+                    <svg class="adm-dd-chev" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                  </button>
+                  <div class="adm-dd-menu" role="listbox" aria-label="User" hidden></div>
+                </div>
+                <input type="hidden" id="admGrantUser" />
+                <div class="adm-dd adm-dd-inline" id="admGrantProductDD">
+                  <button type="button" class="adm-dd-btn" aria-haspopup="listbox" aria-expanded="false">
+                    <span class="adm-dd-val placeholder">Select product</span>
+                    <svg class="adm-dd-chev" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                  </button>
+                  <div class="adm-dd-menu" role="listbox" aria-label="Product" hidden></div>
+                </div>
+                <input type="hidden" id="admGrantProduct" />
                 <button class="btn btn-primary adm-btn-sm" type="submit">Grant access</button>
                 <span class="adm-note" id="admGrantMsg"></span>
               </form>
             </div>
           </section>
 
-          <section class="dash-panel" id="adm-panel-coupons" hidden>
-            <div class="dash-head"><h1>Coupons &amp; discounts</h1><p>Create, disable, or retire promo codes.</p></div>
-            <div class="dash-card glass dash-tablewrap">
-              <table class="dash-table">
-                <thead><tr><th>Code</th><th>Discount</th><th>Uses</th><th>Discount given</th><th>Status</th><th>Actions</th></tr></thead>
-                <tbody id="admCouponsBody"></tbody>
-              </table>
+          <section class="dash-panel" id="adm-panel-sales" hidden>
+            <div class="dash-head"><h1>Sales &amp; discounts</h1><p>Run sitewide sale events or create discount codes.</p></div>
+
+            <div class="adm-platform-toggle" id="admSalesTypeToggle" style="margin-bottom:22px;">
+              <button type="button" class="btn btn-primary adm-sales-type-btn active" data-type="events">Sale Events</button>
+              <button type="button" class="btn btn-minecraft adm-sales-type-btn" data-type="codes">Discount Codes</button>
             </div>
-            <div class="dash-card glass">
-              <div class="dash-card-head"><h2>Create coupon</h2></div>
-              <form class="adm-form" id="admAddCouponForm">
-                <input type="text" id="admNewCouponCode" class="adm-input adm-input-sm" placeholder="CODE" required />
-                <select id="admNewCouponType" class="adm-select"><option value="pct">% off</option><option value="flat">$ off</option></select>
-                <input type="number" id="admNewCouponVal" class="adm-input adm-input-sm" placeholder="Value" min="0" step="1" required />
-                <input type="number" id="admNewCouponLimit" class="adm-input adm-input-sm" placeholder="Use limit (optional)" min="0" step="1" />
-                <button class="btn btn-primary adm-btn-sm" type="submit">Create coupon</button>
-              </form>
+
+            <div id="admSalesEventsView">
+              <div class="dash-card glass dash-tablewrap">
+                <table class="dash-table">
+                  <thead><tr><th>Title</th><th>Discount</th><th>Scope</th><th>Dates</th><th>Status</th><th>Actions</th></tr></thead>
+                  <tbody id="admEventsBody"></tbody>
+                </table>
+              </div>
+              <div class="dash-card glass">
+                <div class="dash-card-head"><h2 id="admEventFormTitle">Create sale event</h2></div>
+                <form class="adm-form" id="admEventForm" style="flex-wrap:wrap;">
+                  <input type="hidden" id="admEventEditId" />
+                  <input type="text" id="admEventTitle" class="adm-input" placeholder="Internal title" required />
+                  <input type="text" id="admEventMessage" class="adm-input" placeholder="Banner message shown to customers" required style="flex:1;min-width:260px;" />
+                  <input type="number" id="admEventPercent" class="adm-input adm-input-sm" placeholder="% off" min="1" max="90" required />
+                  <div class="adm-dd" id="admEventScopeDD" style="max-width:220px;">
+                    <button type="button" class="adm-dd-btn" aria-haspopup="listbox" aria-expanded="false">
+                      <span class="adm-dd-val"></span>
+                      <svg class="adm-dd-chev" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                    </button>
+                    <div class="adm-dd-menu" role="listbox" aria-label="Scope" hidden></div>
+                  </div>
+                  <input type="hidden" id="admEventScope" value="sitewide" />
+                  <label class="adm-field" style="max-width:160px;"><span>Start date</span><input type="date" id="admEventStart" class="adm-input" required /></label>
+                  <label class="adm-field" style="max-width:160px;"><span>End date</span><input type="date" id="admEventEnd" class="adm-input" required /></label>
+                  <button class="btn btn-primary adm-btn-sm" type="submit" id="admEventSubmitBtn">Create event</button>
+                  <button class="btn btn-ghost adm-btn-sm" type="button" id="admEventCancelBtn" hidden>Cancel edit</button>
+                </form>
+              </div>
+            </div>
+
+            <div id="admDiscountCodesView" hidden>
+              <div class="dash-card glass dash-tablewrap">
+                <table class="dash-table">
+                  <thead><tr><th>Code</th><th>Discount</th><th>Scope</th><th>Expires</th><th>Uses</th><th>Discount given</th><th>Status</th><th>Actions</th></tr></thead>
+                  <tbody id="admCouponsBody"></tbody>
+                </table>
+              </div>
+              <div class="dash-card glass">
+                <div class="dash-card-head"><h2 id="admCouponFormTitle">Create discount code</h2></div>
+                <form class="adm-form" id="admAddCouponForm" style="flex-wrap:wrap;">
+                  <input type="hidden" id="admCouponEditId" />
+                  <input type="text" id="admNewCouponCode" class="adm-input adm-input-sm" placeholder="CODE" required />
+                  <div class="adm-dd" id="admNewCouponTypeDD" style="max-width:130px;">
+                    <button type="button" class="adm-dd-btn" aria-haspopup="listbox" aria-expanded="false">
+                      <span class="adm-dd-val"></span>
+                      <svg class="adm-dd-chev" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                    </button>
+                    <div class="adm-dd-menu" role="listbox" aria-label="Discount type" hidden></div>
+                  </div>
+                  <input type="hidden" id="admNewCouponType" value="pct" />
+                  <input type="number" id="admNewCouponVal" class="adm-input adm-input-sm" placeholder="Value" min="0" step="1" required />
+                  <input type="number" id="admNewCouponLimit" class="adm-input adm-input-sm" placeholder="Use limit (optional)" min="0" step="1" />
+                  <label class="adm-field" style="max-width:160px;"><span>Expires (optional)</span><input type="date" id="admNewCouponExpiry" class="adm-input" /></label>
+                  <div class="adm-dd" id="admCouponScopeDD" style="max-width:220px;">
+                    <button type="button" class="adm-dd-btn" aria-haspopup="listbox" aria-expanded="false">
+                      <span class="adm-dd-val"></span>
+                      <svg class="adm-dd-chev" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                    </button>
+                    <div class="adm-dd-menu" role="listbox" aria-label="Scope" hidden></div>
+                  </div>
+                  <input type="hidden" id="admCouponScope" value="sitewide" />
+                  <button class="btn btn-primary adm-btn-sm" type="submit" id="admCouponSubmitBtn">Create discount code</button>
+                  <button class="btn btn-ghost adm-btn-sm" type="button" id="admCouponCancelBtn" hidden>Cancel edit</button>
+                </form>
+              </div>
             </div>
           </section>
 
@@ -372,7 +658,14 @@
               <form class="adm-form" id="admAddStaffForm">
                 <input type="text" id="admNewStaffName" class="adm-input" placeholder="Name" required />
                 <input type="text" id="admNewStaffDiscord" class="adm-input" placeholder="Discord user ID" />
-                <select id="admNewStaffRole" class="adm-select"><option value="support">Support agent</option><option value="admin">Admin</option><option value="owner">Owner</option></select>
+                <div class="adm-dd adm-dd-inline" id="admNewStaffRoleDD">
+                  <button type="button" class="adm-dd-btn" aria-haspopup="listbox" aria-expanded="false">
+                    <span class="adm-dd-val"></span>
+                    <svg class="adm-dd-chev" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                  </button>
+                  <div class="adm-dd-menu" role="listbox" aria-label="Role" hidden></div>
+                </div>
+                <input type="hidden" id="admNewStaffRole" value="support" />
                 <button class="btn btn-primary adm-btn-sm" type="submit">Add staff</button>
               </form>
             </div>
@@ -393,8 +686,11 @@
     </main>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="supabase-init.js"></script>
   <script src="catalog.js"></script>
   <script src="blog.js"></script>
+  <script src="reviews.js"></script>
   <script src="admin.js"></script>
 </body>
 </html>

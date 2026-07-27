@@ -110,7 +110,7 @@
     currentDiscordId: currentDiscordId,
     isAdminWhitelisted: isAdminWhitelisted,
     signInDiscord: function () {
-      var redirectTo = location.origin + '/coldd/callback.html';
+      var redirectTo = location.origin + '/callback.html';
       client.auth.signInWithOAuth({
         provider: 'discord',
         options: { redirectTo: redirectTo, scopes: 'identify email guilds guilds.members.read' }

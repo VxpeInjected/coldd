@@ -120,6 +120,7 @@ Deno.serve(async (req: Request) => {
       tech: body.tech && typeof body.tech === "object" ? body.tech : {},
     };
     if (Array.isArray(body.versions)) productFields.versions = body.versions;
+    if (typeof body.storagePath === "string" && body.storagePath) productFields.storage_path = body.storagePath;
 
     let productId = id;
     if (id) {

@@ -694,6 +694,28 @@
   var editProofFiles = [];
   var editDevProofFiles = [];
   var editGallery = [];
+  var pendingStoragePath = null; // set when a new product file upload succeeds, sent on next save
+
+  // Uploads a file to Storage via admin-get-upload-url, then PUTs the bytes
+  // straight there (bytes never pass through our own server/functions).
+  // kind: 'thumbnail' | 'gallery' | 'productFile'. Requires the product to
+  // already exist (have a slug) since uploads are organized by slug.
+  function uploadToStorage(kind, file) {
+    var slug = $('admEditId').value;
+    if (!slug) return Promise.reject(new Error('Save the product once first, then add files.'));
+    return window.coldSupabase.functions.invoke('admin-get-upload-url', {
+      body: { kind: kind, productSlug: slug, filename: file.name }
+    }).then(function (res) {
+      if (res.error || !res.data || !res.data.ok) {
+        throw new Error((res.data && res.data.error) || (res.error && res.error.message) || 'Could not prepare upload.');
+      }
+      var d = res.data;
+      return window.coldSupabase.storage.from(d.bucket).uploadToSignedUrl(d.path, d.token, file).then(function (upRes) {
+        if (upRes.error) throw new Error(upRes.error.message || 'Upload failed.');
+        return { path: d.path, publicUrl: d.publicUrl };
+      });
+    });
+  }
 
   /* ---- Reusable custom dropdown (replaces native <select> everywhere in admin) ----
      root must contain .adm-dd-btn (with .adm-dd-val + chevron) and .adm-dd-menu,
@@ -794,12 +816,18 @@
   }
   function addThumbFile(file) {
     if (!file) return;
-    $('admEditThumbUrl').value = URL.createObjectURL(file);
-    updateThumbPreview();
+    uploadToStorage('thumbnail', file).then(function (r) {
+      $('admEditThumbUrl').value = r.publicUrl;
+      updateThumbPreview();
+    }).catch(function (err) { alert(err.message || 'Could not upload thumbnail.'); });
   }
   function addGalleryFiles(files) {
-    Array.prototype.forEach.call(files, function (f) { editGallery.push(URL.createObjectURL(f)); });
-    renderGalleryList();
+    Array.prototype.forEach.call(files, function (f) {
+      uploadToStorage('gallery', f).then(function (r) {
+        editGallery.push(r.publicUrl);
+        renderGalleryList();
+      }).catch(function (err) { alert(err.message || 'Could not upload image.'); });
+    });
   }
   function renderContactList() {
     var list = $('admLegalContactList'); if (!list) return;
@@ -813,6 +841,7 @@
 
   function openProductEdit(id) {
     var p = findProduct(id); if (!p) return;
+    pendingStoragePath = null;
     $('admEditId').value = p.id;
     $('admEditTitleInput').value = p.title;
     $('admEditPrice').value = p.price;
@@ -882,16 +911,22 @@
 
   wireDropzone($('admEditFileDrop'), $('admEditFileInput'), function (files) {
     var f = files[0]; if (!f) return;
+    var fileNote = $('admEditFileNote');
+    if (!$('admEditId').value) { alert('Save the product once first, then upload its file.'); return; }
     var dot = f.name.lastIndexOf('.');
     $('admEditTechFormat').value = dot >= 0 ? f.name.slice(dot).toLowerCase() : '';
     $('admEditTechSize').value = formatFileSize(f.size);
     $('admEditTechFileName').value = f.name;
-    var fileNote = $('admEditFileNote');
-    fileNote.textContent = 'Selected: ' + f.name;
-    fileNote.href = URL.createObjectURL(f);
+    fileNote.textContent = 'Uploading ' + f.name + '…';
+    fileNote.removeAttribute('href');
+    uploadToStorage('productFile', f).then(function (r) {
+      pendingStoragePath = r.path;
+      fileNote.textContent = 'Selected: ' + f.name + ' (uploaded, saved with the product)';
+    }).catch(function (err) {
+      pendingStoragePath = null;
+      fileNote.textContent = 'Upload failed: ' + (err.message || 'try again') + '.';
+    });
   });
-  var fileNoteLink = $('admEditFileNote');
-  if (fileNoteLink) fileNoteLink.addEventListener('click', function (e) { if (!fileNoteLink.getAttribute('href')) e.preventDefault(); });
 
   wireDropzone($('admEditThumbDrop'), $('admEditThumbInput'), function (files) { addThumbFile(files[0]); });
   var thumbRemoveBtn = $('admEditThumbRemove');
@@ -977,6 +1012,7 @@
   });
 
   function openProductCreate() {
+    pendingStoragePath = null;
     $('admEditId').value = '';
     $('admEditTitleInput').value = '';
     $('admEditPrice').value = 0;
@@ -1094,10 +1130,12 @@
 
     var p = findProduct(id); if (!p) return;
     var fields = Object.assign({ title: $('admEditTitleInput').value.trim() || p.title, platform: platform }, collectEditFields());
+    if (pendingStoragePath) fields.storagePath = pendingStoragePath;
     if (saveBtn) saveBtn.disabled = true;
     if (msg) msg.textContent = 'Saving…';
     callUpsertProduct(upsertPayloadFor(p, fields)).then(function () {
       logAudit('Updated product "' + fields.title + '"');
+      pendingStoragePath = null;
       return refreshProducts();
     }).then(function () {
       if (saveBtn) saveBtn.disabled = false;

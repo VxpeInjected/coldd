@@ -803,12 +803,12 @@ body.no-scroll { overflow: hidden; }
   border-radius: 10px; background: linear-gradient(180deg, #ff5247, #e23229); color: #fff; }
 .pd-hi-tx h4 { font-size: 15px; font-weight: 700; margin: 0; }
 .pd-hi-tx p { font-size: 13.5px; color: var(--fg-2); line-height: 1.5; margin: 4px 0 0; }
-.pd-about { margin-top: 22px; }
-.pd-about h4 { font-size: 16px; font-weight: 700; margin-bottom: 9px; }
+.pd-about { margin-top: 22px; border: 1px solid var(--hairline); border-radius: var(--r-sm); padding: 20px 22px; }
+.pd-about h4 { font-size: 14px; font-weight: 700; margin-bottom: 12px; }
 .pd-about p { font-size: 14.5px; color: var(--fg-2); line-height: 1.68; }
 
-.pd-rev { padding: 18px 0; border-bottom: 1px solid var(--hairline); }
-.pd-rev:first-child { padding-top: 0; }
+.pd-rev { padding: 18px 20px; border: 1px solid var(--hairline); border-radius: var(--r-sm); margin-bottom: 14px; }
+.pd-rev:last-child { margin-bottom: 0; }
 .pd-rev-head { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
 .pd-rev-name { font-size: 14.5px; font-weight: 700; }
 .pd-rev-dot { color: var(--fg-3); }
@@ -831,7 +831,7 @@ body.no-scroll { overflow: hidden; }
 .pd-upd-dl { margin-top: 12px; }
 
 .pd-right { display: flex; flex-direction: column; gap: 16px; position: sticky; top: 92px; }
-.pd-buycard, .pd-block, .pd-refer, .pd-faq-item {
+.pd-buycard, .pd-block, .pd-refer, .pd-faq-item, .pd-about, .pd-rev {
   background: rgba(17,18,24,0.74); backdrop-filter: blur(13px) saturate(130%); -webkit-backdrop-filter: blur(13px) saturate(130%);
   box-shadow: 0 1px 0 rgba(255,255,255,0.05) inset, 0 20px 46px -26px rgba(0,0,0,0.75);
 }
@@ -884,7 +884,7 @@ body.no-scroll { overflow: hidden; }
 .pd-faq-contact a { color: var(--accent); text-decoration: none; }
 
 .pd-related, .pd-faq { content-visibility: auto; contain-intrinsic-size: auto 620px; }
-.pd-buycard, .pd-block, .pd-refer, .pd-faq-item, .pd-upd, .pd-hi { contain: layout paint; }
+.pd-buycard, .pd-block, .pd-refer, .pd-faq-item, .pd-upd, .pd-hi, .pd-about, .pd-rev { contain: layout paint; }
 .pd-right { transform: translateZ(0); }
 @media (max-width: 940px) {
   .pd-grid { grid-template-columns: 1fr; gap: 30px; }

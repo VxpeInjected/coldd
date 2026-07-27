@@ -201,8 +201,24 @@
     (function () {
       const track = document.getElementById('nrTrack');
       if (!track) return;
+      const dotsWrap = document.getElementById('nrDots');
+
+      // The section ships with static placeholder slides. Replace them with
+      // the actual newest live products (by real created_at) once the
+      // Supabase-backed catalog has loaded.
+      const newest = (window.__CATALOG || []).slice().sort(function (a, b) {
+        return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
+      }).slice(0, 6);
+      if (newest.length) {
+        function escNr(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+        track.innerHTML = newest.map(function (p) {
+          return '<div class="nr-slide" style="background-image:url(\'' + p.image + '\')"><div class="nr-cap"><span class="nr-chip">New</span><span class="nr-title">' + escNr(p.title) + '</span><a class="btn nr-view" href="/product?id=' + encodeURIComponent(p.id) + '" target="_blank" rel="noopener">View product</a></div></div>';
+        }).join('');
+        if (dotsWrap) dotsWrap.innerHTML = newest.map(function () { return '<span class="nr-dot"></span>'; }).join('');
+      }
+
       const slides = track.children.length;
-      if (slides <= 1) return;
+      if (slides <= 1) { var sec = track.closest('section'); if (sec) sec.hidden = true; return; }
       const dots = Array.prototype.slice.call(document.querySelectorAll('#nrDots .nr-dot'));
       const DELAY = 3500;
       // Reduced-motion users still get auto-advance (WCAG-friendly cadence, no forced motion

@@ -1,16 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <script>
-    (function () {
-      try {
-        if (sessionStorage.getItem('coldd_unlocked') !== '1') {
-          var dest = encodeURIComponent(location.pathname + location.search + location.hash);
-          location.replace('/lock.html?r=' + dest);
-        }
-      } catch (e) {}
-    })();
-  </script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>coldd Admin</title>
@@ -21,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 
-  <link rel="stylesheet" href="/styles.css?v=20260727c" />
+  <link rel="stylesheet" href="/styles.css?v=20260727d" />
 </head>
 <body class="adm-body">
   <div class="backdrop"></div>
@@ -166,6 +156,13 @@
             <div class="dash-head"><h1>Product management</h1><p>Edit pricing and visibility, or add admin-only listings.</p></div>
             <div class="adm-toolbar">
               <input type="text" id="admProdSearch" class="adm-input" placeholder="Search by product name…" />
+              <div class="adm-dd adm-dd-inline" id="admProdSortDD">
+                <button type="button" class="adm-dd-btn" aria-haspopup="listbox" aria-expanded="false">
+                  <span class="adm-dd-val"></span>
+                  <svg class="adm-dd-chev" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                </button>
+                <div class="adm-dd-menu" role="listbox" aria-label="Sort products" hidden></div>
+              </div>
               <button class="btn btn-ghost adm-btn-sm" type="button" id="admOpenUpdatePanel">Push Update</button>
               <button class="btn btn-primary adm-btn-sm" type="button" id="admOpenCreatePanel">+ Create Product</button>
             </div>
@@ -698,6 +695,6 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script src="/supabase-init.js?v=20260727a"></script>
-  <script src="/catalog.js?v=20260727d" data-then="/blog.js?v=20260727c,/reviews.js?v=20260727c,/admin.js?v=20260727c"></script>
+  <script src="/catalog.js?v=20260727e" data-then="/blog.js?v=20260727c,/reviews.js?v=20260727c,/admin.js?v=20260727e"></script>
 </body>
 </html>

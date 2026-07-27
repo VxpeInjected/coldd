@@ -1,16 +1,6 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <script>
-    (function () {
-      try {
-        if (sessionStorage.getItem('coldd_unlocked') !== '1') {
-          var dest = encodeURIComponent(location.pathname + location.search + location.hash);
-          location.replace('/lock.html?r=' + dest);
-        }
-      } catch (e) {}
-    })();
-  </script>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <meta name="robots" content="noindex" />

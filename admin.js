@@ -320,6 +320,7 @@
       visible: !!row.is_active,
       platform: row.platform,
       page: row.page,
+      createdAt: row.created_at || null,
       reviews: row.reviews_count || 0,
       rating: Number(row.rating) || 0
     };
@@ -377,6 +378,11 @@
       return res.data;
     });
   }
+
+  /* ================================================================
+     PRODUCT LIST SORT (persisted across sessions, default newest)
+     ================================================================ */
+  var PROD_SORT = lsGet('coldd_admin_prod_sort_v1', 'newest');
 
   /* ================================================================
      DATE RANGE
@@ -654,10 +660,26 @@
   function purchaseCount(id) {
     return ORDERS.filter(function (o) { return o.productId === id && o.status !== 'refunded'; }).length;
   }
+  function sortProducts(list) {
+    var mode = PROD_SORT || 'newest';
+    var withMeta = list.map(function (p, i) {
+      return { p: p, i: i, sales: purchaseCount(p.id), created: Date.parse(p.createdAt) || 0 };
+    });
+    withMeta.sort(function (a, b) {
+      if (mode === 'oldest') return (a.created - b.created) || (a.i - b.i);
+      if (mode === 'sales-desc') return (b.sales - a.sales) || (a.i - b.i);
+      if (mode === 'sales-asc') return (a.sales - b.sales) || (a.i - b.i);
+      if (mode === 'rating-desc') return (b.p.rating - a.p.rating) || (a.i - b.i);
+      if (mode === 'price-desc') return (b.p.priceNum - a.p.priceNum) || (a.i - b.i);
+      if (mode === 'price-asc') return (a.p.priceNum - b.p.priceNum) || (a.i - b.i);
+      return (b.created - a.created) || (a.i - b.i); // newest (default)
+    });
+    return withMeta.map(function (m) { return m.p; });
+  }
   function renderProducts() {
     var q = ($('admProdSearch') || {}).value || '';
     q = q.trim().toLowerCase();
-    var rows = allProducts().filter(function (p) { return !q || p.title.toLowerCase().indexOf(q) >= 0; });
+    var rows = sortProducts(allProducts().filter(function (p) { return !q || p.title.toLowerCase().indexOf(q) >= 0; }));
     $('admProdBody').innerHTML = rows.map(function (p) {
       var rating = (p.rating || 0).toFixed(1);
       return '<tr data-id="' + esc(p.id) + '">' +
@@ -791,6 +813,19 @@
 
     return { setOptions: setOptions, setValue: setValue, getValue: function () { return current; }, close: close };
   }
+
+  var prodSortDropdown = makeDropdown($('admProdSortDD'), {
+    onChange: function (v) { PROD_SORT = v || 'newest'; lsSet('coldd_admin_prod_sort_v1', PROD_SORT); renderProducts(); }
+  });
+  prodSortDropdown.setOptions([
+    { value: 'newest', label: 'Newest' },
+    { value: 'oldest', label: 'Oldest' },
+    { value: 'sales-desc', label: 'Highest Sales' },
+    { value: 'sales-asc', label: 'Lowest Sales' },
+    { value: 'rating-desc', label: 'Highest Rated' },
+    { value: 'price-desc', label: 'Price: High to Low' },
+    { value: 'price-asc', label: 'Price: Low to High' }
+  ], PROD_SORT);
 
   var catDropdown = makeDropdown($('admEditCatDD'), { valueInput: $('admEditCat'), placeholder: 'Select category' });
   function populateCategorySelect(platform, selected) {

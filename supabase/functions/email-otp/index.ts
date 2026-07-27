@@ -20,7 +20,7 @@ const CODE_LENGTH = 6;
 const EXPIRY_MINUTES = 10;
 const MAX_ATTEMPTS = 5;
 
-const ALLOWED_ORIGIN = "https://vxpeinjected.github.io";
+const ALLOWED_ORIGIN = "https://coldd.dev";
 
 function corsHeaders() {
   return {

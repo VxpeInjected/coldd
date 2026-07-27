@@ -12,7 +12,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const ALLOWED_ORIGIN = "https://vxpeinjected.github.io";
+const ALLOWED_ORIGIN = "https://coldd.dev";
 
 function corsHeaders() {
   return {

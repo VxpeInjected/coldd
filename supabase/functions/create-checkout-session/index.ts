@@ -5,7 +5,13 @@
 //
 // Required secrets (set once):
 //   supabase secrets set STRIPE_SECRET_KEY=sk_test_...
-//   supabase secrets set SITE_URL=https://vxpeinjected.github.io/coldd
+//   supabase secrets set SITE_URL=https://coldd.dev
+//
+// IMPORTANT: if SITE_URL was previously set to the old
+// https://vxpeinjected.github.io/coldd value, it must be updated to the
+// line above - the secret takes precedence over this file's ALLOWED_ORIGIN
+// fallback, so leaving the old secret in place would keep sending Stripe's
+// post-checkout redirect to a dead URL even after redeploying this function.
 //
 // SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY and SUPABASE_ANON_KEY are the same
 // three env vars already relied on by supabase/functions/email-otp.
@@ -20,7 +26,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import Stripe from "https://esm.sh/stripe@17?target=deno";
 
-const ALLOWED_ORIGIN = "https://vxpeinjected.github.io";
+const ALLOWED_ORIGIN = "https://coldd.dev";
 const RESELL_MULT = 3; // must match app.js's RESELL_MULT used in the cart/product-modal UI
 
 function corsHeaders() {

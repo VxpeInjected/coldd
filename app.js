@@ -1671,13 +1671,95 @@
       });
 
       var acct = document.getElementById('acctForm');
-      if (acct) acct.addEventListener('submit', function (e) {
-        e.preventDefault();
-        var msg = acct.querySelector('.auth-msg');
-        if (msg) { msg.textContent = 'Saved (demo), connect a backend to persist changes.'; msg.classList.add('show'); }
-      });
+      if (acct) {
+        var acctPwInput = acct.querySelector('input[name="password"]');
+        var acctPwBox = acct.querySelector('#pwStrength');
+        var acctPwFill = acct.querySelector('#pwFill');
+        var acctPwList = acct.querySelector('#pwChecklist');
+
+        function acctFieldErr(name, msg) {
+          var f = acct.querySelector('.auth-field[data-for="' + name + '"]'); if (!f) return;
+          f.classList.toggle('invalid', !!msg);
+          var e = f.querySelector('.auth-err'); if (e) e.textContent = msg || '';
+        }
+        function acctFlash(text) {
+          var m = acct.querySelector('.auth-msg'); if (!m) return;
+          m.textContent = text; m.classList.add('show');
+        }
+
+        if (acctPwInput && acctPwBox && acctPwFill && acctPwList) {
+          function evalAcctPw() {
+            var v = acctPwInput.value;
+            var rules = { upper: /[A-Z]/.test(v), lower: /[a-z]/.test(v), number: /[0-9]/.test(v), special: /[^A-Za-z0-9]/.test(v), length: v.length > 8 };
+            var met = 0;
+            Object.keys(rules).forEach(function (k) {
+              var li = acctPwList.querySelector('[data-rule="' + k + '"]');
+              if (li) li.classList.toggle('met', rules[k]);
+              if (rules[k]) met++;
+            });
+            acctPwFill.style.width = (met / 5 * 100) + '%';
+            acctPwFill.style.background = met <= 2 ? '#ff4d44' : met <= 4 ? '#ffb020' : '#7ee08a';
+          }
+          acctPwInput.addEventListener('input', function () { acctPwBox.classList.add('open'); evalAcctPw(); });
+          acctPwInput.addEventListener('focus', function () { if (acctPwInput.value) acctPwBox.classList.add('open'); });
+          acctPwInput.addEventListener('blur', function () { if (!acctPwInput.value) acctPwBox.classList.remove('open'); });
+        }
+
+        acct.addEventListener('submit', function (e) {
+          e.preventDefault();
+          if (!window.coldSupabase || !window.coldAuth) { acctFlash('Not available right now.'); return; }
+          var profile = window.coldAuth.getProfile();
+          var newName = acct.querySelector('[name="name"]').value.trim();
+          var newEmail = acct.querySelector('[name="email"]').value.trim();
+          var newPass = acctPwInput ? acctPwInput.value : '';
+          var tasks = [];
+          var messages = [];
+
+          if (newPass) {
+            if (newPass.length <= 8) { acctFieldErr('password', 'Use more than 8 characters.'); return; }
+            acctFieldErr('password', '');
+            tasks.push(window.coldSupabase.auth.updateUser({ password: newPass }).then(function (res) {
+              if (res.error) throw new Error(res.error.message);
+              messages.push('Password updated.');
+            }));
+          }
+
+          if (profile && newEmail && newEmail !== profile.email) {
+            tasks.push(window.coldSupabase.auth.updateUser({ email: newEmail }).then(function (res) {
+              if (res.error) throw new Error(res.error.message);
+              messages.push('Check your new email to confirm the change — it won\u2019t take effect until then.');
+            }));
+          }
+
+          if (profile && newName && newName !== profile.name) {
+            tasks.push(window.coldSupabase.from('profiles').update({ username: newName }).eq('id', profile.id).then(function (res) {
+              if (res.error) throw new Error(res.error.message);
+            }));
+          }
+
+          if (!tasks.length) { acctFlash('Nothing to update.'); return; }
+
+          var btn = acct.querySelector('.auth-submit');
+          if (btn) btn.disabled = true;
+          Promise.all(tasks).then(function () {
+            if (btn) btn.disabled = false;
+            if (acctPwInput) acctPwInput.value = '';
+            if (acctPwBox) acctPwBox.classList.remove('open');
+            acctFlash(messages.length ? messages.join(' ') : 'Saved.');
+          }).catch(function (err) {
+            if (btn) btn.disabled = false;
+            acctFlash(err.message || 'Something went wrong.');
+          });
+        });
+      }
       acct && acct.querySelectorAll('.auth-pw-toggle').forEach(function (b) {
-        b.addEventListener('click', function () { var i = b.parentNode.querySelector('input'); if (i) i.type = i.type === 'password' ? 'text' : 'password'; });
+        b.addEventListener('click', function () {
+          var input = b.parentNode.querySelector('input'); if (!input) return;
+          var show = input.type === 'password';
+          input.type = show ? 'text' : 'password';
+          var off = b.querySelector('.eye-off'), on = b.querySelector('.eye-on');
+          if (off && on) { off.style.display = show ? 'none' : ''; on.style.display = show ? '' : 'none'; }
+        });
       });
 
       var del = document.getElementById('delAcct'), conf = document.getElementById('delConfirm');

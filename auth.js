@@ -49,6 +49,7 @@
 
   document.querySelectorAll('.auth-oauth').forEach(function (b) {
     b.addEventListener('click', function () {
+      if (b.classList.contains('oauth-disabled')) return;
       var p = b.getAttribute('data-provider');
       if (p === 'Discord') {
         if (window.coldAuth) window.coldAuth.signInDiscord();

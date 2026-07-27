@@ -804,7 +804,7 @@ body.no-scroll { overflow: hidden; }
 .pd-hi-tx h4 { font-size: 15px; font-weight: 700; margin: 0; }
 .pd-hi-tx p { font-size: 13.5px; color: var(--fg-2); line-height: 1.5; margin: 4px 0 0; }
 .pd-about { margin-top: 22px; border: 1px solid var(--hairline); border-radius: var(--r-sm); padding: 20px 22px; }
-.pd-about h4 { font-size: 18px; font-weight: 700; margin-bottom: 12px; }
+.pd-about h4 { font-size: 18px; font-weight: 700; margin: 0 0 12px; }
 .pd-about p { font-size: 14.5px; color: var(--fg-2); line-height: 1.68; }
 
 .pd-rev { padding: 18px 20px; border: 1px solid var(--hairline); border-radius: var(--r-sm); margin-bottom: 14px; }

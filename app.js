@@ -1107,9 +1107,9 @@
             : [
                 ['File Format', '.rbxm'], ['File Size', size],
                 ['Part Count', ((h % 900) + 120).toLocaleString('en-US')],
-                ['MeshPart Count', ((h >> 3) % 260 + 20).toLocaleString('en-US')],
-                ['Union Count', ((h >> 5) % 80).toLocaleString('en-US')],
-                ['Script Count', ((h >> 7) % 40 + 3).toLocaleString('en-US')]
+                ['MeshPart Count', ((h >>> 3) % 260 + 20).toLocaleString('en-US')],
+                ['Union Count', ((h >>> 5) % 80).toLocaleString('en-US')],
+                ['Script Count', ((h >>> 7) % 40 + 3).toLocaleString('en-US')]
               ];
           var t = p.tech || {};
           var overrides = { 'File Format': t.format, 'File Size': t.size, 'Part Count': t.parts, 'MeshPart Count': t.meshParts, 'Union Count': t.unions, 'Script Count': t.scripts };

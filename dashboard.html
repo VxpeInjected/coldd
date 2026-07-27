@@ -2,6 +2,16 @@
 <html lang="en" data-ann="on">
 <head>
   <script>
+    (function () {
+      try {
+        if (sessionStorage.getItem('coldd_unlocked') !== '1') {
+          var dest = encodeURIComponent(location.pathname + location.search + location.hash);
+          location.replace('/lock.html?r=' + dest);
+        }
+      } catch (e) {}
+    })();
+  </script>
+  <script>
     // Fast, optimistic pre-check reading the Supabase SDK's own persisted
     // session directly, before the SDK has even loaded - avoids a flash of
     // dashboard content for obviously-signed-out visitors. The authoritative

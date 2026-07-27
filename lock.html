@@ -1,0 +1,35 @@
+<!doctype html>
+<html>
+<head><meta charset="utf-8"><title>Private</title></head>
+<body>
+<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;text-align:center;">
+  <div>
+    <p>This domain is private. Enter the password to unlock.</p>
+    <form id="lockForm">
+      <input type="password" id="lockPw" autocomplete="off" />
+      <button type="submit">Go</button>
+    </form>
+    <p id="lockErr" style="display:none;">Incorrect password.</p>
+  </div>
+</div>
+<script>
+  // Not real security - this is a client-side visibility gate for a
+  // pre-launch domain, not a secure fortress. Anyone who views this page's
+  // source can read the password below. Delete this file before launch.
+  var PASSWORD = 'coldd.Developers.8283';
+
+  document.getElementById('lockForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var v = document.getElementById('lockPw').value;
+    if (v === PASSWORD) {
+      try { sessionStorage.setItem('coldd_unlocked', '1'); } catch (err) {}
+      var params = new URLSearchParams(location.search);
+      var dest = params.get('r');
+      location.replace(dest ? decodeURIComponent(dest) : '/');
+    } else {
+      document.getElementById('lockErr').style.display = 'block';
+    }
+  });
+</script>
+</body>
+</html>

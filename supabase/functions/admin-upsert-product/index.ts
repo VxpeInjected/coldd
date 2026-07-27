@@ -104,7 +104,7 @@ Deno.serve(async (req: Request) => {
     const productFields: Record<string, unknown> = {
       title,
       platform,
-      page: platform === "Minecraft" ? "minecraft.html" : "assets.html",
+      page: platform === "Minecraft" ? "/minecraft" : "/assets",
       price_usd: price,
       cat: body.cat != null ? String(body.cat) : null,
       subcat: body.subcat != null ? String(body.subcat) : null,

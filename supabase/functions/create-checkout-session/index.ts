@@ -160,8 +160,8 @@ Deno.serve(async (req: Request) => {
           quantity: li.qty,
         })),
         ...(discounts ? { discounts } : {}),
-        success_url: `${siteUrl}/success.html?session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: `${siteUrl}/checkout.html`,
+        success_url: `${siteUrl}/success?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${siteUrl}/checkout`,
         metadata: { order_id: order.id },
       });
 

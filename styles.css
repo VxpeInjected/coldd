@@ -1326,6 +1326,7 @@ button.dt-badge:disabled { cursor: default; opacity: 0.6; }
 .co-pay-chip { flex: 0 0 auto; font-size: 12px; font-weight: 600; color: var(--fg-3); padding: 7px 13px;
   border-radius: 999px; background: rgba(255,255,255,0.04); border: 1px solid var(--hairline); white-space: nowrap; }
 @keyframes coPayScroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+@media (prefers-reduced-motion: reduce) { .co-pay-carousel-track { animation: none; } }
 .co-pay-soon { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #ffcf5c;
   background: rgba(255,193,7,0.08); border: 1px solid rgba(255,193,7,0.25); border-radius: 10px; padding: 12px 14px; }
 .co-pay-robux-ic { font-size: 12px; font-weight: 800; }

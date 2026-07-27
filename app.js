@@ -1729,7 +1729,7 @@
 
         var prevText = placeBtn.textContent;
         placeBtn.disabled = true; placeBtn.textContent = 'Redirecting to secure checkout…';
-        if (msg) { msg.className = 'co-msg show'; msg.textContent = ''; }
+        if (msg) { msg.className = 'co-msg'; msg.textContent = ''; }
 
         window.coldSupabase.functions.invoke('create-checkout-session', { body: { items: items } })
           .then(function (res) {

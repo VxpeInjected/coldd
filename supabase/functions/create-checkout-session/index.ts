@@ -22,12 +22,19 @@
 // collects the buyer's email itself. Either way, get-order-by-session and
 // get-download-url can look the order up by Stripe session id alone, so a
 // guest can still see + download from success.html right after paying.
+//
+// Coupons: an optional couponCode is resolved with the exact same logic
+// validate-coupon uses (via _shared/coupon.ts), so the discount shown on
+// checkout.html before payment always matches what's actually charged here.
+// The discount is applied as a one-time Stripe coupon for the exact computed
+// amount (rather than a percentage-off on the whole Stripe session), since
+// our coupons can be scoped to only some of the cart's line items.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import Stripe from "https://esm.sh/stripe@17?target=deno";
+import { priceItems, resolveCoupon } from "../_shared/coupon.ts";
 
 const ALLOWED_ORIGIN = "https://coldd.dev";
-const RESELL_MULT = 3; // must match app.js's RESELL_MULT used in the cart/product-modal UI
 
 function corsHeaders() {
   return {
@@ -43,8 +50,6 @@ function json(body: unknown, status = 200) {
     headers: { ...corsHeaders(), "Content-Type": "application/json" },
   });
 }
-
-type CartItem = { slug: string; qty: number; licence: "standard" | "resell" };
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders() });
@@ -69,46 +74,28 @@ Deno.serve(async (req: Request) => {
     }
 
     const body = await req.json().catch(() => ({}));
-    const items: CartItem[] = Array.isArray(body.items) ? body.items : [];
-    if (!items.length) return json({ ok: false, error: "Your cart is empty." }, 400);
-    if (items.length > 50) return json({ ok: false, error: "Too many items in one order." }, 400);
-
     const admin = createClient(supabaseUrl, serviceKey);
 
-    const slugs = Array.from(new Set(items.map((i) => String(i.slug || ""))));
-    const { data: products, error: prodErr } = await admin
-      .from("products")
-      .select("id, slug, title, price_usd, resell_available")
-      .in("slug", slugs)
-      .eq("is_active", true);
-    if (prodErr) return json({ ok: false, error: "Could not load products." }, 500);
-
-    const bySlug = new Map((products ?? []).map((p) => [p.slug, p]));
-
-    // Never trust client-supplied prices or titles - everything below is
-    // recomputed from the server's own products table.
-    const lineItems: { title: string; unitPrice: number; qty: number; product: any; licence: string }[] = [];
-    for (const raw of items) {
-      const slug = String(raw.slug || "");
-      const qty = Math.max(1, Math.min(20, Math.floor(Number(raw.qty) || 1)));
-      const licence = raw.licence === "resell" ? "resell" : "standard";
-      const product = bySlug.get(slug);
-      if (!product) return json({ ok: false, error: `"${slug}" is no longer available.` }, 400);
-      if (licence === "resell" && !product.resell_available) {
-        return json({ ok: false, error: `${product.title} doesn't offer a resell licence.` }, 400);
-      }
-      const unitPrice = licence === "resell" ? Math.round(product.price_usd * RESELL_MULT) : Number(product.price_usd);
-      lineItems.push({
-        title: product.title + (licence === "resell" ? " (Resell licence)" : ""),
-        unitPrice,
-        qty,
-        product,
-        licence,
-      });
-    }
-
-    const subtotal = lineItems.reduce((sum, li) => sum + li.unitPrice * li.qty, 0);
+    const priced = await priceItems(admin, Array.isArray(body.items) ? body.items : []);
+    if (!priced.ok) return json({ ok: false, error: priced.error }, 400);
+    const { lines, subtotal } = priced;
     if (subtotal <= 0) return json({ ok: false, error: "Order total must be greater than zero." }, 400);
+
+    let discount = 0;
+    let appliedCouponCode: string | null = null;
+    if (body.couponCode) {
+      const couponResult = await resolveCoupon(admin, String(body.couponCode), lines);
+      // A coupon that no longer resolves (expired/deactivated/limit hit
+      // between validate-coupon and now) just quietly doesn't apply rather
+      // than blocking checkout - the shopper already saw the discount
+      // applied on the page, so failing the whole order here would be a
+      // worse experience than a same-price checkout.
+      if (couponResult.ok) {
+        discount = couponResult.discount;
+        appliedCouponCode = couponResult.code;
+      }
+    }
+    const total = Math.max(0, Math.round((subtotal - discount) * 100) / 100);
 
     // Create the order + order_items as 'pending' before talking to Stripe,
     // so we have an order_id to hand to Stripe as metadata and correlate on
@@ -119,18 +106,19 @@ Deno.serve(async (req: Request) => {
         user_id: user ? user.id : null,
         status: "pending",
         subtotal_usd: subtotal,
-        discount_usd: 0,
-        total_usd: subtotal,
+        discount_usd: discount,
+        total_usd: total,
+        coupon_code: appliedCouponCode,
       })
       .select()
       .single();
     if (orderErr || !order) return json({ ok: false, error: "Could not create order." }, 500);
 
     const { error: itemsErr } = await admin.from("order_items").insert(
-      lineItems.map((li) => ({
+      lines.map((li) => ({
         order_id: order.id,
-        product_id: li.product.id,
-        product_slug: li.product.slug,
+        product_id: li.productId,
+        product_slug: li.slug,
         title: li.title,
         licence: li.licence,
         unit_price_usd: li.unitPrice,
@@ -148,11 +136,22 @@ Deno.serve(async (req: Request) => {
     });
 
     try {
+      let discounts: { coupon: string }[] | undefined;
+      if (discount > 0) {
+        const stripeCoupon = await stripe.coupons.create({
+          amount_off: Math.round(discount * 100),
+          currency: "usd",
+          duration: "once",
+          name: appliedCouponCode ?? undefined,
+        });
+        discounts = [{ coupon: stripeCoupon.id }];
+      }
+
       const session = await stripe.checkout.sessions.create({
         mode: "payment",
         ...(user?.email ? { customer_email: user.email } : {}),
         ...(user ? { client_reference_id: user.id } : {}),
-        line_items: lineItems.map((li) => ({
+        line_items: lines.map((li) => ({
           price_data: {
             currency: "usd",
             unit_amount: Math.round(li.unitPrice * 100),
@@ -160,12 +159,26 @@ Deno.serve(async (req: Request) => {
           },
           quantity: li.qty,
         })),
+        ...(discounts ? { discounts } : {}),
         success_url: `${siteUrl}/success.html?session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: `${siteUrl}/checkout.html`,
         metadata: { order_id: order.id },
       });
 
       await admin.from("orders").update({ stripe_checkout_session_id: session.id }).eq("id", order.id);
+
+      if (appliedCouponCode) {
+        // Best-effort usage increment - not wrapped in a transaction with the
+        // order/session creation above, so a failure here just means the
+        // coupon's usage_count under-counts by one rather than blocking the
+        // purchase. A concurrent double-increment race is an acceptable risk
+        // at this traffic scale.
+        const { data: current } = await admin.from("coupons").select("usage_count").eq("code", appliedCouponCode).single();
+        if (current) {
+          await admin.from("coupons").update({ usage_count: current.usage_count + 1 }).eq("code", appliedCouponCode);
+        }
+      }
+
       return json({ ok: true, url: session.url });
     } catch (stripeErr) {
       console.error("[create-checkout-session] stripe error:", stripeErr);

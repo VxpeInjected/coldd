@@ -98,14 +98,32 @@
     return out;
   });
 
-  var COUPONS = seedIfEmpty('coldd_admin_coupons_v1', function () {
-    return [
-      { code: 'SAVE10', type: 'pct', val: 10, active: true, limit: null, expiresAt: null, scope: 'sitewide', platform: null, category: null },
-      { code: 'COLDD20', type: 'pct', val: 20, active: true, limit: 500, expiresAt: null, scope: 'sitewide', platform: null, category: null },
-      { code: 'WELCOME5', type: 'flat', val: 5, active: true, limit: null, expiresAt: null, scope: 'sitewide', platform: null, category: null },
-      { code: 'SUMMER25', type: 'pct', val: 25, active: false, limit: 200, expiresAt: null, scope: 'sitewide', platform: null, category: null }
-    ];
-  });
+  // Real data from public.coupons, read via the signed-in admin's own
+  // session (RLS: coupons_select_admin). Writes go through
+  // admin-upsert-coupon / admin-delete-coupon (service role).
+  var COUPONS = [];
+  function mapCouponRow(row) {
+    return {
+      code: row.code,
+      type: row.type,
+      val: Number(row.val) || 0,
+      active: !!row.active,
+      limit: row.usage_limit,
+      usageCount: row.usage_count || 0,
+      expiresAt: row.expires_at,
+      scope: row.scope,
+      platform: row.platform,
+      category: row.category
+    };
+  }
+  function refreshCoupons() {
+    if (!window.coldSupabase) return Promise.resolve();
+    return window.coldSupabase.from('coupons').select('*').order('code').then(function (res) {
+      if (res.error) { console.error('[admin] failed to load coupons:', res.error.message); return; }
+      COUPONS = (res.data || []).map(mapCouponRow);
+      if (curPanel === 'sales') { renderEvents(); renderCoupons(); }
+    });
+  }
 
   // Sale Events replace the site's hardcoded "Spring Sale" announcement
   // banner (assets.html/minecraft.html) with real admin-managed data - the
@@ -222,7 +240,6 @@
 
   function saveOrders() { lsSet('coldd_admin_orders_v1', ORDERS); }
   function saveUsers() { lsSet('coldd_admin_users_v1', USERS); }
-  function saveCoupons() { lsSet('coldd_admin_coupons_v1', COUPONS); }
   function saveSaleEvents() { lsSet('coldd_admin_sale_events_v1', SALE_EVENTS); }
   function saveStaff() { lsSet('coldd_admin_staff_v1', STAFF); }
   function saveReviews() { lsSet('coldd_admin_reviews_v1', REVIEWS); }
@@ -456,12 +473,13 @@
     return comp.reduce(function (s, o) { return s + o.total; }, 0) / comp.length;
   }
   function couponStats() {
-    var comp = completedInRange();
+    // Real usage_count/limit come straight off the coupons table itself now
+    // (incremented server-side in create-checkout-session on each order that
+    // uses the code). Per-code revenue/discount-given totals would need the
+    // real orders table wired up in the admin panel, which isn't done yet -
+    // the admin Orders panel is still the old mock ledger.
     return COUPONS.map(function (c) {
-      var used = comp.filter(function (o) { return o.couponCode === c.code; });
-      var discountGiven = used.reduce(function (s, o) { return s + o.discount; }, 0);
-      var revenue = used.reduce(function (s, o) { return s + o.total; }, 0);
-      return { code: c.code, active: c.active, limit: c.limit, uses: used.length, discountGiven: discountGiven, revenue: revenue };
+      return { code: c.code, active: c.active, limit: c.limit, uses: c.usageCount, discountGiven: null, revenue: null };
     });
   }
 
@@ -1596,8 +1614,8 @@
   function renderCoupons() {
     var cs = couponStats();
     $('admCouponsBody').innerHTML = COUPONS.map(function (c) {
-      var stat = cs.filter(function (x) { return x.code === c.code; })[0] || { uses: 0, discountGiven: 0 };
-      return '<tr data-code="' + esc(c.code) + '"><td class="dt-mono">' + esc(c.code) + '</td><td>' + (c.type === 'pct' ? c.val + '%' : usd(c.val)) + '</td><td>' + esc(scopeLabel(c)) + '</td><td>' + (c.expiresAt ? esc(c.expiresAt) : '—') + '</td><td>' + stat.uses + (c.limit ? ' / ' + c.limit : '') + '</td><td>' + usd(stat.discountGiven) + '</td>' +
+      var stat = cs.filter(function (x) { return x.code === c.code; })[0] || { uses: 0, discountGiven: null };
+      return '<tr data-code="' + esc(c.code) + '"><td class="dt-mono">' + esc(c.code) + '</td><td>' + (c.type === 'pct' ? c.val + '%' : usd(c.val)) + '</td><td>' + esc(scopeLabel(c)) + '</td><td>' + (c.expiresAt ? esc(c.expiresAt) : '—') + '</td><td>' + stat.uses + (c.limit ? ' / ' + c.limit : '') + '</td><td>' + (stat.discountGiven == null ? '—' : usd(stat.discountGiven)) + '</td>' +
         '<td>' + (c.active ? '<span class="dt-badge ok">Active</span>' : '<span class="dt-badge err">Inactive</span>') + '</td>' +
         '<td class="adm-row-actions">' + (can('admin') ? '<button class="btn btn-ghost adm-btn-sm adm-coupon-edit" type="button">Edit</button><button class="btn btn-ghost adm-btn-sm adm-coupon-toggle" type="button">' + (c.active ? 'Deactivate' : 'Activate') + '</button><button class="btn btn-ghost adm-btn-sm adm-coupon-del" type="button">Delete</button>' : '') + '</td></tr>';
     }).join('') || '<tr><td colspan="8" class="adm-empty">No discount codes yet.</td></tr>';
@@ -1620,6 +1638,22 @@
     $('admCouponSubmitBtn').textContent = 'Save changes';
     $('admCouponCancelBtn').hidden = false;
   }
+  function callUpsertCoupon(payload) {
+    return window.coldSupabase.functions.invoke('admin-upsert-coupon', { body: payload }).then(function (res) {
+      if (res.error || !res.data || !res.data.ok) {
+        throw new Error((res.data && res.data.error) || (res.error && res.error.message) || 'Could not save the code.');
+      }
+      return res.data;
+    });
+  }
+  function callDeleteCoupon(code) {
+    return window.coldSupabase.functions.invoke('admin-delete-coupon', { body: { code: code } }).then(function (res) {
+      if (res.error || !res.data || !res.data.ok) {
+        throw new Error((res.data && res.data.error) || (res.error && res.error.message) || 'Could not delete the code.');
+      }
+      return res.data;
+    });
+  }
   var couponsBody = $('admCouponsBody');
   if (couponsBody) couponsBody.addEventListener('click', function (e) {
     var tr = e.target.closest('tr'); if (!tr) return;
@@ -1628,12 +1662,25 @@
     if (!can('admin')) return;
     if (e.target.classList.contains('adm-coupon-edit')) { fillCouponForm(c); }
     else if (e.target.classList.contains('adm-coupon-toggle')) {
-      c.active = !c.active; saveCoupons(); logAudit((c.active ? 'Activated' : 'Deactivated') + ' coupon ' + code); renderCoupons();
+      var toggleBtn = e.target;
+      toggleBtn.disabled = true;
+      callUpsertCoupon({
+        editingCode: c.code, code: c.code, type: c.type, val: c.val, active: !c.active,
+        usageLimit: c.limit, expiresAt: c.expiresAt, scope: c.scope, platform: c.platform, category: c.category
+      }).then(function () {
+        logAudit((c.active ? 'Deactivated' : 'Activated') + ' coupon ' + code);
+        return refreshCoupons();
+      }).catch(function (err) {
+        toggleBtn.disabled = false;
+        alert(err.message || 'Could not update the code.');
+      });
     } else if (e.target.classList.contains('adm-coupon-del')) {
       if (!confirm('Delete coupon ' + code + '? This can\'t be undone.')) return;
-      COUPONS = COUPONS.filter(function (x) { return x.code !== code; });
-      saveCoupons(); logAudit('Deleted coupon ' + code); renderCoupons();
-      if ($('admCouponEditId').value === code) resetCouponForm();
+      callDeleteCoupon(code).then(function () {
+        logAudit('Deleted coupon ' + code);
+        if ($('admCouponEditId').value === code) resetCouponForm();
+        return refreshCoupons();
+      }).catch(function (err) { alert(err.message || 'Could not delete the code.'); });
     }
   });
   var couponCancelBtn = $('admCouponCancelBtn');
@@ -1650,17 +1697,20 @@
     var expiresAt = $('admNewCouponExpiry').value || null;
     var scopeInfo = parseScopeValue($('admCouponScope').value);
     if (!code || !val) return;
-    if (editId) {
-      var c = COUPONS.filter(function (x) { return x.code === editId; })[0]; if (!c) return;
-      if (code !== editId && COUPONS.some(function (x) { return x.code === code; })) { alert('Coupon code already exists.'); return; }
-      Object.assign(c, { code: code, type: type, val: val, limit: limit, expiresAt: expiresAt, scope: scopeInfo.scope, platform: scopeInfo.platform, category: scopeInfo.category });
-      logAudit('Updated discount code ' + code);
-    } else {
-      if (COUPONS.some(function (x) { return x.code === code; })) { alert('Coupon code already exists.'); return; }
-      COUPONS.push({ code: code, type: type, val: val, active: true, limit: limit, expiresAt: expiresAt, scope: scopeInfo.scope, platform: scopeInfo.platform, category: scopeInfo.category });
-      logAudit('Created discount code ' + code);
-    }
-    saveCoupons(); resetCouponForm(); renderCoupons();
+    var submitBtn = $('admCouponSubmitBtn');
+    if (submitBtn) submitBtn.disabled = true;
+    callUpsertCoupon({
+      editingCode: editId || undefined, code: code, type: type, val: val, active: true,
+      usageLimit: limit, expiresAt: expiresAt, scope: scopeInfo.scope, platform: scopeInfo.platform, category: scopeInfo.category
+    }).then(function () {
+      logAudit((editId ? 'Updated' : 'Created') + ' discount code ' + code);
+      resetCouponForm();
+      return refreshCoupons();
+    }).catch(function (err) {
+      alert(err.message || 'Could not save the code.');
+    }).then(function () {
+      if (submitBtn) submitBtn.disabled = false;
+    });
   });
 
   /* ================================================================
@@ -2053,4 +2103,5 @@
   renderTopbar();
   showPanel('home');
   refreshProducts();
+  refreshCoupons();
 })();

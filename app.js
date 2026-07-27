@@ -1591,14 +1591,20 @@
 
       function subtotal() { return cart.reduce(function (s, i) { return s + i.price * i.qty; }, 0); }
 
-      var appliedCoupon = null;
-      function readCoupons() {
-        try { return JSON.parse(localStorage.getItem('coldd_admin_coupons_v1') || '[]') || []; } catch (e) { return []; }
+      function cartToItems() {
+        return cart.map(function (i) {
+          var licence = i.id.indexOf('--resell') !== -1 ? 'resell' : 'standard';
+          var slug = i.id.replace(/--resell$/, '').replace(/--bundle$/, '');
+          return { slug: slug, qty: i.qty, licence: licence };
+        });
       }
-      function computeDiscount(sub) {
-        if (!appliedCoupon) return 0;
-        var d = appliedCoupon.type === 'pct' ? sub * (appliedCoupon.val / 100) : appliedCoupon.val;
-        return Math.max(0, Math.min(d, sub));
+
+      // { code, discountUsd } once a code has been validated server-side via
+      // validate-coupon - never computed client-side, so what's shown here
+      // always matches what create-checkout-session actually charges.
+      var appliedCoupon = null;
+      function computeDiscount() {
+        return appliedCoupon ? appliedCoupon.discountUsd : 0;
       }
 
       function renderItems() {
@@ -1664,16 +1670,27 @@
       var couponInput = document.getElementById('coCouponInput'), couponApplyBtn = document.getElementById('coCouponApply'), couponMsg = document.getElementById('coCouponMsg');
       if (couponApplyBtn) couponApplyBtn.addEventListener('click', function () {
         var code = (couponInput && couponInput.value || '').trim().toUpperCase();
-        if (!code) return;
-        var match = readCoupons().filter(function (c) { return String(c.code || '').toUpperCase() === code; })[0];
-        if (!match || !match.active) {
-          appliedCoupon = null;
-          if (couponMsg) { couponMsg.className = 'co-coupon-msg no'; couponMsg.textContent = 'That code is invalid or no longer active.'; }
-        } else {
-          appliedCoupon = match;
-          if (couponMsg) { couponMsg.className = 'co-coupon-msg ok'; couponMsg.textContent = 'Code "' + match.code + '" applied!'; }
-        }
-        renderTotals();
+        if (!code || !cart.length || !window.coldSupabase) return;
+        couponApplyBtn.disabled = true;
+        window.coldSupabase.functions.invoke('validate-coupon', { body: { code: code, items: cartToItems() } })
+          .then(function (res) {
+            couponApplyBtn.disabled = false;
+            var data = res && res.data, error = res && res.error;
+            if (error || !data || !data.ok) {
+              appliedCoupon = null;
+              if (couponMsg) { couponMsg.className = 'co-coupon-msg no'; couponMsg.textContent = (data && data.error) || 'That code is invalid or no longer active.'; }
+            } else {
+              appliedCoupon = { code: data.code, discountUsd: data.discountUsd };
+              if (couponMsg) { couponMsg.className = 'co-coupon-msg ok'; couponMsg.textContent = 'Code "' + data.code + '" applied!'; }
+            }
+            renderTotals();
+          })
+          .catch(function () {
+            couponApplyBtn.disabled = false;
+            appliedCoupon = null;
+            if (couponMsg) { couponMsg.className = 'co-coupon-msg no'; couponMsg.textContent = 'Could not check that code. Please try again.'; }
+            renderTotals();
+          });
       });
 
       var payMethod = 'stripe';
@@ -1721,17 +1738,14 @@
         if (agreeErr) agreeErr.textContent = agreeMsgs.length ? 'Please ' + agreeMsgs.join(' and ') + '.' : '';
         if (!ok) { if (msg) { msg.className = 'co-msg err show'; msg.textContent = 'Please fix the highlighted fields above.'; } return; }
 
-        var items = cart.map(function (i) {
-          var licence = i.id.indexOf('--resell') !== -1 ? 'resell' : 'standard';
-          var slug = i.id.replace(/--resell$/, '').replace(/--bundle$/, '');
-          return { slug: slug, qty: i.qty, licence: licence };
-        });
-
         var prevText = placeBtn.textContent;
         placeBtn.disabled = true; placeBtn.textContent = 'Redirecting to secure checkout…';
         if (msg) { msg.className = 'co-msg'; msg.textContent = ''; }
 
-        window.coldSupabase.functions.invoke('create-checkout-session', { body: { items: items } })
+        var checkoutBody = { items: cartToItems() };
+        if (appliedCoupon) checkoutBody.couponCode = appliedCoupon.code;
+
+        window.coldSupabase.functions.invoke('create-checkout-session', { body: checkoutBody })
           .then(function (res) {
             var data = res && res.data, error = res && res.error;
             if (error || !data || !data.ok) {

@@ -22,13 +22,19 @@
   var client = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   window.coldSupabase = client;
 
+  // Derived from SUPABASE_URL so this can't drift out of sync with the
+  // project again - the SDK namespaces its persisted session under
+  // sb-<project-ref>-auth-token.
+  var PROJECT_REF = SUPABASE_URL.replace(/^https?:\/\//, '').split('.')[0];
+  var SESSION_STORAGE_KEY = 'sb-' + PROJECT_REF + '-auth-token';
+
   // Reads the Discord ID out of the SDK's own persisted session (no network
   // call - same localStorage key window.coldSupabase.auth.getSession() reads
   // from), mirroring the identity_data extraction callback.html does right
   // after OAuth completes.
   function currentDiscordId() {
     try {
-      var raw = localStorage.getItem('sb-auypmvrzvmvoulobvkus-auth-token');
+      var raw = localStorage.getItem(SESSION_STORAGE_KEY);
       var parsed = raw && JSON.parse(raw);
       if (!parsed || !parsed.user) return null;
       if (parsed.expires_at && parsed.expires_at * 1000 < Date.now()) return null;

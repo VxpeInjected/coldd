@@ -474,6 +474,60 @@
         const clearBtn = shop.querySelector('.fc-clear');
         const countEl = shop.querySelector('.shop-count');
         const base = shop.getAttribute('data-page') || (location.pathname.split('/').pop() || '/assets');
+
+        // The grid below ships as static markup (built once from the source
+        // HTML), so it doesn't know about products created after the last
+        // build. Reconcile it against the live, Supabase-backed catalog:
+        // stamp real creation dates onto the cards that are already there
+        // (so "Newest"/"Oldest" sort on real dates instead of DOM order),
+        // and append any catalog product missing from the static markup.
+        (function reconcileGrid() {
+          function escHtml(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+          function fmtPriceStr(n) { return '$' + (n % 1 === 0 ? n : n.toFixed(2)); }
+          var shopPlatform = base === '/minecraft' ? 'Minecraft' : 'Roblox';
+          var catSlugByLabel = {};
+          (window.__CATEGORIES || []).forEach(function (c) { if (c.platform === shopPlatform) catSlugByLabel[c.label] = c.slug; });
+          var existingByCardId = {};
+          Array.prototype.slice.call(grid.querySelectorAll('.product')).forEach(function (el) {
+            var nameEl = el.querySelector('.p-name');
+            var t = nameEl ? nameEl.textContent.trim() : '';
+            existingByCardId[t.toLowerCase().replace(/[^a-z0-9]+/g, '-')] = el;
+          });
+          (window.__CATALOG || []).filter(function (p) { return p.platform === shopPlatform; }).forEach(function (p) {
+            var existing = existingByCardId[p.id];
+            if (existing) { if (p.createdAt) existing.setAttribute('data-created', p.createdAt); return; }
+            var onSale = p.was > p.priceNum;
+            var offPct = onSale ? Math.round((1 - p.priceNum / p.was) * 100) : 0;
+            var starsHtml = '';
+            if (p.reviews > 0) {
+              var full = Math.round(p.rating), st = '';
+              for (var i = 0; i < 5; i++) st += '<span class="st' + (i < full ? ' on' : '') + '">★</span>';
+              starsHtml = '<div class="p-stars">' + st + '<span class="p-rc">(' + p.reviews + ')</span></div>';
+            }
+            var art = document.createElement('article');
+            art.className = 'product';
+            art.setAttribute('data-cat', catSlugByLabel[p.cat] || '');
+            art.setAttribute('data-price', p.priceNum);
+            art.setAttribute('data-reviews', p.reviews || 0);
+            art.setAttribute('data-rating', p.rating || 0);
+            art.setAttribute('data-catlabel', p.cat || '');
+            if (p.createdAt) art.setAttribute('data-created', p.createdAt);
+            if (p.resell) art.setAttribute('data-resell', 'yes');
+            if (p.subcat) art.setAttribute('data-subcat', p.subcat);
+            if (onSale) art.setAttribute('data-was', p.was);
+            art.innerHTML =
+              '<div class="p-thumb" style="background-image:url(\'' + p.image + '\')">' + (onSale ? '<span class="p-off">-' + offPct + '%</span>' : '') + '</div>' +
+              '<div class="p-body">' +
+                '<h3 class="p-name">' + escHtml(p.title) + '</h3>' +
+                '<div class="p-price-row">' + (onSale ? '<span class="p-was">' + fmtPriceStr(p.was) + '</span>' : '') + '<span class="p-price">' + p.price + '</span></div>' +
+                starsHtml +
+                '<p class="p-sum">' + escHtml(p.desc || '') + '</p>' +
+                '<button class="p-add" type="button">Add to Cart</button>' +
+              '</div>';
+            grid.appendChild(art);
+          });
+        })();
+
         const products = Array.prototype.slice.call(grid.querySelectorAll('.product'));
         const PER_PAGE = 12;
         let page = 1;
@@ -514,8 +568,12 @@
         }
         function sortMatches(arr) {
           const mode = sortMode || 'recommended';
-          if (mode === 'recommended' || mode === 'oldest') return arr;
-          if (mode === 'newest') return arr.slice().reverse();
+          if (mode === 'recommended') return arr;
+          if (mode === 'newest' || mode === 'oldest') {
+            const withDate = arr.map(function (p, i) { return { p: p, i: i, t: Date.parse(p.getAttribute('data-created')) || 0 }; });
+            withDate.sort(function (a, b) { return mode === 'newest' ? (b.t - a.t) || (a.i - b.i) : (a.t - b.t) || (a.i - b.i); });
+            return withDate.map(function (m) { return m.p; });
+          }
           const withMeta = arr.map(function (p, i) {
             return {
               p: p, i: i,
@@ -1011,8 +1069,6 @@
         function lsSet(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (_) {} }
         var WISH = 'coldd_wish_v1', OWN = 'coldd_owned_v1';
 
-        var UDATES = ['Jun 6, 2026', 'Jun 1, 2026', 'May 20, 2026', 'Apr 23, 2026', 'Mar 14, 2026', 'Feb 2, 2026'];
-        var UNOTES = ['Fixed a bug where parts floated after respawning.', 'Added new configuration options and cleaned up the code.', 'Updated the setup instructions and documentation.', 'Improved performance and general optimizations.', 'Fixed a rare edge case that could error on load.'];
         var FEATURES = ['Fully optimized and production ready', 'Clean, well organized and easy to edit files', 'Simple drag and drop setup', 'Free updates and lifetime support included', 'Works in unlimited games and projects'];
 
         function fmtRevDate(iso) {
@@ -1023,27 +1079,43 @@
           return window.__reviews ? window.__reviews.productReviews(p.id) : [];
         }
         function updatesFor(p) {
-          var n = hsh(p.id + 'u') % 3, out = [], i;
-          for (i = 0; i < n; i++) {
-            var h = hsh(p.id + 'u' + i);
-            out.push({ version: 'v1.' + (n - i), date: UDATES[(h) % UDATES.length], note: UNOTES[(h >> 4) % UNOTES.length] });
-          }
-          return out;
+          var list = Array.isArray(p.versions) ? p.versions.slice() : [];
+          list.sort(function (a, b) { return new Date(b.date) - new Date(a.date); });
+          return list.map(function (v) { return { version: v.version, date: fmtRevDate(v.date), note: v.changelog || '' }; });
         }
         function techFor(p) {
           var h = hsh(p.id + 't');
           var size = ((h % 46) + 4) + '.' + (h % 9) + ' MB';
-          if (p.platform === 'Minecraft') {
-            return [['File Format', '.zip'], ['File Size', size], ['Compatible Versions', '1.20.x to 1.21.x']];
-          }
-          return [
-            ['File Format', '.rbxm'], ['File Size', size],
-            ['Part Count', ((h % 900) + 120).toLocaleString('en-US')],
-            ['MeshPart Count', ((h >> 3) % 260 + 20).toLocaleString('en-US')],
-            ['Union Count', ((h >> 5) % 80).toLocaleString('en-US')],
-            ['Script Count', ((h >> 7) % 40 + 3).toLocaleString('en-US')]
-          ];
+          var rows = p.platform === 'Minecraft'
+            ? [['File Format', '.zip'], ['File Size', size], ['Compatible Versions', '1.20.x to 1.21.x']]
+            : [
+                ['File Format', '.rbxm'], ['File Size', size],
+                ['Part Count', ((h % 900) + 120).toLocaleString('en-US')],
+                ['MeshPart Count', ((h >> 3) % 260 + 20).toLocaleString('en-US')],
+                ['Union Count', ((h >> 5) % 80).toLocaleString('en-US')],
+                ['Script Count', ((h >> 7) % 40 + 3).toLocaleString('en-US')]
+              ];
+          var t = p.tech || {};
+          var overrides = { 'File Format': t.format, 'File Size': t.size, 'Part Count': t.parts, 'MeshPart Count': t.meshParts, 'Union Count': t.unions, 'Script Count': t.scripts };
+          return rows.map(function (r) {
+            var ov = overrides[r[0]];
+            return (ov != null && ov !== '') ? [r[0], ov] : r;
+          });
         }
+        function formatLongDesc(text) {
+          var lines = String(text || '').split(/\r?\n/).map(function (l) { return l.trim(); }).filter(Boolean);
+          var html = '', items = [];
+          function flush() {
+            if (items.length) { html += '<ul class="pd-feat-list">' + items.map(function (i) { return '<li>' + esc(i) + '</li>'; }).join('') + '</ul>'; items = []; }
+          }
+          lines.forEach(function (line) {
+            if (/^[-*]\s+/.test(line)) items.push(line.replace(/^[-*]\s+/, ''));
+            else { flush(); html += '<p>' + esc(line) + '</p>'; }
+          });
+          flush();
+          return html;
+        }
+        function robuxRaw(n) { return 'R$ ' + Math.round(Number(n) || 0).toLocaleString('en-US'); }
         function faqFor(p) {
           var priceStr = fiat(p.priceNum);
           var list = [
@@ -1071,6 +1143,10 @@
         }
         function gallery(p) {
           var imgs = p.image ? [p.image] : [];
+          if (Array.isArray(p.gallery) && p.gallery.length) {
+            p.gallery.forEach(function (src) { if (src && imgs.indexOf(src) < 0) imgs.push(src); });
+            return imgs;
+          }
           var cat = window.__CATALOG || [];
           for (var i = 0; i < cat.length && imgs.length < 5; i++) {
             if (cat[i].platform === p.platform && cat[i].image && imgs.indexOf(cat[i].image) < 0) imgs.push(cat[i].image);
@@ -1081,21 +1157,23 @@
           if (!cur) return;
           var isResell = cur.licence === 'resell';
           var showRbx = cur.platform !== 'Minecraft' && !isResell;
-          var base = isResell ? Math.round(cur.priceNum * RESELL_MULT) : cur.priceNum;
+          var resellUsd = cur.resellPrice != null ? cur.resellPrice : Math.round(cur.priceNum * RESELL_MULT);
+          var base = isResell ? resellUsd : cur.priceNum;
           cur.price = base; cur.licence = cur.licence;
           if (pdPrice) pdPrice.textContent = fiat(base);
           if (pdPriceWas) {
             if (!isResell && cur.was > cur.priceNum) { pdPriceWas.textContent = fiat(cur.was); pdPriceWas.hidden = false; }
             else pdPriceWas.hidden = true;
           }
-          if (pdPriceRbx) { pdPriceRbx.textContent = showRbx ? robux(base) : ''; pdPriceRbx.hidden = !showRbx; }
+          if (pdPriceRbx) { pdPriceRbx.textContent = showRbx ? (cur.robuxPrice != null ? robuxRaw(cur.robuxPrice) : robux(base)) : ''; pdPriceRbx.hidden = !showRbx; }
           if (pdPriceNote) pdPriceNote.hidden = !showRbx;
           if (pdSale) pdSale.hidden = !(cur.was > cur.priceNum);
           var robuxMode = window.__currencyMode ? window.__currencyMode() === 'robux' : false;
           licPriceEls.forEach(function (el) {
             var isResellOpt = el.getAttribute('data-licprice') === 'resell';
             if (isResellOpt && robuxMode) { el.textContent = 'Not available'; return; }
-            var pp = isResellOpt ? Math.round(cur.priceNum * RESELL_MULT) : cur.priceNum;
+            if (!isResellOpt && robuxMode && cur.robuxPrice != null) { el.textContent = robuxRaw(cur.robuxPrice); return; }
+            var pp = isResellOpt ? resellUsd : cur.priceNum;
             el.textContent = window.__money ? window.__money(pp) : fiat(pp);
           });
           if (pdReferEarn) pdReferEarn.textContent = 'earn ' + fiat(Math.round(cur.priceNum * 0.2 * 100) / 100);
@@ -1164,9 +1242,11 @@
           if (!p) p = cat[0];
           if (!p) return;
           var ups = updatesFor(p);
-          var version = ups.length ? ('v1.' + ups.length) : 'v1.0';
+          var version = ups.length ? ups[0].version : 'v1.0';
           cur = { id: p.id, title: p.title, image: p.image, tag: p.cat, priceNum: p.priceNum, was: p.was || 0,
-                  price: p.priceNum, licence: 'standard', resell: p.resell, platform: p.platform };
+                  price: p.priceNum, licence: 'standard', resell: p.resell, platform: p.platform,
+                  robuxPrice: p.robuxPrice != null ? p.robuxPrice : null,
+                  resellPrice: p.resellPrice != null ? p.resellPrice : null };
 
           var catSlug = (p.cat || '').toLowerCase().replace(/&/g, 'and').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
           var crumb = '<a href="' + (p.page || '/assets') + '">' + esc(p.platform) + '</a><span>›</span>' +
@@ -1199,8 +1279,12 @@
           cur.licence = 'standard';
           refreshPrice();
 
-          if (pdAbout) pdAbout.innerHTML = '<h4>Product Features</h4><p>' + esc(p.desc || '') + ' Every coldd release ships with clean, well documented files and free lifetime updates. If you get stuck, our team is one message away.</p>' +
-            '<ul class="pd-feat-list">' + FEATURES.map(function (f) { return '<li>' + esc(f) + '</li>'; }).join('') + '</ul>';
+          if (pdAbout) {
+            pdAbout.innerHTML = '<h4>Product Features</h4>' + (p.longDesc && p.longDesc.trim()
+              ? formatLongDesc(p.longDesc)
+              : ('<p>' + esc(p.desc || '') + ' Every coldd release ships with clean, well documented files and free lifetime updates. If you get stuck, our team is one message away.</p>' +
+                 '<ul class="pd-feat-list">' + FEATURES.map(function (f) { return '<li>' + esc(f) + '</li>'; }).join('') + '</ul>'));
+          }
           if (pdTechList) pdTechList.innerHTML = techFor(p).map(function (r) { return '<div class="pd-tech-row"><dt>' + esc(r[0]) + '</dt><dd>' + esc(r[1]) + '</dd></div>'; }).join('');
 
           var revs = reviewsFor(p);

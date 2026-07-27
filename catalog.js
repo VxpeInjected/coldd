@@ -51,7 +51,15 @@
       reviews: row.reviews_count || 0,
       rating: Number(row.rating) || 0,
       platform: row.platform,
-      page: row.page
+      page: row.page,
+      createdAt: row.created_at || null,
+      robuxPrice: row.robux_price != null ? Number(row.robux_price) : null,
+      resellPrice: row.resell_price_usd != null ? Number(row.resell_price_usd) : null,
+      tech: row.tech || {},
+      versions: row.versions || [],
+      longDesc: row.long_description || '',
+      gallery: row.gallery || [],
+      video: row.video || ''
     };
   }
 

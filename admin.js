@@ -713,14 +713,20 @@
   var editDevProofFiles = [];
   var editGallery = [];
   var pendingStoragePath = null; // set when a new product file upload succeeds, sent on next save
+  var draftSlug = null; // lazily-created placeholder path prefix for uploads before the product has a real slug
 
   // Uploads a file to Storage via admin-get-upload-url, then PUTs the bytes
   // straight there (bytes never pass through our own server/functions).
-  // kind: 'thumbnail' | 'gallery' | 'productFile'. Requires the product to
-  // already exist (have a slug) since uploads are organized by slug.
+  // kind: 'thumbnail' | 'gallery' | 'productFile'. productSlug is only ever
+  // used as a Storage path prefix for organization - it doesn't need to
+  // match the product's real slug, so a brand-new unsaved product gets a
+  // throwaway draft identifier instead of blocking uploads until first save.
   function uploadToStorage(kind, file) {
     var slug = $('admEditId').value;
-    if (!slug) return Promise.reject(new Error('Save the product once first, then add files.'));
+    if (!slug) {
+      if (!draftSlug) draftSlug = 'draft-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8);
+      slug = draftSlug;
+    }
     return window.coldSupabase.functions.invoke('admin-get-upload-url', {
       body: { kind: kind, productSlug: slug, filename: file.name }
     }).then(function (res) {
@@ -930,7 +936,6 @@
   wireDropzone($('admEditFileDrop'), $('admEditFileInput'), function (files) {
     var f = files[0]; if (!f) return;
     var fileNote = $('admEditFileNote');
-    if (!$('admEditId').value) { alert('Save the product once first, then upload its file.'); return; }
     var dot = f.name.lastIndexOf('.');
     $('admEditTechFormat').value = dot >= 0 ? f.name.slice(dot).toLowerCase() : '';
     $('admEditTechSize').value = formatFileSize(f.size);

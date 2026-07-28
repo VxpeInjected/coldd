@@ -28,6 +28,24 @@
   var client = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   window.coldSupabase = client;
 
+  // supabase-js's functions.invoke() does NOT parse the JSON body into
+  // res.data on a non-2xx response - it's null, and res.error.message is
+  // always the generic "Edge Function returned a non-2xx status code".
+  // The real error body lives on res.error.context (the raw Response).
+  function invokeFn(name, body) {
+    return client.functions.invoke(name, { body: body || {} }).then(function (res) {
+      if (res.error) {
+        var ctx = res.error.context;
+        var parsed = (ctx && typeof ctx.json === 'function') ? ctx.json().catch(function () { return null; }) : Promise.resolve(null);
+        return parsed.then(function (data) {
+          throw new Error((data && data.error) || res.error.message || 'Request failed.');
+        });
+      }
+      if (!res.data || !res.data.ok) throw new Error((res.data && res.data.error) || 'Request failed.');
+      return res.data;
+    });
+  }
+
   // Reads the Discord ID out of the SDK's own persisted session (no network
   // call - same localStorage key window.coldSupabase.auth.getSession() reads
   // from), mirroring the identity_data extraction callback.html does right
@@ -108,6 +126,7 @@
   }
 
   window.coldAuth = {
+    invokeFn: invokeFn,
     saveProfile: saveProfile,
     getProfile: getProfile,
     clearProfile: clearProfile,
@@ -142,11 +161,11 @@
       location.href = 'https://apis.roblox.com/oauth/v1/authorize?' + params.toString();
     },
     unlinkRoblox: function () {
-      return client.functions.invoke('roblox-oauth-callback', { body: { unlink: true } });
+      return invokeFn('roblox-oauth-callback', { unlink: true });
     },
     robloxLinkStatus: function () {
-      return client.functions.invoke('roblox-link-status', { body: {} }).then(function (res) {
-        return (res && res.data) || { ok: false, linked: false };
+      return invokeFn('roblox-link-status', {}).catch(function () {
+        return { ok: false, linked: false };
       });
     },
     signUpEmail: function (email, password, username) {

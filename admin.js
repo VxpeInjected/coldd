@@ -50,6 +50,28 @@
   function $(id) { return document.getElementById(id); }
   function el(html) { var d = document.createElement('div'); d.innerHTML = html.trim(); return d.firstChild; }
 
+  // supabase-js's functions.invoke() does NOT put the parsed JSON body
+  // into res.data on a non-2xx response - res.data is null and res.error
+  // is a generic FunctionsHttpError whose .message is always literally
+  // "Edge Function returned a non-2xx status code". The real error body
+  // has to be read from res.error.context (the raw Response) instead, or
+  // every custom error message from every admin Edge Function call gets
+  // silently replaced by that one generic string. This wraps
+  // functions.invoke() so every call site gets the real message.
+  function invokeAdminFn(name, body, fallback) {
+    return window.coldSupabase.functions.invoke(name, { body: body || {} }).then(function (res) {
+      if (res.error) {
+        var ctx = res.error.context;
+        var parsed = (ctx && typeof ctx.json === 'function') ? ctx.json().catch(function () { return null; }) : Promise.resolve(null);
+        return parsed.then(function (data) {
+          throw new Error((data && data.error) || res.error.message || fallback || 'Request failed.');
+        });
+      }
+      if (!res.data || !res.data.ok) throw new Error((res.data && res.data.error) || fallback || 'Request failed.');
+      return res.data;
+    });
+  }
+
   function lsGet(k, fallback) {
     try { var v = localStorage.getItem(k); return v == null ? fallback : JSON.parse(v); } catch (_) { return fallback; }
   }
@@ -216,12 +238,7 @@
   function callManageOrder(orderId, action, reason) {
     var body = { orderId: orderId, action: action };
     if (reason) body.reason = reason;
-    return window.coldSupabase.functions.invoke('admin-manage-order', { body: body }).then(function (res) {
-      if (res.error || !res.data || !res.data.ok) {
-        throw new Error((res.data && res.data.error) || (res.error && res.error.message) || 'Request failed.');
-      }
-      return res.data;
-    });
+    return invokeAdminFn('admin-manage-order', body);
   }
 
   var REVIEWS = seedIfEmpty('coldd_admin_reviews_v1', function () { return (window.__REVIEWS || []).slice(); });
@@ -377,20 +394,10 @@
     }, overrides || {});
   }
   function callUpsertProduct(payload) {
-    return window.coldSupabase.functions.invoke('admin-upsert-product', { body: payload }).then(function (res) {
-      if (res.error || !res.data || !res.data.ok) {
-        throw new Error((res.data && res.data.error) || (res.error && res.error.message) || 'Save failed.');
-      }
-      return res.data;
-    });
+    return invokeAdminFn('admin-upsert-product', payload, 'Save failed.');
   }
   function callDeleteProduct(dbId) {
-    return window.coldSupabase.functions.invoke('admin-delete-product', { body: { id: dbId } }).then(function (res) {
-      if (res.error || !res.data || !res.data.ok) {
-        throw new Error((res.data && res.data.error) || (res.error && res.error.message) || 'Delete failed.');
-      }
-      return res.data;
-    });
+    return invokeAdminFn('admin-delete-product', { id: dbId }, 'Delete failed.');
   }
 
   /* ================================================================
@@ -808,13 +815,7 @@
       if (!draftSlug) draftSlug = 'draft-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8);
       slug = draftSlug;
     }
-    return window.coldSupabase.functions.invoke('admin-get-upload-url', {
-      body: { kind: kind, productSlug: slug, filename: file.name }
-    }).then(function (res) {
-      if (res.error || !res.data || !res.data.ok) {
-        throw new Error((res.data && res.data.error) || (res.error && res.error.message) || 'Could not prepare upload.');
-      }
-      var d = res.data;
+    return invokeAdminFn('admin-get-upload-url', { kind: kind, productSlug: slug, filename: file.name }, 'Could not prepare upload.').then(function (d) {
       return window.coldSupabase.storage.from(d.bucket).uploadToSignedUrl(d.path, d.token, file).then(function (upRes) {
         if (upRes.error) throw new Error(upRes.error.message || 'Upload failed.');
         return { path: d.path, publicUrl: d.publicUrl };
@@ -1787,20 +1788,10 @@
     $('admCouponCancelBtn').hidden = false;
   }
   function callUpsertCoupon(payload) {
-    return window.coldSupabase.functions.invoke('admin-upsert-coupon', { body: payload }).then(function (res) {
-      if (res.error || !res.data || !res.data.ok) {
-        throw new Error((res.data && res.data.error) || (res.error && res.error.message) || 'Could not save the code.');
-      }
-      return res.data;
-    });
+    return invokeAdminFn('admin-upsert-coupon', payload, 'Could not save the code.');
   }
   function callDeleteCoupon(code) {
-    return window.coldSupabase.functions.invoke('admin-delete-coupon', { body: { code: code } }).then(function (res) {
-      if (res.error || !res.data || !res.data.ok) {
-        throw new Error((res.data && res.data.error) || (res.error && res.error.message) || 'Could not delete the code.');
-      }
-      return res.data;
-    });
+    return invokeAdminFn('admin-delete-coupon', { code: code }, 'Could not delete the code.');
   }
   var couponsBody = $('admCouponsBody');
   if (couponsBody) couponsBody.addEventListener('click', function (e) {
@@ -1874,12 +1865,7 @@
     });
   }
   function callUpsertRobloxContainer(payload) {
-    return window.coldSupabase.functions.invoke('admin-upsert-roblox-container', { body: payload }).then(function (res) {
-      if (res.error || !res.data || !res.data.ok) {
-        throw new Error((res.data && res.data.error) || (res.error && res.error.message) || 'Save failed.');
-      }
-      return res.data;
-    });
+    return invokeAdminFn('admin-upsert-roblox-container', payload, 'Save failed.');
   }
   function resetRobloxContainerForm() {
     $('admRobloxContainerEditId').value = '';

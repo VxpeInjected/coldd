@@ -23,7 +23,7 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="/supabase-init.js?v=20260728b"></script>
+  <script src="/supabase-init.js?v=20260728c"></script>
   <script>
     (async function () {
       var msg = document.getElementById('cbMsg');
@@ -56,25 +56,13 @@
         var session = sessionRes && sessionRes.data ? sessionRes.data.session : null;
 
         if (session) {
-          var linkRes = await window.coldSupabase.functions.invoke('roblox-oauth-callback', {
-            body: { code: code, redirectUri: redirectUri }
-          });
-          var linkData = linkRes && linkRes.data;
-          if (linkRes.error || !linkData || !linkData.ok) {
-            throw new Error((linkData && linkData.error) || (linkRes.error && linkRes.error.message) || 'Linking failed.');
-          }
+          var linkData = await window.coldAuth.invokeFn('roblox-oauth-callback', { code: code, redirectUri: redirectUri });
           msg.textContent = 'Linked as ' + linkData.robloxUsername + '. Redirecting…';
           setTimeout(function () { location.href = '/dashboard?panel=account'; }, 700);
           return;
         }
 
-        var signinRes = await window.coldSupabase.functions.invoke('roblox-signin', {
-          body: { code: code, redirectUri: redirectUri }
-        });
-        var signinData = signinRes && signinRes.data;
-        if (signinRes.error || !signinData || !signinData.ok) {
-          throw new Error((signinData && signinData.error) || (signinRes.error && signinRes.error.message) || 'Sign-in failed.');
-        }
+        var signinData = await window.coldAuth.invokeFn('roblox-signin', { code: code, redirectUri: redirectUri });
 
         var verifyRes = await window.coldSupabase.auth.verifyOtp({
           email: signinData.email, token: signinData.otp, type: 'email'

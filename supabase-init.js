@@ -19,7 +19,7 @@
   // Discord guild ID above). Set once the OAuth app is created at
   // create.roblox.com/dashboard/credentials/oauth; account linking is a
   // no-op until then.
-  var ROBLOX_OAUTH_CLIENT_ID = '';
+  var ROBLOX_OAUTH_CLIENT_ID = '6729807859304248011';
 
   if (!window.supabase || !window.supabase.createClient) {
     console.error('[coldd] Supabase SDK failed to load.');

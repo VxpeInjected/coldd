@@ -55,6 +55,10 @@
         if (window.coldAuth) window.coldAuth.signInDiscord();
         return;
       }
+      if (p === 'Roblox') {
+        if (window.coldAuth) window.coldAuth.signInRoblox();
+        return;
+      }
       try { localStorage.setItem('coldd_auth', 'in'); } catch (e) {}
       location.href = '/dashboard';
     });

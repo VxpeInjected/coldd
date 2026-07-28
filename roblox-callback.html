@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <meta name="robots" content="noindex" />
-<title>Linking Roblox — coldd</title>
+<title>Signing in with Roblox — coldd</title>
 <style>
   html,body{height:100%;margin:0;background:#0a0a0a;color:#d7d7d7;font-family:'IBM Plex Mono',ui-monospace,monospace;}
   .cb-wrap{height:100%;display:flex;align-items:center;justify-content:center;}
@@ -18,7 +18,7 @@
   <div class="cb-wrap">
     <div class="cb-card">
       <div class="cb-spin" aria-hidden="true"></div>
-      <p id="cbMsg">Linking your Roblox account…</p>
+      <p id="cbMsg">Finishing with Roblox…</p>
     </div>
   </div>
 
@@ -29,7 +29,7 @@
       var msg = document.getElementById('cbMsg');
       function fail(text) {
         msg.textContent = text;
-        setTimeout(function () { location.href = '/dashboard?panel=account'; }, 2200);
+        setTimeout(function () { location.href = '/signin'; }, 2200);
       }
       try {
         if (!window.coldSupabase) throw new Error('Supabase client unavailable.');
@@ -47,26 +47,53 @@
         try { sessionStorage.removeItem('coldd_roblox_oauth_state'); } catch (e) {}
         if (!expectedState || state !== expectedState) throw new Error('State mismatch - possible CSRF, aborting.');
 
-        // The user must already be signed into coldd (this links an
-        // existing account, it isn't a primary sign-in method).
+        var redirectUri = location.origin + '/roblox-callback.html';
+
+        // If we're already signed into coldd, this is linking an existing
+        // account (started from the dashboard). Otherwise it's a primary
+        // sign-in/sign-up (started from /signin or /signup).
         var sessionRes = await window.coldSupabase.auth.getSession();
         var session = sessionRes && sessionRes.data ? sessionRes.data.session : null;
-        if (!session) throw new Error('You need to be signed in to coldd to link Roblox.');
 
-        var redirectUri = location.origin + '/roblox-callback.html';
-        var res = await window.coldSupabase.functions.invoke('roblox-oauth-callback', {
-          body: { code: code, redirectUri: redirectUri }
-        });
-        var data = res && res.data;
-        if (res.error || !data || !data.ok) {
-          throw new Error((data && data.error) || (res.error && res.error.message) || 'Linking failed.');
+        if (session) {
+          var linkRes = await window.coldSupabase.functions.invoke('roblox-oauth-callback', {
+            body: { code: code, redirectUri: redirectUri }
+          });
+          var linkData = linkRes && linkRes.data;
+          if (linkRes.error || !linkData || !linkData.ok) {
+            throw new Error((linkData && linkData.error) || (linkRes.error && linkRes.error.message) || 'Linking failed.');
+          }
+          msg.textContent = 'Linked as ' + linkData.robloxUsername + '. Redirecting…';
+          setTimeout(function () { location.href = '/dashboard?panel=account'; }, 700);
+          return;
         }
 
-        msg.textContent = 'Linked as ' + data.robloxUsername + '. Redirecting…';
-        setTimeout(function () { location.href = '/dashboard?panel=account'; }, 700);
+        var signinRes = await window.coldSupabase.functions.invoke('roblox-signin', {
+          body: { code: code, redirectUri: redirectUri }
+        });
+        var signinData = signinRes && signinRes.data;
+        if (signinRes.error || !signinData || !signinData.ok) {
+          throw new Error((signinData && signinData.error) || (signinRes.error && signinRes.error.message) || 'Sign-in failed.');
+        }
+
+        var verifyRes = await window.coldSupabase.auth.verifyOtp({
+          email: signinData.email, token: signinData.otp, type: 'email'
+        });
+        if (verifyRes.error || !verifyRes.data || !verifyRes.data.session) {
+          throw new Error((verifyRes.error && verifyRes.error.message) || 'Could not establish a session.');
+        }
+
+        window.coldAuth.saveProfile({
+          id: verifyRes.data.user.id, provider: 'roblox', name: signinData.robloxUsername,
+          email: '', avatar: signinData.avatarUrl || ''
+        });
+        try { localStorage.setItem('coldd_auth', 'in'); } catch (e) {}
+
+        msg.textContent = 'Signed in as ' + signinData.robloxUsername + '. Redirecting…';
+        setTimeout(function () { location.href = '/dashboard'; }, 700);
       } catch (err) {
         console.error('[coldd] roblox callback error:', err);
-        fail((err && err.message) || 'Could not link your Roblox account. Redirecting…');
+        fail((err && err.message) || 'Could not continue with Roblox. Redirecting…');
       }
     })();
   </script>

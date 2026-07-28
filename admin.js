@@ -66,12 +66,11 @@
   /* ================================================================
      MOCK "DATABASE" — seeded once, then persisted + mutated in
      localStorage like every other piece of state on this site
-     (cart, wishlist, owned products). There is no real backend here,
-     so these numbers are synthetic but internally consistent: orders
-     reference real catalog products and real seeded users, and every
-     aggregate (revenue, best sellers, coupon usage, referral earnings)
-     is computed live from this same order ledger rather than being
-     independently faked.
+     (cart, wishlist, owned products). Orders/order items are the one
+     exception below (real data now, see refreshOrders); everything
+     else here (users, referrals, traffic, abandoned carts) is still
+     synthetic, and every aggregate derived from it is computed live
+     rather than independently faked.
      ================================================================ */
   var CATALOG = window.__CATALOG || [];
 
@@ -155,61 +154,75 @@
     });
   });
 
-  var ORDERS = seedIfEmpty('coldd_admin_orders_v1', function () {
-    var out = [], ordId = 1000;
-    var roblox = CATALOG.filter(function (p) { return p.platform !== 'Minecraft' || true; });
-    for (var day = 119; day >= 0; day--) {
-      var date = daysAgo(day);
-      var seedBase = 'day' + day;
-      var n = hsh(seedBase) % 6; // 0-5 orders that day
-      for (var i = 0; i < n; i++) {
-        var s = seedBase + 'o' + i;
-        var h = hsh(s);
-        var product = CATALOG.length ? CATALOG[h % CATALOG.length] : null;
-        if (!product) continue;
-        var licence = (product.resell && (h % 100) < 12) ? 'resell' : 'standard';
-        var qty = 1 + ((h >> 4) % 100 < 6 ? 1 : 0);
-        var unit = licence === 'resell' ? Math.round(product.priceNum * 3) : product.priceNum;
-        var subtotal = unit * qty;
-        var couponRoll = (h >> 6) % 100;
-        var activeCoupons = COUPONS.filter(function (c) { return c.active; });
-        var coupon = (couponRoll < 14 && activeCoupons.length) ? activeCoupons[h % activeCoupons.length] : null;
-        var discount = 0;
-        if (coupon) discount = coupon.type === 'pct' ? Math.round(subtotal * coupon.val) / 100 : Math.min(coupon.val, subtotal);
-        var total = Math.round((subtotal - discount) * 100) / 100;
-        var currRoll = (h >> 9) % 100;
-        var currency = currRoll < 55 ? 'usd' : (currRoll < 75 ? 'aud' : (licence !== 'resell' ? 'robux' : 'usd'));
-        var statusRoll = (h >> 12) % 100;
-        var status = statusRoll < 4 ? 'refunded' : (statusRoll < 7 && day < 2 ? 'pending' : 'completed');
-        var refRoll = (h >> 15) % 100;
-        var refCode = refRoll < 22 ? REF_CODES[h % REF_CODES.length] : null;
-        var user = USERS.length ? USERS[h % USERS.length] : null;
-        out.push({
-          id: 'CLD-' + (ordId++),
-          date: date.toISOString(),
-          userId: user ? user.id : null,
-          userName: user ? user.name : 'guest',
-          productId: product.id,
-          title: product.title,
-          image: product.image,
-          cat: product.cat,
-          platform: product.platform,
-          licence: licence,
-          qty: qty,
-          unitPrice: unit,
-          subtotal: subtotal,
-          couponCode: coupon ? coupon.code : null,
-          discount: discount,
-          total: total,
-          currency: currency,
-          status: status,
-          refCode: refCode,
-          refundReason: status === 'refunded' ? pick(['Not as described', 'Accidental purchase', 'Technical issue', 'Duplicate charge'], s) : null
-        });
+  // Real data from public.orders/order_items, read via the signed-in
+  // admin's own session (RLS: orders_select_admin / order_items_select_admin
+  // let is_admin=true profiles see every order, not just their own).
+  // profiles are fetched separately (orders.user_id references auth.users,
+  // not public.profiles, so PostgREST can't embed it directly) via
+  // profiles_select_admin. Writes (complete/refund) go through the
+  // admin-manage-order Edge Function (service role) - never written
+  // directly from here.
+  var ORDERS = [];
+  function mapOrderRow(row, profile) {
+    var items = row.order_items || [];
+    var first = items[0] || {};
+    var product = first.product_slug ? findProduct(first.product_slug) : null;
+    var status = row.status === 'paid' ? 'completed' : (row.status === 'failed' || row.status === 'canceled') ? 'failed' : row.status;
+    return {
+      id: row.id,
+      dbId: row.id,
+      date: row.created_at,
+      userId: row.user_id,
+      userName: profile ? (profile.username || profile.email || 'user') : 'guest',
+      productId: first.product_slug || null,
+      title: items.length > 1 ? (first.title + ' +' + (items.length - 1) + ' more') : (first.title || 'Unknown item'),
+      image: product ? product.image : '',
+      cat: product ? product.cat : null,
+      platform: product ? product.platform : null,
+      licence: first.licence || 'standard',
+      qty: items.reduce(function (s, it) { return s + (it.qty || 1); }, 0),
+      unitPrice: Number(first.unit_price_usd) || 0,
+      subtotal: Number(row.subtotal_usd) || 0,
+      couponCode: row.coupon_code || null,
+      discount: Number(row.discount_usd) || 0,
+      total: Number(row.total_usd) || 0,
+      currency: row.currency || 'usd',
+      status: status,
+      refCode: null,
+      refundReason: row.refund_reason || null,
+      stripePaymentIntentId: row.stripe_payment_intent_id,
+      items: items
+    };
+  }
+  function refreshOrders() {
+    if (!window.coldSupabase) return Promise.resolve();
+    return window.coldSupabase.from('orders').select('*, order_items(*)').order('created_at', { ascending: false }).then(function (res) {
+      if (res.error) { console.error('[admin] failed to load orders:', res.error.message); return; }
+      var rows = res.data || [];
+      var userIds = rows.map(function (o) { return o.user_id; }).filter(function (v, i, arr) { return v && arr.indexOf(v) === i; });
+      if (!userIds.length) {
+        ORDERS = rows.map(function (o) { return mapOrderRow(o, null); });
+        renderAll();
+        return;
       }
-    }
-    return out;
-  });
+      return window.coldSupabase.from('profiles').select('id,username,email').in('id', userIds).then(function (pRes) {
+        var byId = {};
+        (pRes.data || []).forEach(function (p) { byId[p.id] = p; });
+        ORDERS = rows.map(function (o) { return mapOrderRow(o, byId[o.user_id]); });
+        renderAll();
+      });
+    });
+  }
+  function callManageOrder(orderId, action, reason) {
+    var body = { orderId: orderId, action: action };
+    if (reason) body.reason = reason;
+    return window.coldSupabase.functions.invoke('admin-manage-order', { body: body }).then(function (res) {
+      if (res.error || !res.data || !res.data.ok) {
+        throw new Error((res.data && res.data.error) || (res.error && res.error.message) || 'Request failed.');
+      }
+      return res.data;
+    });
+  }
 
   var REVIEWS = seedIfEmpty('coldd_admin_reviews_v1', function () { return (window.__REVIEWS || []).slice(); });
 
@@ -238,7 +251,6 @@
 
   var AUDIT = lsGet('coldd_admin_audit_v1', []);
 
-  function saveOrders() { lsSet('coldd_admin_orders_v1', ORDERS); }
   function saveUsers() { lsSet('coldd_admin_users_v1', USERS); }
   function saveSaleEvents() { lsSet('coldd_admin_sale_events_v1', SALE_EVENTS); }
   function saveStaff() { lsSet('coldd_admin_staff_v1', STAFF); }
@@ -426,6 +438,26 @@
      ================================================================ */
   function ordersInRange() { return ORDERS.filter(function (o) { return inRange(o.date); }); }
   function completedInRange() { return ordersInRange().filter(function (o) { return o.status === 'completed'; }); }
+  // Flattens completed orders' line items for product/category-level
+  // aggregation (an order can contain multiple items, unlike the old
+  // one-product-per-order mock ledger).
+  function completedItemsInRange() {
+    var out = [];
+    completedInRange().forEach(function (o) {
+      (o.items || []).forEach(function (it) {
+        var product = findProduct(it.product_slug);
+        out.push({
+          productId: it.product_slug,
+          title: it.title,
+          image: product ? product.image : o.image,
+          cat: product ? product.cat : o.cat,
+          qty: it.qty || 1,
+          revenue: (Number(it.unit_price_usd) || 0) * (it.qty || 1)
+        });
+      });
+    });
+    return out;
+  }
 
   function revenueTotals() {
     var comp = completedInRange();
@@ -435,17 +467,17 @@
   }
   function bestSellers(limit) {
     var map = {};
-    completedInRange().forEach(function (o) {
-      map[o.productId] = map[o.productId] || { id: o.productId, title: o.title, image: o.image, units: 0, revenue: 0 };
-      map[o.productId].units += o.qty;
-      map[o.productId].revenue += o.total;
+    completedItemsInRange().forEach(function (it) {
+      map[it.productId] = map[it.productId] || { id: it.productId, title: it.title, image: it.image, units: 0, revenue: 0 };
+      map[it.productId].units += it.qty;
+      map[it.productId].revenue += it.revenue;
     });
     return Object.keys(map).map(function (k) { return map[k]; }).sort(function (a, b) { return b.revenue - a.revenue; }).slice(0, limit || 6);
   }
   function revenueByCategory() {
     var map = {};
-    completedInRange().forEach(function (o) {
-      map[o.cat] = (map[o.cat] || 0) + o.total;
+    completedItemsInRange().forEach(function (it) {
+      map[it.cat] = (map[it.cat] || 0) + it.revenue;
     });
     return Object.keys(map).map(function (k) { return { label: k, v: map[k] }; }).sort(function (a, b) { return b.v - a.v; });
   }
@@ -479,13 +511,19 @@
     return comp.reduce(function (s, o) { return s + o.total; }, 0) / comp.length;
   }
   function couponStats() {
-    // Real usage_count/limit come straight off the coupons table itself now
-    // (incremented server-side in create-checkout-session on each order that
-    // uses the code). Per-code revenue/discount-given totals would need the
-    // real orders table wired up in the admin panel, which isn't done yet -
-    // the admin Orders panel is still the old mock ledger.
+    // usage_count/limit come straight off the coupons table (incremented
+    // server-side in create-checkout-session). discountGiven/revenue are
+    // computed live from the real orders table's coupon_code/discount_usd.
+    var byCode = {};
+    completedInRange().forEach(function (o) {
+      if (!o.couponCode) return;
+      byCode[o.couponCode] = byCode[o.couponCode] || { discountGiven: 0, revenue: 0 };
+      byCode[o.couponCode].discountGiven += o.discount;
+      byCode[o.couponCode].revenue += o.total;
+    });
     return COUPONS.map(function (c) {
-      return { code: c.code, active: c.active, limit: c.limit, uses: c.usageCount, discountGiven: null, revenue: null };
+      var s = byCode[c.code];
+      return { code: c.code, active: c.active, limit: c.limit, uses: c.usageCount, discountGiven: s ? s.discountGiven : 0, revenue: s ? s.revenue : 0 };
     });
   }
 
@@ -658,7 +696,10 @@
   var ADM_ICON_KEBAB = '<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><circle cx="12" cy="5" r="1.75"/><circle cx="12" cy="12" r="1.75"/><circle cx="12" cy="19" r="1.75"/></svg>';
 
   function purchaseCount(id) {
-    return ORDERS.filter(function (o) { return o.productId === id && o.status !== 'refunded'; }).length;
+    return ORDERS.filter(function (o) {
+      if (o.status === 'refunded') return false;
+      return (o.items || []).some(function (it) { return it.product_slug === id; });
+    }).length;
   }
   function sortProducts(list) {
     var mode = PROD_SORT || 'newest';
@@ -1365,7 +1406,8 @@
     { value: 'all', label: 'All statuses' },
     { value: 'completed', label: 'Completed' },
     { value: 'pending', label: 'Pending' },
-    { value: 'refunded', label: 'Refunded' }
+    { value: 'refunded', label: 'Refunded' },
+    { value: 'failed', label: 'Failed' }
   ], 'all');
   function renderOrders() {
     var statusF = orderStatusDropdown.getValue() || 'all';
@@ -1397,13 +1439,24 @@
     var o = ORDERS.filter(function (x) { return x.id === id; })[0]; if (!o) return;
     if (e.target.classList.contains('adm-order-complete')) {
       if (!can('support')) return;
-      o.status = 'completed'; saveOrders(); logAudit('Marked order ' + id + ' completed');
-      renderOrders(); if (curPanel === 'home') renderHome();
+      e.target.disabled = true;
+      callManageOrder(o.dbId, 'complete').then(function () {
+        logAudit('Marked order ' + id + ' completed');
+        return refreshOrders();
+      }).catch(function (err) {
+        e.target.disabled = false;
+        alert(err.message || 'Could not update the order.');
+      });
     } else if (e.target.classList.contains('adm-order-refund')) {
       if (!can('support')) return;
-      o.status = 'refunded'; o.refundReason = o.refundReason || 'Manual refund by staff';
-      saveOrders(); logAudit('Refunded order ' + id + ' (' + usd(o.total) + ')');
-      renderOrders(); renderRefunds();
+      e.target.disabled = true;
+      callManageOrder(o.dbId, 'refund', 'Manual refund by staff').then(function () {
+        logAudit('Refunded order ' + id + ' (' + usd(o.total) + ')');
+        return refreshOrders();
+      }).catch(function (err) {
+        e.target.disabled = false;
+        alert(err.message || 'Could not process the refund.');
+      });
     }
   });
   var orderSearchInput = $('admOrderSearch');
@@ -1434,9 +1487,14 @@
     var tr = e.target.closest('tr'); var id = tr.getAttribute('data-id');
     var o = ORDERS.filter(function (x) { return x.id === id; })[0]; if (!o) return;
     var reason = prompt('Refund reason for ' + id + ':', 'Requested by customer') || 'Requested by customer';
-    o.status = 'refunded'; o.refundReason = reason;
-    saveOrders(); logAudit('Issued refund for ' + id + ' — ' + reason);
-    renderRefunds(); renderOrders();
+    e.target.disabled = true;
+    callManageOrder(o.dbId, 'refund', reason).then(function () {
+      logAudit('Issued refund for ' + id + ' — ' + reason);
+      return refreshOrders();
+    }).catch(function (err) {
+      e.target.disabled = false;
+      alert(err.message || 'Could not process the refund.');
+    });
   });
 
   /* ================================================================
@@ -1542,14 +1600,16 @@
     var u = USERS.filter(function (x) { return x.id === userId; })[0];
     var p = findProduct(prodId);
     if (!u || !p) return;
+    // No admin-grant-product Edge Function exists yet, so this only adds
+    // a local, in-memory row for immediate feedback - it is NOT written to
+    // the real orders table and will disappear on the next refreshOrders().
     ORDERS.unshift({
       id: 'CLD-GRANT-' + Date.now().toString(36).toUpperCase(),
       date: new Date().toISOString(), userId: u.id, userName: u.name,
       productId: p.id, title: p.title, image: p.image, cat: p.cat, platform: p.platform,
       licence: 'standard', qty: 1, unitPrice: 0, subtotal: 0, couponCode: null, discount: 0, total: 0,
-      currency: 'usd', status: 'completed', refCode: null, refundReason: null, granted: true
+      currency: 'usd', status: 'completed', refCode: null, refundReason: null, granted: true, items: []
     });
-    saveOrders();
     logAudit('Manually granted "' + p.title + '" to ' + u.name);
     var msg = $('admGrantMsg'); if (msg) { msg.textContent = 'Granted "' + p.title + '" to ' + u.name + '.'; setTimeout(function () { msg.textContent = ''; }, 3000); }
     renderUsers(); if (curPanel === 'orders') renderOrders();
@@ -2171,6 +2231,6 @@
      ================================================================ */
   renderTopbar();
   showPanel('home');
-  refreshProducts();
+  refreshProducts().then(function () { return refreshOrders(); });
   refreshCoupons();
 })();

@@ -837,6 +837,39 @@
       function subtotal() { return cart.reduce(function (s, i) { return s + i.price * i.qty; }, 0); }
 
       var ROBUX_PER_USD = 80;
+
+      // The flat 80-Robux-per-$1 conversion (window.__robux/__money) is
+      // only a display estimate for arbitrary numbers - it ignores each
+      // product's real admin-configured robux_price (which reflects
+      // Roblox's DevEx markup and can differ from a flat conversion).
+      // product.html already prefers that real price when set; the cart/
+      // checkout need to do the same instead of showing a generic
+      // estimate. Robux pricing doesn't support resell licences (matches
+      // product.html, which shows "Not available" for that combo).
+      function catalogRobuxPrice(id) {
+        var baseId = String(id).replace(/--resell$/, '').replace(/--bundle$/, '');
+        var p = (window.__CATALOG || []).filter(function (c) { return c.id === baseId; })[0];
+        return p && p.robuxPrice != null ? p.robuxPrice : null;
+      }
+      function itemUnitMoney(item) {
+        if (window.__currencyMode && window.__currencyMode() === 'robux' && item.licence !== 'resell') {
+          var rbx = catalogRobuxPrice(item.id);
+          if (rbx != null) return 'R$ ' + Math.round(rbx).toLocaleString('en-US');
+        }
+        return money(item.price);
+      }
+      function subtotalMoney() {
+        if (window.__currencyMode && window.__currencyMode() === 'robux') {
+          var total = 0, allPriced = true;
+          cart.forEach(function (i) {
+            var rbx = i.licence !== 'resell' ? catalogRobuxPrice(i.id) : null;
+            if (rbx == null) { allPriced = false; return; }
+            total += rbx * i.qty;
+          });
+          if (allPriced) return 'R$ ' + Math.round(total).toLocaleString('en-US');
+        }
+        return money(subtotal());
+      }
       var payOverlay = document.getElementById('payOverlay');
       var payUsdAmt = document.getElementById('payUsdAmt');
       var payRobuxAmt = document.getElementById('payRobuxAmt');
@@ -868,9 +901,10 @@
           countEl.classList.remove('bump'); void countEl.offsetWidth; countEl.classList.add('bump');
         }
         if (headCount) headCount.textContent = c + (c === 1 ? ' item' : ' items');
-        if (fabTotal) fabTotal.textContent = money(subtotal());
+        if (fabTotal) fabTotal.textContent = subtotalMoney();
         if (fab) fab.classList.toggle('has-items', c > 0);
       }
+      window.addEventListener('currencychange', function () { updateBadge(); renderCart(); });
       function clearCart() { cart = []; save(); updateBadge(); renderCart(); }
       function add(item) {
         var lic = item.licence || 'standard';
@@ -897,7 +931,7 @@
           row.innerHTML =
             '<span class="ci-thumb" style="background-image:url(\'' + i.image + '\')"></span>' +
             '<div class="ci-info"><div class="ci-title">' + esc(i.title) + (i.licence === 'resell' ? ' <span style="color:var(--accent);font-size:11px;font-weight:700;">· RESELL</span>' : '') + '</div>' +
-            '<div class="ci-price">' + money(i.price) + '</div></div>' +
+            '<div class="ci-price">' + itemUnitMoney(i) + '</div></div>' +
             '<div class="ci-qty"><button type="button" data-act="dec" aria-label="Decrease">−</button>' +
             '<span>' + i.qty + '</span><button type="button" data-act="inc" aria-label="Increase">+</button></div>' +
             '<button class="ci-remove" type="button" data-act="rm" aria-label="Remove">×</button>';
@@ -910,7 +944,7 @@
           row.querySelector('.ci-info').addEventListener('click', reopen);
           itemsEl.appendChild(row);
         });
-        if (subEl) subEl.textContent = money(subtotal());
+        if (subEl) subEl.textContent = subtotalMoney();
       }
       function openCart() { renderCart(); if (overlay) overlay.hidden = false;
         if (drawer) { drawer.classList.add('open'); drawer.setAttribute('aria-hidden', 'false'); }
@@ -1835,6 +1869,35 @@
 
       function subtotal() { return cart.reduce(function (s, i) { return s + i.price * i.qty; }, 0); }
 
+      // Same fix as the cart drawer (app.js's other IIFE): don't
+      // estimate Robux with a flat 80-per-$1 conversion - use each
+      // product's real admin-configured robux_price when set. Resell
+      // licences aren't priced in Robux (matches product.html).
+      function catalogRobuxPrice(id) {
+        var baseId = String(id).replace(/--resell$/, '').replace(/--bundle$/, '');
+        var p = (window.__CATALOG || []).filter(function (c) { return c.id === baseId; })[0];
+        return p && p.robuxPrice != null ? p.robuxPrice : null;
+      }
+      function lineMoney(item) {
+        if (window.__currencyMode && window.__currencyMode() === 'robux' && item.licence !== 'resell') {
+          var rbx = catalogRobuxPrice(item.id);
+          if (rbx != null) return 'R$ ' + Math.round(rbx * item.qty).toLocaleString('en-US');
+        }
+        return money(item.price * item.qty);
+      }
+      function subtotalMoney() {
+        if (window.__currencyMode && window.__currencyMode() === 'robux') {
+          var total = 0, allPriced = true;
+          cart.forEach(function (i) {
+            var rbx = i.licence !== 'resell' ? catalogRobuxPrice(i.id) : null;
+            if (rbx == null) { allPriced = false; return; }
+            total += rbx * i.qty;
+          });
+          if (allPriced) return 'R$ ' + Math.round(total).toLocaleString('en-US');
+        }
+        return money(subtotal());
+      }
+
       function cartToItems() {
         return cart.map(function (i) {
           var licence = i.id.indexOf('--resell') !== -1 ? 'resell' : 'standard';
@@ -1860,7 +1923,7 @@
           var lic = i.licence === 'resell' ? ' · Resell licence' : '';
           row.innerHTML = '<span class="co-item-thumb" style="background-image:url(\'' + i.image + '\')"></span>' +
             '<div class="co-item-info"><div class="co-item-title">' + i.title + '</div><div class="co-item-sub">Qty ' + i.qty + lic + '</div></div>' +
-            '<span class="co-item-price">' + money(i.price * i.qty) + '</span>';
+            '<span class="co-item-price">' + lineMoney(i) + '</span>';
           itemsEl.appendChild(row);
         });
       }
@@ -1869,7 +1932,7 @@
         var disc = computeDiscount(sub);
         var total = Math.max(0, sub - disc);
         var set = function (id, v) { var el = document.getElementById(id); if (el) el.textContent = v; };
-        set('coSubtotal', money(sub));
+        set('coSubtotal', subtotalMoney());
         var discLine = document.getElementById('coDiscLine');
         if (discLine) {
           discLine.hidden = disc <= 0;
@@ -1879,7 +1942,7 @@
           }
         }
         set('coTax', money(0));
-        set('coTotal', money(total));
+        set('coTotal', disc > 0 ? money(total) : subtotalMoney());
         var fx = document.getElementById('coFx');
         if (fx) fx.textContent = 'All prices in USD. Your card is charged in USD via Stripe.';
         return total;

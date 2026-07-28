@@ -15,6 +15,12 @@
   // server-side RLS keyed off profiles.is_admin once the backend is live.
   var ADMIN_WHITELIST = ['1327350011054526505', '1253736765986967622'];
 
+  // Roblox OAuth app client ID (public, safe to inline - same as the
+  // Discord guild ID above). Set once the OAuth app is created at
+  // create.roblox.com/dashboard/credentials/oauth; account linking is a
+  // no-op until then.
+  var ROBLOX_OAUTH_CLIENT_ID = '';
+
   if (!window.supabase || !window.supabase.createClient) {
     console.error('[coldd] Supabase SDK failed to load.');
     return;
@@ -114,6 +120,33 @@
       client.auth.signInWithOAuth({
         provider: 'discord',
         options: { redirectTo: redirectTo, scopes: 'identify email guilds guilds.members.read' }
+      });
+    },
+    // Roblox isn't a Supabase-native OAuth provider, so this is a hand-
+    // rolled OAuth2 redirect (unlike signInDiscord above) - the code
+    // exchange happens server-side in roblox-oauth-callback, invoked from
+    // roblox-callback.html. Links an existing coldd account; not a
+    // primary sign-in method.
+    signInRoblox: function () {
+      if (!ROBLOX_OAUTH_CLIENT_ID) { console.error('[coldd] Roblox OAuth client ID not configured yet.'); return; }
+      var redirectUri = location.origin + '/roblox-callback.html';
+      var state = Math.random().toString(36).slice(2) + Date.now().toString(36);
+      try { sessionStorage.setItem('coldd_roblox_oauth_state', state); } catch (e) {}
+      var params = new URLSearchParams({
+        client_id: ROBLOX_OAUTH_CLIENT_ID,
+        redirect_uri: redirectUri,
+        scope: 'openid profile',
+        response_type: 'code',
+        state: state
+      });
+      location.href = 'https://apis.roblox.com/oauth/v1/authorize?' + params.toString();
+    },
+    unlinkRoblox: function () {
+      return client.functions.invoke('roblox-oauth-callback', { body: { unlink: true } });
+    },
+    robloxLinkStatus: function () {
+      return client.functions.invoke('roblox-link-status', { body: {} }).then(function (res) {
+        return (res && res.data) || { ok: false, linked: false };
       });
     },
     signUpEmail: function (email, password, username) {

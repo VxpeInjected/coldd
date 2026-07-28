@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="robots" content="noindex" />
+<title>Linking Roblox — coldd</title>
+<style>
+  html,body{height:100%;margin:0;background:#0a0a0a;color:#d7d7d7;font-family:'IBM Plex Mono',ui-monospace,monospace;}
+  .cb-wrap{height:100%;display:flex;align-items:center;justify-content:center;}
+  .cb-card{border:1px solid #262626;background:#111;padding:32px 36px;text-align:center;min-width:280px;}
+  .cb-spin{width:22px;height:22px;margin:0 auto 16px;border:2px solid #262626;border-top-color:#b23a3a;border-radius:50%;animation:cbspin .8s linear infinite;}
+  @keyframes cbspin{to{transform:rotate(360deg);}}
+  .cb-card p{margin:0;font-size:13px;letter-spacing:.02em;color:#a3a3a3;}
+</style>
+</head>
+<body>
+  <div class="cb-wrap">
+    <div class="cb-card">
+      <div class="cb-spin" aria-hidden="true"></div>
+      <p id="cbMsg">Linking your Roblox account…</p>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="/supabase-init.js?v=20260728a"></script>
+  <script>
+    (async function () {
+      var msg = document.getElementById('cbMsg');
+      function fail(text) {
+        msg.textContent = text;
+        setTimeout(function () { location.href = '/dashboard?panel=account'; }, 2200);
+      }
+      try {
+        if (!window.coldSupabase) throw new Error('Supabase client unavailable.');
+
+        var params = new URLSearchParams(location.search);
+        var error = params.get('error');
+        if (error) throw new Error('Roblox denied the request: ' + error);
+
+        var code = params.get('code');
+        var state = params.get('state');
+        if (!code) throw new Error('No authorization code returned.');
+
+        var expectedState = null;
+        try { expectedState = sessionStorage.getItem('coldd_roblox_oauth_state'); } catch (e) {}
+        try { sessionStorage.removeItem('coldd_roblox_oauth_state'); } catch (e) {}
+        if (!expectedState || state !== expectedState) throw new Error('State mismatch - possible CSRF, aborting.');
+
+        // The user must already be signed into coldd (this links an
+        // existing account, it isn't a primary sign-in method).
+        var sessionRes = await window.coldSupabase.auth.getSession();
+        var session = sessionRes && sessionRes.data ? sessionRes.data.session : null;
+        if (!session) throw new Error('You need to be signed in to coldd to link Roblox.');
+
+        var redirectUri = location.origin + '/roblox-callback.html';
+        var res = await window.coldSupabase.functions.invoke('roblox-oauth-callback', {
+          body: { code: code, redirectUri: redirectUri }
+        });
+        var data = res && res.data;
+        if (res.error || !data || !data.ok) {
+          throw new Error((data && data.error) || (res.error && res.error.message) || 'Linking failed.');
+        }
+
+        msg.textContent = 'Linked as ' + data.robloxUsername + '. Redirecting…';
+        setTimeout(function () { location.href = '/dashboard?panel=account'; }, 700);
+      } catch (err) {
+        console.error('[coldd] roblox callback error:', err);
+        fail((err && err.message) || 'Could not link your Roblox account. Redirecting…');
+      }
+    })();
+  </script>
+</body>
+</html>

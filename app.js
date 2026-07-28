@@ -1628,6 +1628,32 @@
         });
       }
 
+      var robloxStatusEl = document.getElementById('robloxLinkStatus');
+      var robloxLinkBtn = document.getElementById('robloxLinkBtn');
+      var robloxUnlinkBtn = document.getElementById('robloxUnlinkBtn');
+      if (robloxStatusEl && window.coldAuth && window.coldSupabase) {
+        window.coldAuth.robloxLinkStatus().then(function (res) {
+          if (res && res.ok && res.linked) {
+            robloxStatusEl.textContent = 'Linked as ' + res.robloxUsername + '.';
+            if (robloxUnlinkBtn) robloxUnlinkBtn.hidden = false;
+          } else {
+            robloxStatusEl.textContent = 'Not linked yet. Link your Roblox account to pay with Robux.';
+            if (robloxLinkBtn) robloxLinkBtn.hidden = false;
+          }
+        }).catch(function () {
+          robloxStatusEl.textContent = 'Could not check Roblox link status.';
+        });
+      }
+      if (robloxLinkBtn) robloxLinkBtn.addEventListener('click', function () { window.coldAuth.signInRoblox(); });
+      if (robloxUnlinkBtn) robloxUnlinkBtn.addEventListener('click', function () {
+        robloxUnlinkBtn.disabled = true;
+        window.coldAuth.unlinkRoblox().then(function () {
+          robloxUnlinkBtn.hidden = true;
+          if (robloxLinkBtn) robloxLinkBtn.hidden = false;
+          if (robloxStatusEl) robloxStatusEl.textContent = 'Not linked yet. Link your Roblox account to pay with Robux.';
+        }).finally(function () { robloxUnlinkBtn.disabled = false; });
+      });
+
       var refCopy = document.getElementById('refCopy');
       if (refCopy) refCopy.addEventListener('click', function () {
         var inp = document.getElementById('refLink'); if (!inp) return;

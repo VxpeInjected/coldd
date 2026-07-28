@@ -11,6 +11,7 @@
 // (products_select_active requires is_active = true).
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { updateGamepass } from "../_shared/roblox.ts";
 
 const ALLOWED_ORIGIN = "https://coldd.dev";
 
@@ -57,8 +58,23 @@ Deno.serve(async (req: Request) => {
     const id = String(body.id || "");
     if (!id) return json({ ok: false, error: "Missing product id." }, 400);
 
+    const { data: product } = await admin
+      .from("products")
+      .select("roblox_gamepass_id, roblox_universe_id")
+      .eq("id", id)
+      .maybeSingle();
+
     const { error: updateErr } = await admin.from("products").update({ is_active: false }).eq("id", id);
     if (updateErr) return json({ ok: false, error: "Could not remove product." }, 500);
+
+    // Roblox has no delete endpoint for gamepasses - the closest
+    // equivalent to soft-deleting the product is taking it off sale.
+    // Best-effort: the product is already removed either way.
+    if (product?.roblox_gamepass_id && product.roblox_universe_id) {
+      updateGamepass(product.roblox_universe_id, product.roblox_gamepass_id, { isForSale: false }).catch((err) => {
+        console.warn("[admin-delete-product] could not disable gamepass:", err);
+      });
+    }
 
     return json({ ok: true });
   } catch (err) {

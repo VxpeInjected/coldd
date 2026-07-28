@@ -59,6 +59,7 @@
             <a href="#" data-panel="reviews"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m12 2 3 6 6.5 1-4.7 4.6 1.1 6.4L12 17l-5.9 3 1.1-6.4L2.5 9 9 8z"/></svg><span>Reviews</span></a>
             <a href="#" data-panel="users"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="4"/><path d="M2 21c0-4 3.5-6 7-6s7 2 7 6"/><path d="M16 3.5a4 4 0 0 1 0 7.8"/><path d="M18 14.5c2.5.6 4 2.2 4 5.5"/></svg><span>Users</span></a>
             <a href="#" data-panel="sales"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5H4a1 1 0 0 0-1 1v4a2.5 2.5 0 0 1 0 5v4a1 1 0 0 0 1 1h5"/><path d="M15 19h5a1 1 0 0 0 1-1v-4a2.5 2.5 0 0 1 0-5V5a1 1 0 0 0-1-1h-5"/><path d="M9 5v14M9 8h.01M9 12h.01M9 16h.01"/></svg><span>Sales &amp; Discounts</span></a>
+            <a href="#" data-panel="roblox"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M9 9l6 6M15 9l-6 6"/></svg><span>Roblox</span></a>
             <a href="#" data-panel="posts"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4Z"/></svg><span>Blog Posts</span></a>
             <a href="#" data-panel="tutorials"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg><span>Tutorials</span></a>
             <a href="#" data-panel="releases"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg><span>Releases</span></a>
@@ -222,6 +223,7 @@
                     <span class="adm-hint" id="admEditDevexHint"></span>
                   </label>
                 </div>
+                <p class="adm-hint" id="admGamepassStatus"></p>
 
                 <label class="adm-field-check" style="margin-top:20px;"><input type="checkbox" id="admEditResell" /> <span>Resell licence available</span></label>
                 <label class="adm-field" id="admEditResellPriceWrap" hidden style="margin-top:12px;max-width:260px;">
@@ -571,6 +573,28 @@
             </div>
           </section>
 
+          <section class="dash-panel" id="adm-panel-roblox" hidden>
+            <div class="dash-head"><h1>Roblox</h1><p>Container games that Robux gamepasses get created in. Roblox caps a game at 50 gamepasses and has no API to create new experiences, so add empty ones here as you need more room.</p></div>
+            <div class="dash-card glass dash-tablewrap">
+              <table class="dash-table">
+                <thead><tr><th>Universe ID</th><th>Label</th><th>Gamepasses</th><th>Status</th><th>Actions</th></tr></thead>
+                <tbody id="admRobloxContainersBody"></tbody>
+              </table>
+            </div>
+            <div class="dash-card glass">
+              <div class="dash-card-head"><h2 id="admRobloxContainerFormTitle">Add container game</h2></div>
+              <p class="adm-hint">Create an empty experience in Roblox Studio first, add it to your Open Cloud API key's <code>game-passes</code> permission list at <a href="https://create.roblox.com/dashboard/credentials" target="_blank" rel="noopener">create.roblox.com/dashboard/credentials</a>, then register its Universe ID here.</p>
+              <form class="adm-form" id="admRobloxContainerForm" style="flex-wrap:wrap;">
+                <input type="hidden" id="admRobloxContainerEditId" />
+                <input type="text" id="admRobloxContainerUniverseId" class="adm-input" placeholder="Universe ID" required />
+                <input type="text" id="admRobloxContainerLabel" class="adm-input" placeholder="Label (optional)" style="flex:1;min-width:200px;" />
+                <button class="btn btn-primary adm-btn-sm" type="submit" id="admRobloxContainerSubmitBtn">Add container</button>
+                <button class="btn btn-ghost adm-btn-sm" type="button" id="admRobloxContainerCancelBtn" hidden>Cancel edit</button>
+              </form>
+              <div class="adm-edit-msg" id="admRobloxContainerMsg"></div>
+            </div>
+          </section>
+
           <section class="dash-panel" id="adm-panel-posts" hidden>
             <div class="dash-head"><h1>Blog posts</h1><p>Write, edit, and publish articles for the public blog.</p></div>
             <div class="adm-toolbar">
@@ -705,6 +729,6 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script src="/supabase-init.js?v=20260728b"></script>
-  <script src="/catalog.js?v=20260727f" data-then="/blog.js?v=20260727c,/reviews.js?v=20260727c,/admin.js?v=20260728a"></script>
+  <script src="/catalog.js?v=20260727f" data-then="/blog.js?v=20260727c,/reviews.js?v=20260727c,/admin.js?v=20260728b"></script>
 </body>
 </html>

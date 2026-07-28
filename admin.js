@@ -330,6 +330,8 @@
       }),
       versions: row.versions || [],
       visible: !!row.is_active,
+      robloxGamepassId: row.roblox_gamepass_id || null,
+      robloxUniverseId: row.roblox_universe_id || null,
       platform: row.platform,
       page: row.page,
       createdAt: row.created_at || null,
@@ -530,7 +532,7 @@
   /* ================================================================
      NAV / PANEL SWITCHING
      ================================================================ */
-  var PANELS = ['home', 'analytics', 'products', 'product-edit', 'product-update', 'orders', 'refunds', 'reviews', 'users', 'sales', 'posts', 'tutorials', 'releases', 'staff', 'audit'];
+  var PANELS = ['home', 'analytics', 'products', 'product-edit', 'product-update', 'orders', 'refunds', 'reviews', 'users', 'sales', 'roblox', 'posts', 'tutorials', 'releases', 'staff', 'audit'];
   var curPanel = 'home';
   function showPanel(name) {
     if (PANELS.indexOf(name) < 0) name = 'home';
@@ -552,6 +554,7 @@
     else if (name === 'reviews') renderReviews();
     else if (name === 'users') renderUsers();
     else if (name === 'sales') { renderEvents(); renderCoupons(); }
+    else if (name === 'roblox') renderRobloxContainers();
     else if (name === 'posts') renderPosts();
     else if (name === 'tutorials') renderTutorials();
     else if (name === 'releases') renderReleases();
@@ -967,6 +970,16 @@
     }).join('');
   }
 
+  function renderGamepassStatus(p) {
+    var el = $('admGamepassStatus'); if (!el) return;
+    if (!p || p.platform !== 'Roblox') { el.textContent = ''; return; }
+    if (p.robloxGamepassId) {
+      el.textContent = 'Roblox gamepass linked (universe ' + p.robloxUniverseId + ', pass ' + p.robloxGamepassId + '). Price syncs on save.';
+    } else {
+      el.textContent = 'Not linked to a Roblox gamepass yet - one will be created on save.';
+    }
+  }
+
   function openProductEdit(id) {
     var p = findProduct(id); if (!p) return;
     pendingStoragePath = null;
@@ -987,6 +1000,7 @@
     $('admEditSaveBtn').textContent = 'Save changes';
     $('admEditMsg').textContent = '';
     updateDevexHint();
+    renderGamepassStatus(p);
 
     var tech = p.tech || {};
     $('admEditTechFormat').value = tech.format || '';
@@ -1144,6 +1158,7 @@
     $('admEditTitleInput').value = '';
     $('admEditPrice').value = 0;
     $('admEditRobuxPrice').value = '';
+    renderGamepassStatus(null);
     setEditPlatform('Roblox', null);
     document.querySelectorAll('#admEditPlatformToggle .adm-platform-btn').forEach(function (b) { b.disabled = false; });
     $('admEditSubtext').value = '';
@@ -1247,7 +1262,7 @@
           if (saveBtn) saveBtn.disabled = false;
           var created = allProducts().filter(function (p) { return p.dbId === res.id; })[0];
           if (created) openProductEdit(created.id);
-          if (msg) msg.textContent = 'Created.';
+          if (msg) msg.textContent = res.robloxWarning || 'Created.';
         });
       }).catch(function (err) {
         if (saveBtn) saveBtn.disabled = false;
@@ -1261,13 +1276,17 @@
     if (pendingStoragePath) fields.storagePath = pendingStoragePath;
     if (saveBtn) saveBtn.disabled = true;
     if (msg) msg.textContent = 'Saving…';
-    callUpsertProduct(upsertPayloadFor(p, fields)).then(function () {
+    var savedRobloxWarning;
+    callUpsertProduct(upsertPayloadFor(p, fields)).then(function (res) {
+      savedRobloxWarning = res && res.robloxWarning;
       logAudit('Updated product "' + fields.title + '"');
       pendingStoragePath = null;
       return refreshProducts();
     }).then(function () {
       if (saveBtn) saveBtn.disabled = false;
-      if (msg) msg.textContent = 'Saved.';
+      if (msg) msg.textContent = savedRobloxWarning || 'Saved.';
+      var updated = findProduct(id);
+      if (updated) renderGamepassStatus(updated);
     }).catch(function (err) {
       if (saveBtn) saveBtn.disabled = false;
       if (msg) msg.textContent = err.message || 'Could not save product.';
@@ -1843,6 +1862,92 @@
   });
 
   /* ================================================================
+     ROBLOX PANEL (container game pool that gamepasses get created in)
+     ================================================================ */
+  var ROBLOX_CONTAINERS = [];
+  function refreshRobloxContainers() {
+    if (!window.coldSupabase) return Promise.resolve();
+    return window.coldSupabase.from('roblox_containers').select('*').order('created_at').then(function (res) {
+      if (res.error) { console.error('[admin] failed to load roblox containers:', res.error.message); return; }
+      ROBLOX_CONTAINERS = res.data || [];
+      if (curPanel === 'roblox') renderRobloxContainers();
+    });
+  }
+  function callUpsertRobloxContainer(payload) {
+    return window.coldSupabase.functions.invoke('admin-upsert-roblox-container', { body: payload }).then(function (res) {
+      if (res.error || !res.data || !res.data.ok) {
+        throw new Error((res.data && res.data.error) || (res.error && res.error.message) || 'Save failed.');
+      }
+      return res.data;
+    });
+  }
+  function resetRobloxContainerForm() {
+    $('admRobloxContainerEditId').value = '';
+    $('admRobloxContainerUniverseId').value = '';
+    $('admRobloxContainerLabel').value = '';
+    $('admRobloxContainerFormTitle').textContent = 'Add container game';
+    $('admRobloxContainerSubmitBtn').textContent = 'Add container';
+    $('admRobloxContainerCancelBtn').hidden = true;
+  }
+  function renderRobloxContainers() {
+    var body = $('admRobloxContainersBody'); if (!body) return;
+    body.innerHTML = ROBLOX_CONTAINERS.map(function (c) {
+      var full = c.gamepass_count >= 50;
+      var statusBadge = !c.active ? '<span class="dt-badge warn">Disabled</span>' : full ? '<span class="dt-badge err">Full</span>' : '<span class="dt-badge ok">Open</span>';
+      return '<tr data-id="' + esc(c.id) + '">' +
+        '<td class="dt-mono">' + esc(c.universe_id) + '</td>' +
+        '<td>' + esc(c.label || '') + '</td>' +
+        '<td>' + c.gamepass_count + ' / 50</td>' +
+        '<td>' + statusBadge + '</td>' +
+        '<td class="adm-row-actions">' +
+          '<button class="btn btn-ghost adm-btn-sm adm-roblox-edit" type="button">Edit</button>' +
+          '<button class="btn btn-ghost adm-btn-sm adm-roblox-toggle" type="button">' + (c.active ? 'Disable' : 'Enable') + '</button>' +
+        '</td></tr>';
+    }).join('') || '<tr><td colspan="5" class="adm-empty">No container games registered yet.</td></tr>';
+  }
+  var robloxContainersBody = $('admRobloxContainersBody');
+  if (robloxContainersBody) robloxContainersBody.addEventListener('click', function (e) {
+    var tr = e.target.closest('tr'); if (!tr) return;
+    var id = tr.getAttribute('data-id');
+    var c = ROBLOX_CONTAINERS.filter(function (x) { return x.id === id; })[0]; if (!c) return;
+    if (e.target.classList.contains('adm-roblox-edit')) {
+      $('admRobloxContainerEditId').value = c.id;
+      $('admRobloxContainerUniverseId').value = c.universe_id;
+      $('admRobloxContainerLabel').value = c.label || '';
+      $('admRobloxContainerFormTitle').textContent = 'Edit container game';
+      $('admRobloxContainerSubmitBtn').textContent = 'Save changes';
+      $('admRobloxContainerCancelBtn').hidden = false;
+    } else if (e.target.classList.contains('adm-roblox-toggle')) {
+      callUpsertRobloxContainer({ id: c.id, universeId: c.universe_id, label: c.label, active: !c.active }).then(function () {
+        logAudit((c.active ? 'Disabled' : 'Enabled') + ' Roblox container ' + c.universe_id);
+        return refreshRobloxContainers();
+      }).catch(function (err) { alert(err.message || 'Could not update the container.'); });
+    }
+  });
+  var robloxContainerCancelBtn = $('admRobloxContainerCancelBtn');
+  if (robloxContainerCancelBtn) robloxContainerCancelBtn.addEventListener('click', resetRobloxContainerForm);
+  var robloxContainerForm = $('admRobloxContainerForm');
+  if (robloxContainerForm) robloxContainerForm.addEventListener('submit', function (e) {
+    e.preventDefault();
+    if (!can('admin')) return;
+    var editId = $('admRobloxContainerEditId').value;
+    var universeId = $('admRobloxContainerUniverseId').value.trim();
+    var label = $('admRobloxContainerLabel').value.trim();
+    if (!universeId) return;
+    var submitBtn = $('admRobloxContainerSubmitBtn');
+    if (submitBtn) submitBtn.disabled = true;
+    callUpsertRobloxContainer({ id: editId || undefined, universeId: universeId, label: label, active: true }).then(function () {
+      logAudit((editId ? 'Updated' : 'Added') + ' Roblox container ' + universeId);
+      resetRobloxContainerForm();
+      return refreshRobloxContainers();
+    }).catch(function (err) {
+      var msg = $('admRobloxContainerMsg'); if (msg) msg.textContent = err.message || 'Could not save the container.';
+    }).then(function () {
+      if (submitBtn) submitBtn.disabled = false;
+    });
+  });
+
+  /* ================================================================
      BLOG POSTS PANEL
      ================================================================ */
   var POSTS = seedIfEmpty('coldd_admin_posts_v1', function () { return (window.__POSTS || []).slice(); });
@@ -2233,4 +2338,5 @@
   showPanel('home');
   refreshProducts().then(function () { return refreshOrders(); });
   refreshCoupons();
+  refreshRobloxContainers();
 })();

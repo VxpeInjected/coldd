@@ -18,8 +18,10 @@
 // coldSupabase client starts calling it via functions.invoke(...).
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createGamepass, pickContainer, updateGamepass } from "../_shared/roblox.ts";
 
 const ALLOWED_ORIGIN = "https://coldd.dev";
+const ROBUX_PER_USD = 80;
 
 function corsHeaders() {
   return {
@@ -122,6 +124,33 @@ Deno.serve(async (req: Request) => {
     if (Array.isArray(body.versions)) productFields.versions = body.versions;
     if (typeof body.storagePath === "string" && body.storagePath) productFields.storage_path = body.storagePath;
 
+    // Roblox products need a linked gamepass. If this one doesn't have
+    // one yet (brand new, or platform just switched to Roblox), a
+    // container with room must be reserved BEFORE any product row is
+    // written - Roblox has no API to create a new experience, so once
+    // every container hits 50 gamepasses this has to hard-block, not
+    // silently create an unsellable product.
+    let existingProduct: { roblox_gamepass_id: string | null; roblox_universe_id: string | null } | null = null;
+    if (id) {
+      const { data } = await admin
+        .from("products")
+        .select("roblox_gamepass_id, roblox_universe_id")
+        .eq("id", id)
+        .maybeSingle();
+      existingProduct = data;
+    }
+    const needsNewGamepass = platform === "Roblox" && !(existingProduct && existingProduct.roblox_gamepass_id);
+    let newContainer: Awaited<ReturnType<typeof pickContainer>> = null;
+    if (needsNewGamepass) {
+      newContainer = await pickContainer(admin);
+      if (!newContainer) {
+        return json({
+          ok: false,
+          error: "No Roblox container game has room for a new gamepass - every container is at the 50-gamepass limit. Add a new one in Admin → Roblox (you'll need to create an empty experience in Roblox Studio first, and add it to your Open Cloud API key at https://create.roblox.com/dashboard/credentials).",
+        }, 409);
+      }
+    }
+
     let productId = id;
     if (id) {
       const { data: updated, error: updateErr } = await admin
@@ -140,6 +169,55 @@ Deno.serve(async (req: Request) => {
         .single();
       if (insertErr || !created) return json({ ok: false, error: "Could not create product." }, 500);
       productId = created.id;
+    }
+
+    let robloxWarning: string | undefined;
+    if (platform === "Roblox") {
+      const robuxPrice = productFields.robux_price != null
+        ? Number(productFields.robux_price)
+        : Math.round(price * ROBUX_PER_USD);
+
+      if (needsNewGamepass && newContainer) {
+        try {
+          const gp = await createGamepass(newContainer.universe_id, {
+            name: title,
+            description: (productFields.description as string) || undefined,
+            price: robuxPrice,
+          });
+          const gamePassId = String(gp.gamePassId);
+          const { error: linkErr } = await admin
+            .from("products")
+            .update({ roblox_gamepass_id: gamePassId, roblox_universe_id: newContainer.universe_id })
+            .eq("id", productId);
+          if (linkErr) throw new Error("Gamepass created but could not be linked to the product.");
+          await admin.rpc("increment_roblox_container", { p_id: newContainer.id });
+        } catch (gpErr) {
+          console.error("[admin-upsert-product] gamepass creation failed:", gpErr);
+          // A brand-new product with no gamepass is a broken half-state,
+          // not something to leave live - roll it back. An existing
+          // product that just switched to Roblox keeps its other fields
+          // saved (non-fatal), it just stays without a gamepass.
+          if (!id) await admin.from("products").delete().eq("id", productId);
+          return json({
+            ok: false,
+            error: "Could not create the Roblox gamepass: " + ((gpErr as Error).message || "unknown error") +
+              " (check your Open Cloud API key at https://create.roblox.com/dashboard/credentials).",
+          }, 502);
+        }
+      } else if (existingProduct?.roblox_gamepass_id && existingProduct.roblox_universe_id) {
+        try {
+          await updateGamepass(existingProduct.roblox_universe_id, existingProduct.roblox_gamepass_id, {
+            name: title,
+            description: (productFields.description as string) || undefined,
+            price: robuxPrice,
+          });
+        } catch (gpErr) {
+          console.warn("[admin-upsert-product] gamepass sync failed (non-blocking):", gpErr);
+          robloxWarning = "Product saved, but the Roblox gamepass could not be synced: " +
+            ((gpErr as Error).message || "unknown error") +
+            ". Retry the save once resolved, or check your Open Cloud API key at https://create.roblox.com/dashboard/credentials.";
+        }
+      }
     }
 
     const legal: LegalPayload = body.legal && typeof body.legal === "object" ? body.legal : {};
@@ -161,7 +239,7 @@ Deno.serve(async (req: Request) => {
     const { error: legalErr } = await admin.from("product_legal").upsert(legalFields);
     if (legalErr) return json({ ok: false, error: "Product saved, but legal info failed to save." }, 500);
 
-    return json({ ok: true, id: productId });
+    return json({ ok: true, id: productId, robloxWarning });
   } catch (err) {
     console.error("[admin-upsert-product] error:", err);
     return json({ ok: false, error: "Server error." }, 500);

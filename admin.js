@@ -547,7 +547,7 @@
   /* ================================================================
      NAV / PANEL SWITCHING
      ================================================================ */
-  var PANELS = ['home', 'analytics', 'products', 'product-edit', 'product-update', 'orders', 'refunds', 'reviews', 'users', 'sales', 'roblox', 'posts', 'tutorials', 'releases', 'staff', 'audit'];
+  var PANELS = ['home', 'analytics', 'products', 'product-edit', 'product-update', 'orders', 'refunds', 'reviews', 'users', 'sales', 'roblox', 'siteaccess', 'posts', 'tutorials', 'releases', 'staff', 'audit'];
   var curPanel = 'home';
   function showPanel(name) {
     if (PANELS.indexOf(name) < 0) name = 'home';
@@ -570,6 +570,7 @@
     else if (name === 'users') renderUsers();
     else if (name === 'sales') { renderEvents(); renderCoupons(); }
     else if (name === 'roblox') { renderRobloxContainers(); refreshRobloxCookieHealth(); }
+    else if (name === 'siteaccess') refreshSiteStatus();
     else if (name === 'posts') renderPosts();
     else if (name === 'tutorials') renderTutorials();
     else if (name === 'releases') renderReleases();
@@ -1884,6 +1885,60 @@
       el.textContent = 'Robux fallback cookie is broken (' + (res.data.last_error || 'unknown error') + ') - refresh it, then update the ROBLOX_FALLBACK_COOKIE secret.';
     });
   }
+  /* ================================================================
+     SITE ACCESS PANEL (open / maintenance / locked)
+     ================================================================ */
+  var siteMode = 'open';
+  function refreshSiteStatus() {
+    if (!window.coldSupabase) return Promise.resolve();
+    return window.coldSupabase.from('site_status').select('*').eq('id', true).maybeSingle().then(function (res) {
+      var data = res && res.data;
+      siteMode = (data && data.mode) || 'open';
+      var cur = $('admSiteCurrentStatus');
+      if (cur) cur.textContent = siteMode.charAt(0).toUpperCase() + siteMode.slice(1);
+      document.querySelectorAll('.adm-site-mode-btn').forEach(function (b) {
+        b.classList.toggle('active', b.getAttribute('data-mode') === siteMode);
+      });
+      var maintFields = $('admSiteMaintFields'), lockedHint = $('admSiteLockedHint');
+      if (maintFields) maintFields.hidden = siteMode !== 'maintenance';
+      if (lockedHint) lockedHint.hidden = siteMode !== 'locked';
+      if (data) {
+        var msgEl = $('admSiteMaintMsg'); if (msgEl) msgEl.value = data.maintenance_message || '';
+        var endsEl = $('admSiteMaintEnds');
+        if (endsEl) endsEl.value = data.maintenance_ends_at ? new Date(data.maintenance_ends_at).toISOString().slice(0, 16) : '';
+      }
+    });
+  }
+  document.querySelectorAll('.adm-site-mode-btn').forEach(function (b) {
+    b.addEventListener('click', function () {
+      siteMode = b.getAttribute('data-mode');
+      document.querySelectorAll('.adm-site-mode-btn').forEach(function (x) { x.classList.toggle('active', x === b); });
+      var maintFields = $('admSiteMaintFields'), lockedHint = $('admSiteLockedHint');
+      if (maintFields) maintFields.hidden = siteMode !== 'maintenance';
+      if (lockedHint) lockedHint.hidden = siteMode !== 'locked';
+    });
+  });
+  var admSiteSaveBtn = $('admSiteSaveBtn');
+  if (admSiteSaveBtn) admSiteSaveBtn.addEventListener('click', function () {
+    if (!can('owner')) { alert('Only the owner can change site access.'); return; }
+    var msg = $('admSiteMaintMsg'), ends = $('admSiteMaintEnds');
+    var payload = {
+      mode: siteMode,
+      message: msg ? msg.value.trim() : '',
+      endsAt: ends && ends.value ? new Date(ends.value).toISOString() : null
+    };
+    if (siteMode === 'locked' && !confirm('Lock the entire site? Nobody - including admins - will be able to get in without the shared lock.html password until you unlock it.')) return;
+    admSiteSaveBtn.disabled = true;
+    invokeAdminFn('admin-set-site-status', payload, 'Could not update site status.').then(function () {
+      logAudit('Set site access to ' + siteMode);
+      return refreshSiteStatus();
+    }).catch(function (err) {
+      var m = $('admSiteMsg'); if (m) m.textContent = err.message || 'Could not save.';
+    }).then(function () {
+      admSiteSaveBtn.disabled = false;
+    });
+  });
+
   function callUpsertRobloxContainer(payload) {
     return invokeAdminFn('admin-upsert-roblox-container', payload, 'Save failed.');
   }

@@ -18,7 +18,7 @@
 // Body: { orderId }
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { checkGroupTransactionForSale, findOwnedGamePasses, getValidRobloxToken, robloxFallbackConfigured } from "../_shared/roblox.ts";
+import { checkGroupTransactionForSale, findOwnedGamePasses, getValidRobloxToken, RobloxInsufficientScopeError, robloxFallbackConfigured } from "../_shared/roblox.ts";
 
 const ALLOWED_ORIGIN = "https://coldd.dev";
 
@@ -81,8 +81,8 @@ Deno.serve(async (req: Request) => {
     const gamePassByProduct = new Map(products.map((p: any) => [p.id, { gamePassId: p.roblox_gamepass_id as string, title: p.title as string }]));
     // deno-lint-ignore no-explicit-any
     const targets = items
-      .map((i: any) => gamePassByProduct.get(i.product_id))
-      .filter((t: any): t is { gamePassId: string; title: string } => !!t && !!t.gamePassId);
+      .map((i: any) => ({ productId: i.product_id as string, ...(gamePassByProduct.get(i.product_id) || {}) }))
+      .filter((t: any): t is { productId: string; gamePassId: string; title: string } => !!t.gamePassId);
     if (!targets.length) return json({ ok: false, error: "This order has no linked gamepasses to verify." }, 500);
     const gamePassIds = targets.map((t) => t.gamePassId);
 
@@ -91,21 +91,62 @@ Deno.serve(async (req: Request) => {
       return json({ ok: false, error: "Your Roblox link has expired - please re-link your account and try again.", code: "RELINK_NEEDED" }, 400);
     }
 
-    const owned = await findOwnedGamePasses(tokenSet.accessToken, tokenSet.robloxId, gamePassIds);
-    let missing = gamePassIds.filter((id) => !owned.has(id));
+    const buyerId = order.roblox_buyer_id || tokenSet.robloxId;
+
+    // Roblox doesn't expose a purchase timestamp for gamepasses (addTime
+    // is explicitly documented as "not populated for passes"), so plain
+    // ownership can't distinguish a purchase made for THIS order from one
+    // made long ago (or for an earlier order of the same product) - a
+    // buyer could otherwise get infinite free re-verifications on repeat
+    // orders for a gamepass they already own. Only the first order for a
+    // given (buyer, product) may be auto-confirmed via inventory; later
+    // ones fall through to the group-transaction fallback (which checks
+    // actual per-sale records) or manual admin review.
+    const { data: priorPaid } = await admin
+      .from("orders")
+      .select("id, order_items(product_id)")
+      .eq("roblox_buyer_id", buyerId)
+      .eq("status", "paid")
+      .eq("roblox_verification_method", "inventory")
+      .neq("id", orderId);
+    const alreadyClaimedProductIds = new Set<string>();
+    // deno-lint-ignore no-explicit-any
+    (priorPaid || []).forEach((o: any) => (o.order_items || []).forEach((it: any) => alreadyClaimedProductIds.add(it.product_id)));
+
+    let owned: Set<string>;
+    try {
+      owned = await findOwnedGamePasses(tokenSet.accessToken, tokenSet.robloxId, gamePassIds);
+    } catch (err) {
+      if (err instanceof RobloxInsufficientScopeError) {
+        return json({
+          ok: false,
+          error: "Your Roblox link doesn't have inventory permission yet - unlink and re-link your Roblox account, then try again.",
+          code: "RELINK_NEEDED",
+        }, 400);
+      }
+      throw err;
+    }
+    // Inventory-confirmed, but only counts as fresh proof-of-purchase if
+    // this (buyer, product) hasn't already been used to confirm a
+    // different order.
+    const freshlyOwned = new Set(
+      targets.filter((t) => owned.has(t.gamePassId) && !alreadyClaimedProductIds.has(t.productId)).map((t) => t.gamePassId),
+    );
+    let missing = gamePassIds.filter((id) => !freshlyOwned.has(id));
+    let usedFallback = false;
 
     if (missing.length && robloxFallbackConfigured()) {
-      const buyerId = order.roblox_buyer_id || tokenSet.robloxId;
       const stillMissing: string[] = [];
       for (const id of missing) {
         const foundInGroup = await checkGroupTransactionForSale(id, buyerId);
-        if (!foundInGroup) stillMissing.push(id);
+        if (foundInGroup) usedFallback = true;
+        else stillMissing.push(id);
       }
       missing = stillMissing;
     }
 
     if (missing.length === 0) {
-      const method = owned.size === gamePassIds.length ? "inventory" : "group_transaction";
+      const method = usedFallback ? "group_transaction" : "inventory";
       await admin
         .from("orders")
         .update({ status: "paid", paid_at: new Date().toISOString(), roblox_verification_method: method })

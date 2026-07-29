@@ -200,6 +200,19 @@ export async function getValidRobloxToken(admin: any, userId: string): Promise<R
   return { accessToken: tokenData.access_token, robloxId: acct.roblox_id };
 }
 
+// Thrown when Roblox rejects the inventory call for auth reasons (401/403)
+// rather than "not found" - most commonly a token authorized before
+// user.inventory-item:read was requested (refreshing an existing token
+// keeps its original scope; only a fresh /authorize round-trip grants a
+// newly-added scope). Callers should tell the buyer to re-link, not
+// treat this as "just wait and retry."
+export class RobloxInsufficientScopeError extends Error {
+  constructor(status: number) {
+    super(`Roblox inventory check rejected with HTTP ${status} - likely missing the inventory scope.`);
+    this.name = "RobloxInsufficientScopeError";
+  }
+}
+
 // Checks which of the given gamePassIds appear in the target user's
 // Roblox inventory, using their own OAuth token (requires the
 // user.inventory-item:read scope, granted at link time). Filter syntax
@@ -227,6 +240,9 @@ export async function findOwnedGamePasses(
       `https://apis.roblox.com/cloud/v2/users/${robloxUserId}/inventory-items?${params.toString()}`,
       { headers: { Authorization: "Bearer " + accessToken } },
     );
+    if (res.status === 401 || res.status === 403) {
+      throw new RobloxInsufficientScopeError(res.status);
+    }
     if (!res.ok) {
       console.error("[roblox] inventory check failed:", res.status, await res.text().catch(() => ""));
       break;

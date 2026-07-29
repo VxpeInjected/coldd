@@ -251,6 +251,7 @@
           return Object.assign({ owner: prof ? (prof.username || prof.email || 'user') : 'user' }, p);
         });
         if (curPanel === 'analytics') renderPayouts();
+        if (curPanel === 'home') renderHome();
       }
       if (!userIds.length) { apply({}); return; }
       return window.coldSupabase.from('profiles').select('id,username,email').in('id', userIds).then(function (pRes) {
@@ -387,6 +388,7 @@
       function apply(byId) {
         REVIEWS = rows.map(function (r) { return mapReviewRow(r, byId[r.user_id]); });
         if (curPanel === 'reviews') renderReviews();
+        if (curPanel === 'home') renderHome();
       }
       if (!userIds.length) { apply({}); return; }
       return window.coldSupabase.from('profiles').select('id,username,email').in('id', userIds).then(function (pRes) {
@@ -428,7 +430,30 @@
       }
       TRAFFIC = out;
       if (curPanel === 'analytics') renderAnalytics();
+      if (curPanel === 'home') renderHome();
     });
+  }
+
+  var LIVE_SESSIONS = 0;
+  function refreshLiveSessions() {
+    if (!window.coldSupabase) return Promise.resolve();
+    var cutoff = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+    return window.coldSupabase.from('page_views').select('session_id').gte('created_at', cutoff).then(function (res) {
+      if (res.error) { console.error('[admin] failed to load live sessions:', res.error.message); return; }
+      var set = {}; (res.data || []).forEach(function (r) { set[r.session_id] = true; });
+      LIVE_SESSIONS = Object.keys(set).length;
+      if (curPanel === 'home') renderHome();
+      if (curPanel === 'analytics') renderAnalytics();
+    });
+  }
+
+  var DISCORD_STATS = { memberCount: null, onlineCount: null };
+  function refreshDiscordStats() {
+    return invokeAdminFn('admin-discord-stats', {}, 'Could not load Discord stats.').then(function (data) {
+      DISCORD_STATS = { memberCount: data.memberCount, onlineCount: data.onlineCount };
+      if (curPanel === 'home') renderHome();
+      if (curPanel === 'analytics') renderAnalytics();
+    }).catch(function (err) { console.error('[admin] discord stats:', err.message); });
   }
 
   // Real data from public.cart_snapshots - a row per checkout-page visit
@@ -590,6 +615,23 @@
     return d >= daysAgoStart(RANGE_DAYS);
   }
   function daysAgoStart(n) { var d = daysAgo(n - 1); d.setHours(0, 0, 0, 0); return d; }
+  // The window immediately before the current range, same length - e.g.
+  // for the last 7 days, this is the 7 days before that. No meaningful
+  // comparison for "All time", so callers should skip % change there.
+  function prevRangeWindow() {
+    var n = RANGE_DAYS || 1;
+    var end = daysAgoStart(n);
+    var start = daysAgoStart(n * 2);
+    return { start: start, end: end };
+  }
+  function pctDelta(cur, prev) {
+    if (!RANGE_DAYS) return '';
+    if (!prev) return cur ? '<span class="ds-delta up">▲ New</span>' : '';
+    var pct = ((cur - prev) / prev) * 100;
+    var cls = pct > 0.5 ? 'up' : pct < -0.5 ? 'down' : 'flat';
+    var arrow = cls === 'up' ? '▲' : cls === 'down' ? '▼' : '—';
+    return '<span class="ds-delta ' + cls + '">' + arrow + ' ' + Math.abs(Math.round(pct * 10) / 10) + '%</span>';
+  }
   function setRange(n) {
     RANGE_DAYS = n; lsSet('coldd_admin_range_v1', n);
     document.querySelectorAll('.adm-range button').forEach(function (b) { b.classList.toggle('active', +b.getAttribute('data-range') === n); });
@@ -622,6 +664,22 @@
      ================================================================ */
   function ordersInRange() { return ORDERS.filter(function (o) { return inRange(o.date); }); }
   function completedInRange() { return ordersInRange().filter(function (o) { return o.status === 'completed'; }); }
+  function completedInWindow(start, end) {
+    return ORDERS.filter(function (o) { var d = new Date(o.date); return o.status === 'completed' && d >= start && d < end; });
+  }
+  // Real USD and real Robux totals (not the USD-equivalent record-keeping
+  // figure robux orders also carry) - for revenue stat tiles, not display
+  // of any single order's actual charge.
+  function websiteRevenue(list) {
+    var usdTotal = 0, robuxTotal = 0;
+    list.forEach(function (o) { if (o.currency === 'robux') robuxTotal += o.totalRobux; else usdTotal += o.total; });
+    return { usd: usdTotal, robux: robuxTotal };
+  }
+  // Group-transaction-scanned Robux revenue (task: Robux/Parcel group
+  // revenue) - 0 until that's wired in, at which point "Overall Robux
+  // revenue" reflects real group totals instead of just our own tracked
+  // orders (which "Website Robux revenue" continues to show).
+  var GROUP_REVENUE = { robux: 0, prevRobux: 0, parcelRobux: 0, parcelPrevRobux: 0 };
   // Flattens completed orders' line items for product/category-level
   // aggregation (an order can contain multiple items, unlike the old
   // one-product-per-order mock ledger).
@@ -764,24 +822,59 @@
   /* ================================================================
      HOME PANEL
      ================================================================ */
+  function pageviewsInWindow(start, end) {
+    return TRAFFIC.filter(function (r) { var d = new Date(r.date); return d >= start && d < end; }).reduce(function (s, r) { return s + r.pageviews; }, 0);
+  }
+  function statTile(label, main, sub, deltaHtml) {
+    return '<div class="dash-stat glass"><span class="ds-label">' + esc(label) + '</span><span class="ds-num">' + main + '</span>' +
+      (sub ? '<span class="ds-sub">' + sub + '</span>' : '') + (deltaHtml || '') + '</div>';
+  }
   function renderHome() {
-    var todayKey = new Date().toDateString();
-    var revToday = ORDERS.filter(function (o) { return o.status === 'completed' && new Date(o.date).toDateString() === todayKey; }).reduce(function (s, o) { return s + o.total; }, 0);
-    var ordersToday = ORDERS.filter(function (o) { return new Date(o.date).toDateString() === todayKey; }).length;
-    var signupsToday = USERS.filter(function (u) { return new Date(u.joined).toDateString() === todayKey; }).length;
+    var curOrders = completedInRange();
+    var curRev = websiteRevenue(curOrders);
+    var win = RANGE_DAYS ? prevRangeWindow() : null;
+    var prevOrders = win ? completedInWindow(win.start, win.end) : [];
+    var prevRev = websiteRevenue(prevOrders);
+
+    var curVisits = RANGE_DAYS ? pageviewsInWindow(daysAgoStart(RANGE_DAYS), new Date()) : TRAFFIC.reduce(function (s, r) { return s + r.pageviews; }, 0);
+    var prevVisits = win ? pageviewsInWindow(win.start, win.end) : 0;
+
+    var overallRobux = curRev.robux + GROUP_REVENUE.robux;
+    var overallRobuxPrev = prevRev.robux + GROUP_REVENUE.prevRobux;
+    var overallDevexAud = aud(overallRobux * DEVEX_USD_PER_ROBUX);
+    var websiteDevexAud = aud(curRev.robux * DEVEX_USD_PER_ROBUX);
+
+    $('admHomeStatsTop').innerHTML = [
+      statTile('Overall revenue', aud(curRev.usd), usd(curRev.usd) + ' USD', pctDelta(curRev.usd, prevRev.usd)),
+      statTile('Overall Robux revenue', robux(overallRobux), overallDevexAud + ' via DevEx', pctDelta(overallRobux, overallRobuxPrev)),
+      statTile('Live sessions', LIVE_SESSIONS, 'active in the last 5 min', ''),
+      statTile('Order count', curOrders.length, null, pctDelta(curOrders.length, prevOrders.length))
+    ].join('');
+
+    $('admHomeStatsSecondary').innerHTML = [
+      statTile('Website revenue', aud(curRev.usd), usd(curRev.usd) + ' USD', pctDelta(curRev.usd, prevRev.usd)),
+      statTile('Website Robux revenue', robux(curRev.robux), websiteDevexAud + ' via DevEx', pctDelta(curRev.robux, prevRev.robux)),
+      statTile('Discord members', DISCORD_STATS.memberCount != null ? DISCORD_STATS.memberCount.toLocaleString('en-US') : '—', DISCORD_STATS.onlineCount != null ? (DISCORD_STATS.onlineCount.toLocaleString('en-US') + ' online') : '', ''),
+      statTile('Site visits', curVisits.toLocaleString('en-US'), null, pctDelta(curVisits, prevVisits))
+    ].join('');
+
+    var todo = [];
     var pendingReviews = REVIEWS.filter(function (r) { return r.status === 'pending'; }).length;
+    if (pendingReviews) todo.push({ text: pendingReviews + ' review' + (pendingReviews > 1 ? 's' : '') + ' awaiting moderation', panel: 'reviews', badge: 'warn' });
+    var pendingPayouts = PAYOUTS.filter(function (p) { return p.status === 'requested'; }).length;
+    if (pendingPayouts) todo.push({ text: pendingPayouts + ' referral payout request' + (pendingPayouts > 1 ? 's' : '') + ' pending', panel: 'analytics', badge: 'warn' });
+    if (ROBLOX_COOKIE_BROKEN) todo.push({ text: 'Robux fallback cookie is broken - group-transaction verification won\'t work until it\'s refreshed', panel: 'sitemgmt', badge: 'err' });
+    if (ROBLOX_CONTAINERS.length && ROBLOX_CONTAINERS.every(function (c) { return !c.active || c.gamepass_count >= 50; })) {
+      todo.push({ text: 'All Roblox container games are full - add a new one before creating more Robux products', panel: 'sitemgmt', badge: 'err' });
+    }
+    $('admHomeTodo').innerHTML = todo.length ? todo.map(function (t) {
+      return '<div class="adm-todo-row"><span class="adm-todo-text">' + esc(t.text) + '</span><a href="#" class="btn btn-ghost adm-btn-sm" data-panel="' + t.panel + '">Review</a></div>';
+    }).join('') : '<p class="adm-empty">Nothing needs your attention right now.</p>';
 
-    $('admHomeStats').innerHTML = [
-      ['Revenue today', usd(revToday)],
-      ['Orders today', ordersToday],
-      ['New signups today', signupsToday],
-      ['Reviews awaiting moderation', pendingReviews]
-    ].map(function (s) { return '<div class="dash-stat glass"><span class="ds-label">' + s[0] + '</span><span class="ds-num">' + s[1] + '</span></div>'; }).join('');
+    var recent = ORDERS.filter(function (o) { return o.status === 'completed'; }).slice().sort(function (a, b) { return new Date(b.date) - new Date(a.date); }).slice(0, 6);
+    $('admHomeRecent').innerHTML = recent.map(orderRowHTML).join('') || '<p class="adm-empty">No completed orders yet.</p>';
 
-    var recent = ORDERS.slice().sort(function (a, b) { return new Date(b.date) - new Date(a.date); }).slice(0, 6);
-    $('admHomeRecent').innerHTML = recent.map(orderRowHTML).join('') || '<p class="adm-empty">No orders yet.</p>';
-
-    var banner = $('admModeBanner'); if (banner) banner.innerHTML = '<span class="dt-badge ok">Whitelist enforced</span>';
+    var banner = $('admModeBanner'); if (banner) banner.innerHTML = '<span class="dt-badge ok">' + esc(currentRole().role) + ' access</span>';
   }
   function orderRowHTML(o) {
     return '<div class="dash-row"><span class="dr-thumb" style="background-image:url(\'' + o.image + '\')"></span>' +
@@ -2077,18 +2170,23 @@
       if (res.error) { console.error('[admin] failed to load roblox containers:', res.error.message); return; }
       ROBLOX_CONTAINERS = res.data || [];
       if (curPanel === 'sitemgmt') renderRobloxContainers();
+      if (curPanel === 'home') renderHome();
     });
   }
   // Phase D fallback health - table may not exist yet if
   // roblox_cookie_health.sql hasn't been run, so a failed select here is
   // expected/harmless until then.
+  var ROBLOX_COOKIE_BROKEN = false;
   function refreshRobloxCookieHealth() {
     if (!window.coldSupabase) return Promise.resolve();
     return window.coldSupabase.from('roblox_cookie_health').select('*').eq('id', true).maybeSingle().then(function (res) {
-      var el = $('admRobloxCookieWarning'); if (!el) return;
-      if (res.error || !res.data || res.data.ok) { el.hidden = true; return; }
-      el.hidden = false;
-      el.textContent = 'Robux fallback cookie is broken (' + (res.data.last_error || 'unknown error') + ') - refresh it, then update the ROBLOX_FALLBACK_COOKIE secret.';
+      ROBLOX_COOKIE_BROKEN = !!(res.data && !res.error && !res.data.ok);
+      var el = $('admRobloxCookieWarning');
+      if (el) {
+        if (res.error || !res.data || res.data.ok) { el.hidden = true; }
+        else { el.hidden = false; el.textContent = 'Robux fallback cookie is broken (' + (res.data.last_error || 'unknown error') + ') - refresh it, then update the ROBLOX_FALLBACK_COOKIE secret.'; }
+      }
+      if (curPanel === 'home') renderHome();
     });
   }
   /* ================================================================
@@ -2663,5 +2761,9 @@
   refreshTraffic();
   refreshAbandoned();
   refreshStaff();
+  refreshRobloxCookieHealth();
+  refreshLiveSessions();
+  refreshDiscordStats();
+  setInterval(refreshLiveSessions, 30000);
   } // end boot()
 })();

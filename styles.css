@@ -1160,6 +1160,15 @@ body.auth-page { min-height: 100vh; }
 .ds-label { font-size: 12.5px; color: var(--fg-3); font-weight: 600; }
 .ds-num { font-size: 26px; font-weight: 800; letter-spacing: -0.03em; }
 .ds-num .p-price { font-size: 26px; }
+.ds-sub { font-size: 12.5px; color: var(--fg-3); }
+.ds-delta { font-size: 12px; font-weight: 700; display: inline-flex; align-items: center; gap: 3px; width: fit-content; }
+.ds-delta.up { color: #3fbf6f; }
+.ds-delta.down { color: var(--accent); }
+.ds-delta.flat { color: var(--fg-3); }
+.adm-todo-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--hairline); }
+.adm-todo-row:last-child { border-bottom: none; }
+.adm-todo-text { font-size: 14px; color: var(--fg-1); }
+.adm-todo-badge { flex-shrink: 0; }
 .dash-card { padding: 22px 24px; margin-bottom: 16px; }
 .dash-card-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
 .dash-card-head h2 { font-size: 17px; font-weight: 700; }

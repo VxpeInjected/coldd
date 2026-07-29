@@ -1543,6 +1543,18 @@
         panels.forEach(function (p) { p.hidden = (p.id !== 'panel-' + name); });
         dash.querySelectorAll('.dash-nav a').forEach(function (a) { a.classList.toggle('active', a.getAttribute('data-panel') === name); });
         if (name === 'wishlist' && typeof renderWishlist === 'function') renderWishlist();
+        if (name === 'security') {
+          var secLocked = document.getElementById('secLocked'), secUnlocked = document.getElementById('secUnlocked');
+          if (secLocked) secLocked.hidden = !!secVerified;
+          if (secUnlocked) secUnlocked.hidden = !secVerified;
+          if (secVerified && typeof unlockSecurity === 'function') unlockSecurity();
+        }
+        if (name === 'linked') {
+          var linkedLockedEl = document.getElementById('linkedLocked'), linkedUnlockedEl = document.getElementById('linkedUnlocked');
+          if (linkedLockedEl) linkedLockedEl.hidden = !!linkedVerified;
+          if (linkedUnlockedEl) linkedUnlockedEl.hidden = !linkedVerified;
+          if (linkedVerified && typeof renderLinkedAccounts === 'function') renderLinkedAccounts();
+        }
       }
       dash.addEventListener('click', function (e) {
         var a = e.target.closest('[data-panel]');
@@ -1855,11 +1867,6 @@
 
       var acct = document.getElementById('acctForm');
       if (acct) {
-        var acctPwInput = acct.querySelector('input[name="password"]');
-        var acctPwBox = acct.querySelector('#pwStrength');
-        var acctPwFill = acct.querySelector('#pwFill');
-        var acctPwList = acct.querySelector('#pwChecklist');
-
         function acctFieldErr(name, msg) {
           var f = acct.querySelector('.auth-field[data-for="' + name + '"]'); if (!f) return;
           f.classList.toggle('invalid', !!msg);
@@ -1870,68 +1877,24 @@
           m.textContent = text; m.classList.add('show');
         }
 
-        if (acctPwInput && acctPwBox && acctPwFill && acctPwList) {
-          function evalAcctPw() {
-            var v = acctPwInput.value;
-            var rules = { upper: /[A-Z]/.test(v), lower: /[a-z]/.test(v), number: /[0-9]/.test(v), special: /[^A-Za-z0-9]/.test(v), length: v.length > 8 };
-            var met = 0;
-            Object.keys(rules).forEach(function (k) {
-              var li = acctPwList.querySelector('[data-rule="' + k + '"]');
-              if (li) li.classList.toggle('met', rules[k]);
-              if (rules[k]) met++;
-            });
-            acctPwFill.style.width = (met / 5 * 100) + '%';
-            acctPwFill.style.background = met <= 2 ? '#ff4d44' : met <= 4 ? '#ffb020' : '#7ee08a';
-          }
-          acctPwInput.addEventListener('input', function () { acctPwBox.classList.add('open'); evalAcctPw(); });
-          acctPwInput.addEventListener('focus', function () { if (acctPwInput.value) acctPwBox.classList.add('open'); });
-          acctPwInput.addEventListener('blur', function () { if (!acctPwInput.value) acctPwBox.classList.remove('open'); });
-        }
-
+        // Email/password now only change via the Security tab's
+        // re-auth-gated flow; this form is display-name only.
         acct.addEventListener('submit', function (e) {
           e.preventDefault();
           if (!window.coldSupabase || !window.coldAuth) { acctFlash('Not available right now.'); return; }
           var profile = window.coldAuth.getProfile();
           var newName = acct.querySelector('[name="name"]').value.trim();
-          var newEmail = acct.querySelector('[name="email"]').value.trim();
-          var newPass = acctPwInput ? acctPwInput.value : '';
-          var tasks = [];
-          var messages = [];
-
-          if (newPass) {
-            if (newPass.length <= 8) { acctFieldErr('password', 'Use more than 8 characters.'); return; }
-            acctFieldErr('password', '');
-            tasks.push(window.coldSupabase.auth.updateUser({ password: newPass }).then(function (res) {
-              if (res.error) throw new Error(res.error.message);
-              messages.push('Password updated.');
-            }));
-          }
-
-          if (profile && newEmail && newEmail !== profile.email) {
-            tasks.push(window.coldSupabase.auth.updateUser({ email: newEmail }).then(function (res) {
-              if (res.error) throw new Error(res.error.message);
-              messages.push('Check your new email to confirm the change — it won\u2019t take effect until then.');
-            }));
-          }
-
-          if (profile && newName && newName !== profile.name) {
-            tasks.push(window.coldSupabase.from('profiles').update({ username: newName }).eq('id', profile.id).then(function (res) {
-              if (res.error) throw new Error(res.error.message);
-            }));
-          }
-
-          if (!tasks.length) { acctFlash('Nothing to update.'); return; }
+          if (!profile || !newName || newName === profile.name) { acctFlash('Nothing to update.'); return; }
 
           var btn = acct.querySelector('.auth-submit');
           setBtnLoading(btn, true);
-          Promise.all(tasks).then(function () {
+          window.coldSupabase.from('profiles').update({ username: newName }).eq('id', profile.id).then(function (res) {
             setBtnLoading(btn, false);
-            if (acctPwInput) acctPwInput.value = '';
-            if (acctPwBox) acctPwBox.classList.remove('open');
-            acctFlash(messages.length ? messages.join(' ') : 'Saved.');
-          }).catch(function (err) {
-            setBtnLoading(btn, false);
-            acctFlash(err.message || 'Something went wrong.');
+            if (res.error) { acctFlash(res.error.message || 'Something went wrong.'); return; }
+            profile.name = newName;
+            window.coldAuth.saveProfile(profile);
+            window.coldAuth.applyProfile();
+            acctFlash('Saved.');
           });
         });
       }
@@ -1990,6 +1953,253 @@
           }).catch(function (err) {
             setBtnLoading(fin, false);
             if (delErr) delErr.textContent = err.message || 'Could not delete your account.';
+          });
+        });
+      }
+
+      // ================================================================
+      // SECURITY TAB - re-auth gate (password, falls back to email OTP),
+      // email change, password change modal.
+      // ================================================================
+      function currentUser(cb) {
+        window.coldSupabase.auth.getUser().then(function (res) { cb(res && res.data ? res.data.user : null); });
+      }
+      function evalPwStrength(v, fillEl, listEl) {
+        var rules = { upper: /[A-Z]/.test(v), lower: /[a-z]/.test(v), number: /[0-9]/.test(v), special: /[^A-Za-z0-9]/.test(v), length: v.length > 8 };
+        var met = 0;
+        Object.keys(rules).forEach(function (k) {
+          var li = listEl.querySelector('[data-rule="' + k + '"]');
+          if (li) li.classList.toggle('met', rules[k]);
+          if (rules[k]) met++;
+        });
+        fillEl.style.width = (met / 5 * 100) + '%';
+        fillEl.style.background = met <= 2 ? '#ff4d44' : met <= 4 ? '#ffb020' : '#7ee08a';
+        return met === 5;
+      }
+
+      var secVerified = false, linkedVerified = false;
+      var reauthOverlay = document.getElementById('reauthOverlay');
+      var reauthPwView = document.getElementById('reauthPwView');
+      var reauthOtpView = document.getElementById('reauthOtpView');
+      var reauthErr = document.getElementById('reauthErr');
+      function openReauth(onVerified) {
+        if (!reauthOverlay) return;
+        reauthOverlay.hidden = false;
+        if (reauthPwView) reauthPwView.hidden = false;
+        if (reauthOtpView) reauthOtpView.hidden = true;
+        if (reauthErr) reauthErr.textContent = '';
+        var pwEl = document.getElementById('reauthPw'), otpEl = document.getElementById('reauthOtp');
+        if (pwEl) pwEl.value = ''; if (otpEl) otpEl.value = '';
+        reauthOverlay._onVerified = onVerified;
+      }
+      function closeReauth() { if (reauthOverlay) reauthOverlay.hidden = true; }
+      var reauthCancel = document.getElementById('reauthCancel');
+      if (reauthCancel) reauthCancel.addEventListener('click', closeReauth);
+      if (reauthOverlay) reauthOverlay.addEventListener('click', function (e) { if (e.target === reauthOverlay) closeReauth(); });
+
+      var reauthUseEmail = document.getElementById('reauthUseEmail');
+      if (reauthUseEmail) reauthUseEmail.addEventListener('click', function () {
+        if (reauthPwView) reauthPwView.hidden = true;
+        if (reauthOtpView) reauthOtpView.hidden = false;
+        if (reauthErr) reauthErr.textContent = '';
+        if (window.coldAuth) window.coldAuth.requestEmailOtp();
+      });
+
+      var reauthPwBtn = document.getElementById('reauthPwBtn');
+      if (reauthPwBtn) reauthPwBtn.addEventListener('click', function () {
+        var pw = document.getElementById('reauthPw').value;
+        if (!pw) { reauthErr.textContent = 'Enter your password.'; return; }
+        setBtnLoading(reauthPwBtn, true);
+        currentUser(function (user) {
+          if (!user || !user.email) { setBtnLoading(reauthPwBtn, false); reauthErr.textContent = 'Could not verify.'; return; }
+          window.coldSupabase.auth.signInWithPassword({ email: user.email, password: pw }).then(function (res) {
+            setBtnLoading(reauthPwBtn, false);
+            if (res.error) { reauthErr.textContent = 'Incorrect password.'; return; }
+            var cb = reauthOverlay._onVerified;
+            closeReauth();
+            if (cb) cb();
+          });
+        });
+      });
+
+      var reauthOtpBtn = document.getElementById('reauthOtpBtn');
+      if (reauthOtpBtn) reauthOtpBtn.addEventListener('click', function () {
+        var code = document.getElementById('reauthOtp').value.trim();
+        if (!code) { reauthErr.textContent = 'Enter the code.'; return; }
+        setBtnLoading(reauthOtpBtn, true);
+        window.coldAuth.verifyEmailOtp(code).then(function (res) {
+          setBtnLoading(reauthOtpBtn, false);
+          var data = res && res.data;
+          if (!data || !data.ok) { reauthErr.textContent = (data && data.error) || 'Incorrect code.'; return; }
+          var cb = reauthOverlay._onVerified;
+          closeReauth();
+          if (cb) cb();
+        });
+      });
+
+      function unlockSecurity() {
+        secVerified = true;
+        var locked = document.getElementById('secLocked'), unlocked = document.getElementById('secUnlocked');
+        if (locked) locked.hidden = true;
+        if (unlocked) unlocked.hidden = false;
+        currentUser(function (user) {
+          var emailInput = document.getElementById('sec-email');
+          if (emailInput && user) emailInput.value = user.email || '';
+        });
+      }
+      var secVerifyBtn = document.getElementById('secVerifyBtn');
+      if (secVerifyBtn) secVerifyBtn.addEventListener('click', function () { openReauth(unlockSecurity); });
+
+      var secEmailForm = document.getElementById('secEmailForm');
+      if (secEmailForm) secEmailForm.addEventListener('submit', function (e) {
+        e.preventDefault();
+        var newEmail = document.getElementById('sec-email').value.trim();
+        var msgEl = secEmailForm.querySelector('.auth-msg');
+        var btn = secEmailForm.querySelector('button[type="submit"]');
+        setBtnLoading(btn, true);
+        window.coldSupabase.auth.updateUser({ email: newEmail }).then(function (res) {
+          setBtnLoading(btn, false);
+          if (!msgEl) return;
+          msgEl.classList.add('show');
+          msgEl.textContent = res.error ? (res.error.message || 'Could not update email.') : 'Check your new email to confirm the change - it will not take effect until then.';
+        });
+      });
+
+      var pwModalOverlay = document.getElementById('pwModalOverlay');
+      var openPwModalBtn = document.getElementById('openPwModalBtn');
+      if (openPwModalBtn && pwModalOverlay) openPwModalBtn.addEventListener('click', function () { pwModalOverlay.hidden = false; });
+      var pwModalCancel = document.getElementById('pwModalCancel');
+      if (pwModalCancel && pwModalOverlay) pwModalCancel.addEventListener('click', function () { pwModalOverlay.hidden = true; });
+      if (pwModalOverlay) pwModalOverlay.addEventListener('click', function (e) { if (e.target === pwModalOverlay) pwModalOverlay.hidden = true; });
+
+      var pwNewInput = document.getElementById('pw-new');
+      var pwModalFill = document.getElementById('pwModalFill');
+      var pwModalList = document.getElementById('pwModalChecklist');
+      var pwModalBox = document.getElementById('pwModalStrength');
+      if (pwNewInput && pwModalFill && pwModalList && pwModalBox) {
+        pwNewInput.addEventListener('input', function () { pwModalBox.classList.add('open'); evalPwStrength(pwNewInput.value, pwModalFill, pwModalList); });
+        pwNewInput.addEventListener('focus', function () { if (pwNewInput.value) pwModalBox.classList.add('open'); });
+      }
+
+      var pwChangeForm = document.getElementById('pwChangeForm');
+      if (pwChangeForm) pwChangeForm.addEventListener('submit', function (e) {
+        e.preventDefault();
+        var current = document.getElementById('pw-current').value;
+        var next = document.getElementById('pw-new').value;
+        var confirmVal = document.getElementById('pw-confirm').value;
+        var msgEl = pwChangeForm.querySelector('.auth-msg');
+        function fieldErr(name, msg) {
+          var f = pwChangeForm.querySelector('.auth-field[data-for="' + name + '"]'); if (!f) return;
+          f.classList.toggle('invalid', !!msg);
+          var e2 = f.querySelector('.auth-err'); if (e2) e2.textContent = msg || '';
+        }
+        fieldErr('current', ''); fieldErr('new', ''); fieldErr('confirm', '');
+        if (!current) { fieldErr('current', 'Enter your current password.'); return; }
+        if (!evalPwStrength(next, pwModalFill, pwModalList)) { fieldErr('new', 'Password does not meet all requirements.'); return; }
+        if (next !== confirmVal) { fieldErr('confirm', 'Passwords do not match.'); return; }
+
+        var btn = pwChangeForm.querySelector('button[type="submit"]');
+        setBtnLoading(btn, true);
+        currentUser(function (user) {
+          if (!user || !user.email) { setBtnLoading(btn, false); fieldErr('current', 'Could not verify.'); return; }
+          window.coldSupabase.auth.signInWithPassword({ email: user.email, password: current }).then(function (res) {
+            if (res.error) { setBtnLoading(btn, false); fieldErr('current', 'Incorrect current password.'); return; }
+            window.coldSupabase.auth.updateUser({ password: next }).then(function (res2) {
+              setBtnLoading(btn, false);
+              if (res2.error) { if (msgEl) { msgEl.classList.add('show'); msgEl.textContent = res2.error.message || 'Could not update password.'; } return; }
+              pwChangeForm.reset();
+              pwModalBox.classList.remove('open');
+              if (msgEl) { msgEl.classList.add('show'); msgEl.textContent = 'Password updated.'; }
+              setTimeout(function () { pwModalOverlay.hidden = true; if (msgEl) msgEl.classList.remove('show'); }, 1200);
+            });
+          });
+        });
+      });
+
+      // ================================================================
+      // LINKED ACCOUNTS TAB - password-gated, link/unlink Discord/Roblox/
+      // email (Google was never actually implemented anywhere in this
+      // codebase - only these three real auth methods exist).
+      // ================================================================
+      var linkedGateOverlay = document.getElementById('linkedGateOverlay');
+      var linkedGateCancel = document.getElementById('linkedGateCancel');
+      if (linkedGateCancel && linkedGateOverlay) linkedGateCancel.addEventListener('click', function () { linkedGateOverlay.hidden = true; });
+      if (linkedGateOverlay) linkedGateOverlay.addEventListener('click', function (e) { if (e.target === linkedGateOverlay) linkedGateOverlay.hidden = true; });
+
+      var linkedVerifyBtn = document.getElementById('linkedVerifyBtn');
+      if (linkedVerifyBtn && linkedGateOverlay) linkedVerifyBtn.addEventListener('click', function () {
+        linkedGateOverlay.hidden = false;
+        document.getElementById('linkedGatePw').value = '';
+        document.getElementById('linkedGateErr').textContent = '';
+      });
+
+      var linkedGateBtn = document.getElementById('linkedGateBtn');
+      if (linkedGateBtn) linkedGateBtn.addEventListener('click', function () {
+        var pw = document.getElementById('linkedGatePw').value;
+        var errEl = document.getElementById('linkedGateErr');
+        if (!pw) { errEl.textContent = 'Enter your password.'; return; }
+        setBtnLoading(linkedGateBtn, true);
+        currentUser(function (user) {
+          if (!user || !user.email) { setBtnLoading(linkedGateBtn, false); errEl.textContent = 'Could not verify.'; return; }
+          window.coldSupabase.auth.signInWithPassword({ email: user.email, password: pw }).then(function (res) {
+            setBtnLoading(linkedGateBtn, false);
+            if (res.error) { errEl.textContent = 'Incorrect password.'; return; }
+            linkedGateOverlay.hidden = true;
+            linkedVerified = true;
+            renderLinkedAccounts();
+          });
+        });
+      });
+
+      function renderLinkedAccounts() {
+        var locked = document.getElementById('linkedLocked'), unlocked = document.getElementById('linkedUnlocked');
+        if (locked) locked.hidden = true;
+        if (unlocked) unlocked.hidden = false;
+        currentUser(function (user) {
+          if (!user) return;
+          var identities = user.identities || [];
+          var hasEmail = identities.some(function (i) { return i.provider === 'email'; });
+          var discordIdentity = identities.filter(function (i) { return i.provider === 'discord'; })[0];
+          document.getElementById('linkedEmailStatus').textContent = hasEmail ? 'Set - used to sign in' : 'Not set';
+
+          var baseCount = (hasEmail ? 1 : 0) + (discordIdentity ? 1 : 0);
+          window.coldAuth.robloxLinkStatus().then(function (rres) {
+            var robloxLinked = !!(rres && rres.linked);
+            var totalMethods = baseCount + (robloxLinked ? 1 : 0);
+            var errEl = document.getElementById('linkedErr');
+
+            var dBtn = document.getElementById('linkedDiscordBtn');
+            document.getElementById('linkedDiscordStatus').textContent = discordIdentity ? 'Linked' : 'Not linked';
+            dBtn.textContent = discordIdentity ? 'Unlink' : 'Link';
+            dBtn.disabled = !!(discordIdentity && totalMethods <= 1);
+            dBtn.title = (discordIdentity && totalMethods <= 1) ? 'This is your only sign-in method' : '';
+            dBtn.onclick = function () {
+              if (discordIdentity) {
+                if (totalMethods <= 1) return;
+                if (!confirm('Unlink your Discord account?')) return;
+                window.coldSupabase.auth.unlinkIdentity(discordIdentity).then(function (ures) {
+                  if (errEl) errEl.textContent = ures.error ? (ures.error.message || 'Could not unlink.') : '';
+                  renderLinkedAccounts();
+                });
+              } else {
+                window.coldSupabase.auth.linkIdentity({ provider: 'discord', options: { redirectTo: location.origin + '/dashboard?panel=linked' } });
+              }
+            };
+
+            var rBtn = document.getElementById('linkedRobloxBtn');
+            document.getElementById('linkedRobloxStatus').textContent = robloxLinked ? ('Linked as ' + (rres.robloxUsername || '')) : 'Not linked';
+            rBtn.textContent = robloxLinked ? 'Unlink' : 'Link';
+            rBtn.disabled = !!(robloxLinked && totalMethods <= 1);
+            rBtn.title = (robloxLinked && totalMethods <= 1) ? 'This is your only sign-in method' : '';
+            rBtn.onclick = function () {
+              if (robloxLinked) {
+                if (totalMethods <= 1) return;
+                if (!confirm('Unlink your Roblox account?')) return;
+                window.coldAuth.unlinkRoblox().then(function () { renderLinkedAccounts(); });
+              } else {
+                window.coldAuth.signInRoblox();
+              }
+            };
           });
         });
       }

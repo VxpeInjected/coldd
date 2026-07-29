@@ -127,6 +127,8 @@
         <a href="#" data-panel="referrals"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 13.5 6.8 4M15.4 6.5l-6.8 4"/></svg><span>Referrals</span></a>
         <a href="#" data-panel="notifications"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg><span>Notifications</span></a>
         <a href="#" data-panel="account"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg><span>Account Settings</span></a>
+        <a href="#" data-panel="security"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Security</span></a>
+        <a href="#" data-panel="linked"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg><span>Linked Accounts</span></a>
         </nav>
         <a class="dash-admin-link" id="dashAdminLink" href="/admin" hidden><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg> Admin Panel</a>
         <button class="dash-signout" id="dashSignout" type="button"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/></svg> Sign out</button>
@@ -222,27 +224,11 @@
         <div class="dash-card glass"><div class="dash-card-head"><h2>Change account details</h2></div>
           <form class="auth-form" id="acctForm" novalidate style="max-width:420px;">
             <div class="auth-field" data-for="name"><label for="ac-name">Display name</label><input id="ac-name" name="name" type="text" value="Kaden R." /><span class="auth-err"></span></div>
-            <div class="auth-field" data-for="email"><label for="ac-email">Email</label><input id="ac-email" name="email" type="email" value="kaden@example.com" /><span class="auth-err"></span></div>
-            <div class="auth-field" data-for="password"><label for="ac-pass">New password</label><div class="auth-input-wrap"><input id="ac-pass" name="password" type="password" placeholder="Leave blank to keep current" /><button class="auth-pw-toggle" type="button" aria-label="Show password"><svg class="eye-off" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a20.3 20.3 0 0 1 5.06-6.06M9.9 4.24A10.4 10.4 0 0 1 12 4c7 0 11 8 11 8a20.3 20.3 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg><svg class="eye-on" style="display:none" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button></div>
-              <div class="pw-strength" id="pwStrength">
-                <div class="pw-strength-bar"><div class="pw-strength-fill" id="pwFill"></div></div>
-                <ul class="pw-checklist" id="pwChecklist">
-                  <li data-rule="upper">Must have at least 1 uppercase letter.</li>
-                  <li data-rule="lower">Must have at least 1 lowercase letter.</li>
-                  <li data-rule="number">Must have at least 1 number.</li>
-                  <li data-rule="special">Must have at least 1 special character.</li>
-                  <li data-rule="length">Must be more than 8 characters.</li>
-                </ul>
-              </div>
-              <span class="auth-err"></span></div>
+            <div class="auth-field" data-for="email"><label for="ac-email">Email</label><input id="ac-email" name="email" type="email" value="kaden@example.com" readonly />
+              <p class="auth-hint">Go to the security tab to edit this information.</p><span class="auth-err"></span></div>
             <button class="btn btn-primary auth-submit" type="submit" style="width:auto;align-self:flex-start;"><span class="btn-label">Save changes</span><span class="btn-spinner" hidden></span></button>
             <div class="auth-msg"></div>
           </form>
-        </div>
-        <div class="dash-card glass" id="robloxLinkCard"><div class="dash-card-head"><h2>Roblox account</h2></div>
-          <p id="robloxLinkStatus">Checking link status…</p>
-          <button class="btn btn-ghost" id="robloxLinkBtn" type="button" hidden>Link Roblox account</button>
-          <button class="btn btn-ghost" id="robloxUnlinkBtn" type="button" hidden>Unlink</button>
         </div>
         <div class="dash-card glass danger"><div class="dash-card-head"><h2>Delete account</h2></div>
           <p class="danger-text">This permanently removes your account, licences, and download access. This can't be undone.</p>
@@ -255,9 +241,100 @@
           </div>
         </div>
       </section>
+      <section class="dash-panel" id="panel-security" hidden>
+        <div class="dash-head"><h1>Security</h1><p>Change your email or password. Re-verification required.</p></div>
+        <div class="dash-card glass" id="secLocked">
+          <p>Verify it's you before making security changes.</p>
+          <button class="btn btn-primary" id="secVerifyBtn" type="button">Verify identity</button>
+        </div>
+        <div id="secUnlocked" hidden>
+          <div class="dash-card glass">
+            <div class="dash-card-head"><h2>Email</h2></div>
+            <form class="auth-form" id="secEmailForm" novalidate style="max-width:420px;">
+              <div class="auth-field" data-for="email"><label for="sec-email">Email</label><input id="sec-email" name="email" type="email" /><span class="auth-err"></span></div>
+              <button class="btn btn-primary" type="submit" style="width:auto;align-self:flex-start;"><span class="btn-label">Save email</span><span class="btn-spinner" hidden></span></button>
+              <div class="auth-msg"></div>
+            </form>
+          </div>
+          <div class="dash-card glass">
+            <div class="dash-card-head"><h2>Password</h2></div>
+            <p class="auth-hint" style="margin:0 0 12px;">Change your account password.</p>
+            <button class="btn btn-ghost" id="openPwModalBtn" type="button">Change password</button>
+          </div>
+        </div>
+      </section>
+      <section class="dash-panel" id="panel-linked" hidden>
+        <div class="dash-head"><h1>Linked accounts</h1><p>Manage which accounts can sign you in.</p></div>
+        <div class="dash-card glass" id="linkedLocked">
+          <p>Enter your password to view and manage linked accounts.</p>
+          <button class="btn btn-primary" id="linkedVerifyBtn" type="button">Enter password</button>
+        </div>
+        <div class="dash-card glass" id="linkedUnlocked" hidden>
+          <div class="ntf-row"><div class="ntf-text"><div class="ntf-label">Email &amp; password</div><div class="ntf-sub" id="linkedEmailStatus">—</div></div></div>
+          <div class="ntf-row"><div class="ntf-text"><div class="ntf-label">Discord</div><div class="ntf-sub" id="linkedDiscordStatus">—</div></div><button class="btn btn-ghost" id="linkedDiscordBtn" type="button"></button></div>
+          <div class="ntf-row"><div class="ntf-text"><div class="ntf-label">Roblox</div><div class="ntf-sub" id="linkedRobloxStatus">—</div></div><button class="btn btn-ghost" id="linkedRobloxBtn" type="button"></button></div>
+          <p class="auth-err" id="linkedErr"></p>
+        </div>
+      </section>
       </div>
     </div>
   </main>
+
+  <div class="confirm-overlay" id="reauthOverlay" hidden>
+    <div class="confirm-modal" style="max-width:380px;text-align:left;">
+      <h3 style="margin:0 0 6px;font-size:17px;">Verify it's you</h3>
+      <p style="margin:0 0 16px;font-size:13px;color:var(--fg-3);">This action needs re-verification.</p>
+      <div id="reauthPwView">
+        <div class="auth-field"><label for="reauthPw">Password</label><input id="reauthPw" type="password" autocomplete="current-password" /><span class="auth-err"></span></div>
+        <button class="btn btn-primary" id="reauthPwBtn" type="button" style="width:100%;margin-top:10px;"><span class="btn-label">Verify</span><span class="btn-spinner" hidden></span></button>
+        <button class="btn btn-ghost" id="reauthUseEmail" type="button" style="width:100%;margin-top:8px;">Use email code instead</button>
+      </div>
+      <div id="reauthOtpView" hidden>
+        <p style="margin:0 0 10px;font-size:13px;color:var(--fg-3);">We've emailed a code to your account email.</p>
+        <div class="auth-field"><label for="reauthOtp">Verification code</label><input id="reauthOtp" type="text" autocomplete="one-time-code" /><span class="auth-err"></span></div>
+        <button class="btn btn-primary" id="reauthOtpBtn" type="button" style="width:100%;margin-top:10px;"><span class="btn-label">Verify</span><span class="btn-spinner" hidden></span></button>
+      </div>
+      <p class="auth-err" id="reauthErr" style="margin-top:10px;"></p>
+      <button class="btn btn-ghost" id="reauthCancel" type="button" style="width:100%;margin-top:8px;">Cancel</button>
+    </div>
+  </div>
+
+  <div class="confirm-overlay" id="linkedGateOverlay" hidden>
+    <div class="confirm-modal" style="max-width:380px;text-align:left;">
+      <h3 style="margin:0 0 6px;font-size:17px;">Enter your password</h3>
+      <p style="margin:0 0 16px;font-size:13px;color:var(--fg-3);">Confirms it's you before showing linked accounts.</p>
+      <div class="auth-field"><label for="linkedGatePw">Password</label><input id="linkedGatePw" type="password" autocomplete="current-password" /><span class="auth-err"></span></div>
+      <p class="auth-err" id="linkedGateErr" style="margin-top:6px;"></p>
+      <button class="btn btn-primary" id="linkedGateBtn" type="button" style="width:100%;margin-top:10px;"><span class="btn-label">Continue</span><span class="btn-spinner" hidden></span></button>
+      <button class="btn btn-ghost" id="linkedGateCancel" type="button" style="width:100%;margin-top:8px;">Cancel</button>
+    </div>
+  </div>
+
+  <div class="confirm-overlay" id="pwModalOverlay" hidden>
+    <div class="confirm-modal" style="max-width:380px;text-align:left;">
+      <h3 style="margin:0 0 16px;font-size:17px;">Change password</h3>
+      <form class="auth-form" id="pwChangeForm" novalidate>
+        <div class="auth-field" data-for="current"><label for="pw-current">Current password</label><input id="pw-current" name="current" type="password" autocomplete="current-password" /><span class="auth-err"></span></div>
+        <div class="auth-field" data-for="new"><label for="pw-new">New password</label>
+          <input id="pw-new" name="new" type="password" autocomplete="new-password" />
+          <div class="pw-strength" id="pwModalStrength">
+            <div class="pw-strength-bar"><div class="pw-strength-fill" id="pwModalFill"></div></div>
+            <ul class="pw-checklist" id="pwModalChecklist">
+              <li data-rule="upper">Must have at least 1 uppercase letter.</li>
+              <li data-rule="lower">Must have at least 1 lowercase letter.</li>
+              <li data-rule="number">Must have at least 1 number.</li>
+              <li data-rule="special">Must have at least 1 special character.</li>
+              <li data-rule="length">Must be more than 8 characters.</li>
+            </ul>
+          </div>
+          <span class="auth-err"></span></div>
+        <div class="auth-field" data-for="confirm"><label for="pw-confirm">Confirm new password</label><input id="pw-confirm" name="confirm" type="password" autocomplete="new-password" /><span class="auth-err"></span></div>
+        <button class="btn btn-primary" type="submit" style="width:100%;"><span class="btn-label">Update password</span><span class="btn-spinner" hidden></span></button>
+        <button class="btn btn-ghost" id="pwModalCancel" type="button" style="width:100%;">Cancel</button>
+        <div class="auth-msg"></div>
+      </form>
+    </div>
+  </div>
 
 
   <footer>
@@ -483,6 +560,6 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script src="/supabase-init.js?v=20260728d"></script>
-  <script src="/catalog.js?v=20260727f" data-then="/app.js?v=20260728f"></script>
+  <script src="/catalog.js?v=20260727f" data-then="/app.js?v=20260728g"></script>
 </body>
 </html>

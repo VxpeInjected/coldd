@@ -2094,6 +2094,35 @@
     if (item.scope === 'category') return item.platform + ': ' + item.category;
     return 'Sitewide';
   }
+  function productsInScope(scopeInfo) {
+    return PRODUCTS_CACHE.filter(function (p) {
+      if (scopeInfo.scope === 'platform') return p.platform === scopeInfo.platform;
+      if (scopeInfo.scope === 'category') return p.platform === scopeInfo.platform && p.cat === scopeInfo.category;
+      return true; // sitewide
+    });
+  }
+  // Checked against product_legal (min_sale_usd / disallow_sales) before a
+  // sale event or coupon can be saved, so a broad-scope discount can never
+  // silently undercut a product's contractual minimum price or discount
+  // one explicitly marked as not-for-sale.
+  function legalViolations(scopeInfo, discountedPriceFor) {
+    var disallowed = [], belowMin = [], notFreeable = [];
+    productsInScope(scopeInfo).forEach(function (p) {
+      var legal = p.legal || {};
+      if (legal.disallowSales) { disallowed.push(p.title); return; }
+      var discounted = discountedPriceFor(p.priceNum);
+      if (discounted <= 0 && !legal.canBeFree) { notFreeable.push(p.title); return; }
+      if (legal.minSaleUsd != null && discounted < Number(legal.minSaleUsd)) belowMin.push(p.title + ' (min $' + Number(legal.minSaleUsd).toFixed(2) + ')');
+    });
+    return { disallowed: disallowed, belowMin: belowMin, notFreeable: notFreeable, ok: !disallowed.length && !belowMin.length && !notFreeable.length };
+  }
+  function legalViolationMessage(v) {
+    var parts = [];
+    if (v.disallowed.length) parts.push(v.disallowed.length + ' product(s) marked "do not discount": ' + v.disallowed.slice(0, 5).join(', ') + (v.disallowed.length > 5 ? '…' : ''));
+    if (v.notFreeable.length) parts.push(v.notFreeable.length + ' product(s) would be discounted to $0 but aren\'t allowed to be free: ' + v.notFreeable.slice(0, 5).join(', ') + (v.notFreeable.length > 5 ? '…' : ''));
+    if (v.belowMin.length) parts.push(v.belowMin.length + ' product(s) would fall below their minimum sale price: ' + v.belowMin.slice(0, 5).join(', ') + (v.belowMin.length > 5 ? '…' : ''));
+    return 'Can\'t save - ' + parts.join('; ') + '.';
+  }
 
   var salesTypeToggle = $('admSalesTypeToggle');
   if (salesTypeToggle) salesTypeToggle.addEventListener('click', function (e) {
@@ -2200,6 +2229,9 @@
       startDate: $('admEventStart').value, endDate: $('admEventEnd').value
     };
     if (!fields.title || !fields.message || !fields.startDate || !fields.endDate) return;
+    var pctOff = fields.percentOff;
+    var violations = legalViolations(scopeInfo, function (price) { return price * (1 - pctOff / 100); });
+    if (!violations.ok) { alert(legalViolationMessage(violations)); return; }
     var existing = id ? SALE_EVENTS.filter(function (x) { return x.id === id; })[0] : null;
     var active = existing ? existing.active : true;
     var slug = existing ? existing.slug : (fields.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'sale') + '-' + Date.now().toString(36);
@@ -2294,6 +2326,10 @@
     var expiresAt = $('admNewCouponExpiry').value || null;
     var scopeInfo = parseScopeValue($('admCouponScope').value);
     if (!code || !val) return;
+    var couponViolations = legalViolations(scopeInfo, function (price) {
+      return type === 'flat' ? Math.max(0, price - val) : price * (1 - val / 100);
+    });
+    if (!couponViolations.ok) { alert(legalViolationMessage(couponViolations)); return; }
     var submitBtn = $('admCouponSubmitBtn');
     if (submitBtn) submitBtn.disabled = true;
     callUpsertCoupon({

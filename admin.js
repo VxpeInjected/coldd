@@ -333,6 +333,7 @@
       refCode: null,
       refundReason: row.refund_reason || null,
       stripePaymentIntentId: row.stripe_payment_intent_id,
+      source: row.source || 'website',
       items: items
     };
   }
@@ -709,11 +710,29 @@
     list.forEach(function (o) { if (o.currency === 'robux') robuxTotal += o.totalRobux; else usdTotal += o.total; });
     return { usd: usdTotal, robux: robuxTotal };
   }
-  // Group-transaction-scanned Robux revenue (task: Robux/Parcel group
-  // revenue) - 0 until that's wired in, at which point "Overall Robux
-  // revenue" reflects real group totals instead of just our own tracked
-  // orders (which "Website Robux revenue" continues to show).
-  var GROUP_REVENUE = { robux: 0, prevRobux: 0, parcelRobux: 0, parcelPrevRobux: 0 };
+  // Real, lifetime-cumulative totals from the Roblox group transaction
+  // ledger (roblox-group-revenue-sync, synced every 15 min via cron or a
+  // manual "Sync now"). This is a superset of our own tracked website
+  // orders (same group, same buyers) - falls back to the website-tracked
+  // figure until the first sync has run. Unlike every other stat here
+  // this is NOT scoped to the range selector (the group API has no cheap
+  // way to filter by date), so it never gets a % delta.
+  var GROUP_REVENUE = { robux: 0, parcelRobux: 0, syncedAt: null };
+  function refreshGroupRevenue() {
+    if (!window.coldSupabase) return Promise.resolve();
+    return window.coldSupabase.from('roblox_group_revenue').select('*').eq('id', true).maybeSingle().then(function (res) {
+      if (res.error || !res.data) return;
+      GROUP_REVENUE.robux = Number(res.data.total_robux) || 0;
+      GROUP_REVENUE.parcelRobux = Number(res.data.parcel_robux) || 0;
+      GROUP_REVENUE.syncedAt = res.data.updated_at;
+      if (curPanel === 'home') renderHome();
+      if (curPanel === 'analytics') renderAnalytics();
+      if (curPanel === 'sitemgmt') renderRobloxGroupRevenue();
+    });
+  }
+  function callSyncGroupRevenue() {
+    return invokeAdminFn('roblox-group-revenue-sync', {}, 'Could not sync Robux revenue.');
+  }
   // Flattens completed orders' line items for product/category-level
   // aggregation (an order can contain multiple items, unlike the old
   // one-product-per-order mock ledger).
@@ -828,7 +847,7 @@
     else if (name === 'reviews') renderReviews();
     else if (name === 'users') renderUsers();
     else if (name === 'sales') { renderEvents(); renderCoupons(); }
-    else if (name === 'sitemgmt') { refreshSiteStatus(); renderRobloxContainers(); refreshRobloxCookieHealth(); renderStaff(); }
+    else if (name === 'sitemgmt') { refreshSiteStatus(); renderRobloxContainers(); refreshRobloxCookieHealth(); renderStaff(); renderRobloxGroupRevenue(); }
     else if (name === 'content') { renderPosts(); renderTutorials(); }
     else if (name === 'releases') renderReleases();
     else if (name === 'audit') renderAudit();
@@ -873,14 +892,13 @@
     var curVisits = RANGE_DAYS ? pageviewsInWindow(daysAgoStart(RANGE_DAYS), new Date()) : TRAFFIC.reduce(function (s, r) { return s + r.pageviews; }, 0);
     var prevVisits = win ? pageviewsInWindow(win.start, win.end) : 0;
 
-    var overallRobux = curRev.robux + GROUP_REVENUE.robux;
-    var overallRobuxPrev = prevRev.robux + GROUP_REVENUE.prevRobux;
+    var overallRobux = GROUP_REVENUE.robux || curRev.robux;
     var overallDevexAud = aud(overallRobux * DEVEX_USD_PER_ROBUX);
     var websiteDevexAud = aud(curRev.robux * DEVEX_USD_PER_ROBUX);
 
     $('admHomeStatsTop').innerHTML = [
       statTile('Overall revenue', aud(curRev.usd), usd(curRev.usd) + ' USD', pctDelta(curRev.usd, prevRev.usd)),
-      statTile('Overall Robux revenue', robux(overallRobux), overallDevexAud + ' via DevEx', pctDelta(overallRobux, overallRobuxPrev)),
+      statTile('Overall Robux revenue', robux(overallRobux), overallDevexAud + ' via DevEx · all-time', ''),
       statTile('Live sessions', LIVE_SESSIONS, 'active in the last 5 min', ''),
       statTile('Order count', curOrders.length, null, pctDelta(curOrders.length, prevOrders.length))
     ].join('');
@@ -910,10 +928,15 @@
 
     var banner = $('admModeBanner'); if (banner) banner.innerHTML = '<span class="dt-badge ok">' + esc(currentRole().role) + ' access</span>';
   }
+  function sourceBadge(source) {
+    if (!source || source === 'website') return '';
+    var label = source.charAt(0).toUpperCase() + source.slice(1) + ' platform order';
+    return '<span class="dt-badge" style="margin-right:8px;">' + esc(label) + '</span>';
+  }
   function orderRowHTML(o) {
     return '<div class="dash-row"><span class="dr-thumb" style="background-image:url(\'' + o.image + '\')"></span>' +
       '<div class="dr-main"><div class="dr-title">' + esc(o.title) + '</div><div class="dr-sub">' + fmtDateTime(new Date(o.date)) + ' · ' + esc(o.id) + ' · ' + esc(o.userName) + '</div></div>' +
-      statusBadge(o.status) + '<span class="p-price" style="margin-left:12px;">' + orderAmount(o) + '</span></div>';
+      sourceBadge(o.source) + statusBadge(o.status) + '<span class="p-price" style="margin-left:12px;">' + orderAmount(o) + '</span></div>';
   }
   function statusBadge(status) {
     var cls = status === 'completed' ? 'ok' : (status === 'refunded' ? 'err' : 'warn');
@@ -936,12 +959,11 @@
     var prevRev = websiteRevenue(prevOrders);
     var curVisits = RANGE_DAYS ? pageviewsInWindow(daysAgoStart(RANGE_DAYS), new Date()) : TRAFFIC.reduce(function (s, r) { return s + r.pageviews; }, 0);
     var prevVisits = win ? pageviewsInWindow(win.start, win.end) : 0;
-    var overallRobux = curRev.robux + GROUP_REVENUE.robux;
-    var overallRobuxPrev = prevRev.robux + GROUP_REVENUE.prevRobux;
+    var overallRobux = GROUP_REVENUE.robux || curRev.robux;
 
     $('admAnStats').innerHTML = [
       statTile('Overall revenue', aud(curRev.usd), usd(curRev.usd) + ' USD', pctDelta(curRev.usd, prevRev.usd)),
-      statTile('Overall Robux revenue', robux(overallRobux), aud(overallRobux * DEVEX_USD_PER_ROBUX) + ' via DevEx', pctDelta(overallRobux, overallRobuxPrev)),
+      statTile('Overall Robux revenue', robux(overallRobux), aud(overallRobux * DEVEX_USD_PER_ROBUX) + ' via DevEx · all-time', ''),
       statTile('Website revenue', aud(curRev.usd), usd(curRev.usd) + ' USD', pctDelta(curRev.usd, prevRev.usd)),
       statTile('Website Robux revenue', robux(curRev.robux), aud(curRev.robux * DEVEX_USD_PER_ROBUX) + ' via DevEx', pctDelta(curRev.robux, prevRev.robux)),
       statTile('Order count', curOrders.length, null, pctDelta(curOrders.length, prevOrders.length)),
@@ -1775,7 +1797,7 @@
         '<td>' + esc(o.userName) + '</td>' +
         '<td>' + o.currency.toUpperCase() + '</td>' +
         '<td>' + orderAmount(o) + '</td>' +
-        '<td>' + statusBadge(o.status) + '</td>' +
+        '<td>' + sourceBadge(o.source) + statusBadge(o.status) + '</td>' +
         '<td class="adm-row-actions">' + actions + '</td></tr>';
     }).join('') || '<tr><td colspan="8" class="adm-empty">No orders match.</td></tr>';
   }
@@ -2227,6 +2249,25 @@
   /* ================================================================
      ROBLOX PANEL (container game pool that gamepasses get created in)
      ================================================================ */
+  function renderRobloxGroupRevenue() {
+    var el = $('admGroupRevenueBody'); if (!el) return;
+    var synced = GROUP_REVENUE.syncedAt ? fmtDateTime(new Date(GROUP_REVENUE.syncedAt)) : 'never';
+    el.innerHTML =
+      '<div class="adm-devex-row"><span>Total group Robux revenue (all-time)</span><strong>' + robux(GROUP_REVENUE.robux) + '</strong></div>' +
+      '<div class="adm-devex-row"><span>Of which, Parcel Hub</span><strong>' + robux(GROUP_REVENUE.parcelRobux) + '</strong></div>' +
+      '<div class="adm-devex-row"><span>Last synced</span><strong>' + synced + '</strong></div>' +
+      '<p class="adm-note">Synced automatically every 15 minutes once the cron job is set up (roblox_group_revenue_cron.sql), or on demand with the button above.</p>';
+  }
+  var groupRevenueSyncBtn = $('admGroupRevenueSyncBtn');
+  if (groupRevenueSyncBtn) groupRevenueSyncBtn.addEventListener('click', function () {
+    groupRevenueSyncBtn.disabled = true; var prevText = groupRevenueSyncBtn.textContent; groupRevenueSyncBtn.textContent = 'Syncing…';
+    callSyncGroupRevenue()
+      .then(function () { return refreshGroupRevenue(); })
+      .then(function () { logAudit('Synced Robux group revenue'); })
+      .catch(function (err) { alert(err.message || 'Could not sync.'); })
+      .finally(function () { groupRevenueSyncBtn.disabled = false; groupRevenueSyncBtn.textContent = prevText; });
+  });
+
   var ROBLOX_CONTAINERS = [];
   function refreshRobloxContainers() {
     if (!window.coldSupabase) return Promise.resolve();
@@ -2828,6 +2869,7 @@
   refreshRobloxCookieHealth();
   refreshLiveSessions();
   refreshDiscordStats();
+  refreshGroupRevenue();
   setInterval(refreshLiveSessions, 30000);
   } // end boot()
 })();

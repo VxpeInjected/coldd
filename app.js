@@ -914,6 +914,7 @@
         else cart.push({ id: id, title: item.title, price: item.price, image: item.image, tag: item.tag || '', licence: lic, qty: 1 });
         save(); updateBadge(); renderCart();
       }
+      window.__cartAdd = add;
       function setQty(id, q) {
         cart = cart.map(function (i) { return i.id === id ? Object.assign(i, { qty: q }) : i; })
                    .filter(function (i) { return i.qty > 0; });
@@ -1541,7 +1542,7 @@
       function showPanel(name) {
         panels.forEach(function (p) { p.hidden = (p.id !== 'panel-' + name); });
         dash.querySelectorAll('.dash-nav a').forEach(function (a) { a.classList.toggle('active', a.getAttribute('data-panel') === name); });
-
+        if (name === 'wishlist' && typeof renderWishlist === 'function') renderWishlist();
       }
       dash.addEventListener('click', function (e) {
         var a = e.target.closest('[data-panel]');
@@ -1551,6 +1552,43 @@
       var initialPanel = new URLSearchParams(location.search).get('panel');
       if (initialPanel && dash.querySelector('#panel-' + initialPanel)) showPanel(initialPanel);
 
+      // Wishlist has no backend table - it's the same coldd_wish_v1
+      // localStorage array product.html already reads/writes (an array
+      // of catalog ids), so this panel is just a live view onto it.
+      var WISH_KEY = 'coldd_wish_v1';
+      function wishIds() { try { return JSON.parse(localStorage.getItem(WISH_KEY) || '[]') || []; } catch (e) { return []; } }
+      function saveWishIds(ids) { try { localStorage.setItem(WISH_KEY, JSON.stringify(ids)); } catch (e) {} }
+      function renderWishlist() {
+        var el = document.getElementById('dashWishlistRows');
+        if (!el) return;
+        var ids = wishIds();
+        var cat = window.__CATALOG || [];
+        var items = ids.map(function (id) { return cat.filter(function (p) { return p.id === id; })[0]; }).filter(Boolean);
+        if (!items.length) { el.innerHTML = '<p class="dash-empty-note">Nothing saved yet - tap the heart on any product to add it here.</p>'; return; }
+        el.innerHTML = items.map(function (p) {
+          return '<div class="dash-row" data-id="' + p.id + '"><span class="dr-thumb" style="background-image:url(\'' + p.image + '\')"></span>' +
+            '<div class="dr-main"><div class="dr-title">' + p.title + '</div><div class="dr-sub"><span class="p-price" data-usd="' + p.priceNum + '">' + (window.__money ? window.__money(p.priceNum) : ('$' + p.priceNum)) + '</span></div></div>' +
+            '<div class="dr-actions"><button class="btn btn-ghost dr-cart" type="button">Add to cart</button><button class="wl-remove" type="button" aria-label="Remove">×</button></div></div>';
+        }).join('');
+      }
+      var wishlistRows = document.getElementById('dashWishlistRows');
+      if (wishlistRows) wishlistRows.addEventListener('click', function (e) {
+        var row = e.target.closest('.dash-row'); if (!row) return;
+        var id = row.getAttribute('data-id');
+        var p = (window.__CATALOG || []).filter(function (x) { return x.id === id; })[0];
+        if (e.target.closest('.wl-remove')) {
+          saveWishIds(wishIds().filter(function (x) { return x !== id; }));
+          renderWishlist();
+          var statWishlist = document.getElementById('dashStatWishlist');
+          if (statWishlist) statWishlist.textContent = wishIds().length;
+        } else if (e.target.closest('.dr-cart') && p) {
+          if (window.__cartAdd) window.__cartAdd({ id: p.id, title: p.title, price: p.priceNum, image: p.image, tag: p.cat || '' });
+          var btn = e.target.closest('.dr-cart');
+          var t = btn.textContent; btn.textContent = 'Added ✓'; btn.disabled = true;
+          setTimeout(function () { btn.textContent = t; btn.disabled = false; }, 1400);
+        }
+      });
+
       // Real purchase/ownership data, read live from Supabase (RLS already
       // scopes orders/order_items to the signed-in user).
       function fmtDate(iso) {
@@ -1558,6 +1596,26 @@
         catch (e) { return iso; }
       }
       function shortOrderId(id) { return '#' + String(id).slice(0, 8).toUpperCase(); }
+      // Shared in-button spinner treatment - reuses the .btn-label/
+      // .btn-spinner/.is-loading pattern already used on the full-page
+      // auth forms (see styles.css's generic .btn.is-loading rules).
+      function setBtnLoading(btn, loading) {
+        if (!btn) return;
+        btn.disabled = loading;
+        btn.classList.toggle('is-loading', loading);
+        var spinner = btn.querySelector('.btn-spinner');
+        if (spinner) spinner.hidden = !loading;
+      }
+
+      // A completed order's amount is a fixed historical fact, not a live
+      // price - Robux orders show the real R$ total, never routed through
+      // the flat window.__robux() conversion (matches the same fix applied
+      // to cart/checkout/admin this session).
+      function orderMoney(o) {
+        return o.currency === 'robux'
+          ? 'R$ ' + Math.round(Number(o.total_robux) || 0).toLocaleString('en-US')
+          : (window.__money ? window.__money(o.total_usd) : ('$' + o.total_usd));
+      }
 
       function renderPurchases(orders) {
         var body = document.getElementById('dashPurchasesBody');
@@ -1569,14 +1627,43 @@
           var badge = o.status === 'paid' ? 'ok' : 'warn';
           var label = o.status.charAt(0).toUpperCase() + o.status.slice(1);
           var isRobux = o.currency === 'robux';
-          var money = isRobux
-            ? 'R$ ' + Math.round(Number(o.total_robux) || 0).toLocaleString('en-US')
-            : (window.__money ? window.__money(o.total_usd) : ('$' + o.total_usd));
+          var money = orderMoney(o);
           var priceCell = isRobux ? money : ('<span class="p-price" data-usd="' + o.total_usd + '">' + money + '</span>');
           return '<tr><td>' + fmtDate(o.created_at) + '</td><td>' + titles + '</td><td class="dt-mono">' + shortOrderId(o.id) + '</td>' +
             '<td>' + priceCell + '</td>' +
             '<td><span class="dt-badge ' + badge + '">' + label + '</span></td></tr>';
         }).join('');
+      }
+
+      function renderOverview(orders) {
+        var paid = orders.filter(function (o) { return o.status === 'paid'; });
+        var usdTotal = paid.filter(function (o) { return o.currency !== 'robux'; }).reduce(function (s, o) { return s + (Number(o.total_usd) || 0); }, 0);
+        var robuxTotal = paid.filter(function (o) { return o.currency === 'robux'; }).reduce(function (s, o) { return s + (Number(o.total_robux) || 0); }, 0);
+        var statUsd = document.getElementById('dashStatUsd');
+        var statRobux = document.getElementById('dashStatRobux');
+        var statOwned = document.getElementById('dashStatOwned');
+        var statWishlist = document.getElementById('dashStatWishlist');
+        if (statUsd) statUsd.textContent = window.__usd ? window.__usd(usdTotal) : ('$' + usdTotal.toFixed(2));
+        if (statRobux) statRobux.textContent = 'R$ ' + Math.round(robuxTotal).toLocaleString('en-US');
+        if (statOwned) statOwned.textContent = ownedFromOrders(orders).length;
+        if (statWishlist) {
+          var wish = [];
+          try { wish = JSON.parse(localStorage.getItem('coldd_wish_v1') || '[]') || []; } catch (e) {}
+          statWishlist.textContent = wish.length;
+        }
+
+        var recentEl = document.getElementById('dashRecentPurchases');
+        if (recentEl) {
+          var recent = orders.slice(0, 3);
+          recentEl.innerHTML = recent.length ? recent.map(function (o) {
+            var items = o.order_items || [];
+            var img = (items[0] && items[0].products && items[0].products.image) ? window.imgUrl(items[0].products.image) : '/banner.jpg';
+            var titles = items.map(function (i) { return i.title; }).join(', ') || '—';
+            return '<div class="dash-row"><span class="dr-thumb" style="background-image:url(\'' + img + '\')"></span>' +
+              '<div class="dr-main"><div class="dr-title">' + titles + '</div><div class="dr-sub">' + fmtDate(o.created_at) + ' · ' + shortOrderId(o.id) + '</div></div>' +
+              '<span class="p-price">' + orderMoney(o) + '</span></div>';
+          }).join('') : '<p class="dash-empty-note">No purchases yet.</p>';
+        }
       }
 
       function ownedFromOrders(orders) {
@@ -1650,6 +1737,7 @@
           .order('created_at', { ascending: false })
           .then(function (res) {
             var orders = (res && res.data) || [];
+            renderOverview(orders);
             renderPurchases(orders);
             renderOwnedAndDownloads(orders);
           });
@@ -1663,8 +1751,39 @@
           var session = res && res.data ? res.data.session : null;
           if (!session) { location.href = '/signin'; return; }
           loadRealData(session.user.id);
+          loadNotificationPrefs(session.user.id);
         });
       }
+
+      var NTF_DEFAULTS = { orderReceipts: true, productUpdates: true, promotions: false, saleDms: true, roleSync: true, supportReplies: true };
+      var NTF_IDS = { orderReceipts: 'ntfOrderReceipts', productUpdates: 'ntfProductUpdates', promotions: 'ntfPromotions', saleDms: 'ntfSaleDms', roleSync: 'ntfRoleSync', supportReplies: 'ntfSupportReplies' };
+      function loadNotificationPrefs(userId) {
+        window.coldSupabase.from('profiles').select('notification_prefs').eq('id', userId).maybeSingle().then(function (res) {
+          var prefs = Object.assign({}, NTF_DEFAULTS, (res && res.data && res.data.notification_prefs) || {});
+          Object.keys(NTF_IDS).forEach(function (key) {
+            var el = document.getElementById(NTF_IDS[key]);
+            if (el) el.checked = !!prefs[key];
+          });
+        });
+      }
+      var ntfSaveBtn = document.getElementById('ntfSaveBtn');
+      if (ntfSaveBtn) ntfSaveBtn.addEventListener('click', function () {
+        var msgEl = document.getElementById('ntfMsg');
+        window.coldSupabase.auth.getSession().then(function (res) {
+          var session = res && res.data ? res.data.session : null;
+          if (!session) return;
+          var prefs = {};
+          Object.keys(NTF_IDS).forEach(function (key) {
+            var el = document.getElementById(NTF_IDS[key]);
+            prefs[key] = el ? el.checked : NTF_DEFAULTS[key];
+          });
+          setBtnLoading(ntfSaveBtn, true);
+          window.coldSupabase.from('profiles').update({ notification_prefs: prefs }).eq('id', session.user.id).then(function (upRes) {
+            setBtnLoading(ntfSaveBtn, false);
+            if (msgEl) { msgEl.className = upRes.error ? 'co-msg err show' : 'co-msg show'; msgEl.textContent = upRes.error ? (upRes.error.message || 'Could not save.') : 'Saved.'; }
+          });
+        });
+      });
 
       var robloxStatusEl = document.getElementById('robloxLinkStatus');
       var robloxLinkBtn = document.getElementById('robloxLinkBtn');
@@ -1804,14 +1923,14 @@
           if (!tasks.length) { acctFlash('Nothing to update.'); return; }
 
           var btn = acct.querySelector('.auth-submit');
-          if (btn) btn.disabled = true;
+          setBtnLoading(btn, true);
           Promise.all(tasks).then(function () {
-            if (btn) btn.disabled = false;
+            setBtnLoading(btn, false);
             if (acctPwInput) acctPwInput.value = '';
             if (acctPwBox) acctPwBox.classList.remove('open');
             acctFlash(messages.length ? messages.join(' ') : 'Saved.');
           }).catch(function (err) {
-            if (btn) btn.disabled = false;
+            setBtnLoading(btn, false);
             acctFlash(err.message || 'Something went wrong.');
           });
         });
@@ -1828,15 +1947,50 @@
 
       var del = document.getElementById('delAcct'), conf = document.getElementById('delConfirm');
       if (del && conf) {
-        del.addEventListener('click', function () { conf.hidden = false; del.style.display = 'none'; });
+        var delCodeEl = document.getElementById('delCode');
+        var delCode = '';
+        function genDeleteCode() {
+          var chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+          var groups = [];
+          for (var g = 0; g < 4; g++) {
+            var s = '';
+            for (var i = 0; i < 4; i++) s += chars.charAt(Math.floor(Math.random() * chars.length));
+            groups.push(s);
+          }
+          return groups.join('-');
+        }
+        function showDeleteCode() {
+          delCode = genDeleteCode();
+          if (delCodeEl) delCodeEl.textContent = delCode;
+        }
+        del.addEventListener('click', function () {
+          showDeleteCode();
+          conf.hidden = false; del.style.display = 'none';
+        });
         var cancel = document.getElementById('delCancel');
         if (cancel) cancel.addEventListener('click', function () { conf.hidden = true; del.style.display = ''; });
-        var fin = document.getElementById('delFinal'), inp = document.getElementById('delInput');
+        var fin = document.getElementById('delFinal'), inp = document.getElementById('delInput'), delErr = document.getElementById('delErr');
+        // Copy-pasting defeats the point of "type this out" - block paste
+        // on the input outright, on top of user-select:none on the code
+        // itself and the disabled right-click menu.
+        if (inp) inp.addEventListener('paste', function (e) { e.preventDefault(); });
         if (fin) fin.addEventListener('click', function () {
-          if (inp && inp.value.trim().toUpperCase() === 'DELETE') {
-            setState(false); window.__authClose && window.__authClose();
-            if (window.__go) window.__go('home'); else location.href = '/';
-          } else if (inp) { inp.style.borderColor = 'var(--accent)'; inp.focus(); }
+          var typed = inp ? inp.value.trim() : '';
+          if (typed !== delCode) {
+            if (delErr) delErr.textContent = 'That doesn’t match the code above.';
+            if (inp) { inp.style.borderColor = 'var(--accent)'; inp.focus(); }
+            return;
+          }
+          if (delErr) delErr.textContent = '';
+          if (!window.coldAuth) return;
+          setBtnLoading(fin, true);
+          window.coldAuth.invokeFn('delete-account', {}).then(function () {
+            if (window.coldAuth) window.coldAuth.signOut();
+            location.href = '/';
+          }).catch(function (err) {
+            setBtnLoading(fin, false);
+            if (delErr) delErr.textContent = err.message || 'Could not delete your account.';
+          });
         });
       }
 

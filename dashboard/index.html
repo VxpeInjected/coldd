@@ -27,7 +27,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 
-  <link rel="stylesheet" href="/styles.css?v=20260728a" />
+  <link rel="stylesheet" href="/styles.css?v=20260728b" />
 </head>
 <body>
   <div class="backdrop"></div>
@@ -135,18 +135,14 @@
       <section class="dash-panel" id="panel-overview">
         <div class="dash-head"><h1>Welcome back, <span id="dashWelcomeName">Kaden</span>.</h1><p>Here's a snapshot of your coldd account.</p></div>
         <div class="dash-stats">
-          <div class="dash-stat glass"><span class="ds-label">Total spent (USD)</span><span class="ds-num ds-money">$418</span></div>
-          <div class="dash-stat glass"><span class="ds-label">Total spent (Robux)</span><span class="ds-num ds-money">R$ 33,440</span></div>
-          <div class="dash-stat glass"><span class="ds-label">Products owned</span><span class="ds-num">7</span></div>
-          <div class="dash-stat glass"><span class="ds-label">Wishlist</span><span class="ds-num">3</span></div>
+          <div class="dash-stat glass"><span class="ds-label">Total spent (USD)</span><span class="ds-num ds-money" id="dashStatUsd">$0</span></div>
+          <div class="dash-stat glass"><span class="ds-label">Total spent (Robux)</span><span class="ds-num ds-money" id="dashStatRobux">R$ 0</span></div>
+          <div class="dash-stat glass"><span class="ds-label">Products owned</span><span class="ds-num" id="dashStatOwned">0</span></div>
+          <div class="dash-stat glass"><span class="ds-label">Wishlist</span><span class="ds-num" id="dashStatWishlist">0</span></div>
         </div>
         <div class="dash-card glass">
           <div class="dash-card-head"><h2>Recent purchases</h2><a href="#" data-panel="purchases">View all</a></div>
-          <div class="dash-rows">
-            <div class="dash-row"><span class="dr-thumb" style="background-image:url('/premade.jpg')"></span><div class="dr-main"><div class="dr-title">ALL BRAWL Full Game</div><div class="dr-sub">10 Jun 2026 · #CLD-1042</div></div><span class="p-price">$89</span></div>
-            <div class="dash-row"><span class="dr-thumb" style="background-image:url('/new-release.jpg')"></span><div class="dr-main"><div class="dr-title">Cyberpunk District</div><div class="dr-sub">2 Jun 2026 · #CLD-0991</div></div><span class="p-price">$45</span></div>
-            <div class="dash-row"><span class="dr-thumb" style="background-image:url('/scripts.jpg')"></span><div class="dr-main"><div class="dr-title">Combat HUD Kit</div><div class="dr-sub">21 May 2026 · #CLD-0934</div></div><span class="p-price">$18</span></div>
-          </div>
+          <div class="dash-rows" id="dashRecentPurchases"><p class="dash-empty-note">Loading…</p></div>
         </div>
       </section>
       <section class="dash-panel" id="panel-purchases" hidden>
@@ -168,11 +164,7 @@
       </section>
       <section class="dash-panel" id="panel-wishlist" hidden>
         <div class="dash-head"><h1>Wishlist</h1><p>Saved for later.</p></div>
-        <div class="dash-card glass"><div class="dash-rows">
-          <div class="dash-row"><span class="dr-thumb" style="background-image:url('/frostline.jpg')"></span><div class="dr-main"><div class="dr-title">Frostline Survival Kit</div><div class="dr-sub"><span class="p-price">$129</span></div></div><div class="dr-actions"><button class="btn btn-ghost dr-cart" type="button">Add to cart</button><button class="wl-remove" type="button" aria-label="Remove">×</button></div></div>
-          <div class="dash-row"><span class="dr-thumb" style="background-image:url('/builds.jpg')"></span><div class="dr-main"><div class="dr-title">Containment Site</div><div class="dr-sub"><span class="p-price">$38</span></div></div><div class="dr-actions"><button class="btn btn-ghost dr-cart" type="button">Add to cart</button><button class="wl-remove" type="button" aria-label="Remove">×</button></div></div>
-          <div class="dash-row"><span class="dr-thumb" style="background-image:url('/banner.jpg')"></span><div class="dr-main"><div class="dr-title">Logo & Icon Kit</div><div class="dr-sub"><span class="p-price">$20</span></div></div><div class="dr-actions"><button class="btn btn-ghost dr-cart" type="button">Add to cart</button><button class="wl-remove" type="button" aria-label="Remove">×</button></div></div>
-        </div></div>
+        <div class="dash-card glass"><div class="dash-rows" id="dashWishlistRows"><p class="dash-empty-note">Loading…</p></div></div>
       </section>
       <section class="dash-panel" id="panel-referrals" hidden>
         <div class="dash-head"><h1>Referrals</h1><p>Refer friends to coldd or to a specific product and earn on every sale.</p></div>
@@ -213,15 +205,17 @@
       <section class="dash-panel" id="panel-notifications" hidden>
         <div class="dash-head"><h1>Notification preferences</h1><p>Choose how and when we reach you.</p></div>
         <div class="dash-card glass"><div class="dash-card-head"><h2>Email</h2></div>
-          <div class="ntf-row"><div class="ntf-text"><div class="ntf-label">Order receipts</div><div class="ntf-sub">Confirmations and invoices</div></div><label class="switch"><input type="checkbox" checked /><span class="track"></span></label></div>
-          <div class="ntf-row"><div class="ntf-text"><div class="ntf-label">Product updates</div><div class="ntf-sub">New versions of things you own</div></div><label class="switch"><input type="checkbox" checked /><span class="track"></span></label></div>
-          <div class="ntf-row"><div class="ntf-text"><div class="ntf-label">Promotions & sales</div><div class="ntf-sub">Occasional deals and drops</div></div><label class="switch"><input type="checkbox" /><span class="track"></span></label></div>
+          <div class="ntf-row"><div class="ntf-text"><div class="ntf-label">Order receipts</div><div class="ntf-sub">Confirmations and invoices</div></div><label class="switch"><input type="checkbox" id="ntfOrderReceipts" checked /><span class="track"></span></label></div>
+          <div class="ntf-row"><div class="ntf-text"><div class="ntf-label">Product updates</div><div class="ntf-sub">New versions of things you own</div></div><label class="switch"><input type="checkbox" id="ntfProductUpdates" checked /><span class="track"></span></label></div>
+          <div class="ntf-row"><div class="ntf-text"><div class="ntf-label">Promotions & sales</div><div class="ntf-sub">Occasional deals and drops</div></div><label class="switch"><input type="checkbox" id="ntfPromotions" /><span class="track"></span></label></div>
         </div>
         <div class="dash-card glass"><div class="dash-card-head"><h2>Discord</h2></div>
-          <div class="ntf-row"><div class="ntf-text"><div class="ntf-label">Sale DMs</div><div class="ntf-sub">Get pinged when a sale starts</div></div><label class="switch"><input type="checkbox" checked /><span class="track"></span></label></div>
-          <div class="ntf-row"><div class="ntf-text"><div class="ntf-label">Role sync</div><div class="ntf-sub">Keep your buyer roles up to date</div></div><label class="switch"><input type="checkbox" checked /><span class="track"></span></label></div>
-          <div class="ntf-row"><div class="ntf-text"><div class="ntf-label">Support replies</div><div class="ntf-sub">DM me when staff respond</div></div><label class="switch"><input type="checkbox" checked /><span class="track"></span></label></div>
+          <div class="ntf-row"><div class="ntf-text"><div class="ntf-label">Sale DMs</div><div class="ntf-sub">Get pinged when a sale starts</div></div><label class="switch"><input type="checkbox" id="ntfSaleDms" checked /><span class="track"></span></label></div>
+          <div class="ntf-row"><div class="ntf-text"><div class="ntf-label">Role sync</div><div class="ntf-sub">Keep your buyer roles up to date</div></div><label class="switch"><input type="checkbox" id="ntfRoleSync" checked /><span class="track"></span></label></div>
+          <div class="ntf-row"><div class="ntf-text"><div class="ntf-label">Support replies</div><div class="ntf-sub">DM me when staff respond</div></div><label class="switch"><input type="checkbox" id="ntfSupportReplies" checked /><span class="track"></span></label></div>
         </div>
+        <button class="btn btn-primary" id="ntfSaveBtn" type="button" style="margin-top:14px;"><span class="btn-label">Save preferences</span><span class="btn-spinner" hidden></span></button>
+        <div class="co-msg" id="ntfMsg"></div>
       </section>
       <section class="dash-panel" id="panel-account" hidden>
         <div class="dash-head"><h1>Account settings</h1><p>Update your details or close your account.</p></div>
@@ -241,7 +235,7 @@
                 </ul>
               </div>
               <span class="auth-err"></span></div>
-            <button class="btn btn-primary auth-submit" type="submit" style="width:auto;align-self:flex-start;">Save changes</button>
+            <button class="btn btn-primary auth-submit" type="submit" style="width:auto;align-self:flex-start;"><span class="btn-label">Save changes</span><span class="btn-spinner" hidden></span></button>
             <div class="auth-msg"></div>
           </form>
         </div>
@@ -253,7 +247,12 @@
         <div class="dash-card glass danger"><div class="dash-card-head"><h2>Delete account</h2></div>
           <p class="danger-text">This permanently removes your account, licences, and download access. This can't be undone.</p>
           <button class="btn danger-btn" id="delAcct" type="button">Delete my account</button>
-          <div class="danger-confirm" id="delConfirm" hidden><p>Are you sure? Type <strong>DELETE</strong> to confirm.</p><div class="danger-row"><input id="delInput" type="text" placeholder="DELETE" /><button class="btn danger-btn" id="delFinal" type="button">Confirm delete</button><button class="btn btn-ghost" id="delCancel" type="button">Cancel</button></div></div>
+          <div class="danger-confirm" id="delConfirm" hidden>
+            <p>Are you sure? Type the code below to confirm - it can't be copy-pasted, you have to type it out.</p>
+            <p class="danger-code" id="delCode" oncontextmenu="return false"></p>
+            <div class="danger-row"><input id="delInput" type="text" placeholder="Type the code" autocomplete="off" /><button class="btn danger-btn" id="delFinal" type="button"><span class="btn-label">Confirm delete</span><span class="btn-spinner" hidden></span></button><button class="btn btn-ghost" id="delCancel" type="button">Cancel</button></div>
+            <p class="auth-err" id="delErr"></p>
+          </div>
         </div>
       </section>
       </div>
@@ -484,6 +483,6 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script src="/supabase-init.js?v=20260728d"></script>
-  <script src="/catalog.js?v=20260727f" data-then="/app.js?v=20260728e"></script>
+  <script src="/catalog.js?v=20260727f" data-then="/app.js?v=20260728f"></script>
 </body>
 </html>

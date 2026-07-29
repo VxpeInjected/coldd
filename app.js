@@ -1614,6 +1614,7 @@
           if (linkedUnlockedEl) linkedUnlockedEl.hidden = !linkedVerified;
           if (linkedVerified && typeof renderLinkedAccounts === 'function') renderLinkedAccounts();
         }
+        if (name === 'referrals' && typeof refreshReferrals === 'function') refreshReferrals();
       }
       dash.addEventListener('click', function (e) {
         var a = e.target.closest('[data-panel]');
@@ -1894,6 +1895,81 @@
         inp.select();
         try { navigator.clipboard.writeText(inp.value); } catch (e) { try { document.execCommand('copy'); } catch (_) {} }
         var t = refCopy.textContent; refCopy.textContent = 'Copied'; setTimeout(function () { refCopy.textContent = t; }, 1400);
+      });
+
+      var refStats = null;
+      var refLoaded = false;
+      function refFmtUsd(n) { return window.__money ? window.__money(n) : ('$' + n); }
+      function refFmtRobux(n) { return 'R$ ' + n; }
+      function refFmtDate(iso) {
+        try { return new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }); }
+        catch (e) { return iso; }
+      }
+      function refreshReferrals() {
+        if (refLoaded || !window.coldAuth) return;
+        refLoaded = true;
+        window.coldAuth.invokeFn('get-referral-code', {}).then(function (codeRes) {
+          var refLinkEl = document.getElementById('refLink');
+          if (refLinkEl && codeRes && codeRes.code) refLinkEl.value = location.origin + '/?ref=' + codeRes.code;
+        }).catch(function () {});
+
+        window.coldAuth.invokeFn('get-referral-stats', {}).then(function (res) {
+          refStats = res;
+          var earnedEl = document.getElementById('refStatEarned');
+          if (earnedEl) earnedEl.textContent = refFmtUsd(res.earnedUsd) + (res.earnedRobux ? ' + ' + refFmtRobux(res.earnedRobux) : '');
+          var availEl = document.getElementById('refStatAvailable');
+          if (availEl) availEl.textContent = refFmtUsd(res.availableUsd) + (res.availableRobux ? ' + ' + refFmtRobux(res.availableRobux) : '');
+          var paidEl = document.getElementById('refStatPaid');
+          if (paidEl) paidEl.textContent = refFmtUsd(res.paidUsd) + (res.paidRobux ? ' + ' + refFmtRobux(res.paidRobux) : '');
+
+          var clicksEl = document.getElementById('refStatClicks'); if (clicksEl) clicksEl.textContent = res.clicks;
+          var signupsEl = document.getElementById('refStatSignups'); if (signupsEl) signupsEl.textContent = res.signups;
+          var convEl = document.getElementById('refStatConversions'); if (convEl) convEl.textContent = res.conversions;
+          var rateEl = document.getElementById('refStatRate'); if (rateEl) rateEl.textContent = (res.clicks ? Math.round((res.conversions / res.clicks) * 1000) / 10 : 0) + '%';
+
+          var actBody = document.getElementById('refActivityBody');
+          if (actBody) {
+            var rows = res.recentReferrals || [];
+            actBody.innerHTML = rows.length ? rows.map(function (r) {
+              var status = r.converted ? '<span class="dt-badge ok">Converted</span>' : '<span class="dt-badge warn">Signed up</span>';
+              return '<tr><td>' + r.name + '</td><td>' + refFmtDate(r.date) + '</td><td>' + status + '</td><td>' + (r.earned ? refFmtUsd(r.earned) : '') + '</td></tr>';
+            }).join('') : '<tr><td colspan="4" class="adm-empty">No referrals yet.</td></tr>';
+          }
+
+          var payBody = document.getElementById('refPayoutBody');
+          if (payBody) {
+            var payouts = res.payouts || [];
+            payBody.innerHTML = payouts.length ? payouts.map(function (p) {
+              var amount = p.method === 'robux' ? refFmtRobux(p.amount_robux || 0) : refFmtUsd(p.amount_usd || 0);
+              var status = p.status === 'paid' ? '<span class="dt-badge ok">Paid</span>' : p.status === 'denied' ? '<span class="dt-badge err">Denied</span>' : '<span class="dt-badge warn">Requested</span>';
+              var method = p.method === 'usd' ? 'USD' : p.method === 'robux' ? 'Robux' : 'Store credit';
+              return '<tr><td>' + refFmtDate(p.requested_at) + '</td><td>' + method + '</td><td>' + amount + '</td><td>' + status + '</td></tr>';
+            }).join('') : '<tr><td colspan="4" class="adm-empty">No payout requests yet.</td></tr>';
+          }
+        }).catch(function () {
+          refLoaded = false;
+        });
+      }
+
+      var refPayoutForm = document.getElementById('refPayoutForm');
+      if (refPayoutForm) refPayoutForm.addEventListener('submit', function (e) {
+        e.preventDefault();
+        var msgEl = refPayoutForm.querySelector('.auth-msg');
+        var btn = refPayoutForm.querySelector('.auth-submit');
+        var method = document.getElementById('refPayoutMethod').value;
+        var amount = parseFloat(document.getElementById('refPayoutAmount').value);
+        if (!amount || amount <= 0) return;
+        setBtnLoading(btn, true);
+        window.coldAuth.invokeFn('request-referral-payout', { method: method, amount: amount }).then(function () {
+          setBtnLoading(btn, false);
+          if (msgEl) { msgEl.classList.add('show'); msgEl.textContent = 'Payout requested - our team will review it manually.'; }
+          refPayoutForm.reset();
+          refLoaded = false;
+          refreshReferrals();
+        }).catch(function (err) {
+          setBtnLoading(btn, false);
+          if (msgEl) { msgEl.classList.add('show'); msgEl.textContent = (err && err.message) || 'Could not request payout.'; }
+        });
       });
 
       dash.querySelectorAll('.ref-tab').forEach(function (b) {

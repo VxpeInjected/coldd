@@ -64,6 +64,28 @@
   }
   function isAdminWhitelisted() { return ADMIN_WHITELIST.indexOf(currentDiscordId()) >= 0; }
 
+  var REF_KEY = 'coldd_ref_code';
+  // Captures ?ref=CODE off any page URL (referral link click), stores it for
+  // attribution at signup time, and fires a vanity click count. Runs on
+  // every page load, not just signup/signin pages, since a referral link
+  // can point anywhere on the site.
+  (function captureReferralClick() {
+    try {
+      var m = /[?&]ref=([^&]+)/.exec(location.search);
+      if (!m) return;
+      var code = decodeURIComponent(m[1]).trim().toLowerCase();
+      if (!code) return;
+      localStorage.setItem(REF_KEY, code);
+      invokeFn('track-referral-click', { code: code }).catch(function () {});
+    } catch (e) {}
+  })();
+  function attributeReferral() {
+    var code = null;
+    try { code = localStorage.getItem(REF_KEY); } catch (e) {}
+    if (!code) return Promise.resolve();
+    return invokeFn('track-referral-signup', { code: code }).catch(function () {});
+  }
+
   function saveProfile(p) { try { localStorage.setItem(PROFILE_KEY, JSON.stringify(p)); } catch (e) {} }
   function getProfile() { try { return JSON.parse(localStorage.getItem(PROFILE_KEY) || 'null'); } catch (e) { return null; } }
   function clearProfile() { try { localStorage.removeItem(PROFILE_KEY); } catch (e) {} }
@@ -105,11 +127,6 @@
     var acEmail = document.getElementById('ac-email');
     if (acEmail) acEmail.value = p.email || '';
 
-    var refLink = document.getElementById('refLink');
-    if (refLink && displayName) {
-      var slug = displayName.toLowerCase().replace(/[^a-z0-9]+/g, '') || 'user';
-      refLink.value = 'https://coldd.gg/r/' + slug;
-    }
   }
 
   function upsertBasicProfile(user) {
@@ -118,6 +135,7 @@
     var payload = { id: user.id, username: name, email: email, updated_at: new Date().toISOString() };
     client.from('profiles').upsert(payload).then(function (res) {
       if (res.error) console.warn('[coldd] profile upsert failed:', res.error.message);
+      else attributeReferral();
     });
     var profile = { id: user.id, provider: 'email', name: name, email: email, avatar: '' };
     saveProfile(profile);
@@ -134,6 +152,7 @@
     targetGuildId: TARGET_GUILD_ID,
     currentDiscordId: currentDiscordId,
     isAdminWhitelisted: isAdminWhitelisted,
+    attributeReferral: attributeReferral,
     signInDiscord: function () {
       var redirectTo = location.origin + '/callback.html';
       client.auth.signInWithOAuth({

@@ -171,32 +171,42 @@
       <section class="dash-panel" id="panel-referrals" hidden>
         <div class="dash-head"><h1>Referrals</h1><p>Refer friends to coldd or to a specific product and earn on every sale.</p></div>
         <div class="dash-stats">
-          <div class="dash-stat glass"><span class="ds-label">Total earned</span><span class="ds-num"><span class="p-price">$428</span></span></div>
-          <div class="dash-stat glass"><span class="ds-label">Pending</span><span class="ds-num"><span class="p-price">$64</span></span></div>
-          <div class="dash-stat glass"><span class="ds-label">Paid out</span><span class="ds-num"><span class="p-price">$364</span></span></div>
-          <div class="dash-stat glass"><span class="ds-label">This month</span><span class="ds-num"><span class="p-price">$92</span></span></div>
+          <div class="dash-stat glass"><span class="ds-label">Total earned</span><span class="ds-num" id="refStatEarned">—</span></div>
+          <div class="dash-stat glass"><span class="ds-label">Available</span><span class="ds-num" id="refStatAvailable">—</span></div>
+          <div class="dash-stat glass"><span class="ds-label">Paid out</span><span class="ds-num" id="refStatPaid">—</span></div>
         </div>
         <div class="ref-tabs">
           <button class="ref-tab active" type="button" data-reftab="account">Account referral</button>
           <button class="ref-tab" type="button" data-reftab="product">Product referrals</button>
         </div>
         <div class="ref-pane" data-refpane="account">
-          <div class="dash-card glass ref-link"><span class="ref-label">Your sign-up referral link</span><div class="ref-box"><input id="refLink" type="text" readonly value="https://coldd.gg/r/kaden" /><button class="btn btn-primary" id="refCopy" type="button">Copy</button></div><p class="ref-note">Earn 20% of every purchase made by users who sign up through your link.</p></div>
+          <div class="dash-card glass ref-link"><span class="ref-label">Your sign-up referral link</span><div class="ref-box"><input id="refLink" type="text" readonly value="" /><button class="btn btn-primary" id="refCopy" type="button">Copy</button></div><p class="ref-note">Earn 20% of every purchase made by users who sign up through your link. Payouts are requested manually below and reviewed by our team - nothing is sent automatically.</p></div>
           <div class="dash-stats">
-            <div class="dash-stat glass"><span class="ds-label">Link clicks</span><span class="ds-num">342</span></div>
-            <div class="dash-stat glass"><span class="ds-label">Sign-ups</span><span class="ds-num">28</span></div>
-            <div class="dash-stat glass"><span class="ds-label">Conversions</span><span class="ds-num">12</span></div>
-            <div class="dash-stat glass"><span class="ds-label">Conversion rate</span><span class="ds-num">3.5%</span></div>
+            <div class="dash-stat glass"><span class="ds-label">Link clicks</span><span class="ds-num" id="refStatClicks">0</span></div>
+            <div class="dash-stat glass"><span class="ds-label">Sign-ups</span><span class="ds-num" id="refStatSignups">0</span></div>
+            <div class="dash-stat glass"><span class="ds-label">Conversions</span><span class="ds-num" id="refStatConversions">0</span></div>
+            <div class="dash-stat glass"><span class="ds-label">Conversion rate</span><span class="ds-num" id="refStatRate">0%</span></div>
           </div>
-          <div class="dash-card glass dash-tablewrap"><div class="dash-card-head"><h2>Referral activity</h2></div><table class="dash-table"><thead><tr><th>Date</th><th>Source</th><th>Status</th><th>Earned</th></tr></thead><tbody>
-            <tr><td>9 Jun 2026</td><td>discord</td><td><span class="dt-badge ok">Converted</span></td><td><span class="p-price">$26.70</span></td></tr>
-            <tr><td>4 Jun 2026</td><td>youtube</td><td><span class="dt-badge ok">Converted</span></td><td><span class="p-price">$13.50</span></td></tr>
-            <tr><td>1 Jun 2026</td><td>twitter</td><td><span class="dt-badge warn">Signed up</span></td><td></td></tr>
+          <div class="dash-card glass" id="refPayoutCard">
+            <div class="dash-card-head"><h2>Request a payout</h2></div>
+            <form class="auth-form" id="refPayoutForm" novalidate style="max-width:420px;">
+              <div class="auth-field" data-for="method"><label for="refPayoutMethod">Method</label>
+                <select id="refPayoutMethod" name="method">
+                  <option value="usd">USD</option>
+                  <option value="robux">Robux</option>
+                  <option value="store_credit">Store credit (USD)</option>
+                </select>
+              </div>
+              <div class="auth-field" data-for="amount"><label for="refPayoutAmount">Amount</label><input id="refPayoutAmount" name="amount" type="number" min="0.01" step="0.01" /><span class="auth-err"></span></div>
+              <button class="btn btn-primary auth-submit" type="submit" style="width:auto;align-self:flex-start;"><span class="btn-label">Request payout</span><span class="btn-spinner" hidden></span></button>
+              <div class="auth-msg"></div>
+            </form>
+          </div>
+          <div class="dash-card glass dash-tablewrap"><div class="dash-card-head"><h2>Referral activity</h2></div><table class="dash-table"><thead><tr><th>User</th><th>Signed up</th><th>Status</th><th>Earned</th></tr></thead><tbody id="refActivityBody">
+            <tr><td colspan="4" class="adm-empty">No referrals yet.</td></tr>
           </tbody></table></div>
-          <div class="dash-card glass dash-tablewrap"><div class="dash-card-head"><h2>Payout history</h2></div><table class="dash-table"><thead><tr><th>Date</th><th>Method</th><th>Amount</th><th>Status</th></tr></thead><tbody>
-            <tr><td>1 Jun 2026</td><td>PayPal</td><td><span class="p-price">$182</span></td><td><span class="dt-badge ok">Paid</span></td></tr>
-            <tr><td>1 May 2026</td><td>PayPal</td><td><span class="p-price">$182</span></td><td><span class="dt-badge ok">Paid</span></td></tr>
-            <tr><td>1 Jul 2026</td><td>PayPal</td><td><span class="p-price">$64</span></td><td><span class="dt-badge warn">Scheduled</span></td></tr>
+          <div class="dash-card glass dash-tablewrap"><div class="dash-card-head"><h2>Payout history</h2></div><table class="dash-table"><thead><tr><th>Date</th><th>Method</th><th>Amount</th><th>Status</th></tr></thead><tbody id="refPayoutBody">
+            <tr><td colspan="4" class="adm-empty">No payout requests yet.</td></tr>
           </tbody></table></div>
         </div>
         <div class="ref-pane" data-refpane="product" hidden>
@@ -209,7 +219,7 @@
         <div class="dash-card glass"><div class="dash-card-head"><h2>Email</h2></div>
           <div class="ntf-row"><div class="ntf-text"><div class="ntf-label">Order receipts</div><div class="ntf-sub">Confirmations and invoices</div></div><label class="switch"><input type="checkbox" id="ntfOrderReceipts" checked /><span class="track"></span></label></div>
           <div class="ntf-row"><div class="ntf-text"><div class="ntf-label">Product updates</div><div class="ntf-sub">New versions of things you own</div></div><label class="switch"><input type="checkbox" id="ntfProductUpdates" checked /><span class="track"></span></label></div>
-          <div class="ntf-row"><div class="ntf-text"><div class="ntf-label">Promotions & sales</div><div class="ntf-sub">Occasional deals and drops</div></div><label class="switch"><input type="checkbox" id="ntfPromotions" /><span class="track"></span></label></div>
+          <div class="ntf-row"><div class="ntf-text"><div class="ntf-label">Promotions & sales</div><div class="ntf-sub">Occasional deals and drops</div></div><label class="switch"><input type="checkbox" id="ntfPromotions" checked /><span class="track"></span></label></div>
         </div>
         <div class="dash-card glass"><div class="dash-card-head"><h2>Discord</h2></div>
           <div class="ntf-row"><div class="ntf-text"><div class="ntf-label">Sale DMs</div><div class="ntf-sub">Get pinged when a sale starts</div></div><label class="switch"><input type="checkbox" id="ntfSaleDms" checked /><span class="track"></span></label></div>
@@ -553,8 +563,8 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="/supabase-init.js?v=20260728d"></script>
+  <script src="/supabase-init.js?v=20260729a"></script>
   <script src="/site-gate.js?v=20260729b"></script>
-  <script src="/catalog.js?v=20260729d" data-then="/app.js?v=20260729d"></script>
+  <script src="/catalog.js?v=20260729d" data-then="/app.js?v=20260729e"></script>
 </body>
 </html>

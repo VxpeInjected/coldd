@@ -23,7 +23,7 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="/supabase-init.js?v=20260728d"></script>
+  <script src="/supabase-init.js?v=20260729a"></script>
   <script src="/site-gate.js?v=20260729b"></script>
   <script>
     (async function () {
@@ -72,6 +72,7 @@
 
           window.coldAuth.saveProfile({ id: user.id, provider: provider, name: basicName, email: email, avatar: '' });
           try { localStorage.setItem('coldd_auth', 'in'); } catch (e) {}
+          window.coldAuth.attributeReferral();
 
           msg.textContent = 'Signed in as ' + basicName + '. Redirecting…';
           setTimeout(function () { location.href = postLoginRedirect(); }, 500);
@@ -124,6 +125,7 @@
 
         window.coldAuth.saveProfile({ id: user.id, provider: 'discord', discordId: discordId, name: name, email: email, avatar: avatar, guilds: guilds, memberInfo: memberInfo });
         try { localStorage.setItem('coldd_auth', 'in'); } catch (e) {}
+        window.coldAuth.attributeReferral();
 
         msg.textContent = 'Signed in as ' + name + '. Redirecting…';
         setTimeout(function () { location.href = postLoginRedirect(); }, 500);

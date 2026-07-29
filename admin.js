@@ -183,17 +183,102 @@
 
   var STAFF = seedIfEmpty('coldd_admin_staff_v1', function () { return STAFF_SEED; });
 
-  var REF_CODES = ['kaden', 'vortex', 'skylar', 'frostbyte', 'novaquartz'];
-  var REFERRALS = seedIfEmpty('coldd_admin_referrals_v1', function () {
-    return REF_CODES.map(function (code, i) {
-      var h = hsh('ref' + code);
-      var clicks = 80 + (h % 500);
-      var signups = Math.round(clicks * (0.05 + (h % 20) / 100));
-      var conversions = Math.round(signups * (0.2 + (h % 30) / 100));
-      var earned = Math.round(conversions * (8 + (h % 40)) * 100) / 100;
-      var paid = Math.round(earned * 0.6 * 100) / 100;
-      return { code: code, owner: pick(USER_NAMES, code), clicks: clicks, signups: signups, conversions: conversions, earnedUSD: earned, paidUSD: paid };
+  // Real data from public.profiles (referral_code/referred_by/referral_clicks)
+  // and public.orders, read via the signed-in admin's own session. Earnings
+  // are computed client-side (20% of each referred paid order, matching
+  // REFERRAL_RATE server-side) since it's just a display aggregate, not a
+  // ledger - the actual source of truth for payouts is referral_payouts.
+  var REFERRALS = [];
+  function refreshAdminReferrals() {
+    if (!window.coldSupabase) return Promise.resolve();
+    return window.coldSupabase.from('profiles').select('id, username, email, referral_code, referral_clicks, referred_by').then(function (res) {
+      if (res.error) { console.error('[admin] failed to load referrals:', res.error.message); return; }
+      var rows = res.data || [];
+      var referrers = rows.filter(function (p) { return p.referral_code; });
+      return window.coldSupabase.from('referral_payouts').select('user_id, amount_usd, status').then(function (payRes) {
+        var paidByUser = {};
+        (payRes.data || []).forEach(function (pay) {
+          if (pay.status !== 'paid') return;
+          paidByUser[pay.user_id] = (paidByUser[pay.user_id] || 0) + Number(pay.amount_usd || 0);
+        });
+        REFERRALS = referrers.map(function (r) {
+          var referredIds = rows.filter(function (p) { return p.referred_by === r.id; }).map(function (p) { return p.id; });
+          var earnedUSD = 0;
+          var convertedSet = {};
+          ORDERS.forEach(function (o) {
+            if (o.status !== 'completed' || referredIds.indexOf(o.userId) < 0) return;
+            convertedSet[o.userId] = true;
+            if (o.currency !== 'robux') earnedUSD += o.total * 0.2;
+          });
+          return {
+            code: r.referral_code,
+            owner: r.username || (r.email ? r.email.split('@')[0] : 'user'),
+            clicks: r.referral_clicks || 0,
+            signups: referredIds.length,
+            conversions: Object.keys(convertedSet).length,
+            earnedUSD: Math.round(earnedUSD * 100) / 100,
+            paidUSD: Math.round((paidByUser[r.id] || 0) * 100) / 100
+          };
+        });
+        if (curPanel === 'analytics') renderAnalytics();
+      });
     });
+  }
+
+  var PAYOUTS = [];
+  function refreshPayouts() {
+    if (!window.coldSupabase) return Promise.resolve();
+    return window.coldSupabase.from('referral_payouts').select('*').order('requested_at', { ascending: false }).then(function (res) {
+      if (res.error) { console.error('[admin] failed to load payouts:', res.error.message); return; }
+      var rows = res.data || [];
+      var userIds = rows.map(function (p) { return p.user_id; }).filter(function (v, i, arr) { return v && arr.indexOf(v) === i; });
+      function apply(byId) {
+        PAYOUTS = rows.map(function (p) {
+          var prof = byId[p.user_id];
+          return Object.assign({ owner: prof ? (prof.username || prof.email || 'user') : 'user' }, p);
+        });
+        if (curPanel === 'analytics') renderPayouts();
+      }
+      if (!userIds.length) { apply({}); return; }
+      return window.coldSupabase.from('profiles').select('id,username,email').in('id', userIds).then(function (pRes) {
+        var byId = {};
+        (pRes.data || []).forEach(function (p) { byId[p.id] = p; });
+        apply(byId);
+      });
+    });
+  }
+  function renderPayouts() {
+    var el = $('admPayoutsBody'); if (!el) return;
+    el.innerHTML = PAYOUTS.map(function (p) {
+      var amount = p.method === 'robux' ? (Math.round(p.amount_robux || 0) + ' R$') : usd(p.amount_usd || 0);
+      var method = p.method === 'usd' ? 'USD' : p.method === 'robux' ? 'Robux' : 'Store credit';
+      var status = p.status === 'paid' ? '<span class="dt-badge ok">Paid</span>' : p.status === 'denied' ? '<span class="dt-badge err">Denied</span>' : '<span class="dt-badge warn">Requested</span>';
+      var actions = p.status === 'requested' && can('admin')
+        ? '<button class="btn btn-ghost adm-btn-sm adm-payout-paid" type="button">Mark paid</button><button class="btn btn-ghost adm-btn-sm adm-payout-deny" type="button">Deny</button>'
+        : '';
+      return '<tr data-id="' + p.id + '"><td>' + fmtDateTime(new Date(p.requested_at)) + '</td><td>' + esc(p.owner) + '</td><td>' + method + '</td><td>' + amount + '</td><td>' + status + '</td><td class="adm-row-actions">' + actions + '</td></tr>';
+    }).join('') || '<tr><td colspan="6" class="adm-empty">No payout requests yet.</td></tr>';
+  }
+  function callManageReferralPayout(id, action) {
+    return invokeAdminFn('admin-manage-referral-payout', { id: id, action: action }, 'Could not update payout.');
+  }
+  var payoutsBody = $('admPayoutsBody');
+  if (payoutsBody) payoutsBody.addEventListener('click', function (e) {
+    var tr = e.target.closest('tr'); if (!tr) return;
+    var id = tr.getAttribute('data-id');
+    var p = PAYOUTS.filter(function (x) { return x.id === id; })[0]; if (!p) return;
+    if (!can('admin')) return;
+    if (e.target.classList.contains('adm-payout-paid')) {
+      if (!confirm('Mark this payout as sent to ' + p.owner + '?')) return;
+      callManageReferralPayout(id, 'mark_paid')
+        .then(function () { logAudit('Marked referral payout to ' + p.owner + ' as paid'); return Promise.all([refreshPayouts(), refreshAdminReferrals()]); })
+        .catch(function (err) { alert(err.message || 'Could not update payout.'); });
+    } else if (e.target.classList.contains('adm-payout-deny')) {
+      if (!confirm('Deny this payout request from ' + p.owner + '?')) return;
+      callManageReferralPayout(id, 'deny')
+        .then(function () { logAudit('Denied referral payout request from ' + p.owner); return refreshPayouts(); })
+        .catch(function (err) { alert(err.message || 'Could not update payout.'); });
+    }
   });
 
   // Real data from public.orders/order_items, read via the signed-in
@@ -330,7 +415,6 @@
   var AUDIT = lsGet('coldd_admin_audit_v1', []);
 
   function saveStaff() { lsSet('coldd_admin_staff_v1', STAFF); }
-  function saveReferrals() { lsSet('coldd_admin_referrals_v1', REFERRALS); }
 
   function logAudit(action) {
     AUDIT.unshift({ ts: new Date().toISOString(), actor: currentRole().name, action: action });
@@ -744,6 +828,7 @@
     }).join('');
     var owed = REFERRALS.reduce(function (s, r) { return s + (r.earnedUSD - r.paidUSD); }, 0);
     $('admAffiliateOwed').textContent = usd(owed);
+    renderPayouts();
 
     $('admAbandonedBody').innerHTML = ABANDONED.slice(0, 12).map(function (a) {
       return '<tr><td>' + fmtDate(new Date(a.date)) + '</td><td>' + esc(a.title) + '</td><td>' + usd(a.value) + '</td><td>' + (a.email ? esc(a.email) : '<span class="adm-sub">unknown</span>') + '</td></tr>';
@@ -2508,7 +2593,9 @@
      ================================================================ */
   renderTopbar();
   showPanel('home');
-  refreshProducts().then(function () { return refreshOrders(); });
+  refreshProducts().then(function () {
+    return refreshOrders().then(function () { refreshAdminReferrals(); refreshPayouts(); });
+  });
   refreshCoupons();
   refreshRobloxContainers();
   refreshUsers();

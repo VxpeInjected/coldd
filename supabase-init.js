@@ -154,7 +154,7 @@
       var params = new URLSearchParams({
         client_id: ROBLOX_OAUTH_CLIENT_ID,
         redirect_uri: redirectUri,
-        scope: 'openid profile',
+        scope: 'openid profile user.inventory-item:read',
         response_type: 'code',
         state: state
       });

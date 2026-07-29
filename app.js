@@ -1568,9 +1568,13 @@
           var titles = items.map(function (i) { return i.title; }).join(', ') || '—';
           var badge = o.status === 'paid' ? 'ok' : 'warn';
           var label = o.status.charAt(0).toUpperCase() + o.status.slice(1);
-          var money = window.__money ? window.__money(o.total_usd) : ('$' + o.total_usd);
+          var isRobux = o.currency === 'robux';
+          var money = isRobux
+            ? 'R$ ' + Math.round(Number(o.total_robux) || 0).toLocaleString('en-US')
+            : (window.__money ? window.__money(o.total_usd) : ('$' + o.total_usd));
+          var priceCell = isRobux ? money : ('<span class="p-price" data-usd="' + o.total_usd + '">' + money + '</span>');
           return '<tr><td>' + fmtDate(o.created_at) + '</td><td>' + titles + '</td><td class="dt-mono">' + shortOrderId(o.id) + '</td>' +
-            '<td><span class="p-price" data-usd="' + o.total_usd + '">' + money + '</span></td>' +
+            '<td>' + priceCell + '</td>' +
             '<td><span class="dt-badge ' + badge + '">' + label + '</span></td></tr>';
         }).join('');
       }
@@ -1593,13 +1597,13 @@
         btn.addEventListener('click', function () {
           var prev = btn.textContent;
           btn.disabled = true; btn.textContent = 'Preparing…';
-          window.coldSupabase.functions.invoke('get-download-url', { body: { slug: item.product_slug } })
-            .then(function (res) {
-              var data = res && res.data;
-              if (data && data.ok) { window.open(data.url, '_blank', 'noopener'); btn.disabled = false; btn.textContent = prev; }
-              else { btn.textContent = (data && data.error) || 'Unavailable'; }
-            })
-            .catch(function () { btn.disabled = false; btn.textContent = prev; });
+          (window.coldAuth ? window.coldAuth.invokeFn('get-download-url', { slug: item.product_slug }) :
+            window.coldSupabase.functions.invoke('get-download-url', { body: { slug: item.product_slug } }).then(function (res) {
+              if (res.error || !res.data || !res.data.ok) throw new Error((res.data && res.data.error) || 'Unavailable');
+              return res.data;
+            }))
+            .then(function (data) { window.open(data.url, '_blank', 'noopener'); btn.disabled = false; btn.textContent = prev; })
+            .catch(function (err) { btn.textContent = (err && err.message) || 'Unavailable'; });
         });
         return btn;
       }
@@ -1641,7 +1645,7 @@
       function loadRealData(userId) {
         window.coldSupabase
           .from('orders')
-          .select('id, created_at, status, total_usd, order_items(product_slug, title, qty, licence, products(image))')
+          .select('id, created_at, status, currency, total_usd, total_robux, order_items(product_slug, title, qty, licence, products(image))')
           .eq('user_id', userId)
           .order('created_at', { ascending: false })
           .then(function (res) {

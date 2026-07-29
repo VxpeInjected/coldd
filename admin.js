@@ -44,6 +44,13 @@
   function aud(n) { return 'A$' + (Math.round((Number(n) || 0) * AUD_RATE * 100) / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
   function robux(n) { return 'R$ ' + Math.round((Number(n) || 0) * ROBUX_PER_USD).toLocaleString('en-US'); }
   function pct(n) { return (Math.round((Number(n) || 0) * 10) / 10) + '%'; }
+  // Real robux orders were actually charged in Robux (via a Roblox
+  // gamepass, not our checkout) - showing usd(o.total) for them would
+  // display the USD-equivalent record-keeping figure as if it were the
+  // real charge. Order-history amounts are fixed historical facts, not
+  // live prices, so this never routes through the flat-conversion
+  // window.__robux() either.
+  function orderAmount(o) { return o.currency === 'robux' ? ('R$ ' + Math.round(o.totalRobux).toLocaleString('en-US')) : usd(o.total); }
   function fmtDate(d) { return d.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' }); }
   function fmtDateTime(d) { return d.toLocaleDateString('en-US', { day: 'numeric', month: 'short' }) + ' ' + d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }); }
   function daysAgo(n) { var d = new Date(); d.setHours(12, 0, 0, 0); d.setDate(d.getDate() - n); return d; }
@@ -208,6 +215,7 @@
       couponCode: row.coupon_code || null,
       discount: Number(row.discount_usd) || 0,
       total: Number(row.total_usd) || 0,
+      totalRobux: Number(row.total_robux) || 0,
       currency: row.currency || 'usd',
       status: status,
       refCode: null,
@@ -617,7 +625,7 @@
   function orderRowHTML(o) {
     return '<div class="dash-row"><span class="dr-thumb" style="background-image:url(\'' + o.image + '\')"></span>' +
       '<div class="dr-main"><div class="dr-title">' + esc(o.title) + '</div><div class="dr-sub">' + fmtDateTime(new Date(o.date)) + ' · ' + esc(o.id) + ' · ' + esc(o.userName) + '</div></div>' +
-      statusBadge(o.status) + '<span class="p-price" style="margin-left:12px;">' + usd(o.total) + '</span></div>';
+      statusBadge(o.status) + '<span class="p-price" style="margin-left:12px;">' + orderAmount(o) + '</span></div>';
   }
   function statusBadge(status) {
     var cls = status === 'completed' ? 'ok' : (status === 'refunded' ? 'err' : 'warn');
@@ -1447,7 +1455,7 @@
         '<td>' + esc(o.title) + (o.licence === 'resell' ? ' <span class="adm-sub">· resell</span>' : '') + '</td>' +
         '<td>' + esc(o.userName) + '</td>' +
         '<td>' + o.currency.toUpperCase() + '</td>' +
-        '<td>' + usd(o.total) + '</td>' +
+        '<td>' + orderAmount(o) + '</td>' +
         '<td>' + statusBadge(o.status) + '</td>' +
         '<td class="adm-row-actions">' + actions + '</td></tr>';
     }).join('') || '<tr><td colspan="8" class="adm-empty">No orders match.</td></tr>';
@@ -1471,7 +1479,7 @@
       if (!can('support')) return;
       e.target.disabled = true;
       callManageOrder(o.dbId, 'refund', 'Manual refund by staff').then(function () {
-        logAudit('Refunded order ' + id + ' (' + usd(o.total) + ')');
+        logAudit('Refunded order ' + id + ' (' + orderAmount(o) + ')');
         return refreshOrders();
       }).catch(function (err) {
         e.target.disabled = false;
@@ -1491,12 +1499,12 @@
       '<div class="dash-stat glass"><span class="ds-label">Refunded orders</span><span class="ds-num">' + refunded.length + '</span></div>' +
       '<div class="dash-stat glass"><span class="ds-label">Total refunded</span><span class="ds-num">' + usd(refunded.reduce(function (s, o) { return s + o.total; }, 0)) + '</span></div>';
     $('admRefundsBody').innerHTML = refunded.map(function (o) {
-      return '<tr><td>' + fmtDate(new Date(o.date)) + '</td><td class="dt-mono">' + esc(o.id) + '</td><td>' + esc(o.title) + '</td><td>' + esc(o.userName) + '</td><td>' + usd(o.total) + '</td><td>' + esc(o.refundReason || '') + '</td></tr>';
+      return '<tr><td>' + fmtDate(new Date(o.date)) + '</td><td class="dt-mono">' + esc(o.id) + '</td><td>' + esc(o.title) + '</td><td>' + esc(o.userName) + '</td><td>' + orderAmount(o) + '</td><td>' + esc(o.refundReason || '') + '</td></tr>';
     }).join('') || '<tr><td colspan="6" class="adm-empty">No refunds yet.</td></tr>';
 
     var pending = ORDERS.filter(function (o) { return o.status === 'completed'; }).sort(function (a, b) { return new Date(b.date) - new Date(a.date); }).slice(0, 30);
     $('admRefundEligible').innerHTML = pending.map(function (o) {
-      return '<tr data-id="' + esc(o.id) + '"><td>' + fmtDate(new Date(o.date)) + '</td><td class="dt-mono">' + esc(o.id) + '</td><td>' + esc(o.title) + '</td><td>' + esc(o.userName) + '</td><td>' + usd(o.total) + '</td>' +
+      return '<tr data-id="' + esc(o.id) + '"><td>' + fmtDate(new Date(o.date)) + '</td><td class="dt-mono">' + esc(o.id) + '</td><td>' + esc(o.title) + '</td><td>' + esc(o.userName) + '</td><td>' + orderAmount(o) + '</td>' +
         '<td class="adm-row-actions">' + (can('support') ? '<button class="btn btn-ghost adm-btn-sm adm-refund-issue" type="button">Issue refund</button>' : '<span class="adm-sub">No permission</span>') + '</td></tr>';
     }).join('');
   }

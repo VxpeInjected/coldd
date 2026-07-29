@@ -654,9 +654,43 @@
       var x = i * (w / n);
       var y = h - bh;
       var op = 0.42 + 0.58 * (max ? d.v / max : 0);
-      return '<rect x="' + x.toFixed(1) + '" y="' + y.toFixed(1) + '" width="' + bw.toFixed(1) + '" height="' + bh.toFixed(1) + '" rx="2" fill="' + (opts.color || 'var(--accent)') + '" opacity="' + op.toFixed(2) + '"><title>' + esc(d.label) + ': ' + esc(d.tip != null ? d.tip : d.v) + '</title></rect>';
+      var tipText = esc(d.label) + ': ' + esc(d.tip != null ? d.tip : d.v);
+      return '<rect class="adm-chart-bar" x="' + x.toFixed(1) + '" y="' + y.toFixed(1) + '" width="' + bw.toFixed(1) + '" height="' + bh.toFixed(1) + '" rx="2" fill="' + (opts.color || 'var(--accent)') + '" opacity="' + op.toFixed(2) + '" data-tip="' + tipText + '"><title>' + tipText + '</title></rect>';
     }).join('');
     return '<svg viewBox="0 0 ' + w + ' ' + h + '" class="adm-chart" preserveAspectRatio="none">' + bars + '</svg>';
+  }
+
+  // Shared floating tooltip for chart bars - the native SVG <title> tooltip
+  // is slow to appear and unstyled, so this reads the same data-tip and
+  // follows the cursor instead. Call once per rendered chart container.
+  var chartTip = null;
+  function chartTipEl() {
+    if (!chartTip) {
+      chartTip = document.createElement('div');
+      chartTip.className = 'adm-chart-tip';
+      chartTip.hidden = true;
+      document.body.appendChild(chartTip);
+    }
+    return chartTip;
+  }
+  function attachChartTooltip(container) {
+    if (!container || container._tipBound) return;
+    container._tipBound = true;
+    var tip = chartTipEl();
+    container.addEventListener('mousemove', function (e) {
+      var bar = e.target.closest && e.target.closest('.adm-chart-bar');
+      if (!bar) { tip.hidden = true; return; }
+      tip.hidden = false;
+      tip.textContent = bar.getAttribute('data-tip');
+      tip.style.left = (e.clientX + 14) + 'px';
+      tip.style.top = (e.clientY + 14) + 'px';
+      bar.classList.add('hover');
+      container.querySelectorAll('.adm-chart-bar.hover').forEach(function (b) { if (b !== bar) b.classList.remove('hover'); });
+    });
+    container.addEventListener('mouseleave', function () {
+      tip.hidden = true;
+      container.querySelectorAll('.adm-chart-bar.hover').forEach(function (b) { b.classList.remove('hover'); });
+    });
   }
 
   /* ================================================================
@@ -895,14 +929,42 @@
     var aov = avgOrderValue();
     var conv = conversionRate();
 
+    var curOrders = completedInRange();
+    var curRev = websiteRevenue(curOrders);
+    var win = RANGE_DAYS ? prevRangeWindow() : null;
+    var prevOrders = win ? completedInWindow(win.start, win.end) : [];
+    var prevRev = websiteRevenue(prevOrders);
+    var curVisits = RANGE_DAYS ? pageviewsInWindow(daysAgoStart(RANGE_DAYS), new Date()) : TRAFFIC.reduce(function (s, r) { return s + r.pageviews; }, 0);
+    var prevVisits = win ? pageviewsInWindow(win.start, win.end) : 0;
+    var overallRobux = curRev.robux + GROUP_REVENUE.robux;
+    var overallRobuxPrev = prevRev.robux + GROUP_REVENUE.prevRobux;
+
     $('admAnStats').innerHTML = [
-      ['Revenue', usd(rev.totalUSD)],
-      ['Orders', rev.count],
-      ['Avg order value', usd(aov)],
-      ['Conversion rate', pct(conv)]
-    ].map(function (s) { return '<div class="dash-stat glass"><span class="ds-label">' + s[0] + '</span><span class="ds-num">' + s[1] + '</span></div>'; }).join('');
+      statTile('Overall revenue', aud(curRev.usd), usd(curRev.usd) + ' USD', pctDelta(curRev.usd, prevRev.usd)),
+      statTile('Overall Robux revenue', robux(overallRobux), aud(overallRobux * DEVEX_USD_PER_ROBUX) + ' via DevEx', pctDelta(overallRobux, overallRobuxPrev)),
+      statTile('Website revenue', aud(curRev.usd), usd(curRev.usd) + ' USD', pctDelta(curRev.usd, prevRev.usd)),
+      statTile('Website Robux revenue', robux(curRev.robux), aud(curRev.robux * DEVEX_USD_PER_ROBUX) + ' via DevEx', pctDelta(curRev.robux, prevRev.robux)),
+      statTile('Order count', curOrders.length, null, pctDelta(curOrders.length, prevOrders.length)),
+      statTile('Avg order value', usd(aov), null, ''),
+      statTile('Conversion rate', pct(conv), null, ''),
+      statTile('Live sessions', LIVE_SESSIONS, 'active in the last 5 min', ''),
+      statTile('Discord members', DISCORD_STATS.memberCount != null ? DISCORD_STATS.memberCount.toLocaleString('en-US') : '—', DISCORD_STATS.onlineCount != null ? (DISCORD_STATS.onlineCount.toLocaleString('en-US') + ' online') : '', ''),
+      statTile('Site visits', curVisits.toLocaleString('en-US'), null, pctDelta(curVisits, prevVisits)),
+      statTile('Referral signups', REFERRALS.reduce(function (s, r) { return s + r.signups; }, 0), null, ''),
+      statTile('X (Twitter)', 'Not connected', 'awaiting API access', ''),
+      statTile('YouTube', 'Not connected', 'awaiting API access', '')
+    ].join('');
 
     $('admRevChart').innerHTML = svgBars(dailyRevenueSeries());
+    attachChartTooltip($('admRevChart'));
+
+    var parcelAud = aud(GROUP_REVENUE.parcelRobux * DEVEX_USD_PER_ROBUX);
+    $('admPlatformRevenue').innerHTML =
+      '<div class="adm-platform-row"><span class="adm-platform-name">Website (coldd.dev)</span><span>' + aud(curRev.usd) + '</span></div>' +
+      '<div class="adm-platform-row"><span class="adm-platform-name">Parcel (Roblox group)</span><span>' + (GROUP_REVENUE.parcelRobux ? parcelAud + ' <span class="adm-sub">(' + robux(GROUP_REVENUE.parcelRobux) + ' via DevEx)</span>' : '<span class="adm-platform-pending">Not tracked yet</span>') + '</span></div>' +
+      '<div class="adm-platform-row"><span class="adm-platform-name">BuiltByBit</span><span class="adm-platform-pending">Not tracked yet</span></div>' +
+      '<div class="adm-platform-row"><span class="adm-platform-name">ClearlyDev</span><span class="adm-platform-pending">Not tracked yet</span></div>' +
+      '<div class="adm-platform-row"><span class="adm-platform-name">Creator Store</span><span class="adm-platform-pending">Not tracked yet</span></div>';
 
     // Currency breakdown: USD / AUD / Robux
     $('admCurrencyCards').innerHTML =
@@ -929,11 +991,13 @@
 
     var byCat = revenueByCategory();
     $('admCatChart').innerHTML = byCat.length ? svgBars(byCat.map(function (c) { return { label: c.label, v: c.v, tip: usd(c.v) }; }), { height: 120 }) : '<p class="adm-empty">No data.</p>';
+    attachChartTooltip($('admCatChart'));
     $('admCatList').innerHTML = byCat.map(function (c) {
       return '<div class="adm-catrow"><span>' + esc(c.label) + '</span><span>' + usd(c.v) + '</span></div>';
     }).join('');
 
     $('admTrafficChart').innerHTML = svgBars(trafficSeries(), { color: 'var(--price)' });
+    attachChartTooltip($('admTrafficChart'));
     var trafficRows = TRAFFIC.slice(Math.max(0, TRAFFIC.length - (RANGE_DAYS || 120)));
     var totalViews = trafficRows.reduce(function (s, r) { return s + r.pageviews; }, 0);
     var totalSessions = trafficRows.reduce(function (s, r) { return s + r.sessions; }, 0);

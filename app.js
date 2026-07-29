@@ -1594,7 +1594,9 @@
       if (!dash) return;
 
       var adminLink = document.getElementById('dashAdminLink');
-      if (adminLink && window.coldAuth && window.coldAuth.isAdminWhitelisted()) adminLink.hidden = false;
+      if (adminLink && window.coldAuth) {
+        window.coldAuth.checkIsAdmin().then(function (info) { if (info.isAdmin) adminLink.hidden = false; });
+      }
 
       var panels = dash.querySelectorAll('.dash-panel');
       var navlinks = dash.querySelectorAll('.dash-nav a, [data-panel]');

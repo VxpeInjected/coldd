@@ -33,15 +33,7 @@
       <span class="adm-tag">Admin</span>
       <span class="adm-mode-flag" id="admModeBanner"></span>
       <div class="adm-topbar-right">
-        <label class="adm-role-label">Viewing as
-          <div class="adm-dd adm-dd-inline" id="admRoleSelectDD">
-            <button type="button" class="adm-dd-btn" aria-haspopup="listbox" aria-expanded="false">
-              <span class="adm-dd-val"></span>
-              <svg class="adm-dd-chev" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
-            </button>
-            <div class="adm-dd-menu" role="listbox" aria-label="Viewing as" hidden></div>
-          </div>
-        </label>
+        <span class="adm-role-label" id="admViewerLabel">Signed in</span>
         <span class="dash-av" id="admAvatar">A</span>
         <a class="btn btn-ghost adm-btn-sm" href="/">Exit to site</a>
       </div>
@@ -59,12 +51,9 @@
             <a href="#" data-panel="reviews"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m12 2 3 6 6.5 1-4.7 4.6 1.1 6.4L12 17l-5.9 3 1.1-6.4L2.5 9 9 8z"/></svg><span>Reviews</span></a>
             <a href="#" data-panel="users"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="4"/><path d="M2 21c0-4 3.5-6 7-6s7 2 7 6"/><path d="M16 3.5a4 4 0 0 1 0 7.8"/><path d="M18 14.5c2.5.6 4 2.2 4 5.5"/></svg><span>Users</span></a>
             <a href="#" data-panel="sales"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5H4a1 1 0 0 0-1 1v4a2.5 2.5 0 0 1 0 5v4a1 1 0 0 0 1 1h5"/><path d="M15 19h5a1 1 0 0 0 1-1v-4a2.5 2.5 0 0 1 0-5V5a1 1 0 0 0-1-1h-5"/><path d="M9 5v14M9 8h.01M9 12h.01M9 16h.01"/></svg><span>Sales &amp; Discounts</span></a>
-            <a href="#" data-panel="roblox"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M9 9l6 6M15 9l-6 6"/></svg><span>Roblox</span></a>
-            <a href="#" data-panel="siteaccess"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg><span>Site Access</span></a>
-            <a href="#" data-panel="posts"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4Z"/></svg><span>Blog Posts</span></a>
-            <a href="#" data-panel="tutorials"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg><span>Tutorials</span></a>
+            <a href="#" data-panel="content"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4Z"/></svg><span>Blog &amp; Tutorials</span></a>
             <a href="#" data-panel="releases"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg><span>Releases</span></a>
-            <a href="#" data-panel="staff"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 3 6v6c0 5 4 8 9 10 5-2 9-5 9-10V6z"/><path d="m9 12 2 2 4-4"/></svg><span>Staff &amp; Whitelist</span></a>
+            <a href="#" data-panel="sitemgmt"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg><span>Site Management</span></a>
             <a href="#" data-panel="audit"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M9 13h6M9 17h6M9 9h1"/></svg><span>Audit Log</span></a>
           </nav>
         </aside>
@@ -582,107 +571,71 @@
             </div>
           </section>
 
-          <section class="dash-panel" id="adm-panel-roblox" hidden>
-            <div class="dash-head"><h1>Roblox</h1><p>Container games that Robux gamepasses get created in. Roblox caps a game at 50 gamepasses and has no API to create new experiences, so add empty ones here as you need more room.</p></div>
-            <div class="dt-badge err" id="admRobloxCookieWarning" hidden style="margin-bottom:16px;display:inline-block;"></div>
-            <div class="dash-card glass dash-tablewrap">
-              <table class="dash-table">
-                <thead><tr><th>Universe ID</th><th>Label</th><th>Gamepasses</th><th>Status</th><th>Actions</th></tr></thead>
-                <tbody id="admRobloxContainersBody"></tbody>
-              </table>
+          <section class="dash-panel" id="adm-panel-content" hidden>
+            <div class="dash-head"><h1>Blog &amp; Tutorials</h1><p>Write, edit, and publish articles and tutorials.</p></div>
+            <div class="adm-platform-toggle" id="admContentTypeToggle" style="margin-bottom:22px;">
+              <button type="button" class="btn btn-primary adm-content-type-btn active" data-type="posts">Blog Posts</button>
+              <button type="button" class="btn btn-minecraft adm-content-type-btn" data-type="tutorials">Tutorials</button>
             </div>
-            <div class="dash-card glass">
-              <div class="dash-card-head"><h2 id="admRobloxContainerFormTitle">Add container game</h2></div>
-              <p class="adm-hint">Create an empty experience in Roblox Studio first, add it to your Open Cloud API key's <code>game-passes</code> permission list at <a href="https://create.roblox.com/dashboard/credentials" target="_blank" rel="noopener">create.roblox.com/dashboard/credentials</a>, then register its Universe ID here.</p>
-              <form class="adm-form" id="admRobloxContainerForm" style="flex-wrap:wrap;">
-                <input type="hidden" id="admRobloxContainerEditId" />
-                <input type="text" id="admRobloxContainerUniverseId" class="adm-input" placeholder="Universe ID" required />
-                <input type="text" id="admRobloxContainerLabel" class="adm-input" placeholder="Label (optional)" style="flex:1;min-width:200px;" />
-                <button class="btn btn-primary adm-btn-sm" type="submit" id="admRobloxContainerSubmitBtn">Add container</button>
-                <button class="btn btn-ghost adm-btn-sm" type="button" id="admRobloxContainerCancelBtn" hidden>Cancel edit</button>
-              </form>
-              <div class="adm-edit-msg" id="admRobloxContainerMsg"></div>
-            </div>
-          </section>
 
-          <section class="dash-panel" id="adm-panel-siteaccess" hidden>
-            <div class="dash-head"><h1>Site Access</h1><p>Control whether coldd.dev is open, in maintenance, or fully locked.</p></div>
-            <div class="dash-card glass">
-              <p>Current status: <strong id="admSiteCurrentStatus">Loading…</strong></p>
-              <div class="adm-platform-toggle" id="admSiteModeToggle" style="margin:14px 0;">
-                <button type="button" class="btn btn-primary adm-site-mode-btn active" data-mode="open">Open</button>
-                <button type="button" class="btn btn-minecraft adm-site-mode-btn" data-mode="maintenance">Maintenance</button>
-                <button type="button" class="btn btn-minecraft adm-site-mode-btn" data-mode="locked">Locked</button>
+            <div id="admContentPostsView">
+              <div class="adm-toolbar">
+                <input type="text" id="admPostSearch" class="adm-input" placeholder="Search posts…" />
               </div>
-              <div id="admSiteMaintFields" hidden>
-                <label class="adm-field"><span>Maintenance message</span><input type="text" id="admSiteMaintMsg" class="adm-input" placeholder="We'll be back soon." /></label>
-                <label class="adm-field" style="margin-top:10px;max-width:260px;"><span>Ends at (optional)</span><input type="datetime-local" id="admSiteMaintEnds" class="adm-input" /></label>
+              <div class="dash-card glass dash-tablewrap">
+                <table class="dash-table adm-table-tight">
+                  <thead><tr><th>Title</th><th>Category</th><th>Author</th><th>Date</th><th>Status</th><th>Actions</th></tr></thead>
+                  <tbody id="admPostBody"></tbody>
+                </table>
               </div>
-              <p class="adm-hint" id="admSiteLockedHint" hidden>Locked mode uses the existing shared-password gate (lock.html / LOCK_PASSWORD secret) - nobody gets in, including admins, without that password. Recovery: you can always flip this back to Open directly in the Supabase SQL Editor if you ever get stuck.</p>
-              <button class="btn btn-primary adm-btn-sm" id="admSiteSaveBtn" type="button" style="margin-top:14px;"><span class="btn-label">Save</span><span class="btn-spinner" hidden></span></button>
-              <div class="adm-edit-msg" id="admSiteMsg"></div>
+              <div class="dash-card glass">
+                <div class="dash-card-head"><h2 id="admPostFormTitle">Add post</h2></div>
+                <form class="adm-form" id="admAddPostForm">
+                  <input type="hidden" id="admPostEditId" value="" />
+                  <input type="text" id="admNewPostTitle" class="adm-input" placeholder="Title" required />
+                  <select id="admNewPostCategory" class="adm-select"><option value="Devlog">Devlog</option><option value="Studio News">Studio News</option><option value="Craft">Craft</option></select>
+                  <input type="text" id="admNewPostAuthor" class="adm-input adm-input-sm" placeholder="Author" required />
+                  <input type="date" id="admNewPostDate" class="adm-input adm-input-sm" required />
+                  <input type="number" id="admNewPostRead" class="adm-input adm-input-sm" placeholder="Read mins" min="1" step="1" required />
+                  <input type="text" id="admNewPostCover" class="adm-input adm-input-sm" placeholder="Cover image, e.g. banner.jpg" />
+                  <input type="text" id="admNewPostDek" class="adm-input adm-textarea" placeholder="One-line summary (dek)" required />
+                  <textarea id="admNewPostBody" class="adm-input adm-textarea" rows="6" placeholder="Body — blank line for new paragraph, ## Heading, - list item, **bold**" required></textarea>
+                  <label class="adm-check"><input type="checkbox" id="admNewPostPublished" checked /> Published</label>
+                  <button class="btn btn-primary adm-btn-sm" type="submit" id="admPostFormSubmit">Add post</button>
+                  <button class="btn btn-ghost adm-btn-sm" type="button" id="admPostFormCancel" hidden>Cancel edit</button>
+                </form>
+              </div>
             </div>
-          </section>
 
-          <section class="dash-panel" id="adm-panel-posts" hidden>
-            <div class="dash-head"><h1>Blog posts</h1><p>Write, edit, and publish articles for the public blog.</p></div>
-            <div class="adm-toolbar">
-              <input type="text" id="admPostSearch" class="adm-input" placeholder="Search posts…" />
-            </div>
-            <div class="dash-card glass dash-tablewrap">
-              <table class="dash-table adm-table-tight">
-                <thead><tr><th>Title</th><th>Category</th><th>Author</th><th>Date</th><th>Status</th><th>Actions</th></tr></thead>
-                <tbody id="admPostBody"></tbody>
-              </table>
-            </div>
-            <div class="dash-card glass">
-              <div class="dash-card-head"><h2 id="admPostFormTitle">Add post</h2></div>
-              <form class="adm-form" id="admAddPostForm">
-                <input type="hidden" id="admPostEditId" value="" />
-                <input type="text" id="admNewPostTitle" class="adm-input" placeholder="Title" required />
-                <select id="admNewPostCategory" class="adm-select"><option value="Devlog">Devlog</option><option value="Studio News">Studio News</option><option value="Craft">Craft</option></select>
-                <input type="text" id="admNewPostAuthor" class="adm-input adm-input-sm" placeholder="Author" required />
-                <input type="date" id="admNewPostDate" class="adm-input adm-input-sm" required />
-                <input type="number" id="admNewPostRead" class="adm-input adm-input-sm" placeholder="Read mins" min="1" step="1" required />
-                <input type="text" id="admNewPostCover" class="adm-input adm-input-sm" placeholder="Cover image, e.g. banner.jpg" />
-                <input type="text" id="admNewPostDek" class="adm-input adm-textarea" placeholder="One-line summary (dek)" required />
-                <textarea id="admNewPostBody" class="adm-input adm-textarea" rows="6" placeholder="Body — blank line for new paragraph, ## Heading, - list item, **bold**" required></textarea>
-                <label class="adm-check"><input type="checkbox" id="admNewPostPublished" checked /> Published</label>
-                <button class="btn btn-primary adm-btn-sm" type="submit" id="admPostFormSubmit">Add post</button>
-                <button class="btn btn-ghost adm-btn-sm" type="button" id="admPostFormCancel" hidden>Cancel edit</button>
-              </form>
-            </div>
-          </section>
-
-          <section class="dash-panel" id="adm-panel-tutorials" hidden>
-            <div class="dash-head"><h1>Tutorials</h1><p>Manage the tutorials hub, grouped by track.</p></div>
-            <div class="adm-toolbar">
-              <input type="text" id="admTutSearch" class="adm-input" placeholder="Search tutorials…" />
-            </div>
-            <div class="dash-card glass dash-tablewrap">
-              <table class="dash-table adm-table-tight">
-                <thead><tr><th>Title</th><th>Track</th><th>Difficulty</th><th>Platform</th><th>Order</th><th>Status</th><th>Actions</th></tr></thead>
-                <tbody id="admTutBody"></tbody>
-              </table>
-            </div>
-            <div class="dash-card glass">
-              <div class="dash-card-head"><h2 id="admTutFormTitle">Add tutorial</h2></div>
-              <form class="adm-form" id="admAddTutForm">
-                <input type="hidden" id="admTutEditId" value="" />
-                <input type="text" id="admNewTutTitle" class="adm-input" placeholder="Title" required />
-                <select id="admNewTutTrack" class="adm-select"><option value="Scripting">Scripting</option><option value="Building">Building</option><option value="Server Setup">Server Setup</option></select>
-                <select id="admNewTutDifficulty" class="adm-select"><option value="Beginner">Beginner</option><option value="Intermediate">Intermediate</option><option value="Advanced">Advanced</option></select>
-                <select id="admNewTutPlatform" class="adm-select"><option value="Roblox">Roblox</option><option value="Minecraft">Minecraft</option><option value="Both">Both</option></select>
-                <input type="number" id="admNewTutOrder" class="adm-input adm-input-sm" placeholder="Order" min="1" step="1" required />
-                <input type="number" id="admNewTutMins" class="adm-input adm-input-sm" placeholder="Est. mins" min="1" step="1" required />
-                <input type="text" id="admNewTutCover" class="adm-input adm-input-sm" placeholder="Cover image, e.g. scripts.jpg" />
-                <input type="url" id="admNewTutVideo" class="adm-input adm-input-sm" placeholder="YouTube URL (optional)" />
-                <input type="text" id="admNewTutSummary" class="adm-input adm-textarea" placeholder="One-line summary" required />
-                <textarea id="admNewTutBody" class="adm-input adm-textarea" rows="6" placeholder="Body — blank line for new paragraph, ## Heading, - list item, **bold**" required></textarea>
-                <label class="adm-check"><input type="checkbox" id="admNewTutPublished" checked /> Published</label>
-                <button class="btn btn-primary adm-btn-sm" type="submit" id="admTutFormSubmit">Add tutorial</button>
-                <button class="btn btn-ghost adm-btn-sm" type="button" id="admTutFormCancel" hidden>Cancel edit</button>
-              </form>
+            <div id="admContentTutorialsView" hidden>
+              <div class="adm-toolbar">
+                <input type="text" id="admTutSearch" class="adm-input" placeholder="Search tutorials…" />
+              </div>
+              <div class="dash-card glass dash-tablewrap">
+                <table class="dash-table adm-table-tight">
+                  <thead><tr><th>Title</th><th>Track</th><th>Difficulty</th><th>Platform</th><th>Order</th><th>Status</th><th>Actions</th></tr></thead>
+                  <tbody id="admTutBody"></tbody>
+                </table>
+              </div>
+              <div class="dash-card glass">
+                <div class="dash-card-head"><h2 id="admTutFormTitle">Add tutorial</h2></div>
+                <form class="adm-form" id="admAddTutForm">
+                  <input type="hidden" id="admTutEditId" value="" />
+                  <input type="text" id="admNewTutTitle" class="adm-input" placeholder="Title" required />
+                  <select id="admNewTutTrack" class="adm-select"><option value="Scripting">Scripting</option><option value="Building">Building</option><option value="Server Setup">Server Setup</option></select>
+                  <select id="admNewTutDifficulty" class="adm-select"><option value="Beginner">Beginner</option><option value="Intermediate">Intermediate</option><option value="Advanced">Advanced</option></select>
+                  <select id="admNewTutPlatform" class="adm-select"><option value="Roblox">Roblox</option><option value="Minecraft">Minecraft</option><option value="Both">Both</option></select>
+                  <input type="number" id="admNewTutOrder" class="adm-input adm-input-sm" placeholder="Order" min="1" step="1" required />
+                  <input type="number" id="admNewTutMins" class="adm-input adm-input-sm" placeholder="Est. mins" min="1" step="1" required />
+                  <input type="text" id="admNewTutCover" class="adm-input adm-input-sm" placeholder="Cover image, e.g. scripts.jpg" />
+                  <input type="url" id="admNewTutVideo" class="adm-input adm-input-sm" placeholder="YouTube URL (optional)" />
+                  <input type="text" id="admNewTutSummary" class="adm-input adm-textarea" placeholder="One-line summary" required />
+                  <textarea id="admNewTutBody" class="adm-input adm-textarea" rows="6" placeholder="Body — blank line for new paragraph, ## Heading, - list item, **bold**" required></textarea>
+                  <label class="adm-check"><input type="checkbox" id="admNewTutPublished" checked /> Published</label>
+                  <button class="btn btn-primary adm-btn-sm" type="submit" id="admTutFormSubmit">Add tutorial</button>
+                  <button class="btn btn-ghost adm-btn-sm" type="button" id="admTutFormCancel" hidden>Cancel edit</button>
+                </form>
+              </div>
             </div>
           </section>
 
@@ -714,30 +667,79 @@
             </div>
           </section>
 
-          <section class="dash-panel" id="adm-panel-staff" hidden>
-            <div class="dash-head"><h1>Staff &amp; whitelist</h1><p>Manage who can access this dashboard and what they can do.</p></div>
-            <p class="adm-note" id="admWhitelistNote"></p>
-            <div class="dash-card glass dash-tablewrap">
-              <table class="dash-table">
-                <thead><tr><th>Name</th><th>Discord ID</th><th>Role</th><th>Actions</th></tr></thead>
-                <tbody id="admStaffBody"></tbody>
-              </table>
+          <section class="dash-panel" id="adm-panel-sitemgmt" hidden>
+            <div class="dash-head"><h1>Site Management</h1><p>Site access, Robux gamepass containers, and staff access.</p></div>
+            <div class="adm-platform-toggle" id="admSiteMgmtToggle" style="margin-bottom:22px;">
+              <button type="button" class="btn btn-primary adm-sitemgmt-btn active" data-view="access">Site Access</button>
+              <button type="button" class="btn btn-minecraft adm-sitemgmt-btn" data-view="roblox">Roblox</button>
+              <button type="button" class="btn btn-minecraft adm-sitemgmt-btn" data-view="staff">Staff &amp; Whitelist</button>
             </div>
-            <div class="dash-card glass">
-              <div class="dash-card-head"><h2>Add staff member</h2></div>
-              <form class="adm-form" id="admAddStaffForm">
-                <input type="text" id="admNewStaffName" class="adm-input" placeholder="Name" required />
-                <input type="text" id="admNewStaffDiscord" class="adm-input" placeholder="Discord user ID" />
-                <div class="adm-dd adm-dd-inline" id="admNewStaffRoleDD">
-                  <button type="button" class="adm-dd-btn" aria-haspopup="listbox" aria-expanded="false">
-                    <span class="adm-dd-val"></span>
-                    <svg class="adm-dd-chev" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
-                  </button>
-                  <div class="adm-dd-menu" role="listbox" aria-label="Role" hidden></div>
+
+            <div id="admSiteMgmtAccessView">
+              <div class="dash-card glass">
+                <p>Current status: <strong id="admSiteCurrentStatus">Loading…</strong></p>
+                <div class="adm-platform-toggle" id="admSiteModeToggle" style="margin:14px 0;">
+                  <button type="button" class="btn btn-primary adm-site-mode-btn active" data-mode="open">Open</button>
+                  <button type="button" class="btn btn-minecraft adm-site-mode-btn" data-mode="maintenance">Maintenance</button>
+                  <button type="button" class="btn btn-minecraft adm-site-mode-btn" data-mode="locked">Locked</button>
                 </div>
-                <input type="hidden" id="admNewStaffRole" value="support" />
-                <button class="btn btn-primary adm-btn-sm" type="submit">Add staff</button>
-              </form>
+                <div id="admSiteMaintFields" hidden>
+                  <label class="adm-field"><span>Maintenance message</span><input type="text" id="admSiteMaintMsg" class="adm-input" placeholder="We'll be back soon." /></label>
+                  <label class="adm-field" style="margin-top:10px;max-width:260px;"><span>Ends at (optional)</span><input type="datetime-local" id="admSiteMaintEnds" class="adm-input" /></label>
+                </div>
+                <p class="adm-hint" id="admSiteLockedHint" hidden>Locked mode uses the existing shared-password gate (lock.html / LOCK_PASSWORD secret) - nobody gets in, including admins, without that password. Recovery: you can always flip this back to Open directly in the Supabase SQL Editor if you ever get stuck.</p>
+                <button class="btn btn-primary adm-btn-sm" id="admSiteSaveBtn" type="button" style="margin-top:14px;"><span class="btn-label">Save</span><span class="btn-spinner" hidden></span></button>
+                <div class="adm-edit-msg" id="admSiteMsg"></div>
+              </div>
+            </div>
+
+            <div id="admSiteMgmtRobloxView" hidden>
+              <div class="dt-badge err" id="admRobloxCookieWarning" hidden style="margin-bottom:16px;display:inline-block;"></div>
+              <div class="dash-card glass dash-tablewrap">
+                <table class="dash-table">
+                  <thead><tr><th>Universe ID</th><th>Label</th><th>Gamepasses</th><th>Status</th><th>Actions</th></tr></thead>
+                  <tbody id="admRobloxContainersBody"></tbody>
+                </table>
+              </div>
+              <div class="dash-card glass">
+                <div class="dash-card-head"><h2 id="admRobloxContainerFormTitle">Add container game</h2></div>
+                <p class="adm-hint">Create an empty experience in Roblox Studio first, add it to your Open Cloud API key's <code>game-passes</code> permission list at <a href="https://create.roblox.com/dashboard/credentials" target="_blank" rel="noopener">create.roblox.com/dashboard/credentials</a>, then register its Universe ID here.</p>
+                <form class="adm-form" id="admRobloxContainerForm" style="flex-wrap:wrap;">
+                  <input type="hidden" id="admRobloxContainerEditId" />
+                  <input type="text" id="admRobloxContainerUniverseId" class="adm-input" placeholder="Universe ID" required />
+                  <input type="text" id="admRobloxContainerLabel" class="adm-input" placeholder="Label (optional)" style="flex:1;min-width:200px;" />
+                  <button class="btn btn-primary adm-btn-sm" type="submit" id="admRobloxContainerSubmitBtn">Add container</button>
+                  <button class="btn btn-ghost adm-btn-sm" type="button" id="admRobloxContainerCancelBtn" hidden>Cancel edit</button>
+                </form>
+                <div class="adm-edit-msg" id="admRobloxContainerMsg"></div>
+              </div>
+            </div>
+
+            <div id="admSiteMgmtStaffView" hidden>
+              <p class="adm-note">Access is granted by role on the account's real profile - not a separate list. Only owners can grant or change staff access.</p>
+              <div class="dash-card glass dash-tablewrap">
+                <table class="dash-table">
+                  <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Actions</th></tr></thead>
+                  <tbody id="admStaffBody"></tbody>
+                </table>
+              </div>
+              <div class="dash-card glass">
+                <div class="dash-card-head"><h2>Grant staff access</h2></div>
+                <p class="adm-note">The account must have signed in to coldd at least once already.</p>
+                <form class="adm-form" id="admAddStaffForm">
+                  <input type="email" id="admNewStaffEmail" class="adm-input" placeholder="Email" required />
+                  <div class="adm-dd adm-dd-inline" id="admNewStaffRoleDD">
+                    <button type="button" class="adm-dd-btn" aria-haspopup="listbox" aria-expanded="false">
+                      <span class="adm-dd-val"></span>
+                      <svg class="adm-dd-chev" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                    </button>
+                    <div class="adm-dd-menu" role="listbox" aria-label="Role" hidden></div>
+                  </div>
+                  <input type="hidden" id="admNewStaffRole" value="support" />
+                  <button class="btn btn-primary adm-btn-sm" type="submit">Grant access</button>
+                </form>
+                <div class="co-msg" id="admStaffMsg"></div>
+              </div>
             </div>
           </section>
 
@@ -757,8 +759,8 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="/supabase-init.js?v=20260729a"></script>
+  <script src="/supabase-init.js?v=20260729b"></script>
   <script src="/site-gate.js?v=20260729b"></script>
-  <script src="/catalog.js?v=20260729e" data-then="/blog.js?v=20260729a,/reviews.js?v=20260729a,/admin.js?v=20260729f"></script>
+  <script src="/catalog.js?v=20260729e" data-then="/blog.js?v=20260729a,/reviews.js?v=20260729a,/admin.js?v=20260729g"></script>
 </body>
 </html>

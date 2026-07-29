@@ -8,13 +8,6 @@
   var PROFILE_KEY = 'coldd_profile';
   var AUTH_KEY = 'coldd_auth';
 
-  // Discord user IDs allowed into admin.html and shown the admin-panel link
-  // on the dashboard. This is a client-side gate only - it hides the admin
-  // UI from everyone else, but doesn't stop a determined user from reading
-  // the underlying (still-mock) data via devtools. Real enforcement needs
-  // server-side RLS keyed off profiles.is_admin once the backend is live.
-  var ADMIN_WHITELIST = ['1327350011054526505', '1253736765986967622'];
-
   // Roblox OAuth app client ID (public, safe to inline - same as the
   // Discord guild ID above). Set once the OAuth app is created at
   // create.roblox.com/dashboard/credentials/oauth; account linking is a
@@ -46,23 +39,27 @@
     });
   }
 
-  // Reads the Discord ID out of the SDK's own persisted session (no network
-  // call - same localStorage key window.coldSupabase.auth.getSession() reads
-  // from), mirroring the identity_data extraction callback.html does right
-  // after OAuth completes.
-  function currentDiscordId() {
-    try {
-      var raw = localStorage.getItem('sb-ekinmytmudjwfaqaqswp-auth-token');
-      var parsed = raw && JSON.parse(raw);
-      if (!parsed || !parsed.user) return null;
-      if (parsed.expires_at && parsed.expires_at * 1000 < Date.now()) return null;
-      var identities = parsed.user.identities || [];
-      var discordIdentity = identities.filter(function (i) { return i.provider === 'discord'; })[0];
-      var data = (discordIdentity && discordIdentity.identity_data) || {};
-      return data.provider_id || data.sub || (parsed.user.user_metadata && parsed.user.user_metadata.provider_id) || null;
-    } catch (e) { return null; }
+  // Real access check, backed by profiles.is_admin/role (RLS-enforced -
+  // this is the same flag every admin-* Edge Function checks server-side,
+  // not a separate client-side list). role is 'owner'/'admin'/'support',
+  // set manually via SQL for now; a signed-in admin with is_admin=true but
+  // no role yet defaults to 'admin' so existing staff aren't locked out.
+  function checkIsAdmin() {
+    return client.auth.getUser().then(function (res) {
+      var user = res && res.data && res.data.user;
+      if (!user) return { isAdmin: false, role: null, username: null, id: null };
+      return client.from('profiles').select('is_admin, role, username, email').eq('id', user.id).single().then(function (pRes) {
+        if (pRes.error || !pRes.data) return { isAdmin: false, role: null, username: null, id: user.id };
+        var isAdmin = !!pRes.data.is_admin;
+        return {
+          isAdmin: isAdmin,
+          role: pRes.data.role || (isAdmin ? 'admin' : null),
+          username: pRes.data.username || pRes.data.email || null,
+          id: user.id
+        };
+      });
+    }).catch(function () { return { isAdmin: false, role: null, username: null, id: null }; });
   }
-  function isAdminWhitelisted() { return ADMIN_WHITELIST.indexOf(currentDiscordId()) >= 0; }
 
   var REF_KEY = 'coldd_ref_code';
   // Captures ?ref=CODE off any page URL (referral link click), stores it for
@@ -150,8 +147,7 @@
     clearProfile: clearProfile,
     applyProfile: applyProfile,
     targetGuildId: TARGET_GUILD_ID,
-    currentDiscordId: currentDiscordId,
-    isAdminWhitelisted: isAdminWhitelisted,
+    checkIsAdmin: checkIsAdmin,
     attributeReferral: attributeReferral,
     signInDiscord: function () {
       var redirectTo = location.origin + '/callback.html';

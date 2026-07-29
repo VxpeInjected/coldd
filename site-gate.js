@@ -100,11 +100,11 @@
     if (status.mode === 'maintenance') {
       window.coldSupabase.auth.getSession().then(function (sres) {
         var session = sres && sres.data ? sres.data.session : null;
-        if (session && window.coldAuth && window.coldAuth.isAdminWhitelisted()) {
-          showWhitelistBanner();
-          return;
-        }
-        showMaintenanceOverlay(status);
+        if (!session) { showMaintenanceOverlay(status); return; }
+        window.coldAuth.checkIsAdmin().then(function (info) {
+          if (info.isAdmin) showWhitelistBanner();
+          else showMaintenanceOverlay(status);
+        });
       }).catch(function () {});
     }
   }).catch(function () {

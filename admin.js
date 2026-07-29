@@ -3,23 +3,31 @@
 
   /* ================================================================
      ACCESS GATE
-     Restricted to the Discord IDs in supabase-init.js's ADMIN_WHITELIST
-     (window.coldAuth.isAdminWhitelisted) - single source of truth shared
-     with the admin-panel link on dashboard.html.
+     Real check against the signed-in user's profiles.is_admin/role - the
+     same flag every admin-* Edge Function checks server-side, not a
+     separate client-side list. Async (needs a query), so the panel stays
+     hidden until it resolves rather than optimistically showing it.
      ================================================================ */
-  function isAllowed() {
-    return !!(window.coldAuth && window.coldAuth.isAdminWhitelisted());
-  }
-
   var gate = document.getElementById('admGate');
   var shell = document.getElementById('admShell');
-  if (!isAllowed()) {
+
+  if (!window.coldAuth || !window.coldAuth.checkIsAdmin) {
     if (gate) gate.hidden = false;
-    if (shell) shell.hidden = true;
     return;
   }
-  if (gate) gate.hidden = true;
-  if (shell) shell.hidden = false;
+  window.coldAuth.checkIsAdmin().then(function (info) {
+    if (!info.isAdmin) {
+      if (gate) gate.hidden = false;
+      if (shell) shell.hidden = true;
+      return;
+    }
+    if (gate) gate.hidden = true;
+    if (shell) shell.hidden = false;
+    boot(info);
+  });
+
+  function boot(ADMIN) {
+  window.__ADMIN_ID = ADMIN.id;
 
   /* ================================================================
      UTILITIES
@@ -103,13 +111,6 @@
      ================================================================ */
   var CATALOG = window.__CATALOG || [];
 
-  var USER_NAMES = ['deonte123', 'mrbuilds', 'vortex_dev', 'skylar', 'notacow', 'jaydengg', 'rblxpro', 'emberkid', 'q_zen', 'frostbyte', 'halcyon', 'devkai', 'pixel_wren', 'noctown', 'siege_ii', 'kryo', 'buildrjay', 'ashfall', 'trestin', 'novaquartz', 'griefstop', 'lumen_x', 'obsidianrp', 'wickfire', 'tundraa', 'meshking', 'ravencl', 'ninthgate', 'zeph', 'coalport'];
-  var STAFF_SEED = [
-    { id: 'st1', name: 'Jordan', discordId: '', role: 'owner' },
-    { id: 'st2', name: 'kaden.dev', discordId: '', role: 'admin' },
-    { id: 'st3', name: 'mod_ash', discordId: '', role: 'support' }
-  ];
-
   // Real data from public.profiles, read via the signed-in admin's own
   // session (RLS: profiles_select_admin lets is_admin=true profiles see
   // every profile, not just their own). Writes (ban/unban) go through
@@ -181,7 +182,19 @@
     });
   }
 
-  var STAFF = seedIfEmpty('coldd_admin_staff_v1', function () { return STAFF_SEED; });
+  // Real data from public.profiles (is_admin=true) - the same flag every
+  // admin-* Edge Function checks server-side, not separate mock data.
+  var STAFF = [];
+  function refreshStaff() {
+    if (!window.coldSupabase) return Promise.resolve();
+    return window.coldSupabase.from('profiles').select('id, username, email, discord_id, role').eq('is_admin', true).then(function (res) {
+      if (res.error) { console.error('[admin] failed to load staff:', res.error.message); return; }
+      STAFF = (res.data || []).map(function (p) {
+        return { id: p.id, name: p.username || (p.email ? p.email.split('@')[0] : 'user'), email: p.email, discordId: p.discord_id, role: p.role || 'admin' };
+      });
+      if (curPanel === 'sitemgmt') renderStaff();
+    });
+  }
 
   // Real data from public.profiles (referral_code/referred_by/referral_clicks)
   // and public.orders, read via the signed-in admin's own session. Earnings
@@ -439,7 +452,6 @@
 
   var AUDIT = lsGet('coldd_admin_audit_v1', []);
 
-  function saveStaff() { lsSet('coldd_admin_staff_v1', STAFF); }
 
   function logAudit(action) {
     AUDIT.unshift({ ts: new Date().toISOString(), actor: currentRole().name, action: action });
@@ -449,15 +461,11 @@
   }
 
   /* ================================================================
-     ROLE (stand-in for real auth; drives permission gating)
+     ROLE - real, from profiles.is_admin/role (ADMIN, resolved by the
+     access gate above before boot() ever runs).
      ================================================================ */
   var ROLES = { owner: 3, admin: 2, support: 1 };
-  function currentRole() {
-    var id = lsGet('coldd_admin_role_v1', null);
-    var staff = STAFF.filter(function (s) { return s.id === id; })[0];
-    return staff || STAFF[0] || { id: 'st1', name: 'You', role: 'owner' };
-  }
-  function setRole(id) { lsSet('coldd_admin_role_v1', id); renderTopbar(); renderAll(); }
+  function currentRole() { return { name: ADMIN.username || 'You', role: ADMIN.role || 'admin' }; }
   function can(minRole) { return ROLES[currentRole().role] >= ROLES[minRole]; }
 
   /* ================================================================
@@ -706,7 +714,7 @@
   /* ================================================================
      NAV / PANEL SWITCHING
      ================================================================ */
-  var PANELS = ['home', 'analytics', 'products', 'product-edit', 'product-update', 'orders', 'refunds', 'reviews', 'users', 'sales', 'roblox', 'siteaccess', 'posts', 'tutorials', 'releases', 'staff', 'audit'];
+  var PANELS = ['home', 'analytics', 'products', 'product-edit', 'product-update', 'orders', 'refunds', 'reviews', 'users', 'sales', 'sitemgmt', 'content', 'releases', 'audit'];
   var curPanel = 'home';
   function showPanel(name) {
     if (PANELS.indexOf(name) < 0) name = 'home';
@@ -728,12 +736,9 @@
     else if (name === 'reviews') renderReviews();
     else if (name === 'users') renderUsers();
     else if (name === 'sales') { renderEvents(); renderCoupons(); }
-    else if (name === 'roblox') { renderRobloxContainers(); refreshRobloxCookieHealth(); }
-    else if (name === 'siteaccess') refreshSiteStatus();
-    else if (name === 'posts') renderPosts();
-    else if (name === 'tutorials') renderTutorials();
+    else if (name === 'sitemgmt') { refreshSiteStatus(); renderRobloxContainers(); refreshRobloxCookieHealth(); renderStaff(); }
+    else if (name === 'content') { renderPosts(); renderTutorials(); }
     else if (name === 'releases') renderReleases();
-    else if (name === 'staff') renderStaff();
     else if (name === 'audit') renderAudit();
   }
   function renderAll() { renderPanel(curPanel); }
@@ -746,14 +751,10 @@
   /* ================================================================
      TOPBAR
      ================================================================ */
-  var roleDropdown = makeDropdown($('admRoleSelectDD'), {
-    placeholder: 'Select viewer',
-    onChange: function (id) { if (id) setRole(id); }
-  });
   function renderTopbar() {
     var r = currentRole();
-    roleDropdown.setOptions(STAFF.map(function (s) { return { value: s.id, label: s.name + ' — ' + s.role }; }), r.id);
-    var av = $('admAvatar'); if (av) av.textContent = r.name.charAt(0).toUpperCase();
+    var label = $('admViewerLabel'); if (label) label.textContent = r.name + ' — ' + r.role;
+    var av = $('admAvatar'); if (av) av.textContent = (r.name || 'A').charAt(0).toUpperCase();
   }
 
   document.querySelectorAll('.adm-range button').forEach(function (b) {
@@ -1860,6 +1861,25 @@
     $('admDiscountCodesView').hidden = type !== 'codes';
   });
 
+  var contentTypeToggle = $('admContentTypeToggle');
+  if (contentTypeToggle) contentTypeToggle.addEventListener('click', function (e) {
+    var btn = e.target.closest('.adm-content-type-btn'); if (!btn) return;
+    var type = btn.getAttribute('data-type');
+    contentTypeToggle.querySelectorAll('.adm-content-type-btn').forEach(function (b) { b.classList.toggle('active', b === btn); });
+    $('admContentPostsView').hidden = type !== 'posts';
+    $('admContentTutorialsView').hidden = type !== 'tutorials';
+  });
+
+  var siteMgmtToggle = $('admSiteMgmtToggle');
+  if (siteMgmtToggle) siteMgmtToggle.addEventListener('click', function (e) {
+    var btn = e.target.closest('.adm-sitemgmt-btn'); if (!btn) return;
+    var view = btn.getAttribute('data-view');
+    siteMgmtToggle.querySelectorAll('.adm-sitemgmt-btn').forEach(function (b) { b.classList.toggle('active', b === btn); });
+    $('admSiteMgmtAccessView').hidden = view !== 'access';
+    $('admSiteMgmtRobloxView').hidden = view !== 'roblox';
+    $('admSiteMgmtStaffView').hidden = view !== 'staff';
+  });
+
   /* ---- Sale Events ---- */
   function eventStatus(ev) {
     var today = new Date().toISOString().slice(0, 10);
@@ -2056,7 +2076,7 @@
     return window.coldSupabase.from('roblox_containers').select('*').order('created_at').then(function (res) {
       if (res.error) { console.error('[admin] failed to load roblox containers:', res.error.message); return; }
       ROBLOX_CONTAINERS = res.data || [];
-      if (curPanel === 'roblox') renderRobloxContainers();
+      if (curPanel === 'sitemgmt') renderRobloxContainers();
     });
   }
   // Phase D fallback health - table may not exist yet if
@@ -2204,7 +2224,7 @@
     return window.coldSupabase.from('content').select('*').eq('type', 'post').order('created_at', { ascending: false }).then(function (res) {
       if (res.error) { console.error('[admin] failed to load posts:', res.error.message); return; }
       POSTS = (res.data || []).map(mapContentRow);
-      if (curPanel === 'posts') renderPosts();
+      if (curPanel === 'content') renderPosts();
     });
   }
   function callUpsertContent(type, id, slug, visible, data) {
@@ -2320,7 +2340,7 @@
     return window.coldSupabase.from('content').select('*').eq('type', 'tutorial').order('created_at', { ascending: false }).then(function (res) {
       if (res.error) { console.error('[admin] failed to load tutorials:', res.error.message); return; }
       TUTORIALS = (res.data || []).map(mapContentRow);
-      if (curPanel === 'tutorials') renderTutorials();
+      if (curPanel === 'content') renderTutorials();
     });
   }
   function renderTutorials() {
@@ -2530,22 +2550,28 @@
   });
 
   /* ================================================================
-     STAFF PANEL (roles + whitelist management)
+     STAFF PANEL - real, backed by profiles.is_admin/role. All writes go
+     through admin-set-staff-role (service role, requires the CALLER to
+     be an owner, refuses self-changes).
      ================================================================ */
   var ADM_DD_CHEV = '<svg class="adm-dd-chev" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>';
+  function callSetStaffRole(email, role) {
+    return invokeAdminFn('admin-set-staff-role', { email: email, role: role }, 'Could not update staff access.');
+  }
   function renderStaff() {
     $('admStaffBody').innerHTML = STAFF.map(function (s) {
+      var isSelf = s.id === (window.__ADMIN_ID || null);
+      var editable = can('owner') && !isSelf;
       var roleMenu = ['owner', 'admin', 'support'].map(function (r) {
         return '<button type="button" class="adm-dd-opt' + (r === s.role ? ' active' : '') + '" data-value="' + r + '" role="option" aria-selected="' + (r === s.role ? 'true' : 'false') + '"><span>' + r + '</span><span class="adm-dd-radio"></span></button>';
       }).join('');
-      return '<tr data-id="' + s.id + '"><td>' + esc(s.name) + '</td><td class="dt-mono">' + esc(s.discordId || '—') + '</td>' +
-        '<td><div class="adm-dd adm-dd-inline adm-staff-role-dd"' + (can('owner') ? '' : ' data-disabled="1"') + '>' +
-          '<button type="button" class="adm-dd-btn"' + (can('owner') ? '' : ' disabled') + ' aria-haspopup="listbox" aria-expanded="false"><span class="adm-dd-val">' + esc(s.role) + '</span>' + ADM_DD_CHEV + '</button>' +
+      return '<tr data-id="' + s.id + '" data-email="' + esc(s.email || '') + '"><td>' + esc(s.name) + (isSelf ? ' <span class="adm-sub">(you)</span>' : '') + '</td><td class="dt-mono">' + esc(s.email || '—') + '</td>' +
+        '<td><div class="adm-dd adm-dd-inline adm-staff-role-dd"' + (editable ? '' : ' data-disabled="1"') + '>' +
+          '<button type="button" class="adm-dd-btn"' + (editable ? '' : ' disabled') + ' aria-haspopup="listbox" aria-expanded="false"><span class="adm-dd-val">' + esc(s.role) + '</span>' + ADM_DD_CHEV + '</button>' +
           '<div class="adm-dd-menu" role="listbox" aria-label="Role" hidden>' + roleMenu + '</div>' +
         '</div></td>' +
-        '<td class="adm-row-actions">' + (can('owner') && STAFF.length > 1 ? '<button class="btn btn-ghost adm-btn-sm adm-staff-remove" type="button">Remove</button>' : '') + '</td></tr>';
-    }).join('');
-    $('admWhitelistNote').textContent = 'Whitelist enforced — only the Discord IDs set in supabase-init.js\'s ADMIN_WHITELIST can open this dashboard. This staff list is separate role-management data and isn\'t the enforcement source.';
+        '<td class="adm-row-actions">' + (editable ? '<button class="btn btn-ghost adm-btn-sm adm-staff-remove" type="button">Revoke access</button>' : '') + '</td></tr>';
+    }).join('') || '<tr><td colspan="4" class="adm-empty">No staff yet.</td></tr>';
   }
   var staffBody = $('admStaffBody');
   if (staffBody) staffBody.addEventListener('click', function (e) {
@@ -2562,10 +2588,12 @@
     var opt = e.target.closest('.adm-staff-role-dd .adm-dd-opt');
     if (opt) {
       if (!can('owner')) return;
-      var tr = opt.closest('tr'); var id = tr.getAttribute('data-id');
-      var s = STAFF.filter(function (x) { return x.id === id; })[0]; if (!s) return;
-      s.role = opt.getAttribute('data-value');
-      saveStaff(); logAudit('Changed ' + s.name + '\'s role to ' + s.role); renderTopbar(); renderStaff();
+      var tr = opt.closest('tr'); var id = tr.getAttribute('data-id'), email = tr.getAttribute('data-email');
+      var s = STAFF.filter(function (x) { return x.id === id; })[0]; if (!s || !email) return;
+      var newRole = opt.getAttribute('data-value');
+      callSetStaffRole(email, newRole)
+        .then(function () { logAudit('Changed ' + s.name + '\'s role to ' + newRole); return refreshStaff(); })
+        .catch(function (err) { alert(err.message || 'Could not update role.'); });
       return;
     }
   });
@@ -2576,12 +2604,12 @@
   if (staffBody) staffBody.addEventListener('click', function (e) {
     if (!e.target.classList.contains('adm-staff-remove')) return;
     if (!can('owner')) return;
-    var tr = e.target.closest('tr'); var id = tr.getAttribute('data-id');
-    var s = STAFF.filter(function (x) { return x.id === id; })[0]; if (!s) return;
-    if (!confirm('Remove ' + s.name + ' from staff?')) return;
-    STAFF = STAFF.filter(function (x) { return x.id !== id; });
-    ADMIN_WHITELIST = ADMIN_WHITELIST.filter(function (x) { return x !== s.discordId; });
-    saveStaff(); logAudit('Removed staff member ' + s.name); renderStaff(); renderTopbar();
+    var tr = e.target.closest('tr'); var id = tr.getAttribute('data-id'), email = tr.getAttribute('data-email');
+    var s = STAFF.filter(function (x) { return x.id === id; })[0]; if (!s || !email) return;
+    if (!confirm('Revoke ' + s.name + '\'s staff access?')) return;
+    callSetStaffRole(email, null)
+      .then(function () { logAudit('Revoked staff access for ' + s.name); return refreshStaff(); })
+      .catch(function (err) { alert(err.message || 'Could not revoke access.'); });
   });
   var newStaffRoleDropdown = makeDropdown($('admNewStaffRoleDD'), { valueInput: $('admNewStaffRole') });
   newStaffRoleDropdown.setOptions([
@@ -2593,15 +2621,18 @@
   if (addStaffForm) addStaffForm.addEventListener('submit', function (e) {
     e.preventDefault();
     if (!can('owner')) return;
-    var name = $('admNewStaffName').value.trim();
-    var discordId = $('admNewStaffDiscord').value.trim();
+    var email = $('admNewStaffEmail').value.trim();
     var role = $('admNewStaffRole').value;
-    if (!name) return;
-    var id = 'st' + Date.now().toString(36);
-    STAFF.push({ id: id, name: name, discordId: discordId, role: role });
-    if (discordId) ADMIN_WHITELIST.push(discordId);
-    saveStaff(); logAudit('Added staff member ' + name + ' (' + role + ')');
-    addStaffForm.reset(); newStaffRoleDropdown.setValue('support', true); renderStaff();
+    var msgEl = $('admStaffMsg');
+    if (!email) return;
+    callSetStaffRole(email, role).then(function (data) {
+      logAudit('Granted ' + (data.username || email) + ' staff access (' + role + ')');
+      addStaffForm.reset(); newStaffRoleDropdown.setValue('support', true);
+      if (msgEl) { msgEl.className = 'co-msg show'; msgEl.textContent = 'Access granted.'; }
+      return refreshStaff();
+    }).catch(function (err) {
+      if (msgEl) { msgEl.className = 'co-msg err show'; msgEl.textContent = err.message || 'Could not grant access.'; }
+    });
   });
 
   /* ================================================================
@@ -2631,4 +2662,6 @@
   refreshSaleEvents();
   refreshTraffic();
   refreshAbandoned();
+  refreshStaff();
+  } // end boot()
 })();

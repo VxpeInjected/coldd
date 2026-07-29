@@ -2016,17 +2016,22 @@
         var buyBlock = document.getElementById('coRobuxBuyBlock');
         if (!resellBlock || !linkBlock || !buyBlock) return;
 
-        var hasResell = cart.some(function (i) { return i.licence === 'resell'; });
+        // Robux pricing doesn't support resell licences (matches
+        // product.html) - resell items just aren't part of the Robux
+        // order, not a hard block on the whole cart. Only fully block if
+        // EVERY item in the cart is resell (nothing left to buy via Robux).
+        var robuxItems = cartToItems().filter(function (i) { return i.licence !== 'resell'; });
+        var hasResell = robuxItems.length !== cart.length;
         resellBlock.hidden = !hasResell;
         linkBlock.hidden = true;
         buyBlock.hidden = true;
-        if (hasResell || !cart.length || !window.coldAuth) return;
+        if (!robuxItems.length || !window.coldAuth) return;
 
         window.coldAuth.robloxLinkStatus().then(function (res) {
           if (!res || !res.linked) { linkBlock.hidden = false; return; }
           buyBlock.hidden = false;
           if (robuxOrderId) { renderRobuxItems(); return; }
-          window.coldAuth.invokeFn('create-robux-order', { items: cartToItems() }).then(function (data) {
+          window.coldAuth.invokeFn('create-robux-order', { items: robuxItems }).then(function (data) {
             robuxOrderId = data.orderId;
             robuxOrderItems = data.items;
             renderRobuxItems();

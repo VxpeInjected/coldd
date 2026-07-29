@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 
-  <link rel="stylesheet" href="/styles.css?v=20260727g" />
+  <link rel="stylesheet" href="/styles.css?v=20260728a" />
 </head>
 <body>
   <div class="backdrop"></div>
@@ -172,7 +172,7 @@
             <div class="co-pay-soon">Crypto checkout is coming soon. For now, please pay with Stripe or PayPal above.</div>
           </div>
           <div id="coPayRobuxPanel" class="co-pay-panel" data-method-panel="robux" hidden>
-            <div id="coRobuxResellBlock" class="co-pay-soon" hidden>Robux checkout doesn't support resell-licence items. Remove them from your cart or pay with Stripe/PayPal above.</div>
+            <div id="coRobuxResellBlock" class="co-pay-soon" hidden>Resell-licence items in your cart aren't priced in Robux and won't be included in this order - only standard-licence items below will be charged. Pay for resell items with Stripe/PayPal instead.</div>
             <div id="coRobuxLinkBlock" hidden>
               <p class="co-hint">Link your Roblox account to pay with Robux - we verify your purchase against the Roblox account you link.</p>
               <button class="btn btn-ghost" id="coRobuxLinkBtn" type="button">Link Roblox account</button>
@@ -434,6 +434,6 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script src="/supabase-init.js?v=20260728d"></script>
-  <script src="/catalog.js?v=20260727f" data-then="/app.js?v=20260728c"></script>
+  <script src="/catalog.js?v=20260727f" data-then="/app.js?v=20260728d"></script>
 </body>
 </html>

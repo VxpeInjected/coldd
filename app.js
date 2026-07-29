@@ -1823,10 +1823,16 @@
           if (!session) { location.href = '/signin'; return; }
           loadRealData(session.user.id);
           loadNotificationPrefs(session.user.id);
+          // The cached local profile (localStorage) can have a blank email
+          // for accounts that signed up via Roblox (which has no real email
+          // to hand us at sign-in time) - the session's user.email is always
+          // the real, current value, so it wins here.
+          var acEmailEl = document.getElementById('ac-email');
+          if (acEmailEl && session.user.email) acEmailEl.value = session.user.email;
         });
       }
 
-      var NTF_DEFAULTS = { orderReceipts: true, productUpdates: true, promotions: false, saleDms: true, roleSync: true, supportReplies: true };
+      var NTF_DEFAULTS = { orderReceipts: true, productUpdates: true, promotions: true, saleDms: true, roleSync: true, supportReplies: true };
       var NTF_IDS = { orderReceipts: 'ntfOrderReceipts', productUpdates: 'ntfProductUpdates', promotions: 'ntfPromotions', saleDms: 'ntfSaleDms', roleSync: 'ntfRoleSync', supportReplies: 'ntfSupportReplies' };
       function loadNotificationPrefs(userId) {
         window.coldSupabase.from('profiles').select('notification_prefs').eq('id', userId).maybeSingle().then(function (res) {
@@ -2270,15 +2276,27 @@
             dBtn.disabled = !!(discordIdentity && totalMethods <= 1);
             dBtn.title = (discordIdentity && totalMethods <= 1) ? 'This is your only sign-in method' : '';
             dBtn.onclick = function () {
+              if (errEl) errEl.textContent = '';
               if (discordIdentity) {
                 if (totalMethods <= 1) return;
                 if (!confirm('Unlink your Discord account?')) return;
+                dBtn.disabled = true;
                 window.coldSupabase.auth.unlinkIdentity(discordIdentity).then(function (ures) {
                   if (errEl) errEl.textContent = ures.error ? (ures.error.message || 'Could not unlink.') : '';
                   renderLinkedAccounts();
+                }).catch(function (err) {
+                  dBtn.disabled = false;
+                  if (errEl) errEl.textContent = (err && err.message) || 'Could not unlink Discord.';
                 });
               } else {
-                window.coldSupabase.auth.linkIdentity({ provider: 'discord', options: { redirectTo: location.origin + '/dashboard?panel=linked' } });
+                dBtn.disabled = true;
+                window.coldSupabase.auth.linkIdentity({ provider: 'discord', options: { redirectTo: location.origin + '/dashboard?panel=linked' } }).then(function (lres) {
+                  dBtn.disabled = false;
+                  if (lres && lres.error && errEl) errEl.textContent = lres.error.message || 'Could not link Discord.';
+                }).catch(function (err) {
+                  dBtn.disabled = false;
+                  if (errEl) errEl.textContent = (err && err.message) || 'Could not link Discord.';
+                });
               }
             };
 
@@ -2288,10 +2306,19 @@
             rBtn.disabled = !!(robloxLinked && totalMethods <= 1);
             rBtn.title = (robloxLinked && totalMethods <= 1) ? 'This is your only sign-in method' : '';
             rBtn.onclick = function () {
+              if (errEl) errEl.textContent = '';
               if (robloxLinked) {
                 if (totalMethods <= 1) return;
                 if (!confirm('Unlink your Roblox account?')) return;
-                window.coldAuth.unlinkRoblox().then(function () { renderLinkedAccounts(); });
+                rBtn.disabled = true;
+                window.coldAuth.unlinkRoblox().then(function (ures) {
+                  rBtn.disabled = false;
+                  if (ures && ures.ok === false && errEl) { errEl.textContent = ures.error || 'Could not unlink Roblox.'; return; }
+                  renderLinkedAccounts();
+                }).catch(function (err) {
+                  rBtn.disabled = false;
+                  if (errEl) errEl.textContent = (err && err.message) || 'Could not unlink Roblox.';
+                });
               } else {
                 window.coldAuth.signInRoblox();
               }

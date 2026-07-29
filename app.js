@@ -2000,6 +2000,75 @@
           });
       });
 
+      // Robux checkout never goes through Stripe - Roblox handles the
+      // actual payment when the buyer purchases each gamepass on
+      // Roblox's own site. This panel: link Roblox account if needed ->
+      // create a pending order (which hands back each item's gamepass
+      // ID) -> "Buy on Roblox" links per item -> verify against the
+      // buyer's inventory. robuxOrderId is created once per checkout
+      // page load and reused across tab switches; cart edits after that
+      // point start a fresh order on the next verify attempt.
+      var robuxOrderId = null;
+      var robuxOrderItems = null;
+      function renderRobuxPanel() {
+        var resellBlock = document.getElementById('coRobuxResellBlock');
+        var linkBlock = document.getElementById('coRobuxLinkBlock');
+        var buyBlock = document.getElementById('coRobuxBuyBlock');
+        if (!resellBlock || !linkBlock || !buyBlock) return;
+
+        var hasResell = cart.some(function (i) { return i.licence === 'resell'; });
+        resellBlock.hidden = !hasResell;
+        linkBlock.hidden = true;
+        buyBlock.hidden = true;
+        if (hasResell || !cart.length || !window.coldAuth) return;
+
+        window.coldAuth.robloxLinkStatus().then(function (res) {
+          if (!res || !res.linked) { linkBlock.hidden = false; return; }
+          buyBlock.hidden = false;
+          if (robuxOrderId) { renderRobuxItems(); return; }
+          window.coldAuth.invokeFn('create-robux-order', { items: cartToItems() }).then(function (data) {
+            robuxOrderId = data.orderId;
+            robuxOrderItems = data.items;
+            renderRobuxItems();
+          }).catch(function (err) {
+            var msgEl = document.getElementById('coRobuxMsg');
+            if (msgEl) { msgEl.className = 'co-msg err show'; msgEl.textContent = err.message || 'Could not start Robux checkout.'; }
+          });
+        }).catch(function () { linkBlock.hidden = false; });
+      }
+      function renderRobuxItems() {
+        var itemsEl = document.getElementById('coRobuxItems');
+        var totalEl = document.getElementById('coRobuxTotal');
+        if (!itemsEl || !robuxOrderItems) return;
+        itemsEl.innerHTML = robuxOrderItems.map(function (it) {
+          return '<div class="co-item"><div class="co-item-info"><div class="co-item-title">' + it.title + '</div>' +
+            '<div class="co-item-sub">Qty ' + it.qty + ' · R$ ' + it.unitRobux.toLocaleString('en-US') + ' each</div></div>' +
+            '<a class="btn btn-ghost" href="https://www.roblox.com/game-pass/' + it.gamePassId + '/" target="_blank" rel="noopener">Buy on Roblox</a></div>';
+        }).join('');
+        var total = robuxOrderItems.reduce(function (s, it) { return s + it.unitRobux * it.qty; }, 0);
+        if (totalEl) totalEl.textContent = 'R$ ' + total.toLocaleString('en-US');
+      }
+      var robuxLinkBtn = document.getElementById('coRobuxLinkBtn');
+      if (robuxLinkBtn) robuxLinkBtn.addEventListener('click', function () { if (window.coldAuth) window.coldAuth.signInRoblox(); });
+      var robuxVerifyBtn = document.getElementById('coRobuxVerifyBtn');
+      if (robuxVerifyBtn) robuxVerifyBtn.addEventListener('click', function () {
+        if (!robuxOrderId || !window.coldAuth) return;
+        var msgEl = document.getElementById('coRobuxMsg');
+        robuxVerifyBtn.disabled = true;
+        if (msgEl) { msgEl.className = 'co-msg'; msgEl.textContent = 'Checking your Roblox inventory…'; }
+        window.coldAuth.invokeFn('verify-robux-order', { orderId: robuxOrderId }).then(function (data) {
+          robuxVerifyBtn.disabled = false;
+          if (data.verified) {
+            location.href = '/success?order_id=' + encodeURIComponent(robuxOrderId);
+            return;
+          }
+          if (msgEl) { msgEl.className = 'co-msg err show'; msgEl.textContent = data.message || 'Not verified yet - try again shortly.'; }
+        }).catch(function (err) {
+          robuxVerifyBtn.disabled = false;
+          if (msgEl) { msgEl.className = 'co-msg err show'; msgEl.textContent = err.message || 'Could not verify your purchase.'; }
+        });
+      });
+
       var payMethod = 'stripe';
       var payMethodsWrap = document.getElementById('coPayMethods');
       function setPayMethod(key) {
@@ -2017,9 +2086,11 @@
         });
         var placeBtnEl = document.getElementById('coPlace');
         if (placeBtnEl) {
-          if (method === 'stripe') { placeBtnEl.disabled = false; placeBtnEl.textContent = 'Place order'; }
-          else { placeBtnEl.disabled = true; placeBtnEl.textContent = (method === 'crypto' ? 'Crypto' : 'Robux') + ' checkout coming soon'; }
+          if (method === 'stripe') { placeBtnEl.hidden = false; placeBtnEl.disabled = false; placeBtnEl.textContent = 'Place order'; }
+          else if (method === 'robux') { placeBtnEl.hidden = true; }
+          else { placeBtnEl.hidden = false; placeBtnEl.disabled = true; placeBtnEl.textContent = 'Crypto checkout coming soon'; }
         }
+        if (method === 'robux') renderRobuxPanel();
         var carouselWrap = document.getElementById('coPayCarouselWrap');
         if (carouselWrap) carouselWrap.hidden = key !== 'stripe';
       }
@@ -2105,6 +2176,7 @@
       var titleEl = document.getElementById('successTitle');
       var subEl = document.getElementById('successSub');
       var sessionId = new URLSearchParams(location.search).get('session_id');
+      var robuxOrderIdParam = new URLSearchParams(location.search).get('order_id');
 
       try { localStorage.setItem('coldd_cart_v1', '[]'); } catch (e) {}
       window.dispatchEvent(new Event('currencychange'));
@@ -2138,12 +2210,14 @@
       }
 
       function poll(triesLeft) {
-        if (!sessionId) { if (subEl) subEl.textContent = 'No order found.'; return; }
+        if (!sessionId && !robuxOrderIdParam) { if (subEl) subEl.textContent = 'No order found.'; return; }
         if (!window.coldSupabase) { if (subEl) subEl.textContent = 'Could not connect. Please refresh.'; return; }
-        // Looked up by Stripe session id via a service-role function, not a
-        // direct table read - a guest order has no user_id for RLS to match,
-        // so this is the only way (guest or signed-in) to see it right after paying.
-        window.coldSupabase.functions.invoke('get-order-by-session', { body: { sessionId: sessionId } })
+        // Looked up by Stripe session id (or, for Robux orders with no
+        // Stripe session at all, the order id) via a service-role function,
+        // not a direct table read - a guest order has no user_id for RLS to
+        // match, so this is the only way (guest or signed-in) to see it
+        // right after paying.
+        window.coldSupabase.functions.invoke('get-order-by-session', { body: sessionId ? { sessionId: sessionId } : { orderId: robuxOrderIdParam } })
           .then(function (res) {
             var data = res && res.data;
             if (!data || !data.ok) {

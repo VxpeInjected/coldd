@@ -561,7 +561,7 @@
     else if (name === 'reviews') renderReviews();
     else if (name === 'users') renderUsers();
     else if (name === 'sales') { renderEvents(); renderCoupons(); }
-    else if (name === 'roblox') renderRobloxContainers();
+    else if (name === 'roblox') { renderRobloxContainers(); refreshRobloxCookieHealth(); }
     else if (name === 'posts') renderPosts();
     else if (name === 'tutorials') renderTutorials();
     else if (name === 'releases') renderReleases();
@@ -1862,6 +1862,18 @@
       if (res.error) { console.error('[admin] failed to load roblox containers:', res.error.message); return; }
       ROBLOX_CONTAINERS = res.data || [];
       if (curPanel === 'roblox') renderRobloxContainers();
+    });
+  }
+  // Phase D fallback health - table may not exist yet if
+  // roblox_cookie_health.sql hasn't been run, so a failed select here is
+  // expected/harmless until then.
+  function refreshRobloxCookieHealth() {
+    if (!window.coldSupabase) return Promise.resolve();
+    return window.coldSupabase.from('roblox_cookie_health').select('*').eq('id', true).maybeSingle().then(function (res) {
+      var el = $('admRobloxCookieWarning'); if (!el) return;
+      if (res.error || !res.data || res.data.ok) { el.hidden = true; return; }
+      el.hidden = false;
+      el.textContent = 'Robux fallback cookie is broken (' + (res.data.last_error || 'unknown error') + ') - refresh it, then update the ROBLOX_FALLBACK_COOKIE secret.';
     });
   }
   function callUpsertRobloxContainer(payload) {

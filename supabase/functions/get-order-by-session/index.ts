@@ -19,6 +19,11 @@
 // code path either way) to see their own order status/items right after
 // paying, without requiring an account.
 //
+// Also accepts orderId (Robux orders have no Stripe session at all, since
+// Roblox is the one handling payment) - a v4 UUID is just as unguessable
+// as the Stripe session token, so the same no-auth-check trust model
+// applies: possession of the id is the capability.
+//
 // Returns only status + line items - no email, no payment details, nothing
 // beyond what success.html already needs to render.
 
@@ -50,15 +55,13 @@ Deno.serve(async (req: Request) => {
 
     const body = await req.json().catch(() => ({}));
     const sessionId = String(body.sessionId || "");
-    if (!sessionId) return json({ ok: false, error: "Missing session id." }, 400);
+    const orderId = String(body.orderId || "");
+    if (!sessionId && !orderId) return json({ ok: false, error: "Missing session id." }, 400);
 
     const admin = createClient(supabaseUrl, serviceKey);
 
-    const { data: order, error } = await admin
-      .from("orders")
-      .select("id, status, order_items(product_slug, title, qty, licence)")
-      .eq("stripe_checkout_session_id", sessionId)
-      .maybeSingle();
+    const query = admin.from("orders").select("id, status, order_items(product_slug, title, qty, licence)");
+    const { data: order, error } = await (orderId ? query.eq("id", orderId) : query.eq("stripe_checkout_session_id", sessionId)).maybeSingle();
     if (error) return json({ ok: false, error: "Could not look up order." }, 500);
     if (!order) return json({ ok: false, error: "Order not found." }, 404);
 

@@ -75,14 +75,27 @@
     };
   }
 
+  function toContentEntry(row) {
+    return Object.assign({ id: row.id, slug: row.slug, visible: row.visible, __type: row.type }, row.data || {});
+  }
+
   function fail(err) {
     if (err) console.error('[coldd] Failed to load live product catalog, falling back to empty:', err);
     window.__CATALOG = [];
     window.__REVIEWS = [];
+    window.__POSTS = []; window.__TUTORIALS = []; window.__RELEASES = [];
     loadDependents();
   }
 
   if (!window.coldSupabase) { fail(); return; }
+
+  // blog.js (Blog/Tutorials/Releases pages) is the only consumer of CMS
+  // content - skip that fetch on pages that don't load it.
+  var dataThenAttr = (thisScript && thisScript.getAttribute('data-then')) || '';
+  var needsContent = dataThenAttr.indexOf('blog.js') >= 0;
+  var contentQuery = needsContent
+    ? window.coldSupabase.from('content').select('*').in('type', ['post', 'tutorial', 'release']).eq('visible', true).order('created_at', { ascending: false })
+    : Promise.resolve({ data: [], error: null });
 
   Promise.all([
     window.coldSupabase.from('products').select('*').eq('is_active', true),
@@ -90,14 +103,23 @@
       .from('reviews')
       .select('id, stars, text, created_at, reply, reply_at, user_name, products!inner(slug)')
       .eq('status', 'approved')
-      .order('created_at', { ascending: false })
+      .order('created_at', { ascending: false }),
+    contentQuery
   ])
     .then(function (results) {
-      var prodRes = results[0], revRes = results[1];
+      var prodRes = results[0], revRes = results[1], contentRes = results[2];
       if (prodRes.error) { fail(prodRes.error); return; }
       window.__CATALOG = (prodRes.data || []).map(toCard);
       if (revRes.error) { console.error('[coldd] Failed to load reviews:', revRes.error); window.__REVIEWS = []; }
       else window.__REVIEWS = (revRes.data || []).map(toReview);
+      if (contentRes.error) { console.error('[coldd] Failed to load blog content:', contentRes.error); window.__POSTS = []; window.__TUTORIALS = []; window.__RELEASES = []; }
+      else {
+        var rows = (contentRes.data || []).map(toContentEntry);
+        function byType(t) { return rows.filter(function (r) { return r.__type === t; }); }
+        window.__POSTS = byType('post');
+        window.__TUTORIALS = byType('tutorial');
+        window.__RELEASES = byType('release');
+      }
       loadDependents();
     })
     .catch(fail);

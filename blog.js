@@ -67,7 +67,10 @@
 
   window.__blog = { esc: esc, slugify: slugify, fmtDate: fmtDate, qp: qp, mdLite: mdLite, ytEmbed: ytEmbed };
 
-  window.__TUTORIALS = [
+  /* Fallback seed data, used only if catalog.js's live `content` table
+     fetch (window.__POSTS/__TUTORIALS/__RELEASES) comes back empty - e.g.
+     before the table has any rows, or if the fetch failed. */
+  var SEED_TUTORIALS = [
     {
       id: 'tut-1', slug: 'datastore-that-wont-corrupt-your-saves', title: 'DataStore that won’t corrupt your saves',
       summary: 'UpdateAsync, retry backoff, BindToClose, and schema versioning — the four habits that stop save corruption before it ships.',
@@ -212,7 +215,7 @@
     }
   ];
 
-  window.__POSTS = [
+  var SEED_POSTS = [
     {
       id: 'post-1', slug: 'shipping-all-brawl-what-almost-didnt-make-it', title: 'Shipping ALL BRAWL: what almost didn’t make it',
       dek: 'The fighting game template took four rewrites of the hit-registration system before launch. Here’s what changed each time.',
@@ -318,7 +321,7 @@
     }
   ];
 
-  window.__RELEASES = [
+  var SEED_RELEASES = [
     { id: 'rel-1', version: 'v2.6.0', date: '2026-07-18', kind: 'Feature', title: 'Robux pricing shown site-wide', summary: 'Every price on the site now shows a live Robux equivalent next to the USD price, not just at checkout.', details: '', affects: [], visible: true },
     { id: 'rel-2', version: 'v2.5.4', date: '2026-07-02', kind: 'Fix', title: 'Combat HUD Kit — hitmarker desync fixed', summary: 'Hitmarkers were reading local hit events instead of server-confirmed hits, causing false positives and missed markers under real latency.', details: '', affects: ['combat-hud-kit'], visible: true },
     { id: 'rel-3', version: '', date: '2026-06-24', kind: 'Announcement', title: 'Resell licences now cover Frostline Survival Kit', summary: 'Frostline Survival Kit joins the resell-eligible catalog — grab a licence and sell it under your own store.', details: '', affects: ['frostline-survival-kit'], visible: true },
@@ -335,15 +338,13 @@
   ];
 
   /* ----------------------------------------------------------------
-     Content source: admin edits live in localStorage; fall back to
-     the seed arrays above when a store hasn't been written yet.
+     Content source: catalog.js fetches real rows from the `content`
+     table into window.__POSTS/__TUTORIALS/__RELEASES before this script
+     runs; fall back to the seed arrays above if that came back empty.
      ---------------------------------------------------------------- */
-  function lsGet(key, fallback) {
-    try { var v = localStorage.getItem(key); return v == null ? fallback : JSON.parse(v); } catch (_) { return fallback; }
-  }
-  function posts() { return (lsGet('coldd_admin_posts_v1', window.__POSTS) || []).filter(function (p) { return p.visible !== false; }); }
-  function tutorials() { return (lsGet('coldd_admin_tutorials_v1', window.__TUTORIALS) || []).filter(function (t) { return t.visible !== false; }); }
-  function releases() { return (lsGet('coldd_admin_releases_v1', window.__RELEASES) || []).filter(function (r) { return r.visible !== false; }); }
+  function posts() { return ((window.__POSTS && window.__POSTS.length) ? window.__POSTS : SEED_POSTS).filter(function (p) { return p.visible !== false; }); }
+  function tutorials() { return ((window.__TUTORIALS && window.__TUTORIALS.length) ? window.__TUTORIALS : SEED_TUTORIALS).filter(function (t) { return t.visible !== false; }); }
+  function releases() { return ((window.__RELEASES && window.__RELEASES.length) ? window.__RELEASES : SEED_RELEASES).filter(function (r) { return r.visible !== false; }); }
   function byDateDesc(a, b) { return new Date(b.date) - new Date(a.date); }
 
   window.__blog.posts = posts;

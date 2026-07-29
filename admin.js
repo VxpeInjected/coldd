@@ -2077,8 +2077,22 @@
   /* ================================================================
      BLOG POSTS PANEL
      ================================================================ */
-  var POSTS = seedIfEmpty('coldd_admin_posts_v1', function () { return (window.__POSTS || []).slice(); });
-  function savePosts() { lsSet('coldd_admin_posts_v1', POSTS); }
+  var POSTS = [];
+  function mapContentRow(row) { return Object.assign({ id: row.id, slug: row.slug, visible: row.visible }, row.data || {}); }
+  function refreshPosts() {
+    if (!window.coldSupabase) return Promise.resolve();
+    return window.coldSupabase.from('content').select('*').eq('type', 'post').order('created_at', { ascending: false }).then(function (res) {
+      if (res.error) { console.error('[admin] failed to load posts:', res.error.message); return; }
+      POSTS = (res.data || []).map(mapContentRow);
+      if (curPanel === 'posts') renderPosts();
+    });
+  }
+  function callUpsertContent(type, id, slug, visible, data) {
+    return invokeAdminFn('admin-upsert-content', { id: id || null, type: type, slug: slug, visible: visible, data: data }, 'Could not save.');
+  }
+  function callDeleteContent(id) {
+    return invokeAdminFn('admin-delete-content', { id: id }, 'Could not delete.');
+  }
   function renderPosts() {
     var q = ($('admPostSearch') || {}).value || '';
     q = q.trim().toLowerCase();
@@ -2129,12 +2143,17 @@
       fillPostForm(p);
     } else if (e.target.classList.contains('adm-post-toggle')) {
       if (!can('admin')) return;
-      p.visible = !p.visible; savePosts(); logAudit((p.visible ? 'Published' : 'Unpublished') + ' post "' + p.title + '"'); renderPosts();
+      var newVisible = !p.visible;
+      var postData = Object.assign({}, p); delete postData.id; delete postData.slug; delete postData.visible;
+      callUpsertContent('post', p.id, p.slug, newVisible, postData)
+        .then(function () { logAudit((newVisible ? 'Published' : 'Unpublished') + ' post "' + p.title + '"'); return refreshPosts(); })
+        .catch(function (err) { alert(err.message || 'Could not update post.'); });
     } else if (e.target.classList.contains('adm-post-del')) {
       if (!can('admin')) return;
       if (!confirm('Delete "' + p.title + '"? This can\'t be undone.')) return;
-      POSTS = POSTS.filter(function (x) { return x.id !== id; });
-      savePosts(); logAudit('Deleted post "' + p.title + '"'); renderPosts();
+      callDeleteContent(p.id)
+        .then(function () { logAudit('Deleted post "' + p.title + '"'); return refreshPosts(); })
+        .catch(function (err) { alert(err.message || 'Could not delete post.'); });
     }
   });
   var postSearch = $('admPostSearch');
@@ -2148,6 +2167,8 @@
     var title = $('admNewPostTitle').value.trim();
     if (!title) return;
     var editId = $('admPostEditId').value;
+    var existing = editId ? POSTS.filter(function (x) { return x.id === editId; })[0] : null;
+    var visible = $('admNewPostPublished').checked;
     var data = {
       title: title,
       category: $('admNewPostCategory').value,
@@ -2157,28 +2178,31 @@
       cover: $('admNewPostCover').value.trim() || '/banner.jpg',
       dek: $('admNewPostDek').value.trim(),
       body: $('admNewPostBody').value,
-      visible: $('admNewPostPublished').checked
+      tags: existing ? existing.tags : [],
+      featured: existing ? existing.featured : false
     };
-    if (editId) {
-      var existing = POSTS.filter(function (x) { return x.id === editId; })[0];
-      if (existing) { Object.assign(existing, data); logAudit('Edited post "' + title + '"'); }
-    } else {
-      var slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
-      data.id = slug + '-' + Date.now().toString(36);
-      data.slug = slug; data.tags = []; data.featured = false;
-      POSTS.push(data);
-      logAudit('Added post "' + title + '"');
-    }
-    savePosts();
-    resetPostForm();
-    renderPosts();
+    var slug = existing ? existing.slug : title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+    callUpsertContent('post', editId || null, slug, visible, data)
+      .then(function () {
+        logAudit((existing ? 'Edited' : 'Added') + ' post "' + title + '"');
+        resetPostForm();
+        return refreshPosts();
+      })
+      .catch(function (err) { alert(err.message || 'Could not save post.'); });
   });
 
   /* ================================================================
      TUTORIALS PANEL
      ================================================================ */
-  var TUTORIALS = seedIfEmpty('coldd_admin_tutorials_v1', function () { return (window.__TUTORIALS || []).slice(); });
-  function saveTutorials() { lsSet('coldd_admin_tutorials_v1', TUTORIALS); }
+  var TUTORIALS = [];
+  function refreshTutorials() {
+    if (!window.coldSupabase) return Promise.resolve();
+    return window.coldSupabase.from('content').select('*').eq('type', 'tutorial').order('created_at', { ascending: false }).then(function (res) {
+      if (res.error) { console.error('[admin] failed to load tutorials:', res.error.message); return; }
+      TUTORIALS = (res.data || []).map(mapContentRow);
+      if (curPanel === 'tutorials') renderTutorials();
+    });
+  }
   function renderTutorials() {
     var q = ($('admTutSearch') || {}).value || '';
     q = q.trim().toLowerCase();
@@ -2232,12 +2256,17 @@
       fillTutForm(t);
     } else if (e.target.classList.contains('adm-tut-toggle')) {
       if (!can('admin')) return;
-      t.visible = !t.visible; saveTutorials(); logAudit((t.visible ? 'Published' : 'Unpublished') + ' tutorial "' + t.title + '"'); renderTutorials();
+      var newVisible = !t.visible;
+      var tutData = Object.assign({}, t); delete tutData.id; delete tutData.slug; delete tutData.visible;
+      callUpsertContent('tutorial', t.id, t.slug, newVisible, tutData)
+        .then(function () { logAudit((newVisible ? 'Published' : 'Unpublished') + ' tutorial "' + t.title + '"'); return refreshTutorials(); })
+        .catch(function (err) { alert(err.message || 'Could not update tutorial.'); });
     } else if (e.target.classList.contains('adm-tut-del')) {
       if (!can('admin')) return;
       if (!confirm('Delete "' + t.title + '"? This can\'t be undone.')) return;
-      TUTORIALS = TUTORIALS.filter(function (x) { return x.id !== id; });
-      saveTutorials(); logAudit('Deleted tutorial "' + t.title + '"'); renderTutorials();
+      callDeleteContent(t.id)
+        .then(function () { logAudit('Deleted tutorial "' + t.title + '"'); return refreshTutorials(); })
+        .catch(function (err) { alert(err.message || 'Could not delete tutorial.'); });
     }
   });
   var tutSearch = $('admTutSearch');
@@ -2251,6 +2280,8 @@
     var title = $('admNewTutTitle').value.trim();
     if (!title) return;
     var editId = $('admTutEditId').value;
+    var existing = editId ? TUTORIALS.filter(function (x) { return x.id === editId; })[0] : null;
+    var visible = $('admNewTutPublished').checked;
     var data = {
       title: title,
       track: $('admNewTutTrack').value,
@@ -2261,29 +2292,30 @@
       cover: $('admNewTutCover').value.trim() || '/scripts.jpg',
       video: $('admNewTutVideo').value.trim(),
       summary: $('admNewTutSummary').value.trim(),
-      body: $('admNewTutBody').value,
-      visible: $('admNewTutPublished').checked
+      body: $('admNewTutBody').value
     };
-    if (editId) {
-      var existing = TUTORIALS.filter(function (x) { return x.id === editId; })[0];
-      if (existing) { Object.assign(existing, data); logAudit('Edited tutorial "' + title + '"'); }
-    } else {
-      var slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
-      data.id = slug + '-' + Date.now().toString(36);
-      data.slug = slug;
-      TUTORIALS.push(data);
-      logAudit('Added tutorial "' + title + '"');
-    }
-    saveTutorials();
-    resetTutForm();
-    renderTutorials();
+    var slug = existing ? existing.slug : title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+    callUpsertContent('tutorial', editId || null, slug, visible, data)
+      .then(function () {
+        logAudit((existing ? 'Edited' : 'Added') + ' tutorial "' + title + '"');
+        resetTutForm();
+        return refreshTutorials();
+      })
+      .catch(function (err) { alert(err.message || 'Could not save tutorial.'); });
   });
 
   /* ================================================================
      RELEASES PANEL
      ================================================================ */
-  var RELEASES = seedIfEmpty('coldd_admin_releases_v1', function () { return (window.__RELEASES || []).slice(); });
-  function saveReleases() { lsSet('coldd_admin_releases_v1', RELEASES); }
+  var RELEASES = [];
+  function refreshReleases() {
+    if (!window.coldSupabase) return Promise.resolve();
+    return window.coldSupabase.from('content').select('*').eq('type', 'release').order('created_at', { ascending: false }).then(function (res) {
+      if (res.error) { console.error('[admin] failed to load releases:', res.error.message); return; }
+      RELEASES = (res.data || []).map(mapContentRow);
+      if (curPanel === 'releases') renderReleases();
+    });
+  }
   function renderReleases() {
     var q = ($('admRelSearch') || {}).value || '';
     q = q.trim().toLowerCase();
@@ -2332,12 +2364,17 @@
       fillRelForm(r);
     } else if (e.target.classList.contains('adm-rel-toggle')) {
       if (!can('admin')) return;
-      r.visible = !r.visible; saveReleases(); logAudit((r.visible ? 'Published' : 'Unpublished') + ' release "' + r.title + '"'); renderReleases();
+      var newVisible = !r.visible;
+      var relData = Object.assign({}, r); delete relData.id; delete relData.slug; delete relData.visible;
+      callUpsertContent('release', r.id, r.slug, newVisible, relData)
+        .then(function () { logAudit((newVisible ? 'Published' : 'Unpublished') + ' release "' + r.title + '"'); return refreshReleases(); })
+        .catch(function (err) { alert(err.message || 'Could not update release.'); });
     } else if (e.target.classList.contains('adm-rel-del')) {
       if (!can('admin')) return;
       if (!confirm('Delete "' + r.title + '"? This can\'t be undone.')) return;
-      RELEASES = RELEASES.filter(function (x) { return x.id !== id; });
-      saveReleases(); logAudit('Deleted release "' + r.title + '"'); renderReleases();
+      callDeleteContent(r.id)
+        .then(function () { logAudit('Deleted release "' + r.title + '"'); return refreshReleases(); })
+        .catch(function (err) { alert(err.message || 'Could not delete release.'); });
     }
   });
   var relSearch = $('admRelSearch');
@@ -2351,6 +2388,8 @@
     var title = $('admNewRelTitle').value.trim();
     if (!title) return;
     var editId = $('admRelEditId').value;
+    var existing = editId ? RELEASES.filter(function (x) { return x.id === editId; })[0] : null;
+    var visible = $('admNewRelPublished').checked;
     var data = {
       version: $('admNewRelVersion').value.trim(),
       kind: $('admNewRelKind').value,
@@ -2358,20 +2397,16 @@
       date: $('admNewRelDate').value,
       affects: $('admNewRelAffects').value.split(',').map(function (s) { return s.trim(); }).filter(Boolean),
       summary: $('admNewRelSummary').value.trim(),
-      details: '',
-      visible: $('admNewRelPublished').checked
+      details: ''
     };
-    if (editId) {
-      var existing = RELEASES.filter(function (x) { return x.id === editId; })[0];
-      if (existing) { Object.assign(existing, data); logAudit('Edited release "' + title + '"'); }
-    } else {
-      data.id = 'rel-' + Date.now().toString(36);
-      RELEASES.push(data);
-      logAudit('Added release "' + title + '"');
-    }
-    saveReleases();
-    resetRelForm();
-    renderReleases();
+    var slug = existing ? existing.slug : (title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'release') + '-' + Date.now().toString(36);
+    callUpsertContent('release', editId || null, slug, visible, data)
+      .then(function () {
+        logAudit((existing ? 'Edited' : 'Added') + ' release "' + title + '"');
+        resetRelForm();
+        return refreshReleases();
+      })
+      .catch(function (err) { alert(err.message || 'Could not save release.'); });
   });
 
   /* ================================================================
@@ -2468,4 +2503,7 @@
   refreshRobloxContainers();
   refreshUsers();
   refreshReviews();
+  refreshPosts();
+  refreshTutorials();
+  refreshReleases();
 })();

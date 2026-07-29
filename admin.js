@@ -168,16 +168,18 @@
   // banner (assets.html/minecraft.html) with real admin-managed data - the
   // seed below matches that banner's original copy so nothing visually
   // changes until an admin edits or adds an event.
-  var SALE_EVENTS = seedIfEmpty('coldd_admin_sale_events_v1', function () {
-    return [
-      {
-        id: 'ev1', title: 'Spring Sale',
-        message: 'Spring Sale is live — 30% off every Roblox template through Sunday.',
-        percentOff: 30, scope: 'platform', platform: 'Roblox', category: null,
-        startDate: '2026-07-20', endDate: '2026-08-02', active: true
-      }
-    ];
-  });
+  var SALE_EVENTS = [];
+  function mapSaleEventRow(row) {
+    return Object.assign({ id: row.id, slug: row.slug, active: row.visible }, row.data || {});
+  }
+  function refreshSaleEvents() {
+    if (!window.coldSupabase) return Promise.resolve();
+    return window.coldSupabase.from('content').select('*').eq('type', 'sale_event').order('created_at', { ascending: false }).then(function (res) {
+      if (res.error) { console.error('[admin] failed to load sale events:', res.error.message); return; }
+      SALE_EVENTS = (res.data || []).map(mapSaleEventRow);
+      if (curPanel === 'sales') renderEvents();
+    });
+  }
 
   var STAFF = seedIfEmpty('coldd_admin_staff_v1', function () { return STAFF_SEED; });
 
@@ -327,7 +329,6 @@
 
   var AUDIT = lsGet('coldd_admin_audit_v1', []);
 
-  function saveSaleEvents() { lsSet('coldd_admin_sale_events_v1', SALE_EVENTS); }
   function saveStaff() { lsSet('coldd_admin_staff_v1', STAFF); }
   function saveReferrals() { lsSet('coldd_admin_referrals_v1', REFERRALS); }
 
@@ -1794,12 +1795,20 @@
     if (!can('admin')) return;
     if (e.target.classList.contains('adm-event-edit')) { fillEventForm(ev); }
     else if (e.target.classList.contains('adm-event-toggle')) {
-      ev.active = !ev.active; saveSaleEvents(); logAudit((ev.active ? 'Activated' : 'Deactivated') + ' sale event "' + ev.title + '"'); renderEvents();
+      var newActive = !ev.active;
+      var evData = Object.assign({}, ev); delete evData.id; delete evData.slug; delete evData.active;
+      callUpsertContent('sale_event', ev.id, ev.slug, newActive, evData)
+        .then(function () { logAudit((newActive ? 'Activated' : 'Deactivated') + ' sale event "' + ev.title + '"'); return refreshSaleEvents(); })
+        .catch(function (err) { alert(err.message || 'Could not update sale event.'); });
     } else if (e.target.classList.contains('adm-event-del')) {
       if (!confirm('Delete sale event "' + ev.title + '"? This can\'t be undone.')) return;
-      SALE_EVENTS = SALE_EVENTS.filter(function (x) { return x.id !== id; });
-      saveSaleEvents(); logAudit('Deleted sale event "' + ev.title + '"'); renderEvents();
-      if ($('admEventEditId').value === id) resetEventForm();
+      callDeleteContent(ev.id)
+        .then(function () {
+          logAudit('Deleted sale event "' + ev.title + '"');
+          if ($('admEventEditId').value === id) resetEventForm();
+          return refreshSaleEvents();
+        })
+        .catch(function (err) { alert(err.message || 'Could not delete sale event.'); });
     }
   });
   var eventCancelBtn = $('admEventCancelBtn');
@@ -1818,15 +1827,16 @@
       startDate: $('admEventStart').value, endDate: $('admEventEnd').value
     };
     if (!fields.title || !fields.message || !fields.startDate || !fields.endDate) return;
-    if (id) {
-      var ev = SALE_EVENTS.filter(function (x) { return x.id === id; })[0]; if (!ev) return;
-      Object.assign(ev, fields);
-      logAudit('Updated sale event "' + fields.title + '"');
-    } else {
-      SALE_EVENTS.push(Object.assign({ id: 'ev' + Date.now().toString(36), active: true }, fields));
-      logAudit('Created sale event "' + fields.title + '"');
-    }
-    saveSaleEvents(); resetEventForm(); renderEvents();
+    var existing = id ? SALE_EVENTS.filter(function (x) { return x.id === id; })[0] : null;
+    var active = existing ? existing.active : true;
+    var slug = existing ? existing.slug : (fields.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'sale') + '-' + Date.now().toString(36);
+    callUpsertContent('sale_event', id || null, slug, active, fields)
+      .then(function () {
+        logAudit((existing ? 'Updated' : 'Created') + ' sale event "' + fields.title + '"');
+        resetEventForm();
+        return refreshSaleEvents();
+      })
+      .catch(function (err) { alert(err.message || 'Could not save sale event.'); });
   });
 
   /* ---- Discount Codes ---- */
@@ -2506,4 +2516,5 @@
   refreshPosts();
   refreshTutorials();
   refreshReleases();
+  refreshSaleEvents();
 })();

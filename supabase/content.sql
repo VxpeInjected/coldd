@@ -10,7 +10,7 @@
 
 create table if not exists public.content (
   id uuid primary key default gen_random_uuid(),
-  type text not null check (type in ('post', 'tutorial', 'release')),
+  type text not null check (type in ('post', 'tutorial', 'release', 'sale_event')),
   slug text not null,
   visible boolean not null default true,
   data jsonb not null default '{}'::jsonb,

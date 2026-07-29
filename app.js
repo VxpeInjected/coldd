@@ -168,6 +168,15 @@
       function hide() { document.documentElement.setAttribute('data-ann', 'off'); window.dispatchEvent(new Event('resize')); }
       const x = document.getElementById('announceX');
       if (x) x.addEventListener('click', hide);
+
+      const sale = window.__ACTIVE_SALE;
+      if (!sale) { hide(); return; }
+      const msg = bar.querySelector('.announce-msg');
+      if (msg) {
+        const link = msg.querySelector('.announce-link');
+        const linkHtml = link ? link.outerHTML : '';
+        msg.innerHTML = (sale.message || sale.title || '') + ' ' + linkHtml;
+      }
     })();
 
     const nav = document.getElementById('nav');

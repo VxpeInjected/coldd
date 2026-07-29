@@ -79,23 +79,31 @@
     return Object.assign({ id: row.id, slug: row.slug, visible: row.visible, __type: row.type }, row.data || {});
   }
 
+  function pickActiveSale(rows) {
+    var today = new Date().toISOString().slice(0, 10);
+    var live = rows.filter(function (r) { return today >= r.startDate && today <= r.endDate; });
+    return live.length ? live[0] : null;
+  }
+
   function fail(err) {
     if (err) console.error('[coldd] Failed to load live product catalog, falling back to empty:', err);
     window.__CATALOG = [];
     window.__REVIEWS = [];
     window.__POSTS = []; window.__TUTORIALS = []; window.__RELEASES = [];
+    window.__ACTIVE_SALE = null;
     loadDependents();
   }
 
   if (!window.coldSupabase) { fail(); return; }
 
-  // blog.js (Blog/Tutorials/Releases pages) is the only consumer of CMS
-  // content - skip that fetch on pages that don't load it.
+  // blog.js (Blog/Tutorials/Releases pages) is the only consumer of
+  // post/tutorial/release content - skip that part of the query on pages
+  // that don't load it. The sale-event announcement bar is sitewide, so
+  // it's always fetched.
   var dataThenAttr = (thisScript && thisScript.getAttribute('data-then')) || '';
   var needsContent = dataThenAttr.indexOf('blog.js') >= 0;
-  var contentQuery = needsContent
-    ? window.coldSupabase.from('content').select('*').in('type', ['post', 'tutorial', 'release']).eq('visible', true).order('created_at', { ascending: false })
-    : Promise.resolve({ data: [], error: null });
+  var contentTypes = needsContent ? ['post', 'tutorial', 'release', 'sale_event'] : ['sale_event'];
+  var contentQuery = window.coldSupabase.from('content').select('*').in('type', contentTypes).eq('visible', true).order('created_at', { ascending: false });
 
   Promise.all([
     window.coldSupabase.from('products').select('*').eq('is_active', true),
@@ -112,13 +120,16 @@
       window.__CATALOG = (prodRes.data || []).map(toCard);
       if (revRes.error) { console.error('[coldd] Failed to load reviews:', revRes.error); window.__REVIEWS = []; }
       else window.__REVIEWS = (revRes.data || []).map(toReview);
-      if (contentRes.error) { console.error('[coldd] Failed to load blog content:', contentRes.error); window.__POSTS = []; window.__TUTORIALS = []; window.__RELEASES = []; }
-      else {
+      if (contentRes.error) {
+        console.error('[coldd] Failed to load content:', contentRes.error);
+        window.__POSTS = []; window.__TUTORIALS = []; window.__RELEASES = []; window.__ACTIVE_SALE = null;
+      } else {
         var rows = (contentRes.data || []).map(toContentEntry);
         function byType(t) { return rows.filter(function (r) { return r.__type === t; }); }
         window.__POSTS = byType('post');
         window.__TUTORIALS = byType('tutorial');
         window.__RELEASES = byType('release');
+        window.__ACTIVE_SALE = pickActiveSale(byType('sale_event'));
       }
       loadDependents();
     })

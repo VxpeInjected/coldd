@@ -1623,7 +1623,12 @@ a.adm-sub[href] { color: var(--fg-1); cursor: pointer; text-decoration: underlin
 .adm-btn-sm { padding: 8px 13px; font-size: 12.5px; min-height: 0; }
 
 .adm-table-tight td, .adm-table-tight th { white-space: nowrap; }
-.adm-row-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+/* .adm-row-actions is applied directly to a <td> in several admin
+   tables. display:flex on a table cell drops the browser's normal
+   vertical-align:middle centering for that cell, so its buttons were
+   sitting flush at the top of the row instead of centered like every
+   other column's content - align-items:center restores that. */
+.adm-row-actions { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; height: 100%; box-sizing: border-box; }
 .adm-price-input { width: 84px; font-family: inherit; font-size: 13px; color: var(--fg); background: var(--bg-3);
   border: 1px solid var(--hairline); border-radius: 8px; padding: 6px 8px; transition: border-color .15s; }
 .adm-price-input:focus { outline: none; border-color: rgba(255,77,68,0.5); }

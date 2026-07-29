@@ -1076,10 +1076,25 @@
     });
     return withMeta.map(function (m) { return m.p; });
   }
+  var PROD_STATUS_FILTER = 'all';
+  var prodStatusFilterEl = $('admProdStatusFilter');
+  if (prodStatusFilterEl) prodStatusFilterEl.addEventListener('click', function (e) {
+    var btn = e.target.closest('.adm-prod-status-btn'); if (!btn) return;
+    PROD_STATUS_FILTER = btn.getAttribute('data-status');
+    prodStatusFilterEl.querySelectorAll('.adm-prod-status-btn').forEach(function (b) { b.classList.toggle('active', b === btn); });
+    renderProducts();
+  });
   function renderProducts() {
     var q = ($('admProdSearch') || {}).value || '';
     q = q.trim().toLowerCase();
-    var rows = sortProducts(allProducts().filter(function (p) { return !q || p.title.toLowerCase().indexOf(q) >= 0; }));
+    var unreleasedCount = allProducts().filter(function (p) { return !p.visible; }).length;
+    var countEl = $('admProdUnreleasedCount'); if (countEl) countEl.textContent = unreleasedCount ? '(' + unreleasedCount + ')' : '';
+    var rows = sortProducts(allProducts().filter(function (p) {
+      if (!(!q || p.title.toLowerCase().indexOf(q) >= 0)) return false;
+      if (PROD_STATUS_FILTER === 'released') return p.visible;
+      if (PROD_STATUS_FILTER === 'unreleased') return !p.visible;
+      return true;
+    }));
     $('admProdBody').innerHTML = rows.map(function (p) {
       var rating = (p.rating || 0).toFixed(1);
       return '<tr data-id="' + esc(p.id) + '">' +

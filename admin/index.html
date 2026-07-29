@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 
-  <link rel="stylesheet" href="/styles.css?v=20260729e" />
+  <link rel="stylesheet" href="/styles.css?v=20260729f" />
 </head>
 <body class="adm-body">
   <div class="backdrop"></div>
@@ -173,6 +173,11 @@
             <div class="dash-head"><h1>Product management</h1><p>Edit pricing and visibility, or add admin-only listings.</p></div>
             <div class="adm-toolbar">
               <input type="text" id="admProdSearch" class="adm-input" placeholder="Search by product name…" />
+              <div class="adm-platform-toggle" id="admProdStatusFilter">
+                <button type="button" class="btn btn-primary adm-prod-status-btn active" data-status="all">All</button>
+                <button type="button" class="btn btn-minecraft adm-prod-status-btn" data-status="released">Released</button>
+                <button type="button" class="btn btn-minecraft adm-prod-status-btn" data-status="unreleased">Unreleased <span id="admProdUnreleasedCount" class="adm-sub"></span></button>
+              </div>
               <div class="adm-dd adm-dd-inline" id="admProdSortDD">
                 <button type="button" class="adm-dd-btn" aria-haspopup="listbox" aria-expanded="false">
                   <span class="adm-dd-val"></span>

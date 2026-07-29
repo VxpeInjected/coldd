@@ -110,4 +110,27 @@
   }).catch(function () {
     // Fail open - see file header.
   });
+
+  // Separate, independent check: a banned account gets signed out and
+  // told why, no matter which page it's on. Also fails open on any
+  // error - a check that couldn't complete must never itself look like
+  // a ban.
+  window.coldSupabase.auth.getSession().then(function (sres) {
+    var session = sres && sres.data ? sres.data.session : null;
+    if (!session) return;
+    window.coldSupabase.from('profiles').select('banned, ban_reason').eq('id', session.user.id).maybeSingle().then(function (pres) {
+      var prof = pres && pres.data;
+      if (!prof || !prof.banned) return;
+      window.coldSupabase.auth.signOut().catch(function () {}).then(function () {
+        try { localStorage.setItem('coldd_auth', 'out'); } catch (e) {}
+        var overlay = document.createElement('div');
+        overlay.style.cssText = 'position:fixed;inset:0;z-index:99999;background:#0a0a0a;color:#d7d7d7;' +
+          'font-family:ui-monospace,monospace;display:flex;align-items:center;justify-content:center;text-align:center;padding:24px;';
+        overlay.innerHTML = '<div><p style="font-size:20px;font-weight:700;margin:0 0 10px;">Account suspended.</p>' +
+          '<p style="font-size:14px;color:#a3a3a3;margin:0;">' + (prof.ban_reason ? String(prof.ban_reason).replace(/[<>&]/g, function (c) { return { '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c]; }) : 'Contact support if you believe this is a mistake.') + '</p></div>';
+        document.documentElement.appendChild(overlay);
+        document.body.style.overflow = 'hidden';
+      });
+    }).catch(function () {});
+  }).catch(function () {});
 })();

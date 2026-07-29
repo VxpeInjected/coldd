@@ -110,21 +110,32 @@
     { id: 'st3', name: 'mod_ash', discordId: '', role: 'support' }
   ];
 
-  var USERS = seedIfEmpty('coldd_admin_users_v1', function () {
-    var out = [];
-    for (var i = 0; i < USER_NAMES.length; i++) {
-      var h = hsh('user' + i);
-      out.push({
-        id: 'u' + (i + 1),
-        name: USER_NAMES[i],
-        email: USER_NAMES[i].replace(/[^a-z0-9]/g, '') + '@example.com',
-        discordId: String(200000000000000000 + (h % 700000000000000000)),
-        joined: daysAgo(20 + (h % 340)).toISOString(),
-        status: (h % 23 === 0) ? 'banned' : 'active'
-      });
-    }
-    return out;
-  });
+  // Real data from public.profiles, read via the signed-in admin's own
+  // session (RLS: profiles_select_admin lets is_admin=true profiles see
+  // every profile, not just their own). Writes (ban/unban) go through
+  // admin-set-user-banned (service role, re-checks is_admin server-side).
+  var USERS = [];
+  function mapProfileRow(row) {
+    return {
+      id: row.id,
+      name: row.username || (row.email ? row.email.split('@')[0] : 'user'),
+      email: row.email || '',
+      joined: row.created_at || new Date().toISOString(),
+      status: row.banned ? 'banned' : 'active',
+      banReason: row.ban_reason || null,
+      isAdmin: !!row.is_admin,
+      discordId: row.discord_id || null,
+      robloxId: row.roblox_id || null
+    };
+  }
+  function refreshUsers() {
+    if (!window.coldSupabase) return Promise.resolve();
+    return window.coldSupabase.from('profiles').select('*').order('created_at', { ascending: false }).then(function (res) {
+      if (res.error) { console.error('[admin] failed to load users:', res.error.message); return; }
+      USERS = (res.data || []).map(mapProfileRow);
+      if (curPanel === 'users') renderUsers();
+    });
+  }
 
   // Real data from public.coupons, read via the signed-in admin's own
   // session (RLS: coupons_select_admin). Writes go through
@@ -276,7 +287,6 @@
 
   var AUDIT = lsGet('coldd_admin_audit_v1', []);
 
-  function saveUsers() { lsSet('coldd_admin_users_v1', USERS); }
   function saveSaleEvents() { lsSet('coldd_admin_sale_events_v1', SALE_EVENTS); }
   function saveStaff() { lsSet('coldd_admin_staff_v1', STAFF); }
   function saveReviews() { lsSet('coldd_admin_reviews_v1', REVIEWS); }
@@ -1598,10 +1608,10 @@
     var q = (($('admUserSearch') || {}).value || '').trim().toLowerCase();
     var rows = USERS.filter(function (u) { return !q || u.name.toLowerCase().indexOf(q) >= 0 || u.email.toLowerCase().indexOf(q) >= 0; });
     $('admUsersBody').innerHTML = rows.map(function (u) {
-      return '<tr data-id="' + u.id + '"><td>' + esc(u.name) + '</td><td>' + esc(u.email) + '</td><td>' + fmtDate(new Date(u.joined)) + '</td><td>' + userOrderCount(u.id) + '</td><td>' + usd(userSpend(u.id)) + '</td>' +
-        '<td>' + (u.status === 'active' ? '<span class="dt-badge ok">Active</span>' : '<span class="dt-badge err">Banned</span>') + '</td>' +
+      return '<tr data-id="' + u.id + '"><td>' + esc(u.name) + (u.isAdmin ? ' <span class="adm-sub">· admin</span>' : '') + '</td><td>' + esc(u.email) + '</td><td>' + fmtDate(new Date(u.joined)) + '</td><td>' + userOrderCount(u.id) + '</td><td>' + usd(userSpend(u.id)) + '</td>' +
+        '<td>' + (u.status === 'active' ? '<span class="dt-badge ok">Active</span>' : '<span class="dt-badge err">Banned' + (u.banReason ? ' — ' + esc(u.banReason) : '') + '</span>') + '</td>' +
         '<td class="adm-row-actions">' +
-          (can('admin') ? '<button class="btn btn-ghost adm-btn-sm adm-user-ban" type="button">' + (u.status === 'active' ? 'Ban' : 'Unban') + '</button>' : '') +
+          (can('admin') && !u.isAdmin ? '<button class="btn btn-ghost adm-btn-sm adm-user-ban" type="button">' + (u.status === 'active' ? 'Ban' : 'Unban') + '</button>' : '') +
         '</td></tr>';
     }).join('') || '<tr><td colspan="7" class="adm-empty">No users match.</td></tr>';
 
@@ -1614,9 +1624,21 @@
     if (!can('admin')) return;
     var tr = e.target.closest('tr'); var id = tr.getAttribute('data-id');
     var u = USERS.filter(function (x) { return x.id === id; })[0]; if (!u) return;
-    u.status = u.status === 'active' ? 'banned' : 'active';
-    saveUsers(); logAudit((u.status === 'banned' ? 'Banned' : 'Unbanned') + ' user ' + u.name);
-    renderUsers();
+    var willBan = u.status === 'active';
+    var reason = null;
+    if (willBan) {
+      reason = prompt('Reason for banning ' + u.name + ':', 'Violated terms of service');
+      if (reason === null) return;
+    } else if (!confirm('Unban ' + u.name + '?')) return;
+    var btn = e.target;
+    btn.disabled = true;
+    invokeAdminFn('admin-set-user-banned', { userId: u.id, banned: willBan, reason: reason }, 'Could not update user.').then(function () {
+      logAudit((willBan ? 'Banned' : 'Unbanned') + ' user ' + u.name);
+      return refreshUsers();
+    }).catch(function (err) {
+      btn.disabled = false;
+      alert(err.message || 'Could not update user.');
+    });
   });
   var userSearch = $('admUserSearch');
   if (userSearch) userSearch.addEventListener('input', renderUsers);
@@ -2400,4 +2422,5 @@
   refreshProducts().then(function () { return refreshOrders(); });
   refreshCoupons();
   refreshRobloxContainers();
+  refreshUsers();
 })();

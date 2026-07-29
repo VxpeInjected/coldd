@@ -124,7 +124,8 @@ Deno.serve(async (req: Request) => {
           code: "RELINK_NEEDED",
         }, 400);
       }
-      throw err;
+      console.error("[verify-robux-order] inventory check error:", err);
+      return json({ ok: false, error: "Could not check your Roblox inventory: " + (err as Error).message }, 502);
     }
     // Inventory-confirmed, but only counts as fresh proof-of-purchase if
     // this (buyer, product) hasn't already been used to confirm a

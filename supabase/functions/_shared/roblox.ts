@@ -230,8 +230,11 @@ export async function findOwnedGamePasses(
 
   let pageToken: string | undefined;
   do {
+    // gamePassIds already implies the game-pass type filter - Roblox's
+    // docs are explicit that the type field (gamePasses=true) and an ID
+    // field (gamePassIds=...) can't be combined in the same filter.
     const params = new URLSearchParams({
-      filter: `gamePasses=true;gamePassIds=${gamePassIds.join(",")}`,
+      filter: `gamePassIds=${gamePassIds.join(",")}`,
       maxPageSize: "100",
     });
     if (pageToken) params.set("pageToken", pageToken);
@@ -244,8 +247,9 @@ export async function findOwnedGamePasses(
       throw new RobloxInsufficientScopeError(res.status);
     }
     if (!res.ok) {
-      console.error("[roblox] inventory check failed:", res.status, await res.text().catch(() => ""));
-      break;
+      const bodyText = await res.text().catch(() => "");
+      console.error("[roblox] inventory check failed:", res.status, bodyText);
+      throw new Error(`Roblox inventory check failed (HTTP ${res.status}): ${bodyText.slice(0, 200)}`);
     }
     const data = await res.json().catch(() => ({}));
     // deno-lint-ignore no-explicit-any

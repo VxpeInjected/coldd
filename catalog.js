@@ -63,21 +63,41 @@
     };
   }
 
+  function toReview(row) {
+    return {
+      id: row.id,
+      productId: row.products ? row.products.slug : null,
+      user: row.user_name || 'user',
+      stars: row.stars,
+      text: row.text,
+      date: row.created_at,
+      reply: row.reply ? { text: row.reply, date: row.reply_at } : null
+    };
+  }
+
   function fail(err) {
     if (err) console.error('[coldd] Failed to load live product catalog, falling back to empty:', err);
     window.__CATALOG = [];
+    window.__REVIEWS = [];
     loadDependents();
   }
 
   if (!window.coldSupabase) { fail(); return; }
 
-  window.coldSupabase
-    .from('products')
-    .select('*')
-    .eq('is_active', true)
-    .then(function (res) {
-      if (res.error) { fail(res.error); return; }
-      window.__CATALOG = (res.data || []).map(toCard);
+  Promise.all([
+    window.coldSupabase.from('products').select('*').eq('is_active', true),
+    window.coldSupabase
+      .from('reviews')
+      .select('id, stars, text, created_at, reply, reply_at, user_name, products!inner(slug)')
+      .eq('status', 'approved')
+      .order('created_at', { ascending: false })
+  ])
+    .then(function (results) {
+      var prodRes = results[0], revRes = results[1];
+      if (prodRes.error) { fail(prodRes.error); return; }
+      window.__CATALOG = (prodRes.data || []).map(toCard);
+      if (revRes.error) { console.error('[coldd] Failed to load reviews:', revRes.error); window.__REVIEWS = []; }
+      else window.__REVIEWS = (revRes.data || []).map(toReview);
       loadDependents();
     })
     .catch(fail);

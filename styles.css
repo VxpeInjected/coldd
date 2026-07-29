@@ -807,6 +807,13 @@ body.no-scroll { overflow: hidden; }
 .pd-about h4 { font-size: 18px; font-weight: 700; margin: 0 0 12px; }
 .pd-about p { font-size: 14.5px; color: var(--fg-2); line-height: 1.68; }
 
+.pd-rev-form { padding: 18px 20px; border: 1px solid var(--hairline); border-radius: var(--r-sm); margin-bottom: 18px; }
+.pd-rev-form h4 { margin: 0 0 12px; font-size: 15px; }
+.pd-rev-stars-input { display: flex; gap: 4px; margin-bottom: 12px; }
+.pd-rev-star-btn { background: none; border: none; cursor: pointer; font-size: 22px; line-height: 1; color: var(--fg-3); padding: 2px; }
+.pd-rev-star-btn.active { color: var(--accent); }
+.pd-rev-form textarea { width: 100%; box-sizing: border-box; background: var(--bg-2); border: 1px solid var(--hairline); border-radius: var(--r-sm); color: var(--fg-1); font: inherit; padding: 10px 12px; resize: vertical; margin-bottom: 12px; }
+.pd-rev-form-msg { font-size: 13px; color: var(--fg-3); margin: 10px 0 0; }
 .pd-rev { padding: 18px 20px; border: 1px solid var(--hairline); border-radius: var(--r-sm); margin-bottom: 14px; }
 .pd-rev:last-child { margin-bottom: 0; }
 .pd-rev-head { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }

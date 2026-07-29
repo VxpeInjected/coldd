@@ -1374,19 +1374,31 @@
           }
           if (pdTechList) pdTechList.innerHTML = techFor(p).map(function (r) { return '<div class="pd-tech-row"><dt>' + esc(r[0]) + '</dt><dd>' + esc(r[1]) + '</dd></div>'; }).join('');
 
+          var owned = lsGet(OWN).indexOf(p.id) >= 0;
+
           var revs = reviewsFor(p);
           if (pdRevCount) pdRevCount.textContent = '(' + revs.length + ')';
           if (pdPaneReviews) {
-            pdPaneReviews.innerHTML = revs.length ? revs.map(function (r) {
+            var revFormHtml = owned ? (
+              '<form class="pd-rev-form" id="pdRevForm">' +
+                '<h4>Leave a review</h4>' +
+                '<div class="pd-rev-stars-input" id="pdRevStarsInput">' +
+                  [1, 2, 3, 4, 5].map(function (n) { return '<button type="button" class="pd-rev-star-btn" data-star="' + n + '" aria-label="' + n + ' star">★</button>'; }).join('') +
+                '</div>' +
+                '<textarea id="pdRevText" maxlength="2000" rows="3" placeholder="Share what you thought of this product..."></textarea>' +
+                '<button type="submit" class="btn btn-primary" id="pdRevSubmit">Submit review</button>' +
+                '<p class="pd-rev-form-msg" id="pdRevFormMsg" hidden></p>' +
+              '</form>'
+            ) : '';
+            pdPaneReviews.innerHTML = revFormHtml + (revs.length ? revs.map(function (r) {
               var reply = r.reply ? '<div class="pd-rev-reply"><div class="pd-rev-reply-head">coldd team replied</div><p>' + esc(r.reply.text) + '</p></div>' : '';
               return '<div class="pd-rev"><div class="pd-rev-head"><span class="pd-rev-name">' + esc(r.user) + '</span>' +
                 '<span class="pd-rev-dot">·</span><span class="pd-rev-stars">' + starRow(r.stars) + '</span>' +
                 '<span class="pd-rev-dot">·</span><span class="pd-rev-meta">' + esc(fmtRevDate(r.date)) + '</span></div>' +
                 '<p class="pd-rev-body">' + esc(r.text) + '</p>' + reply + '</div>';
-            }).join('') : '<p class="pd-empty">No reviews yet. Be the first to review this product.</p>';
+            }).join('') : '<p class="pd-empty">No reviews yet. Be the first to review this product.</p>');
           }
 
-          var owned = lsGet(OWN).indexOf(p.id) >= 0;
           if (pdTabUpdates) pdTabUpdates.hidden = ups.length === 0;
           if (pdUpdCount) pdUpdCount.textContent = '(' + ups.length + ')';
           if (pdPaneUpdates) {
@@ -1433,6 +1445,44 @@
           var t = pdReferCopy.textContent; pdReferCopy.textContent = 'Copied!';
           setTimeout(function () { pdReferCopy.textContent = t; }, 1400);
         });
+
+        var revSelectedStars = 0;
+        if (pdPaneReviews) {
+          pdPaneReviews.addEventListener('click', function (e) {
+            var starBtn = e.target.closest('.pd-rev-star-btn');
+            if (!starBtn) return;
+            revSelectedStars = Number(starBtn.getAttribute('data-star'));
+            var btns = pdPaneReviews.querySelectorAll('.pd-rev-star-btn');
+            for (var i = 0; i < btns.length; i++) btns[i].classList.toggle('active', Number(btns[i].getAttribute('data-star')) <= revSelectedStars);
+          });
+          pdPaneReviews.addEventListener('submit', function (e) {
+            var form = e.target.closest('#pdRevForm');
+            if (!form || !cur) return;
+            e.preventDefault();
+            var msg = pdPaneReviews.querySelector('#pdRevFormMsg');
+            var textEl = pdPaneReviews.querySelector('#pdRevText');
+            var text = textEl ? textEl.value.trim() : '';
+            var btn = form.querySelector('#pdRevSubmit');
+            function showMsg(t) { if (msg) { msg.hidden = false; msg.textContent = t; } }
+            if (!revSelectedStars) { showMsg('Please select a star rating.'); return; }
+            if (!text) { showMsg('Please write a short review.'); return; }
+            if (!window.coldAuth) return;
+            if (btn) { btn.disabled = true; btn.textContent = 'Submitting…'; }
+            window.coldAuth.invokeFn('submit-review', { slug: cur.id, stars: revSelectedStars, text: text })
+              .then(function () {
+                showMsg('Thanks! Your review is pending approval.');
+                if (textEl) textEl.value = '';
+                revSelectedStars = 0;
+                var btns = pdPaneReviews.querySelectorAll('.pd-rev-star-btn');
+                for (var i = 0; i < btns.length; i++) btns[i].classList.remove('active');
+                if (btn) { btn.disabled = false; btn.textContent = 'Submit review'; }
+              })
+              .catch(function (err) {
+                showMsg((err && err.message) || 'Could not submit review.');
+                if (btn) { btn.disabled = false; btn.textContent = 'Submit review'; }
+              });
+          });
+        }
 
         window.addEventListener('currencychange', function () { if (cur) refreshPrice(); });
         window.__renderProduct = render;

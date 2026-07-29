@@ -260,7 +260,47 @@
     return invokeAdminFn('admin-manage-order', body);
   }
 
-  var REVIEWS = seedIfEmpty('coldd_admin_reviews_v1', function () { return (window.__REVIEWS || []).slice(); });
+  // Real data from public.reviews, read via the signed-in admin's own
+  // session (RLS: reviews_select_admin). Writes (approve/hide/reply) go
+  // through admin-moderate-review (service role).
+  var REVIEWS = [];
+  function mapReviewRow(row, profile) {
+    return {
+      id: row.id,
+      dbId: row.id,
+      productId: row.products ? row.products.slug : null,
+      productTitle: row.products ? row.products.title : 'Unknown product',
+      user: profile ? (profile.username || profile.email || 'user') : 'user',
+      stars: row.stars,
+      text: row.text,
+      date: row.created_at,
+      status: row.status,
+      reply: row.reply ? { text: row.reply, date: row.reply_at } : null
+    };
+  }
+  function refreshReviews() {
+    if (!window.coldSupabase) return Promise.resolve();
+    return window.coldSupabase.from('reviews').select('*, products(title, slug)').order('created_at', { ascending: false }).then(function (res) {
+      if (res.error) { console.error('[admin] failed to load reviews:', res.error.message); return; }
+      var rows = res.data || [];
+      var userIds = rows.map(function (r) { return r.user_id; }).filter(function (v, i, arr) { return v && arr.indexOf(v) === i; });
+      function apply(byId) {
+        REVIEWS = rows.map(function (r) { return mapReviewRow(r, byId[r.user_id]); });
+        if (curPanel === 'reviews') renderReviews();
+      }
+      if (!userIds.length) { apply({}); return; }
+      return window.coldSupabase.from('profiles').select('id,username,email').in('id', userIds).then(function (pRes) {
+        var byId = {};
+        (pRes.data || []).forEach(function (p) { byId[p.id] = p; });
+        apply(byId);
+      });
+    });
+  }
+  function callModerateReview(id, action, reply) {
+    var body = { id: id, action: action };
+    if (reply != null) body.reply = reply;
+    return invokeAdminFn('admin-moderate-review', body, 'Could not update review.');
+  }
 
   var TRAFFIC = seedIfEmpty('coldd_admin_traffic_v1', function () {
     var out = [];
@@ -289,7 +329,6 @@
 
   function saveSaleEvents() { lsSet('coldd_admin_sale_events_v1', SALE_EVENTS); }
   function saveStaff() { lsSet('coldd_admin_staff_v1', STAFF); }
-  function saveReviews() { lsSet('coldd_admin_reviews_v1', REVIEWS); }
   function saveReferrals() { lsSet('coldd_admin_referrals_v1', REFERRALS); }
 
   function logAudit(action) {
@@ -1577,20 +1616,25 @@
     var id = card.getAttribute('data-id');
     var r = REVIEWS.filter(function (x) { return x.id === id; })[0]; if (!r) return;
     if (e.target.classList.contains('adm-rev-approve')) {
-      r.status = 'approved'; logAudit('Approved review by ' + r.user + ' on "' + r.productTitle + '"');
-      saveReviews(); renderReviews();
+      callModerateReview(r.dbId, 'approve').then(function () {
+        logAudit('Approved review by ' + r.user + ' on "' + r.productTitle + '"');
+        return refreshReviews();
+      }).catch(function (err) { alert(err.message || 'Could not approve review.'); });
     } else if (e.target.classList.contains('adm-rev-hide')) {
-      r.status = 'hidden'; logAudit('Hid review by ' + r.user + ' on "' + r.productTitle + '"');
-      saveReviews(); renderReviews();
+      callModerateReview(r.dbId, 'hide').then(function () {
+        logAudit('Hid review by ' + r.user + ' on "' + r.productTitle + '"');
+        return refreshReviews();
+      }).catch(function (err) { alert(err.message || 'Could not hide review.'); });
     } else if (e.target.classList.contains('adm-rev-reply-toggle')) {
       var form = card.querySelector('.adm-review-reply-form');
       form.hidden = !form.hidden;
       if (!form.hidden) form.querySelector('textarea').focus();
     } else if (e.target.classList.contains('adm-rev-reply-save')) {
       var text = card.querySelector('.adm-rev-reply-input').value.trim();
-      r.reply = text ? { text: text, date: new Date().toISOString() } : null;
-      logAudit((text ? 'Replied to' : 'Removed reply on') + ' review by ' + r.user + ' on "' + r.productTitle + '"');
-      saveReviews(); renderReviews();
+      callModerateReview(r.dbId, 'reply', text || null).then(function () {
+        logAudit((text ? 'Replied to' : 'Removed reply on') + ' review by ' + r.user + ' on "' + r.productTitle + '"');
+        return refreshReviews();
+      }).catch(function (err) { alert(err.message || 'Could not save reply.'); });
     } else if (e.target.classList.contains('adm-rev-goto')) {
       openProductEdit(r.productId);
     }
@@ -2423,4 +2467,5 @@
   refreshCoupons();
   refreshRobloxContainers();
   refreshUsers();
+  refreshReviews();
 })();

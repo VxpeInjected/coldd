@@ -2429,8 +2429,33 @@
       var CART_KEY = 'coldd_cart_v1';
       var money = function (n) { return window.__money ? window.__money(n) : ('$' + n); };
       function load() { try { return JSON.parse(localStorage.getItem(CART_KEY) || '[]') || []; } catch (e) { return []; } }
-      function save(c) { try { localStorage.setItem(CART_KEY, JSON.stringify(c)); } catch (e) {} }
+      function save(c) { try { localStorage.setItem(CART_KEY, JSON.stringify(c)); } catch (e) {} scheduleCartSnapshot(); }
       var cart = load();
+
+      // Abandoned-cart tracking for the admin panel - debounced so typing/
+      // adjusting quantities doesn't spam the backend. Reuses the same
+      // per-browser-session id catalog.js's pageview beacon already sets.
+      var cartSnapshotTimer = null;
+      function cartSessionId() {
+        try {
+          var sid = sessionStorage.getItem('coldd_session_id');
+          if (!sid) { sid = Math.random().toString(36).slice(2) + Date.now().toString(36); sessionStorage.setItem('coldd_session_id', sid); }
+          return sid;
+        } catch (e) { return null; }
+      }
+      function scheduleCartSnapshot() {
+        if (!window.coldAuth) return;
+        clearTimeout(cartSnapshotTimer);
+        cartSnapshotTimer = setTimeout(function () {
+          var sid = cartSessionId(); if (!sid) return;
+          var items = cart.map(function (i) { return { title: i.title, image: i.image, qty: i.qty, price: i.price }; });
+          window.coldAuth.invokeFn('save-cart-snapshot', { sessionId: sid, items: items, valueUsd: subtotal() }).catch(function () {});
+        }, 1500);
+      }
+      function deleteCartSnapshot() {
+        var sid = cartSessionId(); if (!sid || !window.coldAuth) return;
+        window.coldAuth.invokeFn('delete-cart-snapshot', { sessionId: sid }).catch(function () {});
+      }
 
       var itemsEl = document.getElementById('coItems'), emptyEl = document.getElementById('coEmpty');
 
@@ -2601,6 +2626,7 @@
           window.coldAuth.invokeFn('create-robux-order', { items: robuxItems }).then(function (data) {
             robuxOrderId = data.orderId;
             robuxOrderItems = data.items;
+            deleteCartSnapshot();
             renderRobuxItems();
           }).catch(function (err) {
             var msgEl = document.getElementById('coRobuxMsg');
@@ -2701,6 +2727,7 @@
             if (error || !data || !data.ok) {
               throw new Error((data && data.error) || (error && error.message) || 'Could not start checkout.');
             }
+            deleteCartSnapshot();
             location.href = data.url;
           })
           .catch(function (err) {
@@ -2710,6 +2737,7 @@
       });
 
       window.addEventListener('currencychange', function () { renderTotals(); renderItems(); });
+      if (cart.length) scheduleCartSnapshot();
       render();
     })();
 

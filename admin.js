@@ -389,28 +389,53 @@
     return invokeAdminFn('admin-moderate-review', body, 'Could not update review.');
   }
 
-  var TRAFFIC = seedIfEmpty('coldd_admin_traffic_v1', function () {
-    var out = [];
-    for (var day = 119; day >= 0; day--) {
-      var h = hsh('traf' + day);
-      var sessions = 90 + (h % 260);
-      var pageviews = Math.round(sessions * (2.1 + (h % 30) / 10));
-      out.push({ date: daysAgo(day).toISOString(), sessions: sessions, pageviews: pageviews });
-    }
-    return out;
-  });
+  // Real data from public.page_views (a row per page load, no PII - see
+  // catalog.js's trackPageview beacon), read via the signed-in admin's own
+  // session (RLS: page_views_select_admin). Grouped into one {date,
+  // sessions, pageviews} bucket per day client-side.
+  var TRAFFIC = [];
+  function refreshTraffic() {
+    if (!window.coldSupabase) return Promise.resolve();
+    var cutoff = daysAgo(119).toISOString();
+    return window.coldSupabase.from('page_views').select('session_id, created_at').gte('created_at', cutoff).then(function (res) {
+      if (res.error) { console.error('[admin] failed to load traffic:', res.error.message); return; }
+      var byDay = {};
+      (res.data || []).forEach(function (row) {
+        var day = row.created_at.slice(0, 10);
+        if (!byDay[day]) byDay[day] = { pageviews: 0, sessions: {} };
+        byDay[day].pageviews++;
+        byDay[day].sessions[row.session_id] = true;
+      });
+      var out = [];
+      for (var d = 119; d >= 0; d--) {
+        var iso = daysAgo(d).toISOString();
+        var key = iso.slice(0, 10);
+        var bucket = byDay[key];
+        out.push({ date: iso, sessions: bucket ? Object.keys(bucket.sessions).length : 0, pageviews: bucket ? bucket.pageviews : 0 });
+      }
+      TRAFFIC = out;
+      if (curPanel === 'analytics') renderAnalytics();
+    });
+  }
 
-  var ABANDONED = seedIfEmpty('coldd_admin_abandoned_v1', function () {
-    var out = [];
-    for (var i = 0; i < 26; i++) {
-      var s = 'ab' + i;
-      var h = hsh(s);
-      var p = CATALOG.length ? CATALOG[h % CATALOG.length] : null;
-      if (!p) continue;
-      out.push({ id: 'ab' + i, date: daysAgo(h % 45).toISOString(), title: p.title, image: p.image, value: p.priceNum, email: (h % 3 === 0) ? (pick(USER_NAMES, s) + '@example.com') : null });
-    }
-    return out.sort(function (a, b) { return new Date(b.date) - new Date(a.date); });
-  });
+  // Real data from public.cart_snapshots - a row per checkout-page visit
+  // with items in cart, deleted the moment an order actually gets created
+  // (see app.js's deleteCartSnapshot()). Anything still here is, by
+  // definition, an abandoned cart.
+  var ABANDONED = [];
+  function refreshAbandoned() {
+    if (!window.coldSupabase) return Promise.resolve();
+    return window.coldSupabase.from('cart_snapshots').select('*').order('updated_at', { ascending: false }).then(function (res) {
+      if (res.error) { console.error('[admin] failed to load abandoned carts:', res.error.message); return; }
+      ABANDONED = (res.data || []).map(function (row) {
+        var items = row.items || [];
+        var first = items[0] || {};
+        var title = items.length > 1 ? ((first.title || 'Item') + ' +' + (items.length - 1) + ' more') : (first.title || 'Unknown item');
+        return { id: row.session_id, date: row.updated_at, title: title, image: first.image || '', value: Number(row.value_usd) || 0, email: row.email || null };
+      });
+      if (curPanel === 'analytics') renderAnalytics();
+    });
+  }
 
   var AUDIT = lsGet('coldd_admin_audit_v1', []);
 
@@ -2604,4 +2629,6 @@
   refreshTutorials();
   refreshReleases();
   refreshSaleEvents();
+  refreshTraffic();
+  refreshAbandoned();
 })();

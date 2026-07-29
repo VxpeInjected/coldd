@@ -1930,6 +1930,55 @@
       openProductEdit(r.productId);
     }
   });
+
+  /* ---- Import a review (from another platform) ---- */
+  var importReviewSearch = $('admImportReviewProductSearch');
+  var importReviewResults = $('admImportReviewProductResults');
+  var importReviewSlugInput = $('admImportReviewProductSlug');
+  if (importReviewSearch) importReviewSearch.addEventListener('input', function () {
+    importReviewSlugInput.value = '';
+    var q = importReviewSearch.value.trim().toLowerCase();
+    if (!q) { importReviewResults.hidden = true; return; }
+    var matches = PRODUCTS_CACHE.filter(function (p) { return p.title.toLowerCase().indexOf(q) >= 0; }).slice(0, 8);
+    importReviewResults.innerHTML = matches.map(function (p) {
+      return '<button type="button" class="adm-dd-opt" data-slug="' + esc(p.id) + '" data-title="' + esc(p.title) + '">' + esc(p.title) + '</button>';
+    }).join('') || '<div class="adm-dd-opt" style="opacity:.5;">No matches</div>';
+    importReviewResults.hidden = false;
+  });
+  if (importReviewResults) importReviewResults.addEventListener('click', function (e) {
+    var opt = e.target.closest('[data-slug]'); if (!opt) return;
+    importReviewSlugInput.value = opt.getAttribute('data-slug');
+    importReviewSearch.value = opt.getAttribute('data-title');
+    importReviewResults.hidden = true;
+  });
+  document.addEventListener('click', function (e) {
+    if (importReviewResults && !e.target.closest('#admImportReviewProductSearch') && !e.target.closest('#admImportReviewProductResults')) {
+      importReviewResults.hidden = true;
+    }
+  });
+  var importReviewForm = $('admImportReviewForm');
+  if (importReviewForm) importReviewForm.addEventListener('submit', function (e) {
+    e.preventDefault();
+    var msgEl = $('admImportReviewMsg');
+    var slug = importReviewSlugInput.value;
+    if (!slug) { if (msgEl) { msgEl.className = 'co-msg err show'; msgEl.textContent = 'Pick a product from the search results.'; } return; }
+    var body = {
+      slug: slug,
+      stars: $('admImportReviewStars').value,
+      reviewerName: $('admImportReviewName').value.trim(),
+      platform: $('admImportReviewPlatform').value,
+      text: $('admImportReviewText').value.trim()
+    };
+    invokeAdminFn('admin-import-review', body, 'Could not import review.').then(function () {
+      logAudit('Imported a ' + body.platform + ' review for "' + importReviewSearch.value + '"');
+      importReviewForm.reset(); importReviewSlugInput.value = '';
+      if (msgEl) { msgEl.className = 'co-msg show'; msgEl.textContent = 'Review imported and published.'; }
+      return refreshReviews();
+    }).catch(function (err) {
+      if (msgEl) { msgEl.className = 'co-msg err show'; msgEl.textContent = err.message || 'Could not import review.'; }
+    });
+  });
+
   /* ================================================================
      USERS PANEL (+ manual product grants)
      ================================================================ */

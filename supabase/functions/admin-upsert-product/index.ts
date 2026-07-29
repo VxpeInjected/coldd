@@ -38,6 +38,36 @@ function json(body: unknown, status = 200) {
   });
 }
 
+// Auto-announces a new product launch or a pushed version/update, so the
+// admin doesn't have to remember to hand-write a matching Releases entry
+// every time. Best-effort - failure here never blocks the product save.
+async function autoCreateRelease(
+  admin: ReturnType<typeof createClient>,
+  opts: { productSlug: string; title: string; summary: string; kind: string; version?: string },
+) {
+  try {
+    const base = (opts.version ? `${opts.productSlug}-${opts.version}` : `${opts.productSlug}-launch`)
+      .toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "release";
+    const slug = `${base}-${Date.now().toString(36)}`;
+    await admin.from("content").insert({
+      type: "release",
+      slug,
+      visible: true,
+      data: {
+        version: opts.version || "",
+        kind: opts.kind,
+        title: opts.title,
+        date: new Date().toISOString().slice(0, 10),
+        affects: [opts.productSlug],
+        summary: opts.summary,
+        details: "",
+      },
+    });
+  } catch (err) {
+    console.error("[admin-upsert-product] auto-release failed (non-blocking):", err);
+  }
+}
+
 function slugify(s: string) {
   return String(s || "")
     .toLowerCase()
@@ -130,11 +160,12 @@ Deno.serve(async (req: Request) => {
     // written - Roblox has no API to create a new experience, so once
     // every container hits 50 gamepasses this has to hard-block, not
     // silently create an unsellable product.
-    let existingProduct: { roblox_gamepass_id: string | null; roblox_universe_id: string | null } | null = null;
+    // deno-lint-ignore no-explicit-any
+    let existingProduct: { roblox_gamepass_id: string | null; roblox_universe_id: string | null; versions: any[] | null; slug: string } | null = null;
     if (id) {
       const { data } = await admin
         .from("products")
-        .select("roblox_gamepass_id, roblox_universe_id")
+        .select("roblox_gamepass_id, roblox_universe_id, versions, slug")
         .eq("id", id)
         .maybeSingle();
       existingProduct = data;
@@ -238,6 +269,33 @@ Deno.serve(async (req: Request) => {
     };
     const { error: legalErr } = await admin.from("product_legal").upsert(legalFields);
     if (legalErr) return json({ ok: false, error: "Product saved, but legal info failed to save." }, 500);
+
+    // Auto-announce: brand-new product launch, or a newly pushed version
+    // on an existing one (versions is append-only, so a longer array means
+    // a new entry landed at the end).
+    if (!id && !!body.visible) {
+      const { data: newRow } = await admin.from("products").select("slug").eq("id", productId).single();
+      if (newRow?.slug) {
+        await autoCreateRelease(admin, {
+          productSlug: newRow.slug,
+          title: `${title} launches`,
+          summary: (productFields.description as string) || `${title} is now available.`,
+          kind: "Feature",
+        });
+      }
+    } else if (id && existingProduct && Array.isArray(body.versions)) {
+      const oldVersions = existingProduct.versions || [];
+      if (body.versions.length > oldVersions.length) {
+        const latest = body.versions[body.versions.length - 1];
+        await autoCreateRelease(admin, {
+          productSlug: existingProduct.slug,
+          title: `${title} — ${latest?.version || "update"}`,
+          summary: latest?.changelog || `${title} was updated.`,
+          kind: "Fix",
+          version: latest?.version,
+        });
+      }
+    }
 
     return json({ ok: true, id: productId, robloxWarning });
   } catch (err) {

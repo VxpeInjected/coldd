@@ -52,7 +52,6 @@
             <a href="#" data-panel="users"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="4"/><path d="M2 21c0-4 3.5-6 7-6s7 2 7 6"/><path d="M16 3.5a4 4 0 0 1 0 7.8"/><path d="M18 14.5c2.5.6 4 2.2 4 5.5"/></svg><span>Users</span></a>
             <a href="#" data-panel="sales"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5H4a1 1 0 0 0-1 1v4a2.5 2.5 0 0 1 0 5v4a1 1 0 0 0 1 1h5"/><path d="M15 19h5a1 1 0 0 0 1-1v-4a2.5 2.5 0 0 1 0-5V5a1 1 0 0 0-1-1h-5"/><path d="M9 5v14M9 8h.01M9 12h.01M9 16h.01"/></svg><span>Sales &amp; Discounts</span></a>
             <a href="#" data-panel="content"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4Z"/></svg><span>Blog &amp; Tutorials</span></a>
-            <a href="#" data-panel="releases"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg><span>Releases</span></a>
             <a href="#" data-panel="sitemgmt"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg><span>Site Management</span></a>
             <a href="#" data-panel="audit"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M9 13h6M9 17h6M9 9h1"/></svg><span>Audit Log</span></a>
           </nav>
@@ -629,6 +628,7 @@
             <div class="adm-platform-toggle" id="admContentTypeToggle" style="margin-bottom:22px;">
               <button type="button" class="btn btn-primary adm-content-type-btn active" data-type="posts">Blog Posts</button>
               <button type="button" class="btn btn-minecraft adm-content-type-btn" data-type="tutorials">Tutorials</button>
+              <button type="button" class="btn btn-minecraft adm-content-type-btn" data-type="releases">Releases</button>
             </div>
 
             <div id="admContentPostsView">
@@ -649,7 +649,7 @@
                   <select id="admNewPostCategory" class="adm-select"><option value="Devlog">Devlog</option><option value="Studio News">Studio News</option><option value="Craft">Craft</option></select>
                   <input type="text" id="admNewPostAuthor" class="adm-input adm-input-sm" placeholder="Author" required />
                   <input type="date" id="admNewPostDate" class="adm-input adm-input-sm" required />
-                  <input type="number" id="admNewPostRead" class="adm-input adm-input-sm" placeholder="Read mins" min="1" step="1" required />
+                  <input type="number" id="admNewPostRead" class="adm-input adm-input-sm" placeholder="Read mins (auto)" min="1" step="1" readonly title="Computed automatically from the body length" />
                   <input type="text" id="admNewPostCover" class="adm-input adm-input-sm" placeholder="Cover image, e.g. banner.jpg" />
                   <input type="text" id="admNewPostDek" class="adm-input adm-textarea" placeholder="One-line summary (dek)" required />
                   <textarea id="admNewPostBody" class="adm-input adm-textarea" rows="6" placeholder="Body — blank line for new paragraph, ## Heading, - list item, **bold**" required></textarea>
@@ -679,7 +679,7 @@
                   <select id="admNewTutDifficulty" class="adm-select"><option value="Beginner">Beginner</option><option value="Intermediate">Intermediate</option><option value="Advanced">Advanced</option></select>
                   <select id="admNewTutPlatform" class="adm-select"><option value="Roblox">Roblox</option><option value="Minecraft">Minecraft</option><option value="Both">Both</option></select>
                   <input type="number" id="admNewTutOrder" class="adm-input adm-input-sm" placeholder="Order" min="1" step="1" required />
-                  <input type="number" id="admNewTutMins" class="adm-input adm-input-sm" placeholder="Est. mins" min="1" step="1" required />
+                  <input type="number" id="admNewTutMins" class="adm-input adm-input-sm" placeholder="Est. mins (auto)" min="1" step="1" readonly title="Computed automatically from the body length" />
                   <input type="text" id="admNewTutCover" class="adm-input adm-input-sm" placeholder="Cover image, e.g. scripts.jpg" />
                   <input type="url" id="admNewTutVideo" class="adm-input adm-input-sm" placeholder="YouTube URL (optional)" />
                   <input type="text" id="admNewTutSummary" class="adm-input adm-textarea" placeholder="One-line summary" required />
@@ -690,35 +690,36 @@
                 </form>
               </div>
             </div>
+
+            <div id="admContentReleasesView" hidden>
+              <p class="adm-note">New releases are created automatically whenever a product is added or its price/version changes - add one by hand here for anything else worth announcing (studio news, etc).</p>
+              <div class="adm-toolbar">
+                <input type="text" id="admRelSearch" class="adm-input" placeholder="Search releases…" />
+              </div>
+              <div class="dash-card glass dash-tablewrap">
+                <table class="dash-table adm-table-tight">
+                  <thead><tr><th>Version</th><th>Kind</th><th>Title</th><th>Date</th><th>Status</th><th>Actions</th></tr></thead>
+                  <tbody id="admRelBody"></tbody>
+                </table>
+              </div>
+              <div class="dash-card glass">
+                <div class="dash-card-head"><h2 id="admRelFormTitle">Add release</h2></div>
+                <form class="adm-form" id="admAddRelForm">
+                  <input type="hidden" id="admRelEditId" value="" />
+                  <input type="text" id="admNewRelVersion" class="adm-input adm-input-sm" placeholder="Version, e.g. v2.6.0 (optional)" />
+                  <select id="admNewRelKind" class="adm-select"><option value="Feature">Feature</option><option value="Fix">Fix</option><option value="Announcement">Announcement</option></select>
+                  <input type="text" id="admNewRelTitle" class="adm-input" placeholder="Title" required />
+                  <input type="date" id="admNewRelDate" class="adm-input adm-input-sm" required />
+                  <input type="text" id="admNewRelAffects" class="adm-input adm-input-sm" placeholder="Affects (product ids, comma-separated)" />
+                  <textarea id="admNewRelSummary" class="adm-input adm-textarea" rows="3" placeholder="Summary" required></textarea>
+                  <label class="adm-check"><input type="checkbox" id="admNewRelPublished" checked /> Published</label>
+                  <button class="btn btn-primary adm-btn-sm" type="submit" id="admRelFormSubmit">Add release</button>
+                  <button class="btn btn-ghost adm-btn-sm" type="button" id="admRelFormCancel" hidden>Cancel edit</button>
+                </form>
+              </div>
+            </div>
           </section>
 
-          <section class="dash-panel" id="adm-panel-releases" hidden>
-            <div class="dash-head"><h1>Releases &amp; updates</h1><p>Publish changelog entries and announcements.</p></div>
-            <div class="adm-toolbar">
-              <input type="text" id="admRelSearch" class="adm-input" placeholder="Search releases…" />
-            </div>
-            <div class="dash-card glass dash-tablewrap">
-              <table class="dash-table adm-table-tight">
-                <thead><tr><th>Version</th><th>Kind</th><th>Title</th><th>Date</th><th>Status</th><th>Actions</th></tr></thead>
-                <tbody id="admRelBody"></tbody>
-              </table>
-            </div>
-            <div class="dash-card glass">
-              <div class="dash-card-head"><h2 id="admRelFormTitle">Add release</h2></div>
-              <form class="adm-form" id="admAddRelForm">
-                <input type="hidden" id="admRelEditId" value="" />
-                <input type="text" id="admNewRelVersion" class="adm-input adm-input-sm" placeholder="Version, e.g. v2.6.0 (optional)" />
-                <select id="admNewRelKind" class="adm-select"><option value="Feature">Feature</option><option value="Fix">Fix</option><option value="Announcement">Announcement</option></select>
-                <input type="text" id="admNewRelTitle" class="adm-input" placeholder="Title" required />
-                <input type="date" id="admNewRelDate" class="adm-input adm-input-sm" required />
-                <input type="text" id="admNewRelAffects" class="adm-input adm-input-sm" placeholder="Affects (product ids, comma-separated)" />
-                <textarea id="admNewRelSummary" class="adm-input adm-textarea" rows="3" placeholder="Summary" required></textarea>
-                <label class="adm-check"><input type="checkbox" id="admNewRelPublished" checked /> Published</label>
-                <button class="btn btn-primary adm-btn-sm" type="submit" id="admRelFormSubmit">Add release</button>
-                <button class="btn btn-ghost adm-btn-sm" type="button" id="admRelFormCancel" hidden>Cancel edit</button>
-              </form>
-            </div>
-          </section>
 
           <section class="dash-panel" id="adm-panel-sitemgmt" hidden>
             <div class="dash-head"><h1>Site Management</h1><p>Site access, Robux gamepass containers, and staff access.</p></div>
@@ -818,6 +819,6 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script src="/supabase-init.js?v=20260729b"></script>
   <script src="/site-gate.js?v=20260729b"></script>
-  <script src="/catalog.js?v=20260729e" data-then="/blog.js?v=20260729a,/reviews.js?v=20260729a,/admin.js?v=20260729l"></script>
+  <script src="/catalog.js?v=20260729e" data-then="/blog.js?v=20260729b,/reviews.js?v=20260729a,/admin.js?v=20260729m"></script>
 </body>
 </html>

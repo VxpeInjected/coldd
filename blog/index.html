@@ -105,6 +105,7 @@
         <div class="bt-switch" id="btSwitch" role="group" aria-label="Content type">
           <button class="bt-opt active" data-view="blog" type="button">Blog</button>
           <button class="bt-opt" data-view="tutorials" type="button">Tutorials</button>
+          <button class="bt-opt" data-view="releases" type="button">Releases</button>
         </div>
 
         <div id="blogView">
@@ -127,6 +128,8 @@
           </aside>
           <div class="tut-content" id="tutList"></div>
         </div>
+
+        <div class="rel-timeline" id="relTimeline" hidden></div>
       </div>
     </section>
 
@@ -355,6 +358,6 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script src="/supabase-init.js?v=20260729b"></script>
   <script src="/site-gate.js?v=20260729b"></script>
-  <script src="/catalog.js?v=20260729e" data-then="/blog.js?v=20260729a,/app.js?v=20260729g"></script>
+  <script src="/catalog.js?v=20260729e" data-then="/blog.js?v=20260729b,/app.js?v=20260729g"></script>
 </body>
 </html>

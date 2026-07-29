@@ -387,19 +387,21 @@
     render();
   })();
 
-  /* ---------- Blog / Tutorials view switch (blog.html) ---------- */
+  /* ---------- Blog / Tutorials / Releases view switch (blog.html) ---------- */
   (function () {
     var sw = document.getElementById('btSwitch');
     if (!sw) return;
     var blogView = document.getElementById('blogView');
     var tutView = document.getElementById('tutHub');
+    var relView = document.getElementById('relTimeline');
 
     function setView(v) {
-      if (v !== 'tutorials') v = 'blog';
-      if (blogView) blogView.hidden = v === 'tutorials';
+      if (v !== 'tutorials' && v !== 'releases') v = 'blog';
+      if (blogView) blogView.hidden = v !== 'blog';
       if (tutView) tutView.hidden = v !== 'tutorials';
+      if (relView) relView.hidden = v !== 'releases';
       sw.querySelectorAll('.bt-opt').forEach(function (b) { b.classList.toggle('active', b.getAttribute('data-view') === v); });
-      var url = location.pathname + (v === 'tutorials' ? '?view=tutorials' : '');
+      var url = location.pathname + (v !== 'blog' ? ('?view=' + v) : '');
       history.replaceState(null, '', url);
     }
     sw.addEventListener('click', function (e) {

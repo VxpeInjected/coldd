@@ -825,7 +825,7 @@
   /* ================================================================
      NAV / PANEL SWITCHING
      ================================================================ */
-  var PANELS = ['home', 'analytics', 'products', 'product-edit', 'product-update', 'orders', 'refunds', 'reviews', 'users', 'sales', 'sitemgmt', 'content', 'releases', 'audit'];
+  var PANELS = ['home', 'analytics', 'products', 'product-edit', 'product-update', 'orders', 'refunds', 'reviews', 'users', 'sales', 'sitemgmt', 'content', 'audit'];
   var curPanel = 'home';
   function showPanel(name) {
     if (PANELS.indexOf(name) < 0) name = 'home';
@@ -848,8 +848,7 @@
     else if (name === 'users') renderUsers();
     else if (name === 'sales') { renderEvents(); renderCoupons(); }
     else if (name === 'sitemgmt') { refreshSiteStatus(); renderRobloxContainers(); refreshRobloxCookieHealth(); renderStaff(); renderRobloxGroupRevenue(); }
-    else if (name === 'content') { renderPosts(); renderTutorials(); }
-    else if (name === 'releases') renderReleases();
+    else if (name === 'content') { renderPosts(); renderTutorials(); renderReleases(); }
     else if (name === 'audit') renderAudit();
   }
   function renderAll() { renderPanel(curPanel); }
@@ -2140,6 +2139,7 @@
     contentTypeToggle.querySelectorAll('.adm-content-type-btn').forEach(function (b) { b.classList.toggle('active', b === btn); });
     $('admContentPostsView').hidden = type !== 'posts';
     $('admContentTutorialsView').hidden = type !== 'tutorials';
+    $('admContentReleasesView').hidden = type !== 'releases';
   });
 
   var siteMgmtToggle = $('admSiteMgmtToggle');
@@ -2517,6 +2517,18 @@
     });
   });
 
+  // Shared by the Posts and Tutorials forms - read/tutorial time is
+  // computed from the body's word count (200 wpm) instead of typed in by
+  // hand, so it can't drift out of sync with the actual content.
+  function estimateReadMins(text) {
+    var words = (text || '').trim().split(/\s+/).filter(Boolean).length;
+    return Math.max(1, Math.ceil(words / 200));
+  }
+  var postBodyInput = $('admNewPostBody');
+  if (postBodyInput) postBodyInput.addEventListener('input', function () { $('admNewPostRead').value = estimateReadMins(postBodyInput.value); });
+  var tutBodyInput = $('admNewTutBody');
+  if (tutBodyInput) tutBodyInput.addEventListener('input', function () { $('admNewTutMins').value = estimateReadMins(tutBodyInput.value); });
+
   /* ================================================================
      BLOG POSTS PANEL
      ================================================================ */
@@ -2560,10 +2572,10 @@
     $('admNewPostCategory').value = p.category;
     $('admNewPostAuthor').value = p.author;
     $('admNewPostDate').value = p.date;
-    $('admNewPostRead').value = p.readMins;
     $('admNewPostCover').value = p.cover;
     $('admNewPostDek').value = p.dek;
     $('admNewPostBody').value = p.body;
+    $('admNewPostRead').value = estimateReadMins(p.body);
     $('admNewPostPublished').checked = p.visible;
     $('admPostFormTitle').textContent = 'Edit post';
     $('admPostFormSubmit').textContent = 'Save changes';
@@ -2617,7 +2629,7 @@
       category: $('admNewPostCategory').value,
       author: $('admNewPostAuthor').value.trim() || 'coldd',
       date: $('admNewPostDate').value,
-      readMins: parseInt($('admNewPostRead').value, 10) || 5,
+      readMins: estimateReadMins($('admNewPostBody').value),
       cover: $('admNewPostCover').value.trim() || '/banner.jpg',
       dek: $('admNewPostDek').value.trim(),
       body: $('admNewPostBody').value,
@@ -2672,11 +2684,11 @@
     $('admNewTutDifficulty').value = t.difficulty;
     $('admNewTutPlatform').value = t.platform;
     $('admNewTutOrder').value = t.order;
-    $('admNewTutMins').value = t.estMins;
     $('admNewTutCover').value = t.cover;
     $('admNewTutVideo').value = t.video || '';
     $('admNewTutSummary').value = t.summary;
     $('admNewTutBody').value = t.body;
+    $('admNewTutMins').value = estimateReadMins(t.body);
     $('admNewTutPublished').checked = t.visible;
     $('admTutFormTitle').textContent = 'Edit tutorial';
     $('admTutFormSubmit').textContent = 'Save changes';
@@ -2731,7 +2743,7 @@
       difficulty: $('admNewTutDifficulty').value,
       platform: $('admNewTutPlatform').value,
       order: parseInt($('admNewTutOrder').value, 10) || 1,
-      estMins: parseInt($('admNewTutMins').value, 10) || 10,
+      estMins: estimateReadMins($('admNewTutBody').value),
       cover: $('admNewTutCover').value.trim() || '/scripts.jpg',
       video: $('admNewTutVideo').value.trim(),
       summary: $('admNewTutSummary').value.trim(),
@@ -2756,7 +2768,7 @@
     return window.coldSupabase.from('content').select('*').eq('type', 'release').order('created_at', { ascending: false }).then(function (res) {
       if (res.error) { console.error('[admin] failed to load releases:', res.error.message); return; }
       RELEASES = (res.data || []).map(mapContentRow);
-      if (curPanel === 'releases') renderReleases();
+      if (curPanel === 'content') renderReleases();
     });
   }
   function renderReleases() {

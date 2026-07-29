@@ -266,8 +266,8 @@
       <section class="dash-panel" id="panel-linked" hidden>
         <div class="dash-head"><h1>Linked accounts</h1><p>Manage which accounts can sign you in.</p></div>
         <div class="dash-card glass" id="linkedLocked">
-          <p>Enter your password to view and manage linked accounts.</p>
-          <button class="btn btn-primary" id="linkedVerifyBtn" type="button">Enter password</button>
+          <p>Verify it's you to view and manage linked accounts.</p>
+          <button class="btn btn-primary" id="linkedVerifyBtn" type="button">Verify identity</button>
         </div>
         <div class="dash-card glass" id="linkedUnlocked" hidden>
           <div class="ntf-row"><div class="ntf-text"><div class="ntf-label">Email &amp; password</div><div class="ntf-sub" id="linkedEmailStatus">—</div></div></div>
@@ -283,30 +283,23 @@
   <div class="confirm-overlay" id="reauthOverlay" hidden>
     <div class="confirm-modal" style="max-width:380px;text-align:left;">
       <h3 style="margin:0 0 6px;font-size:17px;">Verify it's you</h3>
-      <p style="margin:0 0 16px;font-size:13px;color:var(--fg-3);">This action needs re-verification.</p>
-      <div id="reauthPwView">
+      <p style="margin:0 0 16px;font-size:13px;color:var(--fg-3);">Re-verify using the same method you signed up with.</p>
+      <div id="reauthChooseView">
+        <div id="reauthMethods"></div>
+      </div>
+      <div id="reauthPwView" hidden>
         <div class="auth-field"><label for="reauthPw">Password</label><input id="reauthPw" type="password" autocomplete="current-password" /><span class="auth-err"></span></div>
         <button class="btn btn-primary" id="reauthPwBtn" type="button" style="width:100%;margin-top:10px;"><span class="btn-label">Verify</span><span class="btn-spinner" hidden></span></button>
-        <button class="btn btn-ghost" id="reauthUseEmail" type="button" style="width:100%;margin-top:8px;">Use email code instead</button>
+        <button class="btn btn-ghost" id="reauthPwBack" type="button" style="width:100%;margin-top:8px;">Back</button>
       </div>
       <div id="reauthOtpView" hidden>
         <p style="margin:0 0 10px;font-size:13px;color:var(--fg-3);">We've emailed a code to your account email.</p>
         <div class="auth-field"><label for="reauthOtp">Verification code</label><input id="reauthOtp" type="text" autocomplete="one-time-code" /><span class="auth-err"></span></div>
         <button class="btn btn-primary" id="reauthOtpBtn" type="button" style="width:100%;margin-top:10px;"><span class="btn-label">Verify</span><span class="btn-spinner" hidden></span></button>
+        <button class="btn btn-ghost" id="reauthOtpBack" type="button" style="width:100%;margin-top:8px;">Back</button>
       </div>
       <p class="auth-err" id="reauthErr" style="margin-top:10px;"></p>
       <button class="btn btn-ghost" id="reauthCancel" type="button" style="width:100%;margin-top:8px;">Cancel</button>
-    </div>
-  </div>
-
-  <div class="confirm-overlay" id="linkedGateOverlay" hidden>
-    <div class="confirm-modal" style="max-width:380px;text-align:left;">
-      <h3 style="margin:0 0 6px;font-size:17px;">Enter your password</h3>
-      <p style="margin:0 0 16px;font-size:13px;color:var(--fg-3);">Confirms it's you before showing linked accounts.</p>
-      <div class="auth-field"><label for="linkedGatePw">Password</label><input id="linkedGatePw" type="password" autocomplete="current-password" /><span class="auth-err"></span></div>
-      <p class="auth-err" id="linkedGateErr" style="margin-top:6px;"></p>
-      <button class="btn btn-primary" id="linkedGateBtn" type="button" style="width:100%;margin-top:10px;"><span class="btn-label">Continue</span><span class="btn-spinner" hidden></span></button>
-      <button class="btn btn-ghost" id="linkedGateCancel" type="button" style="width:100%;margin-top:8px;">Cancel</button>
     </div>
   </div>
 
@@ -561,6 +554,6 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script src="/supabase-init.js?v=20260728d"></script>
   <script src="/site-gate.js?v=20260729a"></script>
-  <script src="/catalog.js?v=20260727f" data-then="/app.js?v=20260728g"></script>
+  <script src="/catalog.js?v=20260727f" data-then="/app.js?v=20260729a"></script>
 </body>
 </html>

@@ -1978,32 +1978,94 @@
       }
 
       var secVerified = false, linkedVerified = false;
+      // Returning from a Discord/Roblox re-auth redirect (see
+      // callback.html/roblox-callback.html's coldd_reauth_target
+      // handling) - mark the panel that asked as verified and show it,
+      // instead of leaving the visitor stuck on the locked view.
+      if (new URLSearchParams(location.search).get('verified') === '1') {
+        if (initialPanel === 'security') { secVerified = true; setTimeout(function () { if (typeof unlockSecurity === 'function') unlockSecurity(); }, 0); }
+        else if (initialPanel === 'linked') { linkedVerified = true; setTimeout(function () { if (typeof renderLinkedAccounts === 'function') renderLinkedAccounts(); }, 0); }
+      }
       var reauthOverlay = document.getElementById('reauthOverlay');
       var reauthPwView = document.getElementById('reauthPwView');
       var reauthOtpView = document.getElementById('reauthOtpView');
       var reauthErr = document.getElementById('reauthErr');
-      function openReauth(onVerified) {
-        if (!reauthOverlay) return;
-        reauthOverlay.hidden = false;
-        if (reauthPwView) reauthPwView.hidden = false;
+      var reauthChooseView = document.getElementById('reauthChooseView');
+      var reauthMethodsBox = document.getElementById('reauthMethods');
+
+      // Detects which of this account's actual sign-in methods can be
+      // used to re-verify - a Discord-only or Roblox-only account has no
+      // password at all, so a password-only gate would be a dead end.
+      function detectReauthMethods(user, cb) {
+        var identities = user.identities || [];
+        var hasEmail = identities.some(function (i) { return i.provider === 'email'; });
+        var hasDiscord = identities.some(function (i) { return i.provider === 'discord'; });
+        var emailDeliverable = !!user.email && !/@roblox\.coldd\.internal$/.test(user.email);
+        if (!window.coldAuth) { cb({ hasEmail: hasEmail, hasDiscord: hasDiscord, hasRoblox: false, emailDeliverable: emailDeliverable }); return; }
+        window.coldAuth.robloxLinkStatus().then(function (rres) {
+          cb({ hasEmail: hasEmail, hasDiscord: hasDiscord, hasRoblox: !!(rres && rres.linked), emailDeliverable: emailDeliverable });
+        }).catch(function () {
+          cb({ hasEmail: hasEmail, hasDiscord: hasDiscord, hasRoblox: false, emailDeliverable: emailDeliverable });
+        });
+      }
+      function showReauthChoose() {
+        if (reauthChooseView) reauthChooseView.hidden = false;
+        if (reauthPwView) reauthPwView.hidden = true;
         if (reauthOtpView) reauthOtpView.hidden = true;
         if (reauthErr) reauthErr.textContent = '';
-        var pwEl = document.getElementById('reauthPw'), otpEl = document.getElementById('reauthOtp');
-        if (pwEl) pwEl.value = ''; if (otpEl) otpEl.value = '';
+      }
+      function renderReauthMethods(methods) {
+        if (!reauthMethodsBox) return;
+        var html = '';
+        if (methods.hasDiscord) html += '<button class="btn btn-ghost reauth-method" data-method="discord" style="width:100%;margin-bottom:8px;">Verify with Discord</button>';
+        if (methods.hasRoblox) html += '<button class="btn btn-ghost reauth-method" data-method="roblox" style="width:100%;margin-bottom:8px;">Verify with Roblox</button>';
+        if (methods.hasEmail) html += '<button class="btn btn-ghost reauth-method" data-method="password" style="width:100%;margin-bottom:8px;">Verify with password</button>';
+        if (methods.emailDeliverable) html += '<button class="btn btn-ghost reauth-method" data-method="otp" style="width:100%;">Verify with email code</button>';
+        reauthMethodsBox.innerHTML = html || '<p class="auth-err">No verification method available - contact support.</p>';
+        reauthMethodsBox.querySelectorAll('.reauth-method').forEach(function (b) {
+          b.addEventListener('click', function () { chooseReauthMethod(b.getAttribute('data-method')); });
+        });
+      }
+      function chooseReauthMethod(method) {
+        if (method === 'discord' || method === 'roblox') {
+          try { sessionStorage.setItem('coldd_reauth_target', reauthOverlay._targetPanel || 'security'); } catch (e) {}
+          if (method === 'discord') window.coldAuth.signInDiscord(); else window.coldAuth.signInRoblox();
+          return;
+        }
+        if (method === 'password') {
+          if (reauthChooseView) reauthChooseView.hidden = true;
+          if (reauthPwView) reauthPwView.hidden = false;
+          var pwEl = document.getElementById('reauthPw'); if (pwEl) { pwEl.value = ''; pwEl.focus(); }
+          return;
+        }
+        if (method === 'otp') {
+          if (reauthChooseView) reauthChooseView.hidden = true;
+          if (reauthOtpView) reauthOtpView.hidden = false;
+          var otpEl = document.getElementById('reauthOtp'); if (otpEl) otpEl.value = '';
+          if (window.coldAuth) window.coldAuth.requestEmailOtp();
+        }
+      }
+      var reauthPwBack = document.getElementById('reauthPwBack');
+      if (reauthPwBack) reauthPwBack.addEventListener('click', showReauthChoose);
+      var reauthOtpBack = document.getElementById('reauthOtpBack');
+      if (reauthOtpBack) reauthOtpBack.addEventListener('click', showReauthChoose);
+
+      function openReauth(targetPanel, onVerified) {
+        if (!reauthOverlay) return;
+        reauthOverlay.hidden = false;
         reauthOverlay._onVerified = onVerified;
+        reauthOverlay._targetPanel = targetPanel;
+        showReauthChoose();
+        if (reauthMethodsBox) reauthMethodsBox.innerHTML = 'Loading…';
+        currentUser(function (user) {
+          if (!user) { if (reauthMethodsBox) reauthMethodsBox.innerHTML = '<p class="auth-err">Could not load your account.</p>'; return; }
+          detectReauthMethods(user, renderReauthMethods);
+        });
       }
       function closeReauth() { if (reauthOverlay) reauthOverlay.hidden = true; }
       var reauthCancel = document.getElementById('reauthCancel');
       if (reauthCancel) reauthCancel.addEventListener('click', closeReauth);
       if (reauthOverlay) reauthOverlay.addEventListener('click', function (e) { if (e.target === reauthOverlay) closeReauth(); });
-
-      var reauthUseEmail = document.getElementById('reauthUseEmail');
-      if (reauthUseEmail) reauthUseEmail.addEventListener('click', function () {
-        if (reauthPwView) reauthPwView.hidden = true;
-        if (reauthOtpView) reauthOtpView.hidden = false;
-        if (reauthErr) reauthErr.textContent = '';
-        if (window.coldAuth) window.coldAuth.requestEmailOtp();
-      });
 
       var reauthPwBtn = document.getElementById('reauthPwBtn');
       if (reauthPwBtn) reauthPwBtn.addEventListener('click', function () {
@@ -2048,7 +2110,7 @@
         });
       }
       var secVerifyBtn = document.getElementById('secVerifyBtn');
-      if (secVerifyBtn) secVerifyBtn.addEventListener('click', function () { openReauth(unlockSecurity); });
+      if (secVerifyBtn) secVerifyBtn.addEventListener('click', function () { openReauth('security', unlockSecurity); });
 
       var secEmailForm = document.getElementById('secEmailForm');
       if (secEmailForm) secEmailForm.addEventListener('submit', function (e) {
@@ -2121,34 +2183,9 @@
       // email (Google was never actually implemented anywhere in this
       // codebase - only these three real auth methods exist).
       // ================================================================
-      var linkedGateOverlay = document.getElementById('linkedGateOverlay');
-      var linkedGateCancel = document.getElementById('linkedGateCancel');
-      if (linkedGateCancel && linkedGateOverlay) linkedGateCancel.addEventListener('click', function () { linkedGateOverlay.hidden = true; });
-      if (linkedGateOverlay) linkedGateOverlay.addEventListener('click', function (e) { if (e.target === linkedGateOverlay) linkedGateOverlay.hidden = true; });
-
       var linkedVerifyBtn = document.getElementById('linkedVerifyBtn');
-      if (linkedVerifyBtn && linkedGateOverlay) linkedVerifyBtn.addEventListener('click', function () {
-        linkedGateOverlay.hidden = false;
-        document.getElementById('linkedGatePw').value = '';
-        document.getElementById('linkedGateErr').textContent = '';
-      });
-
-      var linkedGateBtn = document.getElementById('linkedGateBtn');
-      if (linkedGateBtn) linkedGateBtn.addEventListener('click', function () {
-        var pw = document.getElementById('linkedGatePw').value;
-        var errEl = document.getElementById('linkedGateErr');
-        if (!pw) { errEl.textContent = 'Enter your password.'; return; }
-        setBtnLoading(linkedGateBtn, true);
-        currentUser(function (user) {
-          if (!user || !user.email) { setBtnLoading(linkedGateBtn, false); errEl.textContent = 'Could not verify.'; return; }
-          window.coldSupabase.auth.signInWithPassword({ email: user.email, password: pw }).then(function (res) {
-            setBtnLoading(linkedGateBtn, false);
-            if (res.error) { errEl.textContent = 'Incorrect password.'; return; }
-            linkedGateOverlay.hidden = true;
-            linkedVerified = true;
-            renderLinkedAccounts();
-          });
-        });
+      if (linkedVerifyBtn) linkedVerifyBtn.addEventListener('click', function () {
+        openReauth('linked', function () { linkedVerified = true; renderLinkedAccounts(); });
       });
 
       function renderLinkedAccounts() {

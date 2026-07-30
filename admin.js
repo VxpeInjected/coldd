@@ -704,10 +704,17 @@
   }
   // Real USD and real Robux totals (not the USD-equivalent record-keeping
   // figure robux orders also carry) - for revenue stat tiles, not display
-  // of any single order's actual charge.
+  // of any single order's actual charge. Only source==='website' (the
+  // actual on-site checkout flow) - synthetic 'parcel'/'robux' orders
+  // created by roblox-group-revenue-sync represent the exact same Roblox
+  // transactions already totaled via the ledger (GROUP_TRANSACTIONS), so
+  // counting them here too would double-count real revenue.
   function websiteRevenue(list) {
     var usdTotal = 0, robuxTotal = 0;
-    list.forEach(function (o) { if (o.currency === 'robux') robuxTotal += o.totalRobux; else usdTotal += o.total; });
+    list.forEach(function (o) {
+      if (o.source && o.source !== 'website') return;
+      if (o.currency === 'robux') robuxTotal += o.totalRobux; else usdTotal += o.total;
+    });
     return { usd: usdTotal, robux: robuxTotal };
   }
   // Real, lifetime-cumulative totals from the Roblox group transaction

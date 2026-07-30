@@ -32,12 +32,16 @@ end $$;
 -- admin-upsert-roblox-container / admin-upsert-product (service role).
 
 -- Atomic increment so two concurrent product creations can't both read
--- the same gamepass_count and overshoot the 50-per-universe limit.
+-- the same gamepass_count and overshoot the 50-per-universe limit - the
+-- WHERE gamepass_count < 50 makes the increment itself conditional, not
+-- just the earlier pickContainer() read.
 create or replace function public.increment_roblox_container(p_id uuid)
 returns void
 language sql
 security definer
 set search_path = public
 as $$
-  update public.roblox_containers set gamepass_count = gamepass_count + 1 where id = p_id;
+  update public.roblox_containers
+  set gamepass_count = gamepass_count + 1
+  where id = p_id and gamepass_count < 50;
 $$;

@@ -77,10 +77,24 @@ Deno.serve(async (req: Request) => {
     let stop = false;
     let pages = 0;
 
+    const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
     while (!stop && pages < MAX_PAGES) {
       let url = `https://economy.roblox.com/v2/groups/${groupId}/transactions?transactionType=Sale&limit=100&sortOrder=Desc`;
       if (cursor) url += `&cursor=${encodeURIComponent(cursor)}`;
-      const res = await fetch(url, { headers: { Cookie: `.ROBLOSECURITY=${cookie}` } });
+
+      // Roblox's economy API is tightly rate-limited - back off and retry
+      // on 429 instead of failing the whole sync (this endpoint can return
+      // dozens of pages on the first bootstrap run).
+      let res: Response;
+      let attempt = 0;
+      for (;;) {
+        res = await fetch(url, { headers: { Cookie: `.ROBLOSECURITY=${cookie}` } });
+        if (res.status !== 429 || attempt >= 5) break;
+        attempt++;
+        await sleep(1000 * attempt);
+      }
+
       if (res.status === 401 || res.status === 403) {
         await notifyRobloxCookieBroken(`Group revenue sync got HTTP ${res.status} - the fallback cookie is likely expired.`);
         return json({ ok: false, error: "Fallback cookie rejected." }, 502);
@@ -119,6 +133,7 @@ Deno.serve(async (req: Request) => {
       cursor = data.nextPageCursor || undefined;
       pages++;
       if (!cursor) break;
+      await sleep(400);
     }
 
     await admin.from("roblox_group_revenue").upsert({

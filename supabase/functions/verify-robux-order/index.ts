@@ -101,13 +101,16 @@ Deno.serve(async (req: Request) => {
     // orders for a gamepass they already own. Only the first order for a
     // given (buyer, product) may be auto-confirmed via inventory; later
     // ones fall through to the group-transaction fallback (which checks
-    // actual per-sale records) or manual admin review.
+    // actual per-sale records) or manual admin review. This must match
+    // ANY prior paid order regardless of how it was verified - excluding
+    // group_transaction-verified orders here would let a buyer re-claim
+    // the same already-owned gamepass for free on every order after the
+    // first one that happened to go through the fallback path.
     const { data: priorPaid } = await admin
       .from("orders")
       .select("id, order_items(product_id)")
       .eq("roblox_buyer_id", buyerId)
       .eq("status", "paid")
-      .eq("roblox_verification_method", "inventory")
       .neq("id", orderId);
     const alreadyClaimedProductIds = new Set<string>();
     // deno-lint-ignore no-explicit-any

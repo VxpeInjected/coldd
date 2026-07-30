@@ -178,14 +178,20 @@ Deno.serve(async (req: Request) => {
 
     // Rollup is always a fresh SUM() over the ledger, never a running
     // counter - so it's correct regardless of how much overlap occurred.
-    // Uses a database-side aggregate (not a plain .select() pulled into
-    // JS) specifically because PostgREST caps a plain row select at 1000
-    // rows by default - once the ledger grew past that, a JS-side sum
-    // over the truncated result silently under-counted.
-    const { data: totalRow } = await admin.from("roblox_group_transactions").select("sum:amount.sum()").single();
-    const { data: parcelRow } = await admin.from("roblox_group_transactions").select("sum:amount.sum()").eq("is_parcel", true).single();
-    const totalRobux = Number(totalRow?.sum || 0);
-    const parcelRobux = Number(parcelRow?.sum || 0);
+    // Explicit .limit() override because PostgREST caps a plain row
+    // select at 1000 rows by default - a prior version of this query hit
+    // that cap once the ledger grew past 1000 rows and silently summed
+    // only a partial slice. (A database-side amount.sum() aggregate would
+    // avoid the cap issue entirely, but errored silently on this project -
+    // likely unsupported/disabled here - and produced 0. Sticking with a
+    // plain row pull plus a generous limit is more broadly compatible.)
+    const { data: rollup, error: rollupErr } = await admin
+      .from("roblox_group_transactions")
+      .select("amount, is_parcel")
+      .limit(200000);
+    if (rollupErr) console.error("[roblox-group-revenue-sync] rollup query failed:", rollupErr.message);
+    const totalRobux = (rollup || []).reduce((s: number, r: { amount: number }) => s + Number(r.amount || 0), 0);
+    const parcelRobux = (rollup || []).reduce((s: number, r: { amount: number; is_parcel: boolean }) => s + (r.is_parcel ? Number(r.amount || 0) : 0), 0);
 
     const complete = reachedEnd || stop;
     await admin.from("roblox_group_revenue").upsert({

@@ -85,6 +85,8 @@ Deno.serve(async (req: Request) => {
 
     // deno-lint-ignore no-explicit-any
     const ledgerRows: any[] = [];
+    // deno-lint-ignore no-explicit-any
+    const debugSample: any[] = [];
     let newestId: string | null = null;
     let cursor: string | undefined = state?.resume_cursor || undefined;
     let stop = false;
@@ -135,6 +137,7 @@ Deno.serve(async (req: Request) => {
         const txId = String(row.id);
         if (txId === lastSeenId) { stop = true; break; }
         if (!newestId) newestId = txId;
+        if (debugSample.length < 3) debugSample.push(row);
 
         const placeId = row.details?.place?.id != null ? String(row.details.place.id) : null;
         ledgerRows.push({
@@ -210,10 +213,11 @@ Deno.serve(async (req: Request) => {
         partial: true,
         totalRobux, parcelRobux, newParcelOrders: createdOrders, pagesScanned: pages,
         error: "Rate limited by Roblox after " + pages + " page(s) - progress saved. Click Sync again in a minute to continue.",
+        debugSample,
       });
     }
 
-    return json({ ok: true, totalRobux, parcelRobux, newParcelOrders: createdOrders, pagesScanned: pages });
+    return json({ ok: true, totalRobux, parcelRobux, newParcelOrders: createdOrders, pagesScanned: pages, debugSample });
   } catch (err) {
     console.error("[roblox-group-revenue-sync] error:", err);
     return json({ ok: false, error: "Server error." }, 500);

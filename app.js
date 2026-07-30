@@ -1561,6 +1561,7 @@
           pv.hidden = false;
           var q = (location.search.match(/[?&]id=([^&]+)/) || [])[1];
           render(q ? decodeURIComponent(q) : '');
+          if (/[?&]tab=reviews\b/.test(location.search)) showTab('reviews');
         }
       })();
 
@@ -1666,17 +1667,11 @@
         panels.forEach(function (p) { p.hidden = (p.id !== 'panel-' + name); });
         dash.querySelectorAll('.dash-nav a').forEach(function (a) { a.classList.toggle('active', a.getAttribute('data-panel') === name); });
         if (name === 'wishlist' && typeof renderWishlist === 'function') renderWishlist();
-        if (name === 'security') {
+        if (name === 'account') {
           var secLocked = document.getElementById('secLocked'), secUnlocked = document.getElementById('secUnlocked');
           if (secLocked) secLocked.hidden = !!secVerified;
           if (secUnlocked) secUnlocked.hidden = !secVerified;
           if (secVerified && typeof unlockSecurity === 'function') unlockSecurity();
-        }
-        if (name === 'linked') {
-          var linkedLockedEl = document.getElementById('linkedLocked'), linkedUnlockedEl = document.getElementById('linkedUnlocked');
-          if (linkedLockedEl) linkedLockedEl.hidden = !!linkedVerified;
-          if (linkedUnlockedEl) linkedUnlockedEl.hidden = !linkedVerified;
-          if (linkedVerified && typeof renderLinkedAccounts === 'function') renderLinkedAccounts();
         }
         if (name === 'referrals' && typeof refreshReferrals === 'function') refreshReferrals();
       }
@@ -1707,6 +1702,20 @@
             '<div class="dr-actions"><button class="btn btn-ghost dr-cart" type="button">Add to cart</button><button class="wl-remove" type="button" aria-label="Remove">×</button></div></div>';
         }).join('');
       }
+      // Overview-page preview box (capped, view-only) - mirrors the
+      // "Recent purchases" card's look for the initial dashboard page.
+      function renderWishlistPreview() {
+        var el = document.getElementById('dashWishlistPreview');
+        if (!el) return;
+        var ids = wishIds().slice(0, 3);
+        var cat = window.__CATALOG || [];
+        var items = ids.map(function (id) { return cat.filter(function (p) { return p.id === id; })[0]; }).filter(Boolean);
+        el.innerHTML = items.length ? items.map(function (p) {
+          return '<div class="dash-row"><span class="dr-thumb" style="background-image:url(\'' + p.image + '\')"></span>' +
+            '<div class="dr-main"><div class="dr-title">' + p.title + '</div><div class="dr-sub"><span class="p-price" data-usd="' + p.priceNum + '">' + (window.__money ? window.__money(p.priceNum) : ('$' + p.priceNum)) + '</span></div></div>' +
+            '<div class="dr-actions"><a class="btn btn-ghost dr-btn" href="/product?id=' + encodeURIComponent(p.id) + '">View</a></div></div>';
+        }).join('') : '<p class="dash-empty-note">Nothing saved yet - tap the heart on any product to add it here.</p>';
+      }
       var wishlistRows = document.getElementById('dashWishlistRows');
       if (wishlistRows) wishlistRows.addEventListener('click', function (e) {
         var row = e.target.closest('.dash-row'); if (!row) return;
@@ -1715,8 +1724,6 @@
         if (e.target.closest('.wl-remove')) {
           saveWishIds(wishIds().filter(function (x) { return x !== id; }));
           renderWishlist();
-          var statWishlist = document.getElementById('dashStatWishlist');
-          if (statWishlist) statWishlist.textContent = wishIds().length;
         } else if (e.target.closest('.dr-cart') && p) {
           if (window.__cartAdd) window.__cartAdd({ id: p.id, title: p.title, price: p.priceNum, image: p.image, tag: p.cat || '' });
           var btn = e.target.closest('.dr-cart');
@@ -1772,34 +1779,29 @@
       }
 
       function renderOverview(orders) {
-        var paid = orders.filter(function (o) { return o.status === 'paid'; });
-        var usdTotal = paid.filter(function (o) { return o.currency !== 'robux'; }).reduce(function (s, o) { return s + (Number(o.total_usd) || 0); }, 0);
-        var robuxTotal = paid.filter(function (o) { return o.currency === 'robux'; }).reduce(function (s, o) { return s + (Number(o.total_robux) || 0); }, 0);
-        var statUsd = document.getElementById('dashStatUsd');
-        var statRobux = document.getElementById('dashStatRobux');
-        var statOwned = document.getElementById('dashStatOwned');
-        var statWishlist = document.getElementById('dashStatWishlist');
-        if (statUsd) statUsd.textContent = window.__usd ? window.__usd(usdTotal) : ('$' + usdTotal.toFixed(2));
-        if (statRobux) statRobux.textContent = 'R$ ' + Math.round(robuxTotal).toLocaleString('en-US');
-        if (statOwned) statOwned.textContent = ownedFromOrders(orders).length;
-        if (statWishlist) {
-          var wish = [];
-          try { wish = JSON.parse(localStorage.getItem('coldd_wish_v1') || '[]') || []; } catch (e) {}
-          statWishlist.textContent = wish.length;
-        }
-
         var recentEl = document.getElementById('dashRecentPurchases');
         if (recentEl) {
           var recent = orders.slice(0, 3);
           recentEl.innerHTML = recent.length ? recent.map(function (o) {
             var items = o.order_items || [];
-            var img = (items[0] && items[0].products && items[0].products.image) ? window.imgUrl(items[0].products.image) : '/banner.jpg';
+            var first = items[0];
+            var slug = first ? first.product_slug : '';
+            var img = (first && first.products && first.products.image) ? window.imgUrl(first.products.image) : '/banner.jpg';
             var titles = items.map(function (i) { return i.title; }).join(', ') || '—';
+            var actions = slug ? '<a class="btn btn-ghost dr-btn" href="/product?id=' + encodeURIComponent(slug) + '">View</a>' : '';
+            if (slug && o.status === 'paid') {
+              actions += '<button class="btn btn-ghost dr-btn dr-download" type="button" data-slug="' + slug + '">Download</button>' +
+                '<a class="btn btn-ghost dr-btn" href="/product?id=' + encodeURIComponent(slug) + '&tab=reviews">Review</a>';
+            }
             return '<div class="dash-row"><span class="dr-thumb" style="background-image:url(\'' + img + '\')"></span>' +
               '<div class="dr-main"><div class="dr-title">' + titles + '</div><div class="dr-sub">' + fmtDate(o.created_at) + ' · ' + shortOrderId(o.id) + '</div></div>' +
-              '<span class="p-price">' + orderMoney(o) + '</span></div>';
+              '<span class="p-price">' + orderMoney(o) + '</span>' +
+              '<div class="dr-actions">' + actions + '</div></div>';
           }).join('') : '<p class="dash-empty-note">No purchases yet.</p>';
         }
+
+        var wishEl = document.getElementById('dashWishlistPreview');
+        if (wishEl && typeof renderWishlistPreview === 'function') renderWishlistPreview();
       }
 
       function ownedFromOrders(orders) {
@@ -1814,56 +1816,48 @@
         return Object.keys(bySlug).map(function (slug) { return bySlug[slug]; });
       }
 
+      function requestDownload(slug, btn) {
+        var prev = btn.textContent;
+        btn.disabled = true; btn.textContent = 'Preparing…';
+        (window.coldAuth ? window.coldAuth.invokeFn('get-download-url', { slug: slug }) :
+          window.coldSupabase.functions.invoke('get-download-url', { body: { slug: slug } }).then(function (res) {
+            if (res.error || !res.data || !res.data.ok) throw new Error((res.data && res.data.error) || 'Unavailable');
+            return res.data;
+          }))
+          .then(function (data) { window.open(data.url, '_blank', 'noopener'); btn.disabled = false; btn.textContent = prev; })
+          .catch(function (err) { btn.textContent = (err && err.message) || 'Unavailable'; });
+      }
       function downloadBtn(item, cls) {
         var btn = document.createElement('button');
         btn.type = 'button'; btn.className = cls; btn.textContent = 'Download';
-        btn.addEventListener('click', function () {
-          var prev = btn.textContent;
-          btn.disabled = true; btn.textContent = 'Preparing…';
-          (window.coldAuth ? window.coldAuth.invokeFn('get-download-url', { slug: item.product_slug }) :
-            window.coldSupabase.functions.invoke('get-download-url', { body: { slug: item.product_slug } }).then(function (res) {
-              if (res.error || !res.data || !res.data.ok) throw new Error((res.data && res.data.error) || 'Unavailable');
-              return res.data;
-            }))
-            .then(function (data) { window.open(data.url, '_blank', 'noopener'); btn.disabled = false; btn.textContent = prev; })
-            .catch(function (err) { btn.textContent = (err && err.message) || 'Unavailable'; });
-        });
+        btn.addEventListener('click', function () { requestDownload(item.product_slug, btn); });
         return btn;
       }
 
       function renderOwnedAndDownloads(orders) {
         var owned = ownedFromOrders(orders);
         var grid = document.getElementById('dashOwnedGrid');
-        var list = document.getElementById('dashDownloadsList');
-
-        if (grid) {
-          grid.innerHTML = '';
-          if (!owned.length) grid.innerHTML = '<p class="dash-empty-note">You don\'t own any products yet.</p>';
-          else owned.forEach(function (item) {
-            var img = item.products && item.products.image ? window.imgUrl(item.products.image) : '/banner.jpg';
-            var card = document.createElement('div'); card.className = 'dash-prod glass';
-            card.innerHTML = '<div class="dp-thumb" style="background-image:url(\'' + img + '\')"></div>' +
-              '<div class="dp-body"><div class="dp-name"></div><span class="dp-lic"></span></div>';
-            card.querySelector('.dp-name').textContent = item.title;
-            card.querySelector('.dp-lic').textContent = item.licence === 'resell' ? 'Resell licence' : 'Standard licence';
-            card.querySelector('.dp-body').appendChild(downloadBtn(item, 'btn btn-ghost dp-btn'));
-            grid.appendChild(card);
-          });
-        }
-
-        if (list) {
-          list.innerHTML = '';
-          if (!owned.length) list.innerHTML = '<p class="dash-empty-note">Nothing to download yet — your purchases will appear here.</p>';
-          else owned.forEach(function (item) {
-            var card = document.createElement('div'); card.className = 'dash-card glass dl-item';
-            card.innerHTML = '<div class="dl-top"><div class="dl-info"><div class="dl-name"></div><div class="dl-meta"></div></div></div>';
-            card.querySelector('.dl-name').textContent = item.title;
-            card.querySelector('.dl-meta').textContent = item.licence === 'resell' ? 'Resell licence' : 'Standard licence';
-            card.querySelector('.dl-top').appendChild(downloadBtn(item, 'btn btn-primary dl-get'));
-            list.appendChild(card);
-          });
-        }
+        if (!grid) return;
+        grid.innerHTML = '';
+        if (!owned.length) grid.innerHTML = '<p class="dash-empty-note">You don\'t own any products yet.</p>';
+        else owned.forEach(function (item) {
+          var img = item.products && item.products.image ? window.imgUrl(item.products.image) : '/banner.jpg';
+          var card = document.createElement('div'); card.className = 'dash-prod glass';
+          card.innerHTML = '<div class="dp-thumb" style="background-image:url(\'' + img + '\')"></div>' +
+            '<div class="dp-body"><div class="dp-name"></div><span class="dp-lic"></span></div>';
+          card.querySelector('.dp-name').textContent = item.title;
+          card.querySelector('.dp-lic').textContent = item.licence === 'resell' ? 'Resell licence' : 'Standard licence';
+          card.querySelector('.dp-body').appendChild(downloadBtn(item, 'btn btn-ghost dp-btn'));
+          grid.appendChild(card);
+        });
       }
+
+      var dashRecentPurchasesEl = document.getElementById('dashRecentPurchases');
+      if (dashRecentPurchasesEl) dashRecentPurchasesEl.addEventListener('click', function (e) {
+        var btn = e.target.closest('.dr-download');
+        if (!btn) return;
+        requestDownload(btn.getAttribute('data-slug'), btn);
+      });
 
       function loadRealData(userId) {
         window.coldSupabase
@@ -2182,14 +2176,14 @@
         return met === 5;
       }
 
-      var secVerified = false, linkedVerified = false;
+      var secVerified = false;
       // Returning from a Discord/Roblox re-auth redirect (see
       // callback.html/roblox-callback.html's coldd_reauth_target
       // handling) - mark the panel that asked as verified and show it,
       // instead of leaving the visitor stuck on the locked view.
-      if (new URLSearchParams(location.search).get('verified') === '1') {
-        if (initialPanel === 'security') { secVerified = true; setTimeout(function () { if (typeof unlockSecurity === 'function') unlockSecurity(); }, 0); }
-        else if (initialPanel === 'linked') { linkedVerified = true; setTimeout(function () { if (typeof renderLinkedAccounts === 'function') renderLinkedAccounts(); }, 0); }
+      if (new URLSearchParams(location.search).get('verified') === '1' && initialPanel === 'account') {
+        secVerified = true;
+        setTimeout(function () { if (typeof unlockSecurity === 'function') unlockSecurity(); }, 0);
       }
       var reauthOverlay = document.getElementById('reauthOverlay');
       var reauthPwView = document.getElementById('reauthPwView');
@@ -2233,7 +2227,7 @@
       }
       function chooseReauthMethod(method) {
         if (method === 'discord' || method === 'roblox') {
-          try { sessionStorage.setItem('coldd_reauth_target', reauthOverlay._targetPanel || 'security'); } catch (e) {}
+          try { sessionStorage.setItem('coldd_reauth_target', reauthOverlay._targetPanel || 'account'); } catch (e) {}
           if (method === 'discord') window.coldAuth.signInDiscord(); else window.coldAuth.signInRoblox();
           return;
         }
@@ -2313,9 +2307,10 @@
           var emailInput = document.getElementById('sec-email');
           if (emailInput && user) emailInput.value = user.email || '';
         });
+        if (typeof renderLinkedAccounts === 'function') renderLinkedAccounts();
       }
       var secVerifyBtn = document.getElementById('secVerifyBtn');
-      if (secVerifyBtn) secVerifyBtn.addEventListener('click', function () { openReauth('security', unlockSecurity); });
+      if (secVerifyBtn) secVerifyBtn.addEventListener('click', function () { openReauth('account', unlockSecurity); });
 
       var secEmailForm = document.getElementById('secEmailForm');
       if (secEmailForm) secEmailForm.addEventListener('submit', function (e) {
@@ -2384,19 +2379,12 @@
       });
 
       // ================================================================
-      // LINKED ACCOUNTS TAB - password-gated, link/unlink Discord/Roblox/
-      // email (Google was never actually implemented anywhere in this
-      // codebase - only these three real auth methods exist).
+      // LINKED ACCOUNTS - part of the merged Account Settings gate above
+      // (secVerified/unlockSecurity) - link/unlink Discord/Roblox/email
+      // (Google was never actually implemented anywhere in this codebase -
+      // only these three real auth methods exist).
       // ================================================================
-      var linkedVerifyBtn = document.getElementById('linkedVerifyBtn');
-      if (linkedVerifyBtn) linkedVerifyBtn.addEventListener('click', function () {
-        openReauth('linked', function () { linkedVerified = true; renderLinkedAccounts(); });
-      });
-
       function renderLinkedAccounts() {
-        var locked = document.getElementById('linkedLocked'), unlocked = document.getElementById('linkedUnlocked');
-        if (locked) locked.hidden = true;
-        if (unlocked) unlocked.hidden = false;
         currentUser(function (user) {
           if (!user) return;
           var identities = user.identities || [];
@@ -2430,7 +2418,7 @@
                 });
               } else {
                 dBtn.disabled = true;
-                window.coldSupabase.auth.linkIdentity({ provider: 'discord', options: { redirectTo: location.origin + '/dashboard?panel=linked' } }).then(function (lres) {
+                window.coldSupabase.auth.linkIdentity({ provider: 'discord', options: { redirectTo: location.origin + '/dashboard?panel=account' } }).then(function (lres) {
                   dBtn.disabled = false;
                   if (lres && lres.error && errEl) errEl.textContent = lres.error.message || 'Could not link Discord.';
                 }).catch(function (err) {

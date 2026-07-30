@@ -131,7 +131,7 @@
   }
   function refreshUsers() {
     if (!window.coldSupabase) return Promise.resolve();
-    return window.coldSupabase.from('profiles').select('*').order('created_at', { ascending: false }).then(function (res) {
+    return window.coldSupabase.from('profiles').select('*').order('created_at', { ascending: false }).limit(20000).then(function (res) {
       if (res.error) { console.error('[admin] failed to load users:', res.error.message); return; }
       USERS = (res.data || []).map(mapProfileRow);
       if (curPanel === 'users') renderUsers();
@@ -204,11 +204,11 @@
   var REFERRALS = [];
   function refreshAdminReferrals() {
     if (!window.coldSupabase) return Promise.resolve();
-    return window.coldSupabase.from('profiles').select('id, username, email, referral_code, referral_clicks, referred_by').then(function (res) {
+    return window.coldSupabase.from('profiles').select('id, username, email, referral_code, referral_clicks, referred_by').limit(20000).then(function (res) {
       if (res.error) { console.error('[admin] failed to load referrals:', res.error.message); return; }
       var rows = res.data || [];
       var referrers = rows.filter(function (p) { return p.referral_code; });
-      return window.coldSupabase.from('referral_payouts').select('user_id, amount_usd, status').then(function (payRes) {
+      return window.coldSupabase.from('referral_payouts').select('user_id, amount_usd, status').limit(20000).then(function (payRes) {
         var paidByUser = {};
         (payRes.data || []).forEach(function (pay) {
           if (pay.status !== 'paid') return;
@@ -241,7 +241,7 @@
   var PAYOUTS = [];
   function refreshPayouts() {
     if (!window.coldSupabase) return Promise.resolve();
-    return window.coldSupabase.from('referral_payouts').select('*').order('requested_at', { ascending: false }).then(function (res) {
+    return window.coldSupabase.from('referral_payouts').select('*').order('requested_at', { ascending: false }).limit(20000).then(function (res) {
       if (res.error) { console.error('[admin] failed to load payouts:', res.error.message); return; }
       var rows = res.data || [];
       var userIds = rows.map(function (p) { return p.user_id; }).filter(function (v, i, arr) { return v && arr.indexOf(v) === i; });
@@ -339,7 +339,7 @@
   }
   function refreshOrders() {
     if (!window.coldSupabase) return Promise.resolve();
-    return window.coldSupabase.from('orders').select('*, order_items(*)').order('created_at', { ascending: false }).then(function (res) {
+    return window.coldSupabase.from('orders').select('*, order_items(*)').order('created_at', { ascending: false }).limit(20000).then(function (res) {
       if (res.error) { console.error('[admin] failed to load orders:', res.error.message); return; }
       var rows = res.data || [];
       var userIds = rows.map(function (o) { return o.user_id; }).filter(function (v, i, arr) { return v && arr.indexOf(v) === i; });
@@ -382,7 +382,7 @@
   }
   function refreshReviews() {
     if (!window.coldSupabase) return Promise.resolve();
-    return window.coldSupabase.from('reviews').select('*, products(title, slug)').order('created_at', { ascending: false }).then(function (res) {
+    return window.coldSupabase.from('reviews').select('*, products(title, slug)').order('created_at', { ascending: false }).limit(20000).then(function (res) {
       if (res.error) { console.error('[admin] failed to load reviews:', res.error.message); return; }
       var rows = res.data || [];
       var userIds = rows.map(function (r) { return r.user_id; }).filter(function (v, i, arr) { return v && arr.indexOf(v) === i; });
@@ -413,7 +413,7 @@
   function refreshTraffic() {
     if (!window.coldSupabase) return Promise.resolve();
     var cutoff = daysAgo(119).toISOString();
-    return window.coldSupabase.from('page_views').select('session_id, created_at').gte('created_at', cutoff).then(function (res) {
+    return window.coldSupabase.from('page_views').select('session_id, created_at').gte('created_at', cutoff).limit(50000).then(function (res) {
       if (res.error) { console.error('[admin] failed to load traffic:', res.error.message); return; }
       var byDay = {};
       (res.data || []).forEach(function (row) {
@@ -439,7 +439,7 @@
   function refreshLiveSessions() {
     if (!window.coldSupabase) return Promise.resolve();
     var cutoff = new Date(Date.now() - 5 * 60 * 1000).toISOString();
-    return window.coldSupabase.from('page_views').select('session_id').gte('created_at', cutoff).then(function (res) {
+    return window.coldSupabase.from('page_views').select('session_id').gte('created_at', cutoff).limit(20000).then(function (res) {
       if (res.error) { console.error('[admin] failed to load live sessions:', res.error.message); return; }
       var set = {}; (res.data || []).forEach(function (r) { set[r.session_id] = true; });
       LIVE_SESSIONS = Object.keys(set).length;
@@ -464,7 +464,7 @@
   var ABANDONED = [];
   function refreshAbandoned() {
     if (!window.coldSupabase) return Promise.resolve();
-    return window.coldSupabase.from('cart_snapshots').select('*').order('updated_at', { ascending: false }).then(function (res) {
+    return window.coldSupabase.from('cart_snapshots').select('*').order('updated_at', { ascending: false }).limit(20000).then(function (res) {
       if (res.error) { console.error('[admin] failed to load abandoned carts:', res.error.message); return; }
       ABANDONED = (res.data || []).map(function (row) {
         var items = row.items || [];

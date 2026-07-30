@@ -116,15 +116,16 @@
   var dataThenAttr = (thisScript && thisScript.getAttribute('data-then')) || '';
   var needsContent = dataThenAttr.indexOf('blog.js') >= 0;
   var contentTypes = needsContent ? ['post', 'tutorial', 'release', 'sale_event'] : ['sale_event'];
-  var contentQuery = window.coldSupabase.from('content').select('*').in('type', contentTypes).eq('visible', true).order('created_at', { ascending: false });
+  var contentQuery = window.coldSupabase.from('content').select('*').in('type', contentTypes).eq('visible', true).order('created_at', { ascending: false }).limit(20000);
 
   Promise.all([
-    window.coldSupabase.from('products').select('*').eq('is_active', true),
+    window.coldSupabase.from('products').select('*').eq('is_active', true).limit(20000),
     window.coldSupabase
       .from('reviews')
       .select('id, stars, text, created_at, reply, reply_at, user_name, products!inner(slug)')
       .eq('status', 'approved')
-      .order('created_at', { ascending: false }),
+      .order('created_at', { ascending: false })
+      .limit(20000),
     contentQuery
   ])
     .then(function (results) {

@@ -1963,6 +1963,7 @@
         try { return new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }); }
         catch (e) { return iso; }
       }
+      function refEsc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
       function refreshReferrals() {
         if (refLoaded || !window.coldAuth) return;
         refLoaded = true;
@@ -1990,7 +1991,7 @@
             var rows = res.recentReferrals || [];
             actBody.innerHTML = rows.length ? rows.map(function (r) {
               var status = r.converted ? '<span class="dt-badge ok">Converted</span>' : '<span class="dt-badge warn">Signed up</span>';
-              return '<tr><td>' + r.name + '</td><td>' + refFmtDate(r.date) + '</td><td>' + status + '</td><td>' + (r.earned ? refFmtUsd(r.earned) : '') + '</td></tr>';
+              return '<tr><td>' + refEsc(r.name) + '</td><td>' + refFmtDate(r.date) + '</td><td>' + status + '</td><td>' + (r.earned ? refFmtUsd(r.earned) : '') + '</td></tr>';
             }).join('') : '<tr><td colspan="4" class="adm-empty">No referrals yet.</td></tr>';
           }
 

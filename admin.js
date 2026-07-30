@@ -704,69 +704,11 @@
   }
   // Real USD and real Robux totals (not the USD-equivalent record-keeping
   // figure robux orders also carry) - for revenue stat tiles, not display
-  // of any single order's actual charge. Only source==='website' (the
-  // actual on-site checkout flow) - synthetic 'parcel'/'robux' orders
-  // created by roblox-group-revenue-sync represent the exact same Roblox
-  // transactions already totaled via the ledger (GROUP_TRANSACTIONS), so
-  // counting them here too would double-count real revenue.
+  // of any single order's actual charge.
   function websiteRevenue(list) {
     var usdTotal = 0, robuxTotal = 0;
-    list.forEach(function (o) {
-      if (o.source && o.source !== 'website') return;
-      if (o.currency === 'robux') robuxTotal += o.totalRobux; else usdTotal += o.total;
-    });
+    list.forEach(function (o) { if (o.currency === 'robux') robuxTotal += o.totalRobux; else usdTotal += o.total; });
     return { usd: usdTotal, robux: robuxTotal };
-  }
-  // Real, lifetime-cumulative totals from the Roblox group transaction
-  // ledger (roblox-group-revenue-sync, synced every 15 min via cron or a
-  // manual "Sync now"). This is a superset of our own tracked website
-  // orders (same group, same buyers) - falls back to the website-tracked
-  // figure until the first sync has run.
-  var GROUP_REVENUE = { robux: 0, parcelRobux: 0, syncedAt: null };
-  // Individual transactions (real timestamps), so the date-range selector
-  // can filter Robux revenue instead of only ever showing the all-time
-  // total. Empty until the ledger table + its admin read policy exist.
-  var GROUP_TRANSACTIONS = [];
-  function refreshGroupRevenue() {
-    if (!window.coldSupabase) return Promise.resolve();
-    return window.coldSupabase.from('roblox_group_revenue').select('*').eq('id', true).maybeSingle().then(function (res) {
-      if (res.error || !res.data) return;
-      GROUP_REVENUE.robux = Number(res.data.total_robux) || 0;
-      GROUP_REVENUE.parcelRobux = Number(res.data.parcel_robux) || 0;
-      GROUP_REVENUE.syncedAt = res.data.updated_at;
-      if (curPanel === 'home') renderHome();
-      if (curPanel === 'analytics') renderAnalytics();
-      if (curPanel === 'sitemgmt') renderRobloxGroupRevenue();
-    });
-  }
-  function refreshGroupTransactions() {
-    if (!window.coldSupabase) return Promise.resolve();
-    // .limit() override: PostgREST caps a plain select at 1000 rows by
-    // default, and the ledger already has more than that - without this,
-    // range-filtered sums were computed from an arbitrary partial slice.
-    return window.coldSupabase.from('roblox_group_transactions').select('amount, is_parcel, created_at').limit(200000).then(function (res) {
-      if (res.error || !res.data) return;
-      GROUP_TRANSACTIONS = res.data;
-      if (curPanel === 'home') renderHome();
-      if (curPanel === 'analytics') renderAnalytics();
-    });
-  }
-  // Sums the ledger for the currently selected date range (falls back to
-  // the flat all-time total if the ledger hasn't loaded yet, e.g. before
-  // its migration/policy has been applied).
-  function groupRevenueInRange() {
-    if (!GROUP_TRANSACTIONS.length) return { robux: GROUP_REVENUE.robux, parcelRobux: GROUP_REVENUE.parcelRobux };
-    var robuxTotal = 0, parcelTotal = 0;
-    GROUP_TRANSACTIONS.forEach(function (t) {
-      if (!inRange(t.created_at)) return;
-      var amt = Number(t.amount) || 0;
-      robuxTotal += amt;
-      if (t.is_parcel) parcelTotal += amt;
-    });
-    return { robux: robuxTotal, parcelRobux: parcelTotal };
-  }
-  function callSyncGroupRevenue() {
-    return invokeAdminFn('roblox-group-revenue-sync', {}, 'Could not sync Robux revenue.');
   }
   // Flattens completed orders' line items for product/category-level
   // aggregation (an order can contain multiple items, unlike the old
@@ -882,7 +824,7 @@
     else if (name === 'reviews') renderReviews();
     else if (name === 'users') renderUsers();
     else if (name === 'sales') { renderEvents(); renderCoupons(); }
-    else if (name === 'sitemgmt') { refreshSiteStatus(); renderRobloxContainers(); refreshRobloxCookieHealth(); renderStaff(); renderRobloxGroupRevenue(); }
+    else if (name === 'sitemgmt') { refreshSiteStatus(); renderRobloxContainers(); refreshRobloxCookieHealth(); renderStaff(); }
     else if (name === 'content') { renderPosts(); renderTutorials(); renderReleases(); }
     else if (name === 'audit') renderAudit();
   }
@@ -926,14 +868,13 @@
     var curVisits = RANGE_DAYS ? pageviewsInWindow(daysAgoStart(RANGE_DAYS), new Date()) : TRAFFIC.reduce(function (s, r) { return s + r.pageviews; }, 0);
     var prevVisits = win ? pageviewsInWindow(win.start, win.end) : 0;
 
-    var overallRobux = GROUP_TRANSACTIONS.length ? groupRevenueInRange().robux : (GROUP_REVENUE.robux || curRev.robux);
+    var overallRobux = curRev.robux;
     var overallDevexAud = aud(overallRobux * DEVEX_USD_PER_ROBUX);
     var websiteDevexAud = aud(curRev.robux * DEVEX_USD_PER_ROBUX);
-    var overallRobuxNote = overallDevexAud + ' via DevEx' + (GROUP_TRANSACTIONS.length ? '' : ' · all-time');
 
     $('admHomeStatsTop').innerHTML = [
       statTile('Overall revenue', aud(curRev.usd), usd(curRev.usd) + ' USD', pctDelta(curRev.usd, prevRev.usd)),
-      statTile('Overall Robux revenue', robux(overallRobux), overallRobuxNote, ''),
+      statTile('Overall Robux revenue', robux(overallRobux), overallDevexAud + ' via DevEx', ''),
       statTile('Live sessions', LIVE_SESSIONS, 'active in the last 5 min', ''),
       statTile('Order count', curOrders.length, null, pctDelta(curOrders.length, prevOrders.length))
     ].join('');
@@ -994,12 +935,11 @@
     var prevRev = websiteRevenue(prevOrders);
     var curVisits = RANGE_DAYS ? pageviewsInWindow(daysAgoStart(RANGE_DAYS), new Date()) : TRAFFIC.reduce(function (s, r) { return s + r.pageviews; }, 0);
     var prevVisits = win ? pageviewsInWindow(win.start, win.end) : 0;
-    var overallRobux = GROUP_TRANSACTIONS.length ? groupRevenueInRange().robux : (GROUP_REVENUE.robux || curRev.robux);
-    var overallRobuxNote = aud(overallRobux * DEVEX_USD_PER_ROBUX) + ' via DevEx' + (GROUP_TRANSACTIONS.length ? '' : ' · all-time');
+    var overallRobux = curRev.robux;
 
     $('admAnStats').innerHTML = [
       statTile('Overall revenue', aud(curRev.usd), usd(curRev.usd) + ' USD', pctDelta(curRev.usd, prevRev.usd)),
-      statTile('Overall Robux revenue', robux(overallRobux), overallRobuxNote, ''),
+      statTile('Overall Robux revenue', robux(overallRobux), aud(overallRobux * DEVEX_USD_PER_ROBUX) + ' via DevEx', ''),
       statTile('Website revenue', aud(curRev.usd), usd(curRev.usd) + ' USD', pctDelta(curRev.usd, prevRev.usd)),
       statTile('Website Robux revenue', robux(curRev.robux), aud(curRev.robux * DEVEX_USD_PER_ROBUX) + ' via DevEx', pctDelta(curRev.robux, prevRev.robux)),
       statTile('Order count', curOrders.length, null, pctDelta(curOrders.length, prevOrders.length)),
@@ -1016,11 +956,9 @@
     $('admRevChart').innerHTML = svgBars(dailyRevenueSeries());
     attachChartTooltip($('admRevChart'));
 
-    var parcelRobux = GROUP_TRANSACTIONS.length ? groupRevenueInRange().parcelRobux : GROUP_REVENUE.parcelRobux;
-    var parcelAud = aud(parcelRobux * DEVEX_USD_PER_ROBUX);
     $('admPlatformRevenue').innerHTML =
       '<div class="adm-platform-row"><span class="adm-platform-name">Website (coldd.dev)</span><span>' + aud(curRev.usd) + '</span></div>' +
-      '<div class="adm-platform-row"><span class="adm-platform-name">Parcel (Roblox group)</span><span>' + (parcelRobux ? parcelAud + ' <span class="adm-sub">(' + robux(parcelRobux) + ' via DevEx)</span>' : '<span class="adm-platform-pending">Not tracked yet</span>') + '</span></div>' +
+      '<div class="adm-platform-row"><span class="adm-platform-name">Parcel (Roblox group)</span><span class="adm-platform-pending">Not tracked yet</span></div>' +
       '<div class="adm-platform-row"><span class="adm-platform-name">BuiltByBit</span><span class="adm-platform-pending">Not tracked yet</span></div>' +
       '<div class="adm-platform-row"><span class="adm-platform-name">ClearlyDev</span><span class="adm-platform-pending">Not tracked yet</span></div>' +
       '<div class="adm-platform-row"><span class="adm-platform-name">Creator Store</span><span class="adm-platform-pending">Not tracked yet</span></div>';
@@ -2387,36 +2325,6 @@
   /* ================================================================
      ROBLOX PANEL (container game pool that gamepasses get created in)
      ================================================================ */
-  function renderRobloxGroupRevenue() {
-    var el = $('admGroupRevenueBody'); if (!el) return;
-    var synced = GROUP_REVENUE.syncedAt ? fmtDateTime(new Date(GROUP_REVENUE.syncedAt)) : 'never';
-    el.innerHTML =
-      '<div class="adm-devex-row"><span>Total group Robux revenue (all-time)</span><strong>' + robux(GROUP_REVENUE.robux) + '</strong></div>' +
-      '<div class="adm-devex-row"><span>Of which, Parcel Hub</span><strong>' + robux(GROUP_REVENUE.parcelRobux) + '</strong></div>' +
-      '<div class="adm-devex-row"><span>Last synced</span><strong>' + synced + '</strong></div>' +
-      '<p class="adm-note">Synced automatically every 15 minutes once the cron job is set up (roblox_group_revenue_cron.sql), or on demand with the button above.</p>';
-  }
-  var groupRevenueSyncBtn = $('admGroupRevenueSyncBtn');
-  if (groupRevenueSyncBtn) groupRevenueSyncBtn.addEventListener('click', function () {
-    groupRevenueSyncBtn.disabled = true; var prevText = groupRevenueSyncBtn.textContent; groupRevenueSyncBtn.textContent = 'Syncing…';
-    callSyncGroupRevenue()
-      .then(function (data) {
-        // ok:true can still mean nothing was actually synced (e.g. missing
-        // ROBLOX_FALLBACK_COOKIE/ROBLOX_GROUP_ID secrets) - surface that
-        // instead of silently reporting success.
-        if (data && data.skipped) { alert(data.error || 'Sync skipped - Robux secrets are not configured.'); return; }
-        return refreshGroupRevenue().then(function () {
-          logAudit('Synced Robux group revenue');
-          // Bootstrap runs can hit Roblox's rate limit before reaching
-          // real-time - progress up to that point is still saved, so
-          // this isn't a failure, just "click Sync again to keep going".
-          if (data && data.partial) alert(data.error || 'Rate limited partway through - progress saved, click Sync again to continue.');
-        });
-      })
-      .catch(function (err) { alert(err.message || 'Could not sync.'); })
-      .finally(function () { groupRevenueSyncBtn.disabled = false; groupRevenueSyncBtn.textContent = prevText; });
-  });
-
   var ROBLOX_CONTAINERS = [];
   function refreshRobloxContainers() {
     if (!window.coldSupabase) return Promise.resolve();
@@ -3030,8 +2938,6 @@
   refreshRobloxCookieHealth();
   refreshLiveSessions();
   refreshDiscordStats();
-  refreshGroupRevenue();
-  refreshGroupTransactions();
   setInterval(refreshLiveSessions, 30000);
   } // end boot()
 })();

@@ -714,10 +714,12 @@
   // ledger (roblox-group-revenue-sync, synced every 15 min via cron or a
   // manual "Sync now"). This is a superset of our own tracked website
   // orders (same group, same buyers) - falls back to the website-tracked
-  // figure until the first sync has run. Unlike every other stat here
-  // this is NOT scoped to the range selector (the group API has no cheap
-  // way to filter by date), so it never gets a % delta.
+  // figure until the first sync has run.
   var GROUP_REVENUE = { robux: 0, parcelRobux: 0, syncedAt: null };
+  // Individual transactions (real timestamps), so the date-range selector
+  // can filter Robux revenue instead of only ever showing the all-time
+  // total. Empty until the ledger table + its admin read policy exist.
+  var GROUP_TRANSACTIONS = [];
   function refreshGroupRevenue() {
     if (!window.coldSupabase) return Promise.resolve();
     return window.coldSupabase.from('roblox_group_revenue').select('*').eq('id', true).maybeSingle().then(function (res) {
@@ -729,6 +731,29 @@
       if (curPanel === 'analytics') renderAnalytics();
       if (curPanel === 'sitemgmt') renderRobloxGroupRevenue();
     });
+  }
+  function refreshGroupTransactions() {
+    if (!window.coldSupabase) return Promise.resolve();
+    return window.coldSupabase.from('roblox_group_transactions').select('amount, is_parcel, created_at').then(function (res) {
+      if (res.error || !res.data) return;
+      GROUP_TRANSACTIONS = res.data;
+      if (curPanel === 'home') renderHome();
+      if (curPanel === 'analytics') renderAnalytics();
+    });
+  }
+  // Sums the ledger for the currently selected date range (falls back to
+  // the flat all-time total if the ledger hasn't loaded yet, e.g. before
+  // its migration/policy has been applied).
+  function groupRevenueInRange() {
+    if (!GROUP_TRANSACTIONS.length) return { robux: GROUP_REVENUE.robux, parcelRobux: GROUP_REVENUE.parcelRobux };
+    var robuxTotal = 0, parcelTotal = 0;
+    GROUP_TRANSACTIONS.forEach(function (t) {
+      if (!inRange(t.created_at)) return;
+      var amt = Number(t.amount) || 0;
+      robuxTotal += amt;
+      if (t.is_parcel) parcelTotal += amt;
+    });
+    return { robux: robuxTotal, parcelRobux: parcelTotal };
   }
   function callSyncGroupRevenue() {
     return invokeAdminFn('roblox-group-revenue-sync', {}, 'Could not sync Robux revenue.');
@@ -891,13 +916,14 @@
     var curVisits = RANGE_DAYS ? pageviewsInWindow(daysAgoStart(RANGE_DAYS), new Date()) : TRAFFIC.reduce(function (s, r) { return s + r.pageviews; }, 0);
     var prevVisits = win ? pageviewsInWindow(win.start, win.end) : 0;
 
-    var overallRobux = GROUP_REVENUE.robux || curRev.robux;
+    var overallRobux = GROUP_TRANSACTIONS.length ? groupRevenueInRange().robux : (GROUP_REVENUE.robux || curRev.robux);
     var overallDevexAud = aud(overallRobux * DEVEX_USD_PER_ROBUX);
     var websiteDevexAud = aud(curRev.robux * DEVEX_USD_PER_ROBUX);
+    var overallRobuxNote = overallDevexAud + ' via DevEx' + (GROUP_TRANSACTIONS.length ? '' : ' · all-time');
 
     $('admHomeStatsTop').innerHTML = [
       statTile('Overall revenue', aud(curRev.usd), usd(curRev.usd) + ' USD', pctDelta(curRev.usd, prevRev.usd)),
-      statTile('Overall Robux revenue', robux(overallRobux), overallDevexAud + ' via DevEx · all-time', ''),
+      statTile('Overall Robux revenue', robux(overallRobux), overallRobuxNote, ''),
       statTile('Live sessions', LIVE_SESSIONS, 'active in the last 5 min', ''),
       statTile('Order count', curOrders.length, null, pctDelta(curOrders.length, prevOrders.length))
     ].join('');
@@ -958,11 +984,12 @@
     var prevRev = websiteRevenue(prevOrders);
     var curVisits = RANGE_DAYS ? pageviewsInWindow(daysAgoStart(RANGE_DAYS), new Date()) : TRAFFIC.reduce(function (s, r) { return s + r.pageviews; }, 0);
     var prevVisits = win ? pageviewsInWindow(win.start, win.end) : 0;
-    var overallRobux = GROUP_REVENUE.robux || curRev.robux;
+    var overallRobux = GROUP_TRANSACTIONS.length ? groupRevenueInRange().robux : (GROUP_REVENUE.robux || curRev.robux);
+    var overallRobuxNote = aud(overallRobux * DEVEX_USD_PER_ROBUX) + ' via DevEx' + (GROUP_TRANSACTIONS.length ? '' : ' · all-time');
 
     $('admAnStats').innerHTML = [
       statTile('Overall revenue', aud(curRev.usd), usd(curRev.usd) + ' USD', pctDelta(curRev.usd, prevRev.usd)),
-      statTile('Overall Robux revenue', robux(overallRobux), aud(overallRobux * DEVEX_USD_PER_ROBUX) + ' via DevEx · all-time', ''),
+      statTile('Overall Robux revenue', robux(overallRobux), overallRobuxNote, ''),
       statTile('Website revenue', aud(curRev.usd), usd(curRev.usd) + ' USD', pctDelta(curRev.usd, prevRev.usd)),
       statTile('Website Robux revenue', robux(curRev.robux), aud(curRev.robux * DEVEX_USD_PER_ROBUX) + ' via DevEx', pctDelta(curRev.robux, prevRev.robux)),
       statTile('Order count', curOrders.length, null, pctDelta(curOrders.length, prevOrders.length)),
@@ -979,10 +1006,11 @@
     $('admRevChart').innerHTML = svgBars(dailyRevenueSeries());
     attachChartTooltip($('admRevChart'));
 
-    var parcelAud = aud(GROUP_REVENUE.parcelRobux * DEVEX_USD_PER_ROBUX);
+    var parcelRobux = GROUP_TRANSACTIONS.length ? groupRevenueInRange().parcelRobux : GROUP_REVENUE.parcelRobux;
+    var parcelAud = aud(parcelRobux * DEVEX_USD_PER_ROBUX);
     $('admPlatformRevenue').innerHTML =
       '<div class="adm-platform-row"><span class="adm-platform-name">Website (coldd.dev)</span><span>' + aud(curRev.usd) + '</span></div>' +
-      '<div class="adm-platform-row"><span class="adm-platform-name">Parcel (Roblox group)</span><span>' + (GROUP_REVENUE.parcelRobux ? parcelAud + ' <span class="adm-sub">(' + robux(GROUP_REVENUE.parcelRobux) + ' via DevEx)</span>' : '<span class="adm-platform-pending">Not tracked yet</span>') + '</span></div>' +
+      '<div class="adm-platform-row"><span class="adm-platform-name">Parcel (Roblox group)</span><span>' + (parcelRobux ? parcelAud + ' <span class="adm-sub">(' + robux(parcelRobux) + ' via DevEx)</span>' : '<span class="adm-platform-pending">Not tracked yet</span>') + '</span></div>' +
       '<div class="adm-platform-row"><span class="adm-platform-name">BuiltByBit</span><span class="adm-platform-pending">Not tracked yet</span></div>' +
       '<div class="adm-platform-row"><span class="adm-platform-name">ClearlyDev</span><span class="adm-platform-pending">Not tracked yet</span></div>' +
       '<div class="adm-platform-row"><span class="adm-platform-name">Creator Store</span><span class="adm-platform-pending">Not tracked yet</span></div>';
@@ -2993,6 +3021,7 @@
   refreshLiveSessions();
   refreshDiscordStats();
   refreshGroupRevenue();
+  refreshGroupTransactions();
   setInterval(refreshLiveSessions, 30000);
   } // end boot()
 })();

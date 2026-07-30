@@ -1,4 +1,39 @@
     (function () {
+      // Shared "which products does the signed-in user own" cache - both
+      // the product page and the shop/catalog grid need this, so it's
+      // loaded once here instead of each page querying Supabase itself.
+      var cache = null, pending = null;
+      function load() {
+        if (cache) return Promise.resolve(cache);
+        if (pending) return pending;
+        if (!window.coldSupabase) return Promise.resolve({});
+        pending = window.coldSupabase.auth.getSession().then(function (res) {
+          var session = res && res.data && res.data.session;
+          if (!session) { cache = {}; return cache; }
+          return window.coldSupabase
+            .from('orders')
+            .select('status, order_items(product_slug)')
+            .eq('user_id', session.user.id)
+            .eq('status', 'paid')
+            .then(function (r) {
+              var slugs = {};
+              ((r && r.data) || []).forEach(function (o) {
+                (o.order_items || []).forEach(function (i) { slugs[i.product_slug] = true; });
+              });
+              cache = slugs;
+              return cache;
+            });
+        });
+        return pending;
+      }
+      window.__coldOwned = {
+        load: load,
+        has: function (slug) { return !!(cache && cache[slug]); },
+        ready: function () { return !!cache; }
+      };
+    })();
+
+    (function () {
       const KEY = 'coldd_currency';
       const ROBUX_PER_USD = 80;
 
@@ -592,6 +627,23 @@
         const PER_PAGE = 12;
         let page = 1;
 
+        function markOwned() {
+          products.forEach(function (card) {
+            var owned = window.__coldOwned.has(card.getAttribute('data-id'));
+            card.classList.toggle('owned', owned);
+            var addBtn = card.querySelector('.p-add');
+            if (addBtn) {
+              addBtn.disabled = owned;
+              addBtn.textContent = owned ? 'Owned' : 'Add to Cart';
+            }
+            var thumb = card.querySelector('.p-thumb');
+            var badge = thumb ? thumb.querySelector('.p-owned-badge') : null;
+            if (owned && thumb && !badge) thumb.insertAdjacentHTML('beforeend', '<span class="p-owned-badge">Owned</span>');
+            else if (!owned && badge) badge.remove();
+          });
+        }
+        window.__coldOwned.load().then(markOwned);
+
         let maxPrice = 0;
         products.forEach(function (p) { maxPrice = Math.max(maxPrice, parseFloat(p.getAttribute('data-price')) || 0); });
         maxPrice = Math.max(10, Math.ceil(maxPrice / 10) * 10);
@@ -1154,7 +1206,6 @@
         var licBtns = pv.querySelectorAll('#pdLicence .pm-lic');
         var licPriceEls = pv.querySelectorAll('#pdLicence [data-licprice]');
         var cur = null;
-        var ownedSlugs = null;
 
         function hsh(s) { var h = 5381; for (var i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) >>> 0; return h; }
         function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
@@ -1166,28 +1217,8 @@
         function lsSet(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (_) {} }
         var WISH = 'coldd_wish_v1';
 
-        function isOwned(slug) { return !!(ownedSlugs && ownedSlugs[slug]); }
-        function loadOwned() {
-          if (!window.coldSupabase) return;
-          window.coldSupabase.auth.getSession().then(function (res) {
-            var session = res && res.data && res.data.session;
-            if (!session) { ownedSlugs = {}; syncOwned(); return; }
-            window.coldSupabase
-              .from('orders')
-              .select('status, order_items(product_slug)')
-              .eq('user_id', session.user.id)
-              .eq('status', 'paid')
-              .then(function (r) {
-                var slugs = {};
-                ((r && r.data) || []).forEach(function (o) {
-                  (o.order_items || []).forEach(function (i) { slugs[i.product_slug] = true; });
-                });
-                ownedSlugs = slugs;
-                if (cur) render(cur.id);
-              });
-          });
-        }
-        loadOwned();
+        function isOwned(slug) { return window.__coldOwned.has(slug); }
+        window.__coldOwned.load().then(function () { if (cur) render(cur.id); });
 
         var FEATURES = ['Fully optimized and production ready', 'Clean, well organized and easy to edit files', 'Simple drag and drop setup', 'Free updates and lifetime support included', 'Works in unlimited games and projects'];
 
@@ -1350,6 +1381,13 @@
         }
         function syncOwned() {
           if (!cur) return;
+          if (!window.__coldOwned.ready()) {
+            // Ownership isn't known yet - hide both CTAs rather than
+            // flashing "Buy now" for someone who actually owns this.
+            if (pdBuy) pdBuy.hidden = true;
+            if (pdOwned) pdOwned.hidden = true;
+            return;
+          }
           var owned = isOwned(cur.id);
           if (pdBuy) pdBuy.hidden = owned;
           if (pdOwned) pdOwned.hidden = !owned;

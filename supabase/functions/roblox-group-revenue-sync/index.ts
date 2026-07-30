@@ -38,7 +38,12 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { notifyRobloxCookieBroken } from "../_shared/roblox.ts";
 
 const PARCEL_PLACE_ID = "6156094414";
-const MAX_PAGES = 50;
+// Kept small on purpose: the platform's execution time limit means a call
+// that tries to walk too many pages (especially with 429 retries) risks
+// timing out before it can even return a response and save progress.
+// resume_cursor makes repeated smaller calls just as effective as one
+// large one.
+const MAX_PAGES = 15;
 
 const ALLOWED_ORIGIN = "https://coldd.dev";
 
@@ -96,17 +101,18 @@ Deno.serve(async (req: Request) => {
       let url = `https://economy.roblox.com/v2/groups/${groupId}/transactions?transactionType=Sale&limit=100&sortOrder=Desc`;
       if (cursor) url += `&cursor=${encodeURIComponent(cursor)}`;
 
-      // Roblox's economy API is tightly rate-limited - back off and retry
-      // on 429 instead of failing the whole sync (this endpoint can return
-      // dozens of pages on a first-time bootstrap).
+      // Roblox's economy API is tightly rate-limited. Only 2 quick retries
+      // here - if it's still 429 after that, better to stop and let
+      // resume_cursor pick up on the next call than burn the function's
+      // execution time budget retrying a page that isn't clearing up.
       let res: Response;
       let attempt = 0;
       for (;;) {
         res = await fetch(url, { headers: { Cookie: `.ROBLOSECURITY=${cookie}` } });
-        if (res.status !== 429 || attempt >= 4) break;
+        if (res.status !== 429 || attempt >= 2) break;
         attempt++;
         const retryAfter = Number(res.headers.get("Retry-After"));
-        await sleep(retryAfter > 0 ? retryAfter * 1000 : 2000 * attempt);
+        await sleep(retryAfter > 0 ? retryAfter * 1000 : 1500 * attempt);
       }
 
       if (res.status === 401 || res.status === 403) {

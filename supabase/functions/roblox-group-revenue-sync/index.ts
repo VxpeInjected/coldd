@@ -5,7 +5,7 @@
 //
 // Scans the group's recent Sale transactions (same cookie-authenticated
 // economy.roblox.com endpoint the Phase D purchase-verification fallback
-// uses) and accumulates real totals:
+// uses) and records real totals:
 //   - total_robux: every Sale transaction in the group ledger - this is
 //     the ground truth "Overall Robux revenue" figure, a superset of our
 //     own tracked website orders (which pay into the same group).
@@ -14,9 +14,22 @@
 //     products) - logged as synthetic `orders` rows (source='parcel') so
 //     they show up in the admin Orders panel too.
 //
-// Incremental: stops as soon as it reaches the last transaction id seen
-// on a previous run, so repeat runs are cheap and nothing is ever
-// double-counted. First run walks back up to MAX_PAGES to bootstrap.
+// Each individual transaction is recorded once in
+// roblox_group_transactions (primary key = Roblox's own transaction id,
+// insert ... on conflict do nothing), and total_robux/parcel_robux are a
+// SUM() rollup over that ledger - not a hand-maintained running counter.
+// This makes re-running the sync (rate-limited retries, cron overlapping
+// a manual "Sync now", etc.) always safe: re-processing an already-seen
+// transaction is a harmless no-op instead of adding its amount again.
+//
+// Bootstrapping (first run, or catching up after a long gap) can need
+// more pages than fit in one rate-limit-safe call, so resume_cursor
+// persists Roblox's own pagination cursor across calls - each call picks
+// up deeper into history exactly where the last one left off, rather
+// than restarting from page 1 and re-walking the same recent pages.
+// last_transaction_id only advances once a call actually reaches either
+// the previous last_transaction_id or the true end of the group's
+// history, marking a confirmed-complete, gap-free scan.
 //
 // Callable either by the cron job (roblox_group_revenue_cron.sql, shared
 // ROBLOX_CRON_SECRET header) or an is_admin user (manual "Sync now").
@@ -40,6 +53,8 @@ function corsHeaders() {
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { ...corsHeaders(), "Content-Type": "application/json" } });
 }
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders() });
@@ -67,58 +82,15 @@ Deno.serve(async (req: Request) => {
 
     const { data: state } = await admin.from("roblox_group_revenue").select("*").eq("id", true).maybeSingle();
     const lastSeenId: string | null = state?.last_transaction_id || null;
-    let totalRobux = Number(state?.total_robux || 0);
-    let parcelRobux = Number(state?.parcel_robux || 0);
 
     // deno-lint-ignore no-explicit-any
-    const parcelSales: any[] = [];
+    const ledgerRows: any[] = [];
     let newestId: string | null = null;
-    let cursor: string | undefined;
+    let cursor: string | undefined = state?.resume_cursor || undefined;
     let stop = false;
     let pages = 0;
-
-    const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-
-    // Persists whatever's been accumulated so far, whether this call
-    // finishes cleanly or gets cut short by a rate limit - so every call
-    // makes forward progress instead of restarting from scratch and
-    // re-tripping the same limit at the same page every time.
-    async function saveProgress() {
-      await admin.from("roblox_group_revenue").upsert({
-        id: true,
-        total_robux: totalRobux,
-        parcel_robux: parcelRobux,
-        last_transaction_id: newestId || lastSeenId,
-        updated_at: new Date().toISOString(),
-      });
-      let createdOrders = 0;
-      for (const sale of parcelSales) {
-        const { data: order, error: orderErr } = await admin.from("orders").insert({
-          status: "paid",
-          currency: "robux",
-          subtotal_usd: 0,
-          total_usd: 0,
-          total_robux: sale.amount,
-          source: "parcel",
-          external_transaction_id: sale.externalTransactionId,
-          created_at: sale.createdAt,
-          paid_at: sale.createdAt,
-        }).select().single();
-        if (orderErr || !order) continue; // already synced (unique constraint) - skip
-        await admin.from("order_items").insert({
-          order_id: order.id,
-          product_id: null,
-          product_slug: "parcel-hub-item",
-          title: sale.itemName,
-          unit_price_usd: 0,
-          qty: 1,
-        });
-        createdOrders++;
-      }
-      return createdOrders;
-    }
-
     let rateLimited = false;
+    let reachedEnd = false;
 
     while (!stop && pages < MAX_PAGES) {
       let url = `https://economy.roblox.com/v2/groups/${groupId}/transactions?transactionType=Sale&limit=100&sortOrder=Desc`;
@@ -126,7 +98,7 @@ Deno.serve(async (req: Request) => {
 
       // Roblox's economy API is tightly rate-limited - back off and retry
       // on 429 instead of failing the whole sync (this endpoint can return
-      // dozens of pages on the first bootstrap run).
+      // dozens of pages on a first-time bootstrap).
       let res: Response;
       let attempt = 0;
       for (;;) {
@@ -134,7 +106,7 @@ Deno.serve(async (req: Request) => {
         if (res.status !== 429 || attempt >= 4) break;
         attempt++;
         const retryAfter = Number(res.headers.get("Retry-After"));
-        await sleep((retryAfter > 0 ? retryAfter * 1000 : 2000 * attempt));
+        await sleep(retryAfter > 0 ? retryAfter * 1000 : 2000 * attempt);
       }
 
       if (res.status === 401 || res.status === 403) {
@@ -142,51 +114,95 @@ Deno.serve(async (req: Request) => {
         return json({ ok: false, error: "Fallback cookie rejected." }, 502);
       }
       if (res.status === 429) {
-        // Still rate limited after retrying - stop here, save what we
-        // have, and let the next sync (cron or manual) pick up where
-        // this one left off via last_transaction_id.
+        // Still rate limited after retrying - stop here. resume_cursor
+        // (saved below) means the next call continues from exactly this
+        // point instead of re-walking pages already processed.
         rateLimited = true;
         break;
       }
       if (!res.ok) {
         const bodyText = await res.text().catch(() => "");
         console.error("[roblox-group-revenue-sync] transactions fetch failed:", res.status, bodyText.slice(0, 500));
-        await saveProgress();
         return json({ ok: false, error: "Could not fetch group transactions (HTTP " + res.status + "): " + bodyText.slice(0, 300) }, 502);
       }
 
       const data = await res.json().catch(() => ({}));
       // deno-lint-ignore no-explicit-any
       const rows: any[] = data.data || [];
-      if (!rows.length) break;
+      if (!rows.length) { reachedEnd = true; break; }
 
       for (const row of rows) {
         const txId = String(row.id);
         if (txId === lastSeenId) { stop = true; break; }
         if (!newestId) newestId = txId;
 
-        const amount = Number(row.currency?.amount || 0);
-        totalRobux += amount;
-
         const placeId = row.details?.place?.id != null ? String(row.details.place.id) : null;
-        if (placeId === PARCEL_PLACE_ID) {
-          parcelRobux += amount;
-          parcelSales.push({
-            externalTransactionId: txId,
-            amount,
-            itemName: row.details?.name ? String(row.details.name) : "Parcel Hub item",
-            createdAt: row.created || new Date().toISOString(),
-          });
-        }
+        ledgerRows.push({
+          id: txId,
+          amount: Number(row.currency?.amount || 0),
+          is_parcel: placeId === PARCEL_PLACE_ID,
+          item_name: row.details?.name ? String(row.details.name) : null,
+          created_at: row.created || new Date().toISOString(),
+        });
       }
 
       cursor = data.nextPageCursor || undefined;
       pages++;
-      if (!cursor) break;
-      await sleep(1200);
+      if (!cursor) { reachedEnd = true; break; }
+      if (!stop) await sleep(1200);
     }
 
-    const createdOrders = await saveProgress();
+    // Record every transaction seen this call - on conflict do nothing
+    // means re-processing an already-seen id (overlap between runs,
+    // retries, cron vs manual) never double-counts it.
+    if (ledgerRows.length) {
+      const { error: insertErr } = await admin.from("roblox_group_transactions").upsert(ledgerRows, { onConflict: "id", ignoreDuplicates: true });
+      if (insertErr) console.error("[roblox-group-revenue-sync] ledger insert failed:", insertErr.message);
+    }
+
+    // Rollup is always a fresh SUM() over the ledger, never a running
+    // counter - so it's correct regardless of how much overlap occurred.
+    const { data: rollup } = await admin
+      .from("roblox_group_transactions")
+      .select("amount, is_parcel");
+    const totalRobux = (rollup || []).reduce((s: number, r: { amount: number }) => s + Number(r.amount || 0), 0);
+    const parcelRobux = (rollup || []).reduce((s: number, r: { amount: number; is_parcel: boolean }) => s + (r.is_parcel ? Number(r.amount || 0) : 0), 0);
+
+    const complete = reachedEnd || stop;
+    await admin.from("roblox_group_revenue").upsert({
+      id: true,
+      total_robux: totalRobux,
+      parcel_robux: parcelRobux,
+      last_transaction_id: complete ? (newestId || lastSeenId) : lastSeenId,
+      resume_cursor: complete ? null : (cursor || null),
+      updated_at: new Date().toISOString(),
+    });
+
+    let createdOrders = 0;
+    for (const row of ledgerRows) {
+      if (!row.is_parcel) continue;
+      const { data: order, error: orderErr } = await admin.from("orders").insert({
+        status: "paid",
+        currency: "robux",
+        subtotal_usd: 0,
+        total_usd: 0,
+        total_robux: row.amount,
+        source: "parcel",
+        external_transaction_id: row.id,
+        created_at: row.created_at,
+        paid_at: row.created_at,
+      }).select().single();
+      if (orderErr || !order) continue; // already synced (unique constraint) - skip
+      await admin.from("order_items").insert({
+        order_id: order.id,
+        product_id: null,
+        product_slug: "parcel-hub-item",
+        title: row.item_name || "Parcel Hub item",
+        unit_price_usd: 0,
+        qty: 1,
+      });
+      createdOrders++;
+    }
 
     if (rateLimited) {
       return json({

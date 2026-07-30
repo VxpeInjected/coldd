@@ -67,6 +67,18 @@ Deno.serve(async (req: Request) => {
     if (targetErr || !target) return json({ ok: false, error: "User not found." }, 404);
     if (target.is_admin) return json({ ok: false, error: "Can't ban another admin - remove their admin access first." }, 400);
 
+    // profiles.banned alone was purely cosmetic - nothing anywhere
+    // (no RLS policy, no Edge Function) ever checked it, so a "banned"
+    // user could still sign in, check out, and submit reviews with zero
+    // restriction. Supabase Auth has a real ban mechanism (updateUserById
+    // ban_duration) that actually blocks sign-in/revokes sessions -
+    // that's the actual enforcement; the profiles column stays too, for
+    // the admin UI's status badge/reason display.
+    const { error: authBanErr } = await admin.auth.admin.updateUserById(targetId, {
+      ban_duration: banned ? "876000h" : "none", // ~100 years - Supabase has no "forever" literal
+    });
+    if (authBanErr) return json({ ok: false, error: "Could not update the user's sign-in access." }, 500);
+
     const { error: updateErr } = await admin
       .from("profiles")
       .update({ banned, ban_reason: banned ? (body.reason ? String(body.reason).slice(0, 300) : "Banned by staff") : null })

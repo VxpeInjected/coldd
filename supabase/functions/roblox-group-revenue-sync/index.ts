@@ -90,6 +90,10 @@ Deno.serve(async (req: Request) => {
 
     // deno-lint-ignore no-explicit-any
     const ledgerRows: any[] = [];
+    // Temporary diagnostic: sum of amounts per source place/experience this
+    // call scanned, so it's verifiable whether unrelated group activity
+    // (not the storefront) is inflating the total. Remove once confirmed.
+    const placeBreakdown: Record<string, number> = {};
     let newestId: string | null = null;
     let cursor: string | undefined = state?.resume_cursor || undefined;
     let stop = false;
@@ -145,9 +149,13 @@ Deno.serve(async (req: Request) => {
         if (!newestId) newestId = txId;
 
         const placeId = row.details?.place?.universeId != null ? String(row.details.place.universeId) : null;
+        const placeName = row.details?.place?.name ? String(row.details.place.name) : (placeId || "unknown");
+        const placeKey = placeName + " (" + (placeId || "no place id") + ")";
+        const amt = Number(row.currency?.amount || 0);
+        placeBreakdown[placeKey] = (placeBreakdown[placeKey] || 0) + amt;
         ledgerRows.push({
           id: txId,
-          amount: Number(row.currency?.amount || 0),
+          amount: amt,
           is_parcel: placeId === PARCEL_PLACE_ID,
           item_name: row.details?.name ? String(row.details.name) : null,
           created_at: row.created || new Date().toISOString(),
@@ -188,14 +196,13 @@ Deno.serve(async (req: Request) => {
 
     let createdOrders = 0;
     for (const row of ledgerRows) {
-      if (!row.is_parcel) continue;
       const { data: order, error: orderErr } = await admin.from("orders").insert({
         status: "paid",
         currency: "robux",
         subtotal_usd: 0,
         total_usd: 0,
         total_robux: row.amount,
-        source: "parcel",
+        source: row.is_parcel ? "parcel" : "robux",
         external_transaction_id: row.id,
         created_at: row.created_at,
         paid_at: row.created_at,
@@ -204,8 +211,8 @@ Deno.serve(async (req: Request) => {
       await admin.from("order_items").insert({
         order_id: order.id,
         product_id: null,
-        product_slug: "parcel-hub-item",
-        title: row.item_name || "Parcel Hub item",
+        product_slug: row.is_parcel ? "parcel-hub-item" : "robux-payment",
+        title: row.is_parcel ? "Parcel Order" : "Robux Payment",
         unit_price_usd: 0,
         qty: 1,
       });
@@ -218,10 +225,11 @@ Deno.serve(async (req: Request) => {
         partial: true,
         totalRobux, parcelRobux, newParcelOrders: createdOrders, pagesScanned: pages,
         error: "Rate limited by Roblox after " + pages + " page(s) - progress saved. Click Sync again in a minute to continue.",
+        placeBreakdown,
       });
     }
 
-    return json({ ok: true, totalRobux, parcelRobux, newParcelOrders: createdOrders, pagesScanned: pages });
+    return json({ ok: true, totalRobux, parcelRobux, newParcelOrders: createdOrders, pagesScanned: pages, placeBreakdown });
   } catch (err) {
     console.error("[roblox-group-revenue-sync] error:", err);
     return json({ ok: false, error: "Server error." }, 500);

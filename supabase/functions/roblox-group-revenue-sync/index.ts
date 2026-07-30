@@ -79,6 +79,47 @@ Deno.serve(async (req: Request) => {
 
     const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
+    // Persists whatever's been accumulated so far, whether this call
+    // finishes cleanly or gets cut short by a rate limit - so every call
+    // makes forward progress instead of restarting from scratch and
+    // re-tripping the same limit at the same page every time.
+    async function saveProgress() {
+      await admin.from("roblox_group_revenue").upsert({
+        id: true,
+        total_robux: totalRobux,
+        parcel_robux: parcelRobux,
+        last_transaction_id: newestId || lastSeenId,
+        updated_at: new Date().toISOString(),
+      });
+      let createdOrders = 0;
+      for (const sale of parcelSales) {
+        const { data: order, error: orderErr } = await admin.from("orders").insert({
+          status: "paid",
+          currency: "robux",
+          subtotal_usd: 0,
+          total_usd: 0,
+          total_robux: sale.amount,
+          source: "parcel",
+          external_transaction_id: sale.externalTransactionId,
+          created_at: sale.createdAt,
+          paid_at: sale.createdAt,
+        }).select().single();
+        if (orderErr || !order) continue; // already synced (unique constraint) - skip
+        await admin.from("order_items").insert({
+          order_id: order.id,
+          product_id: null,
+          product_slug: "parcel-hub-item",
+          title: sale.itemName,
+          unit_price_usd: 0,
+          qty: 1,
+        });
+        createdOrders++;
+      }
+      return createdOrders;
+    }
+
+    let rateLimited = false;
+
     while (!stop && pages < MAX_PAGES) {
       let url = `https://economy.roblox.com/v2/groups/${groupId}/transactions?transactionType=Sale&limit=100&sortOrder=Desc`;
       if (cursor) url += `&cursor=${encodeURIComponent(cursor)}`;
@@ -90,18 +131,27 @@ Deno.serve(async (req: Request) => {
       let attempt = 0;
       for (;;) {
         res = await fetch(url, { headers: { Cookie: `.ROBLOSECURITY=${cookie}` } });
-        if (res.status !== 429 || attempt >= 5) break;
+        if (res.status !== 429 || attempt >= 4) break;
         attempt++;
-        await sleep(1000 * attempt);
+        const retryAfter = Number(res.headers.get("Retry-After"));
+        await sleep((retryAfter > 0 ? retryAfter * 1000 : 2000 * attempt));
       }
 
       if (res.status === 401 || res.status === 403) {
         await notifyRobloxCookieBroken(`Group revenue sync got HTTP ${res.status} - the fallback cookie is likely expired.`);
         return json({ ok: false, error: "Fallback cookie rejected." }, 502);
       }
+      if (res.status === 429) {
+        // Still rate limited after retrying - stop here, save what we
+        // have, and let the next sync (cron or manual) pick up where
+        // this one left off via last_transaction_id.
+        rateLimited = true;
+        break;
+      }
       if (!res.ok) {
         const bodyText = await res.text().catch(() => "");
         console.error("[roblox-group-revenue-sync] transactions fetch failed:", res.status, bodyText.slice(0, 500));
+        await saveProgress();
         return json({ ok: false, error: "Could not fetch group transactions (HTTP " + res.status + "): " + bodyText.slice(0, 300) }, 502);
       }
 
@@ -133,40 +183,18 @@ Deno.serve(async (req: Request) => {
       cursor = data.nextPageCursor || undefined;
       pages++;
       if (!cursor) break;
-      await sleep(400);
+      await sleep(1200);
     }
 
-    await admin.from("roblox_group_revenue").upsert({
-      id: true,
-      total_robux: totalRobux,
-      parcel_robux: parcelRobux,
-      last_transaction_id: newestId || lastSeenId,
-      updated_at: new Date().toISOString(),
-    });
+    const createdOrders = await saveProgress();
 
-    let createdOrders = 0;
-    for (const sale of parcelSales) {
-      const { data: order, error: orderErr } = await admin.from("orders").insert({
-        status: "paid",
-        currency: "robux",
-        subtotal_usd: 0,
-        total_usd: 0,
-        total_robux: sale.amount,
-        source: "parcel",
-        external_transaction_id: sale.externalTransactionId,
-        created_at: sale.createdAt,
-        paid_at: sale.createdAt,
-      }).select().single();
-      if (orderErr || !order) continue; // already synced (unique constraint) - skip
-      await admin.from("order_items").insert({
-        order_id: order.id,
-        product_id: null,
-        product_slug: "parcel-hub-item",
-        title: sale.itemName,
-        unit_price_usd: 0,
-        qty: 1,
+    if (rateLimited) {
+      return json({
+        ok: true,
+        partial: true,
+        totalRobux, parcelRobux, newParcelOrders: createdOrders, pagesScanned: pages,
+        error: "Rate limited by Roblox after " + pages + " page(s) - progress saved. Click Sync again in a minute to continue.",
       });
-      createdOrders++;
     }
 
     return json({ ok: true, totalRobux, parcelRobux, newParcelOrders: createdOrders, pagesScanned: pages });

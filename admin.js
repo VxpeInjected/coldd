@@ -2367,7 +2367,13 @@
         // ROBLOX_FALLBACK_COOKIE/ROBLOX_GROUP_ID secrets) - surface that
         // instead of silently reporting success.
         if (data && data.skipped) { alert(data.error || 'Sync skipped - Robux secrets are not configured.'); return; }
-        return refreshGroupRevenue().then(function () { logAudit('Synced Robux group revenue'); });
+        return refreshGroupRevenue().then(function () {
+          logAudit('Synced Robux group revenue');
+          // Bootstrap runs can hit Roblox's rate limit before reaching
+          // real-time - progress up to that point is still saved, so
+          // this isn't a failure, just "click Sync again to keep going".
+          if (data && data.partial) alert(data.error || 'Rate limited partway through - progress saved, click Sync again to continue.');
+        });
       })
       .catch(function (err) { alert(err.message || 'Could not sync.'); })
       .finally(function () { groupRevenueSyncBtn.disabled = false; groupRevenueSyncBtn.textContent = prevText; });

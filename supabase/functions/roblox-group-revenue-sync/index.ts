@@ -85,8 +85,6 @@ Deno.serve(async (req: Request) => {
 
     // deno-lint-ignore no-explicit-any
     const ledgerRows: any[] = [];
-    // deno-lint-ignore no-explicit-any
-    const debugSample: any[] = [];
     let newestId: string | null = null;
     let cursor: string | undefined = state?.resume_cursor || undefined;
     let stop = false;
@@ -134,12 +132,13 @@ Deno.serve(async (req: Request) => {
       if (!rows.length) { reachedEnd = true; break; }
 
       for (const row of rows) {
-        const txId = String(row.id);
+        // Roblox's transaction "id" field is always 0 on this endpoint -
+        // idHash is the real unique identifier per transaction.
+        const txId = String(row.idHash || row.purchaseToken || row.id);
         if (txId === lastSeenId) { stop = true; break; }
         if (!newestId) newestId = txId;
-        if (debugSample.length < 3) debugSample.push(row);
 
-        const placeId = row.details?.place?.id != null ? String(row.details.place.id) : null;
+        const placeId = row.details?.place?.universeId != null ? String(row.details.place.universeId) : null;
         ledgerRows.push({
           id: txId,
           amount: Number(row.currency?.amount || 0),
@@ -213,11 +212,10 @@ Deno.serve(async (req: Request) => {
         partial: true,
         totalRobux, parcelRobux, newParcelOrders: createdOrders, pagesScanned: pages,
         error: "Rate limited by Roblox after " + pages + " page(s) - progress saved. Click Sync again in a minute to continue.",
-        debugSample,
       });
     }
 
-    return json({ ok: true, totalRobux, parcelRobux, newParcelOrders: createdOrders, pagesScanned: pages, debugSample });
+    return json({ ok: true, totalRobux, parcelRobux, newParcelOrders: createdOrders, pagesScanned: pages });
   } catch (err) {
     console.error("[roblox-group-revenue-sync] error:", err);
     return json({ ok: false, error: "Server error." }, 500);

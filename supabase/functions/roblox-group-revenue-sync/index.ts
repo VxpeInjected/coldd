@@ -194,9 +194,14 @@ Deno.serve(async (req: Request) => {
       updated_at: new Date().toISOString(),
     });
 
+    // Bulk insert - up to ~1500 rows per call, and one-row-at-a-time
+    // insert+insert was slow enough on its own to risk the execution
+    // timeout. ignoreDuplicates skips rows whose external_transaction_id
+    // already exists (already synced by an earlier call) and .select()
+    // returns only the ones that were actually newly inserted.
     let createdOrders = 0;
-    for (const row of ledgerRows) {
-      const { data: order, error: orderErr } = await admin.from("orders").insert({
+    if (ledgerRows.length) {
+      const orderPayload = ledgerRows.map((row) => ({
         status: "paid",
         currency: "robux",
         subtotal_usd: 0,
@@ -206,17 +211,26 @@ Deno.serve(async (req: Request) => {
         external_transaction_id: row.id,
         created_at: row.created_at,
         paid_at: row.created_at,
-      }).select().single();
-      if (orderErr || !order) continue; // already synced (unique constraint) - skip
-      await admin.from("order_items").insert({
-        order_id: order.id,
-        product_id: null,
-        product_slug: row.is_parcel ? "parcel-hub-item" : "robux-payment",
-        title: row.is_parcel ? "Parcel Order" : "Robux Payment",
-        unit_price_usd: 0,
-        qty: 1,
-      });
-      createdOrders++;
+      }));
+      const { data: insertedOrders, error: ordersErr } = await admin
+        .from("orders")
+        .upsert(orderPayload, { onConflict: "external_transaction_id", ignoreDuplicates: true })
+        .select("id, source");
+      if (ordersErr) {
+        console.error("[roblox-group-revenue-sync] orders insert failed:", ordersErr.message);
+      } else if (insertedOrders?.length) {
+        const itemsPayload = insertedOrders.map((o: { id: string; source: string }) => ({
+          order_id: o.id,
+          product_id: null,
+          product_slug: o.source === "parcel" ? "parcel-hub-item" : "robux-payment",
+          title: o.source === "parcel" ? "Parcel Order" : "Robux Payment",
+          unit_price_usd: 0,
+          qty: 1,
+        }));
+        const { error: itemsErr } = await admin.from("order_items").insert(itemsPayload);
+        if (itemsErr) console.error("[roblox-group-revenue-sync] order_items insert failed:", itemsErr.message);
+        createdOrders = insertedOrders.length;
+      }
     }
 
     if (rateLimited) {

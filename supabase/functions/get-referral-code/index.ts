@@ -45,12 +45,28 @@ Deno.serve(async (req: Request) => {
 
     const admin = createClient(supabaseUrl, serviceKey);
 
-    const { data: profile, error: profErr } = await admin
+    // profiles rows are created client-side (fire-and-forget upsert right
+    // after signup, not a DB trigger), so there's no server-side guarantee
+    // the row exists yet the first time this is called - self-heal instead
+    // of hard-failing (same pattern as roblox-signin's inline profile
+    // creation).
+    let { data: profile, error: profErr } = await admin
       .from("profiles")
       .select("referral_code, username, email")
       .eq("id", userData.user.id)
-      .single();
+      .maybeSingle();
     if (profErr) return json({ ok: false, error: "Could not load profile." }, 500);
+    if (!profile) {
+      const email = userData.user.email || "";
+      const username = (userData.user.user_metadata && (userData.user.user_metadata.username || userData.user.user_metadata.full_name || userData.user.user_metadata.name)) || (email ? email.split("@")[0] : "Member");
+      const { data: created, error: createErr } = await admin
+        .from("profiles")
+        .upsert({ id: userData.user.id, username, email, updated_at: new Date().toISOString() })
+        .select("referral_code, username, email")
+        .single();
+      if (createErr || !created) return json({ ok: false, error: "Could not load profile." }, 500);
+      profile = created;
+    }
 
     if (profile.referral_code) return json({ ok: true, code: profile.referral_code });
 

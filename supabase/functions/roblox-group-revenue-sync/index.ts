@@ -27,11 +27,23 @@ import { notifyRobloxCookieBroken } from "../_shared/roblox.ts";
 const PARCEL_PLACE_ID = "6156094414";
 const MAX_PAGES = 50;
 
+const ALLOWED_ORIGIN = "https://coldd.dev";
+
+function corsHeaders() {
+  return {
+    "Access-Control-Allow-Origin": ALLOWED_ORIGIN,
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-cron-secret",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+  };
+}
+
 function json(body: unknown, status = 200) {
-  return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
+  return new Response(JSON.stringify(body), { status, headers: { ...corsHeaders(), "Content-Type": "application/json" } });
 }
 
 Deno.serve(async (req: Request) => {
+  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders() });
+
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;

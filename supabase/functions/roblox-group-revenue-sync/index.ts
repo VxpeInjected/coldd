@@ -85,7 +85,11 @@ Deno.serve(async (req: Request) => {
         await notifyRobloxCookieBroken(`Group revenue sync got HTTP ${res.status} - the fallback cookie is likely expired.`);
         return json({ ok: false, error: "Fallback cookie rejected." }, 502);
       }
-      if (!res.ok) return json({ ok: false, error: "Could not fetch group transactions (HTTP " + res.status + ")." }, 502);
+      if (!res.ok) {
+        const bodyText = await res.text().catch(() => "");
+        console.error("[roblox-group-revenue-sync] transactions fetch failed:", res.status, bodyText.slice(0, 500));
+        return json({ ok: false, error: "Could not fetch group transactions (HTTP " + res.status + "): " + bodyText.slice(0, 300) }, 502);
+      }
 
       const data = await res.json().catch(() => ({}));
       // deno-lint-ignore no-explicit-any

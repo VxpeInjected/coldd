@@ -734,7 +734,10 @@
   }
   function refreshGroupTransactions() {
     if (!window.coldSupabase) return Promise.resolve();
-    return window.coldSupabase.from('roblox_group_transactions').select('amount, is_parcel, created_at').then(function (res) {
+    // .limit() override: PostgREST caps a plain select at 1000 rows by
+    // default, and the ledger already has more than that - without this,
+    // range-filtered sums were computed from an arbitrary partial slice.
+    return window.coldSupabase.from('roblox_group_transactions').select('amount, is_parcel, created_at').limit(200000).then(function (res) {
       if (res.error || !res.data) return;
       GROUP_TRANSACTIONS = res.data;
       if (curPanel === 'home') renderHome();

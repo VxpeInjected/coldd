@@ -1154,6 +1154,7 @@
         var licBtns = pv.querySelectorAll('#pdLicence .pm-lic');
         var licPriceEls = pv.querySelectorAll('#pdLicence [data-licprice]');
         var cur = null;
+        var ownedSlugs = null;
 
         function hsh(s) { var h = 5381; for (var i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) >>> 0; return h; }
         function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
@@ -1163,7 +1164,30 @@
 
         function lsGet(k) { try { return JSON.parse(localStorage.getItem(k) || '[]'); } catch (_) { return []; } }
         function lsSet(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (_) {} }
-        var WISH = 'coldd_wish_v1', OWN = 'coldd_owned_v1';
+        var WISH = 'coldd_wish_v1';
+
+        function isOwned(slug) { return !!(ownedSlugs && ownedSlugs[slug]); }
+        function loadOwned() {
+          if (!window.coldSupabase) return;
+          window.coldSupabase.auth.getSession().then(function (res) {
+            var session = res && res.data && res.data.session;
+            if (!session) { ownedSlugs = {}; syncOwned(); return; }
+            window.coldSupabase
+              .from('orders')
+              .select('status, order_items(product_slug)')
+              .eq('user_id', session.user.id)
+              .eq('status', 'paid')
+              .then(function (r) {
+                var slugs = {};
+                ((r && r.data) || []).forEach(function (o) {
+                  (o.order_items || []).forEach(function (i) { slugs[i.product_slug] = true; });
+                });
+                ownedSlugs = slugs;
+                if (cur) render(cur.id);
+              });
+          });
+        }
+        loadOwned();
 
         var FEATURES = ['Fully optimized and production ready', 'Clean, well organized and easy to edit files', 'Simple drag and drop setup', 'Free updates and lifetime support included', 'Works in unlimited games and projects'];
 
@@ -1326,7 +1350,7 @@
         }
         function syncOwned() {
           if (!cur) return;
-          var owned = lsGet(OWN).indexOf(cur.id) >= 0;
+          var owned = isOwned(cur.id);
           if (pdBuy) pdBuy.hidden = owned;
           if (pdOwned) pdOwned.hidden = !owned;
           if (pdUpgrade) pdUpgrade.hidden = !(owned && cur.resell);
@@ -1383,7 +1407,7 @@
           }
           if (pdTechList) pdTechList.innerHTML = techFor(p).map(function (r) { return '<div class="pd-tech-row"><dt>' + esc(r[0]) + '</dt><dd>' + esc(r[1]) + '</dd></div>'; }).join('');
 
-          var owned = lsGet(OWN).indexOf(p.id) >= 0;
+          var owned = isOwned(p.id);
 
           var revs = reviewsFor(p);
           if (pdRevCount) pdRevCount.textContent = '(' + revs.length + ')';
@@ -1444,7 +1468,7 @@
           if (i >= 0) w.splice(i, 1); else w.push(cur.id);
           lsSet(WISH, w); syncWish();
         });
-        if (pdUpgrade) pdUpgrade.addEventListener('click', function () { if (cur) { setLic('resell'); var b = lsGet(OWN); if (b.indexOf(cur.id) < 0) {} add(cur); openCart(); } });
+        if (pdUpgrade) pdUpgrade.addEventListener('click', function () { if (cur) { setLic('resell'); add(cur); openCart(); } });
         if ($('pdDownload')) $('pdDownload').addEventListener('click', function () { showTab('updates'); });
         if ($('pdReview')) $('pdReview').addEventListener('click', function () { showTab('reviews'); });
         if (pdReferCopy) pdReferCopy.addEventListener('click', function () {

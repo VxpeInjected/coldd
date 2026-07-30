@@ -2362,8 +2362,13 @@
   if (groupRevenueSyncBtn) groupRevenueSyncBtn.addEventListener('click', function () {
     groupRevenueSyncBtn.disabled = true; var prevText = groupRevenueSyncBtn.textContent; groupRevenueSyncBtn.textContent = 'Syncing…';
     callSyncGroupRevenue()
-      .then(function () { return refreshGroupRevenue(); })
-      .then(function () { logAudit('Synced Robux group revenue'); })
+      .then(function (data) {
+        // ok:true can still mean nothing was actually synced (e.g. missing
+        // ROBLOX_FALLBACK_COOKIE/ROBLOX_GROUP_ID secrets) - surface that
+        // instead of silently reporting success.
+        if (data && data.skipped) { alert(data.error || 'Sync skipped - Robux secrets are not configured.'); return; }
+        return refreshGroupRevenue().then(function () { logAudit('Synced Robux group revenue'); });
+      })
       .catch(function (err) { alert(err.message || 'Could not sync.'); })
       .finally(function () { groupRevenueSyncBtn.disabled = false; groupRevenueSyncBtn.textContent = prevText; });
   });

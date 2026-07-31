@@ -101,13 +101,12 @@
   }
 
   /* ================================================================
-     MOCK "DATABASE" — seeded once, then persisted + mutated in
-     localStorage like every other piece of state on this site
-     (cart, wishlist, owned products). Orders/order items are the one
-     exception below (real data now, see refreshOrders); everything
-     else here (users, referrals, traffic, abandoned carts) is still
-     synthetic, and every aggregate derived from it is computed live
-     rather than independently faked.
+     LIVE DATA — users, referrals, traffic, and abandoned carts below
+     are all read from Supabase (see refreshUsers/refreshAdminReferrals/
+     refreshTraffic/refreshAbandoned), same as Orders/Coupons/Reviews/
+     Roblox containers/Posts/Staff. lsGet/lsSet now only persist
+     harmless per-browser UI prefs (sort order, date-range selector),
+     not the panel data itself.
      ================================================================ */
   var CATALOG = window.__CATALOG || [];
 
@@ -1348,7 +1347,7 @@
     $('admEditTechFileName').value = tech.fileName || '';
     $('admEditFileInput').value = '';
     var fileNote = $('admEditFileNote');
-    fileNote.textContent = tech.fileName ? ('Selected: ' + tech.fileName) : 'Currently: shared placeholder file';
+    fileNote.textContent = tech.fileName ? ('Selected: ' + tech.fileName) : 'No file uploaded yet';
     fileNote.removeAttribute('href');
     $('admEditTechParts').value = tech.parts || '';
     $('admEditTechMeshParts').value = tech.meshParts || '';
@@ -1515,7 +1514,7 @@
 
     ['admEditTechFormat', 'admEditTechSize', 'admEditTechFileName', 'admEditTechParts', 'admEditTechMeshParts', 'admEditTechUnions', 'admEditTechScripts'].forEach(function (id) { $(id).value = ''; });
     $('admEditFileInput').value = '';
-    $('admEditFileNote').textContent = 'Currently: shared placeholder file';
+    $('admEditFileNote').textContent = 'No file uploaded yet';
     $('admEditFileNote').removeAttribute('href');
 
     $('admEditThumbUrl').value = '';

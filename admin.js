@@ -475,14 +475,34 @@
     });
   }
 
-  var AUDIT = lsGet('coldd_admin_audit_v1', []);
-
+  // Real data from public.admin_audit_log (see supabase/admin_audit_log.sql)
+  // - shared across every admin's browser, not per-device localStorage.
+  var AUDIT = [];
 
   function logAudit(action) {
-    AUDIT.unshift({ ts: new Date().toISOString(), actor: currentRole().name, action: action });
+    var entry = { ts: new Date().toISOString(), actor: currentRole().name, action: action };
+    AUDIT.unshift(entry);
     if (AUDIT.length > 300) AUDIT.length = 300;
-    lsSet('coldd_admin_audit_v1', AUDIT);
     if (curPanel === 'audit') renderAudit();
+    window.coldSupabase.from('admin_audit_log').insert({
+      actor_id: ADMIN.id, actor_name: entry.actor, action: action
+    }).then(function (res) {
+      if (res.error) console.error('[logAudit] failed to persist:', res.error.message);
+    });
+  }
+
+  function refreshAuditLog() {
+    return window.coldSupabase.from('admin_audit_log')
+      .select('actor_name, action, created_at')
+      .order('created_at', { ascending: false })
+      .limit(300)
+      .then(function (res) {
+        if (res.error) { console.error('[refreshAuditLog] failed:', res.error.message); return; }
+        AUDIT = (res.data || []).map(function (row) {
+          return { ts: row.created_at, actor: row.actor_name, action: row.action };
+        });
+        if (curPanel === 'audit') renderAudit();
+      });
   }
 
   /* ================================================================
@@ -825,7 +845,7 @@
     else if (name === 'sales') { renderEvents(); renderCoupons(); }
     else if (name === 'sitemgmt') { refreshSiteStatus(); renderRobloxContainers(); refreshRobloxCookieHealth(); renderStaff(); }
     else if (name === 'content') { renderPosts(); renderTutorials(); renderReleases(); }
-    else if (name === 'audit') renderAudit();
+    else if (name === 'audit') { renderAudit(); refreshAuditLog(); }
   }
   function renderAll() { renderPanel(curPanel); }
 

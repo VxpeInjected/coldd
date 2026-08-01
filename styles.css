@@ -241,9 +241,6 @@
     .asset-feature .vis { position: relative; min-height: 360px; padding: 24px; display: flex; flex-direction: column; justify-content: space-between;
       background: radial-gradient(110% 80% at 75% 10%, rgba(255,77,68,0.28), transparent 55%),
         radial-gradient(120% 120% at 20% 120%, rgba(70,72,80,0.5), transparent 60%), linear-gradient(180deg,#1d1f25,#101115); }
-    .asset-feature .vis::after { content: ""; position: absolute; inset: 0;
-      background-image: linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px);
-      background-size: 50px 50px; mask-image: radial-gradient(120% 80% at 70% 20%, #000, transparent 72%); opacity: .55; }
     .asset-feature .vis .chip { position: relative; z-index: 1; align-self: flex-start; font-size: 12px; font-weight: 600;
       padding: 6px 12px; border-radius: 999px; background: rgba(10,11,14,0.5); border: 1px solid var(--hairline); }
     .asset-feature .vis .ftitle { position: relative; z-index: 1; font-size: clamp(30px,4vw,42px); font-weight: 700; letter-spacing: -0.04em; }
@@ -856,7 +853,7 @@ body.no-scroll { overflow: hidden; }
 .pd-rev-meta { font-size: 13px; color: var(--fg-3); }
 .pd-rev-body { font-size: 14px; color: var(--fg-1); line-height: 1.6; margin-top: 9px; }
 .pd-rev-origin { font-size: 12px; color: var(--fg-3); margin-top: 7px; }
-.pd-rev-reply { background: rgba(255,77,68,0.07); border-left: 3px solid var(--accent); border-radius: 0 10px 10px 0; padding: 12px 16px; margin-top: 12px; }
+.pd-rev-reply { background: rgba(255,77,68,0.07); border: 1px solid rgba(255,77,68,0.18); border-radius: 10px; padding: 12px 16px; margin-top: 12px; }
 .pd-rev-reply-head { font-size: 12px; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: .02em; }
 .pd-rev-reply p { font-size: 13.5px; color: var(--fg-1); line-height: 1.55; margin: 5px 0 0; }
 .pd-empty { font-size: 14px; color: var(--fg-3); }
@@ -1753,7 +1750,7 @@ a.adm-sub[href] { color: var(--fg-1); cursor: pointer; text-decoration: underlin
 .adm-review { padding: 18px 20px; }
 .adm-review-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 6px; }
 .adm-review-text { font-size: 13.5px; color: var(--fg-1); line-height: 1.55; margin: 8px 0 12px; }
-.adm-review-reply { background: rgba(255,77,68,0.07); border-left: 3px solid var(--accent); border-radius: 0 8px 8px 0; padding: 10px 14px; margin: 0 0 12px; }
+.adm-review-reply { background: rgba(255,77,68,0.07); border: 1px solid rgba(255,77,68,0.18); border-radius: 8px; padding: 10px 14px; margin: 0 0 12px; }
 .adm-review-reply strong { font-size: 12px; color: var(--accent); text-transform: uppercase; letter-spacing: .02em; }
 .adm-review-reply p { font-size: 13.5px; color: var(--fg-1); margin: 4px 0 0; line-height: 1.5; }
 .adm-review-reply-form { display: flex; flex-direction: column; gap: 8px; margin: 0 0 12px; align-items: flex-start; }

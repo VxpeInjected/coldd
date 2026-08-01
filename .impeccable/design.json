@@ -1,0 +1,124 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-08-02T00:00:00Z",
+  "title": "Design System: coldd",
+  "extensions": {
+    "colorMeta": {
+      "ember": { "role": "primary", "displayName": "Ember", "canonical": "#ff4d44", "tonalRamp": ["#3d0c09", "#661711", "#99231a", "#cc2f23", "#ff4d44", "#ff7a73", "#ffa8a2", "#ffd6d3"] },
+      "ember-deep": { "role": "primary", "displayName": "Ember Deep", "canonical": "#e2382f", "tonalRamp": ["#341008", "#5c1c12", "#8a2a1c", "#b83224", "#e2382f", "#ea625a", "#f28f88", "#f9bcb7"] },
+      "price-green": { "role": "secondary", "displayName": "Price Green", "canonical": "#34e08a", "tonalRamp": ["#053018", "#0b5227", "#137838", "#209f52", "#34e08a", "#67e8a6", "#9af0c3", "#cdf8e1"] },
+      "minecraft-green": { "role": "secondary", "displayName": "Minecraft Green", "canonical": "#6cc25c", "tonalRamp": ["#132a0e", "#204a19", "#2e6b24", "#4c9a3f", "#6cc25c", "#8fd382", "#b3e2ab", "#d7f1d3"] },
+      "base": { "role": "neutral", "displayName": "Void", "canonical": "#15161b", "tonalRamp": ["#08090b", "#111217", "#15161b", "#191b21", "#1f2127", "#2a2c33", "#3a3d45", "#4d5058"] },
+      "ink": { "role": "neutral", "displayName": "Ink", "canonical": "#f4f6f9", "tonalRamp": ["#6b7280", "#8b909c", "#aab2c0", "#c3c9d3", "#dde0e6", "#eceef1", "#f4f6f9", "#ffffff"] }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "Hero headline only, one per page." },
+      "headline": { "displayName": "Headline", "purpose": "Homepage/section headers." },
+      "body": { "displayName": "Body", "purpose": "Descriptions, paragraphs, legal/long-form text." },
+      "label": { "displayName": "Label", "purpose": "Buttons, nav, form labels, badges - the busiest size band in the system (13.5-14.5px)." }
+    },
+    "shadows": [
+      { "name": "cta-lift", "value": "0 12px 30px -12px rgba(255,77,68,0.55)", "purpose": "Primary/platform buttons at rest; intensifies to 0 16px 38px -12px rgba(255,77,68,0.62) on hover, paired with a 2px translateY lift." },
+      { "name": "panel-float", "value": "0 26px 60px -28px rgba(0,0,0,0.85)", "purpose": "Glass cards, dropdowns, modals - large soft neutral shadow, the 'floating above the backdrop' cue." }
+    ],
+    "motion": [
+      { "name": "ease-standard", "value": "cubic-bezier(0.22, 1, 0.36, 1)", "purpose": "The system's one easing curve - used on every hover/transition, transform, and reveal animation." },
+      { "name": "duration-hover", "value": "0.25s", "purpose": "Standard button/link hover transition duration." },
+      { "name": "duration-reveal", "value": "0.7s", "purpose": "Scroll-in-view fade/rise for .reveal-class sections - decorative only, must never gate primary content visibility." }
+    ],
+    "breakpoints": [
+      { "name": "sm", "value": "560px" },
+      { "name": "md", "value": "640px" },
+      { "name": "lg", "value": "900px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The single most important action on a screen - red gradient with a colored glow shadow that lifts on hover.",
+      "html": "<button class=\"ds-btn-primary\">Add to Cart</button>",
+      "css": ".ds-btn-primary { display: inline-flex; align-items: center; gap: 8px; font-family: 'Inter', sans-serif; font-size: 14.5px; font-weight: 600; color: #fff; background: linear-gradient(180deg, #ff5247, #e23229); border: 1px solid transparent; border-radius: 980px; padding: 12px 22px; min-height: 46px; cursor: pointer; box-shadow: 0 12px 30px -12px rgba(255,77,68,0.55); transition: transform .25s cubic-bezier(0.22,1,0.36,1), background .25s, box-shadow .25s; } .ds-btn-primary:hover { transform: translateY(-2px); background: linear-gradient(180deg, #ff6056, #e8392f); box-shadow: 0 16px 38px -12px rgba(255,77,68,0.62); } .ds-btn-primary:focus-visible { outline: 2px solid #ff4d44; outline-offset: 2px; }"
+    },
+    {
+      "name": "Ghost Button",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "Secondary action sitting next to a Primary button - translucent glass fill, no accent color.",
+      "html": "<button class=\"ds-btn-ghost\">Learn More</button>",
+      "css": ".ds-btn-ghost { display: inline-flex; align-items: center; gap: 8px; font-family: 'Inter', sans-serif; font-size: 14.5px; font-weight: 600; color: #f4f6f9; background: rgba(255,255,255,0.065); border: 1px solid rgba(255,255,255,0.09); border-radius: 980px; padding: 12px 22px; min-height: 46px; cursor: pointer; transition: transform .25s cubic-bezier(0.22,1,0.36,1), background .25s, border-color .25s; } .ds-btn-ghost:hover { transform: translateY(-2px); background: rgba(255,255,255,0.10); border-color: rgba(255,255,255,0.16); } .ds-btn-ghost:focus-visible { outline: 2px solid #ff4d44; outline-offset: 2px; }"
+    },
+    {
+      "name": "Glass Card",
+      "kind": "card",
+      "refersTo": "card-glass",
+      "description": "The default surface treatment - frosted, translucent, sits over the blurred page backdrop.",
+      "html": "<div class=\"ds-card-glass\"><h3 class=\"ds-card-glass-title\">What we do</h3><p class=\"ds-card-glass-body\">We create high-quality, ready-to-use assets for Roblox developers.</p></div>",
+      "css": ".ds-card-glass { position: relative; border-radius: 24px; padding: 46px 50px; background: linear-gradient(180deg, rgba(255,255,255,0.065), rgba(255,255,255,0.028)); box-shadow: 0 1px 0 rgba(255,255,255,0.05) inset, 0 26px 60px -28px rgba(0,0,0,0.85); } .ds-card-glass::before { content: ''; position: absolute; inset: 0; border-radius: inherit; padding: 1px; background: linear-gradient(180deg, rgba(255,255,255,0.28), rgba(255,255,255,0.04) 38%, rgba(255,255,255,0.02)); -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; pointer-events: none; } .ds-card-glass-title { margin: 0 0 12px; font-size: 20px; font-weight: 700; color: #f4f6f9; } .ds-card-glass-body { margin: 0; font-size: 15.5px; line-height: 1.68; color: #aab2c0; }"
+    },
+    {
+      "name": "Product Card",
+      "kind": "card",
+      "refersTo": "card-product",
+      "description": "Solid (non-glass) card for product photography - price in Price Green, discount badge on the thumbnail.",
+      "html": "<article class=\"ds-product-card\"><div class=\"ds-product-thumb\"><span class=\"ds-product-badge\">-25%</span></div><div class=\"ds-product-body\"><h3 class=\"ds-product-title\">Asset Mega Bundle</h3><div class=\"ds-product-price-row\"><span class=\"ds-product-was\">$199</span><span class=\"ds-product-price\">$150</span></div><button class=\"ds-btn-ghost\" style=\"width:100%;justify-content:center;\">Add to Cart</button></div></article>",
+      "css": ".ds-product-card { border-radius: 16px; overflow: hidden; border: 1px solid rgba(255,255,255,0.09); background: #1f2127; } .ds-product-thumb { position: relative; aspect-ratio: 16/10; background: #0f1014 center/cover no-repeat; } .ds-product-badge { position: absolute; top: 10px; left: 10px; background: #ff4d44; color: #fff; font-size: 12px; font-weight: 700; padding: 3px 8px; border-radius: 999px; } .ds-product-body { padding: 16px; display: flex; flex-direction: column; gap: 10px; } .ds-product-title { margin: 0; font-size: 15px; font-weight: 600; color: #f4f6f9; } .ds-product-price-row { display: flex; align-items: baseline; gap: 8px; } .ds-product-was { font-size: 13px; color: #6b7280; text-decoration: line-through; } .ds-product-price { font-size: 17px; font-weight: 700; color: #34e08a; }"
+    },
+    {
+      "name": "Text Input",
+      "kind": "input",
+      "refersTo": "input-text",
+      "description": "Standard text field - note the 16px mobile font-size floor fixed this session (iOS zoom-on-focus bug).",
+      "html": "<input class=\"ds-input\" type=\"email\" placeholder=\"you@example.com\" />",
+      "css": ".ds-input { width: 100%; min-height: 46px; padding: 12px 14px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.09); background: rgba(255,255,255,0.04); color: #f4f6f9; font-family: 'Inter', sans-serif; font-size: 14.5px; outline: none; box-sizing: border-box; transition: border-color .2s, background .2s; } .ds-input::placeholder { color: #6b7280; } .ds-input:focus { border-color: rgba(255,255,255,0.22); background: rgba(255,255,255,0.06); } @media (max-width: 640px) { .ds-input { font-size: 16px; } }"
+    },
+    {
+      "name": "Mobile Nav Overlay",
+      "kind": "nav",
+      "refersTo": "nav-mobile",
+      "description": "Full-screen solid-background nav panel opened by the header hamburger below 900px. Fixed this session - previously had no working open/close behavior at all. Solid (not glass) so link text stays legible regardless of page content behind it.",
+      "html": "<button class=\"ds-menu-btn\" aria-label=\"Menu\" aria-expanded=\"false\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\"><path d=\"M3 12h18M3 6h18M3 18h18\"/></svg></button><nav class=\"ds-nav-mobile-open\"><a href=\"#\">Home</a><a href=\"#\">Shop</a><a href=\"#\">Blog &amp; Tutorials</a><a href=\"#\">About Us</a></nav>",
+      "css": ".ds-menu-btn { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 10px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.09); color: #f4f6f9; cursor: pointer; } .ds-nav-mobile-open { display: flex; flex-direction: column; align-items: stretch; gap: 2px; padding: 24px; background: #191b21; } .ds-nav-mobile-open a { padding: 17px 4px; font-family: 'Inter', sans-serif; font-size: 17px; font-weight: 600; color: #f4f6f9; text-decoration: none; border-bottom: 1px solid rgba(255,255,255,0.09); }"
+    },
+    {
+      "name": "Discount Badge",
+      "kind": "chip",
+      "refersTo": "badge-discount",
+      "description": "Small overlay badge on discounted product thumbnails.",
+      "html": "<span class=\"ds-badge\">-25%</span>",
+      "css": ".ds-badge { display: inline-block; background: #ff4d44; color: #fff; font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 700; padding: 3px 8px; border-radius: 999px; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Late-Night Workshop",
+    "overview": "coldd's own origin story is the brief: a few people in a Discord, trading builds late at night because what was for sale just wasn't good enough. The visual system plays that literally - a near-black room with one warm light source. Everything else recedes into dark neutrals so the ember-red accent reads as the signal in the room, not one color among several. Surfaces are frosted glass, not solid panels: cards use a barely-there top-light gradient over a blurred, dimmed banner photograph fixed behind the entire page. The glass doesn't just sit on a color - it sits on an image, blurred into ambience, so panels feel like they're floating in front of something real. Type is Inter throughout, doing real work at scale: hero display type runs up to 66px at 800-weight with tight, almost condensed tracking, while body copy stays relaxed for long legal/product text.",
+    "keyCharacteristics": [
+      "One accent color, used rarely, always meaning \"act here\"",
+      "Frosted glass over a blurred photographic backdrop, not a flat dark background",
+      "Inter at two very different intensities: tight/heavy for display, relaxed for body",
+      "Pills for actions, soft rectangles for content",
+      "No light mode - this is a committed dark system, not a dark variant of a light one"
+    ],
+    "rules": [
+      { "name": "The One Ember Rule", "body": "The accent color signals action or emphasis, never decoration. If a new element wants red \"to stand out,\" that's a sign it should compete for attention with a CTA, which it should lose - use a neutral instead.", "section": "colors" },
+      { "name": "The Two Greens Rule", "body": "Price Green and Minecraft Green are not interchangeable even though both are green. Price Green = \"you're getting a good number.\" Minecraft Green = \"you're on the Minecraft side of the site.\" Never let one bleed into the other's context.", "section": "colors" },
+      { "name": "The Body Floor Rule", "body": "No form input, select, or textarea renders under 16px at mobile widths - this was a real production bug (iOS Safari force-zooms any focused field under 16px) fixed this session with a blanket mobile override. Never reintroduce a sub-16px form field on narrow viewports.", "section": "typography" },
+      { "name": "The Colored-Glow Rule", "body": "Only buttons get shadows tinted to their own color (red glow on red buttons, green on the Minecraft button). Structural surfaces (cards, dropdowns, nav) always use a neutral black shadow regardless of any accent nearby.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do keep the red accent to CTAs, active states, and the platform-swap hero word - if you're using it for a third or fourth element on the same screen, pick a neutral instead.",
+      "Do use the pill radius (980px) for anything pressable and the soft-rectangle radius (16-24px) for anything that contains content - never mix them on the same element type.",
+      "Do default new cards to the .glass frosted treatment; only switch to solid Surface when there's a specific readability/robustness reason (as with the legal pages this session).",
+      "Do keep form fields at 16px+ on mobile viewports, full stop.",
+      "Do give every button the 2px hover-lift + intensifying shadow - it's the one interaction pattern users should feel consistently everywhere."
+    ],
+    "donts": [
+      "Don't introduce a second border color - every border in the system resolves to the one hairline value.",
+      "Don't let content visibility depend on JavaScript succeeding. .reveal-class scroll animations are fine for homepage flourish but must never be the only thing making primary content visible.",
+      "Don't use Minecraft Green and Price Green interchangeably - they mean different things even though both are green.",
+      "Don't add a light mode or a second theme. This is a committed single dark system, not a dark variant of something else.",
+      "Don't put a hard, sharp 0px or barely-rounded 4-8px corner anywhere - it breaks the pill/rectangle shape language the whole system depends on."
+    ]
+  }
+}

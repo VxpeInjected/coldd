@@ -532,6 +532,42 @@
     })();
 
     (function () {
+      // .menu-btn is the hamburger shown <=900px (see styles.css) once
+      // .nav-links itself is hidden - it previously had no click handler
+      // anywhere in the codebase, so there was no way to reach Home/Shop/
+      // Blog/About from the header on mobile at all. Reuses .nav-links
+      // (search bar included) as a full-screen overlay instead of building
+      // separate markup.
+      const menuBtn = document.querySelector('.menu-btn');
+      const links = document.querySelector('.nav-links');
+      if (!menuBtn || !links) return;
+      const OPEN_ICON = menuBtn.innerHTML;
+      const CLOSE_ICON = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>';
+      function isMenuOpen() { return links.classList.contains('mobile-open'); }
+      function closeMenu() {
+        if (!isMenuOpen()) return;
+        links.classList.remove('mobile-open');
+        menuBtn.innerHTML = OPEN_ICON;
+        menuBtn.setAttribute('aria-expanded', 'false');
+        menuBtn.setAttribute('aria-label', 'Menu');
+        document.body.classList.remove('nav-menu-open');
+      }
+      function openMenu() {
+        if (isMenuOpen()) return;
+        links.classList.add('mobile-open');
+        menuBtn.innerHTML = CLOSE_ICON;
+        menuBtn.setAttribute('aria-expanded', 'true');
+        menuBtn.setAttribute('aria-label', 'Close menu');
+        document.body.classList.add('nav-menu-open');
+      }
+      menuBtn.setAttribute('aria-expanded', 'false');
+      menuBtn.addEventListener('click', function () { isMenuOpen() ? closeMenu() : openMenu(); });
+      links.addEventListener('click', function (e) { if (e.target.closest('a')) closeMenu(); });
+      document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeMenu(); });
+      window.addEventListener('resize', function () { if (window.innerWidth > 900) closeMenu(); });
+    })();
+
+    (function () {
       const trigger = document.getElementById('shopLink');
       const mega = document.getElementById('navMega');
       if (!trigger || !mega) return;

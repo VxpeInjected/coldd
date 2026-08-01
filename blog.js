@@ -417,7 +417,7 @@
     if (!root) return;
     var all = posts();
     var slug = qp('slug');
-    var p = all.filter(function (x) { return x.slug === slug; })[0] || all.slice().sort(byDateDesc)[0];
+    var p = all.filter(function (x) { return x.slug === slug; })[0];
     if (!p) { root.innerHTML = '<div class="wrap"><p class="pd-empty">This post could not be found.</p></div>'; return; }
 
     document.title = 'coldd Blog — ' + p.title;

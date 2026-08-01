@@ -51,6 +51,11 @@
   function usd0(n) { return '$' + Math.round(Number(n) || 0).toLocaleString('en-US'); }
   function aud(n) { return 'A$' + (Math.round((Number(n) || 0) * AUD_RATE * 100) / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
   function robux(n) { return 'R$ ' + Math.round((Number(n) || 0) * ROBUX_PER_USD).toLocaleString('en-US'); }
+  // Unlike robux(), which converts a USD figure into its Robux equivalent
+  // for display, this formats a value that's already a real Robux amount
+  // (e.g. websiteRevenue().robux, summed from orders.total_robux) - do not
+  // multiply it by ROBUX_PER_USD again.
+  function robuxRaw(n) { return 'R$ ' + Math.round(Number(n) || 0).toLocaleString('en-US'); }
   function pct(n) { return (Math.round((Number(n) || 0) * 10) / 10) + '%'; }
   // Real robux orders were actually charged in Robux (via a Roblox
   // gamepass, not our checkout) - showing usd(o.total) for them would
@@ -893,14 +898,14 @@
 
     $('admHomeStatsTop').innerHTML = [
       statTile('Overall revenue', aud(curRev.usd), usd(curRev.usd) + ' USD', pctDelta(curRev.usd, prevRev.usd)),
-      statTile('Overall Robux revenue', robux(overallRobux), overallDevexAud + ' via DevEx', ''),
+      statTile('Overall Robux revenue', robuxRaw(overallRobux), overallDevexAud + ' via DevEx', ''),
       statTile('Live sessions', LIVE_SESSIONS, 'active in the last 5 min', ''),
       statTile('Order count', curOrders.length, null, pctDelta(curOrders.length, prevOrders.length))
     ].join('');
 
     $('admHomeStatsSecondary').innerHTML = [
       statTile('Website revenue', aud(curRev.usd), usd(curRev.usd) + ' USD', pctDelta(curRev.usd, prevRev.usd)),
-      statTile('Website Robux revenue', robux(curRev.robux), websiteDevexAud + ' via DevEx', pctDelta(curRev.robux, prevRev.robux)),
+      statTile('Website Robux revenue', robuxRaw(curRev.robux), websiteDevexAud + ' via DevEx', pctDelta(curRev.robux, prevRev.robux)),
       statTile('Discord members', DISCORD_STATS.memberCount != null ? DISCORD_STATS.memberCount.toLocaleString('en-US') : '—', DISCORD_STATS.onlineCount != null ? (DISCORD_STATS.onlineCount.toLocaleString('en-US') + ' online') : '', ''),
       statTile('Site visits', curVisits.toLocaleString('en-US'), null, pctDelta(curVisits, prevVisits))
     ].join('');
@@ -958,9 +963,9 @@
 
     $('admAnStats').innerHTML = [
       statTile('Overall revenue', aud(curRev.usd), usd(curRev.usd) + ' USD', pctDelta(curRev.usd, prevRev.usd)),
-      statTile('Overall Robux revenue', robux(overallRobux), aud(overallRobux * DEVEX_USD_PER_ROBUX) + ' via DevEx', ''),
+      statTile('Overall Robux revenue', robuxRaw(overallRobux), aud(overallRobux * DEVEX_USD_PER_ROBUX) + ' via DevEx', ''),
       statTile('Website revenue', aud(curRev.usd), usd(curRev.usd) + ' USD', pctDelta(curRev.usd, prevRev.usd)),
-      statTile('Website Robux revenue', robux(curRev.robux), aud(curRev.robux * DEVEX_USD_PER_ROBUX) + ' via DevEx', pctDelta(curRev.robux, prevRev.robux)),
+      statTile('Website Robux revenue', robuxRaw(curRev.robux), aud(curRev.robux * DEVEX_USD_PER_ROBUX) + ' via DevEx', pctDelta(curRev.robux, prevRev.robux)),
       statTile('Order count', curOrders.length, null, pctDelta(curOrders.length, prevOrders.length)),
       statTile('Avg order value', usd(aov), null, ''),
       statTile('Conversion rate', pct(conv), null, ''),
@@ -1123,9 +1128,15 @@
         alert(err.message || 'Could not update product.');
       });
     } else if (e.target.closest('.adm-prod-download')) {
-      var a = document.createElement('a');
-      a.href = 'placeholder.zip'; a.download = p.title.replace(/[^a-z0-9]+/gi, '-') + '.zip';
-      document.body.appendChild(a); a.click(); a.remove();
+      var dlBtn = e.target.closest('.adm-prod-download');
+      dlBtn.disabled = true;
+      invokeAdminFn('admin-get-download-url', { productId: p.dbId }, 'Could not download the product file.').then(function (d) {
+        dlBtn.disabled = false;
+        window.open(d.url, '_blank', 'noopener');
+      }).catch(function (err) {
+        dlBtn.disabled = false;
+        alert(err.message || 'Could not download the product file.');
+      });
     } else if (e.target.closest('.adm-prod-edit')) {
       openProductEdit(id);
     }
@@ -1270,11 +1281,16 @@
       b.classList.toggle('active', b.getAttribute('data-platform') === platform);
     });
     populateCategorySelect(platform, catToKeep, subcatToKeep);
+    updateDevexHint();
   }
   function updateDevexHint() {
-    var usdPrice = parseFloat($('admEditPrice').value) || 0;
     var hint = $('admEditDevexHint'); if (!hint) return;
-    hint.textContent = usdPrice > 0
+    var platform = ($('admEditPlatform') || {}).value;
+    var usdPrice = parseFloat($('admEditPrice').value) || 0;
+    // Matches renderGamepassStatus()'s gate - Robux/DevEx pricing only
+    // applies to Roblox products, so Minecraft products shouldn't show a
+    // nonsensical Robux conversion hint.
+    hint.textContent = (platform === 'Roblox' && usdPrice > 0)
       ? ('DevEx equivalent of ' + usd(usdPrice) + ' ≈ R$ ' + Math.round(usdPrice / DEVEX_USD_PER_ROBUX).toLocaleString('en-US'))
       : '';
   }
@@ -1783,21 +1799,19 @@
   orderStatusDropdown.setOptions([
     { value: 'all', label: 'All statuses' },
     { value: 'completed', label: 'Completed' },
-    { value: 'pending', label: 'Pending' },
-    { value: 'refunded', label: 'Refunded' },
-    { value: 'failed', label: 'Failed' }
+    { value: 'refunded', label: 'Refunded' }
   ], 'all');
   function renderOrders() {
     var statusF = orderStatusDropdown.getValue() || 'all';
     var q = (($('admOrderSearch') || {}).value || '').trim().toLowerCase();
     var rows = ORDERS.filter(function (o) {
+      if (o.status === 'pending' || o.status === 'failed') return false;
       var okStatus = statusF === 'all' || o.status === statusF;
       var okQ = !q || o.id.toLowerCase().indexOf(q) >= 0 || o.title.toLowerCase().indexOf(q) >= 0 || o.userName.toLowerCase().indexOf(q) >= 0;
       return okStatus && okQ;
     }).sort(function (a, b) { return new Date(b.date) - new Date(a.date); }).slice(0, 200);
     $('admOrdersBody').innerHTML = rows.map(function (o) {
       var actions = '';
-      if (o.status === 'pending' && can('support')) actions += '<button class="btn btn-ghost adm-btn-sm adm-order-complete" type="button">Mark completed</button>';
       if (o.status === 'completed' && can('support')) actions += '<button class="btn btn-ghost adm-btn-sm adm-order-refund" type="button">Refund</button>';
       return '<tr data-id="' + esc(o.id) + '">' +
         '<td>' + fmtDate(new Date(o.date)) + '</td>' +
@@ -2044,19 +2058,18 @@
     var u = USERS.filter(function (x) { return x.id === userId; })[0];
     var p = findProduct(prodId);
     if (!u || !p) return;
-    // No admin-grant-product Edge Function exists yet, so this only adds
-    // a local, in-memory row for immediate feedback - it is NOT written to
-    // the real orders table and will disappear on the next refreshOrders().
-    ORDERS.unshift({
-      id: 'CLD-GRANT-' + Date.now().toString(36).toUpperCase(),
-      date: new Date().toISOString(), userId: u.id, userName: u.name,
-      productId: p.id, title: p.title, image: p.image, cat: p.cat, platform: p.platform,
-      licence: 'standard', qty: 1, unitPrice: 0, subtotal: 0, couponCode: null, discount: 0, total: 0,
-      currency: 'usd', status: 'completed', refCode: null, refundReason: null, granted: true, items: []
+    var msg = $('admGrantMsg');
+    var submitBtn = grantForm.querySelector('[type="submit"]');
+    if (submitBtn) submitBtn.disabled = true;
+    invokeAdminFn('admin-grant-product', { userId: u.id, productId: p.dbId }, 'Could not grant the product.').then(function () {
+      logAudit('Manually granted "' + p.title + '" to ' + u.name);
+      if (msg) { msg.textContent = 'Granted "' + p.title + '" to ' + u.name + '.'; setTimeout(function () { msg.textContent = ''; }, 3000); }
+      if (submitBtn) submitBtn.disabled = false;
+      return refreshOrders();
+    }).catch(function (err) {
+      if (submitBtn) submitBtn.disabled = false;
+      if (msg) msg.textContent = err.message || 'Could not grant the product.';
     });
-    logAudit('Manually granted "' + p.title + '" to ' + u.name);
-    var msg = $('admGrantMsg'); if (msg) { msg.textContent = 'Granted "' + p.title + '" to ' + u.name + '.'; setTimeout(function () { msg.textContent = ''; }, 3000); }
-    renderUsers(); if (curPanel === 'orders') renderOrders();
   });
 
   /* ================================================================

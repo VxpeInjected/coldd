@@ -210,7 +210,10 @@
       if (msg) {
         const link = msg.querySelector('.announce-link');
         const linkHtml = link ? link.outerHTML : '';
-        msg.innerHTML = (sale.message || sale.title || '') + ' ' + linkHtml;
+        const escText = String(sale.message || sale.title || '').replace(/[&<>"']/g, function (c) {
+          return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+        });
+        msg.innerHTML = escText + ' ' + linkHtml;
       }
     })();
 
@@ -243,24 +246,75 @@
     }
 
     (function () {
-      const el = document.getElementById('heroHl');
-      if (!el) return;
-      const WORDS = [
-        { text: 'Roblox game', hold: 6000, minecraft: false },
-        { text: 'Minecraft server', hold: 1800, minecraft: true }
-      ];
-      let i = 0;
-      function next() {
-        el.classList.add('hl-fade');
-        setTimeout(function () {
-          i = (i + 1) % WORDS.length;
-          el.textContent = WORDS[i].text;
-          el.classList.toggle('hl-minecraft', WORDS[i].minecraft);
-          el.classList.remove('hl-fade');
-          setTimeout(next, WORDS[i].hold);
-        }, 350);
+      const wrap = document.getElementById('heroStats');
+      if (!wrap) return;
+      const nums = Array.prototype.slice.call(wrap.querySelectorAll('.hn[data-target]'));
+      if (!nums.length) return;
+
+      // Products: real catalog count (both platforms), rounded down to the
+      // nearest 50 so the number doesn't need updating on every single
+      // product add/remove (e.g. 823 -> "800+").
+      const productsEl = document.getElementById('heroStatProducts');
+      if (productsEl) {
+        const count = (window.__CATALOG || []).length;
+        if (count > 0) {
+          productsEl.setAttribute('data-target', Math.floor(count / 50) * 50);
+          productsEl.setAttribute('data-suffix', '+');
+        }
       }
-      setTimeout(next, WORDS[0].hold);
+
+      // Discord: the real, live (unrounded) member count - proxied through
+      // our own function since Discord's API doesn't send CORS headers for
+      // direct browser fetches (same reason admin-discord-stats exists).
+      // Waited on below so the animation always plays with the real number
+      // instead of the static fallback baked into the HTML.
+      const discordEl = document.getElementById('heroStatDiscord');
+      const discordReady = (discordEl && window.coldSupabase)
+        ? window.coldSupabase.functions.invoke('public-site-stats', { body: {} }).then(function (res) {
+            var count = res && res.data && res.data.discordMemberCount;
+            if (typeof count === 'number') {
+              discordEl.setAttribute('data-target', count);
+              discordEl.setAttribute('data-suffix', '');
+            }
+          }).catch(function () {})
+        : Promise.resolve();
+
+      function setFinal(el) {
+        var target = Number(el.getAttribute('data-target')) || 0;
+        el.textContent = target.toLocaleString('en-US') + (el.getAttribute('data-suffix') || '');
+      }
+
+      function animate(el) {
+        var target = Number(el.getAttribute('data-target')) || 0;
+        var suffix = el.getAttribute('data-suffix') || '';
+        var start = performance.now();
+        var duration = 1400;
+        function tick(now) {
+          var p = Math.min(1, (now - start) / duration);
+          var eased = 1 - Math.pow(1 - p, 3);
+          el.textContent = Math.round(target * eased).toLocaleString('en-US') + suffix;
+          if (p < 1) requestAnimationFrame(tick);
+        }
+        requestAnimationFrame(tick);
+      }
+
+      if (reduce || !('IntersectionObserver' in window)) {
+        discordReady.then(function () { nums.forEach(setFinal); });
+        return;
+      }
+      var entered = false, dataReady = false;
+      function maybePlay() {
+        if (!entered || !dataReady) return;
+        nums.forEach(animate);
+      }
+      var io2 = new IntersectionObserver(function (entries) {
+        if (entered || !entries.some(function (e) { return e.isIntersecting; })) return;
+        entered = true;
+        io2.unobserve(wrap);
+        maybePlay();
+      }, { threshold: 0.4 });
+      io2.observe(wrap);
+      discordReady.then(function () { dataReady = true; maybePlay(); });
     })();
 
     (function () {
@@ -892,7 +946,20 @@
       var emptyEl = document.getElementById('cartEmpty');
       var subEl = document.getElementById('cartSubtotal');
 
-      function save() { try { localStorage.setItem(KEY, JSON.stringify(cart)); } catch (_) {} }
+      // Broadcasts to any other cart instance on the same page (e.g. the
+      // checkout page's own item list) so both stay in sync with what's
+      // actually in localStorage - without this, editing the cart in one
+      // place while the other still holds its stale page-load snapshot
+      // could charge/display a different cart than what the user last saw.
+      function save() {
+        try { localStorage.setItem(KEY, JSON.stringify(cart)); } catch (_) {}
+        try { window.dispatchEvent(new CustomEvent('coldd:cart-sync', { detail: { source: 'drawer' } })); } catch (_) {}
+      }
+      window.addEventListener('coldd:cart-sync', function (e) {
+        if (e.detail && e.detail.source === 'drawer') return;
+        try { cart = JSON.parse(localStorage.getItem(KEY) || '[]') || []; } catch (_) { cart = []; }
+        updateBadge(); renderCart();
+      });
       function money(n) { return window.__money ? window.__money(n) : ('$' + n); }
       function count() { return cart.reduce(function (s, i) { return s + i.qty; }, 0); }
       function subtotal() { return cart.reduce(function (s, i) { return s + i.price * i.qty; }, 0); }
@@ -1089,13 +1156,19 @@
         }
         var mc = !!card.closest('#view-minecraft') || /minecraft/i.test(location.pathname);
         var cardId = card.getAttribute('data-id') || title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+        // Matches product.html: prefer the admin-configured resell price
+        // over the flat 3x estimate when the catalog has one set, so
+        // quick-view and the full product page never disagree on price.
+        var catalogProd = (window.__CATALOG || []).filter(function (c) { return c.id === cardId; })[0];
         return { id: cardId, title: title, price: price,
                  image: m ? m[1] : '', tag: tag,
                  desc: descEl ? descEl.textContent.trim() : '',
                  platform: mc ? 'Minecraft' : 'Roblox',
-                 resell: card.getAttribute('data-resell') === 'yes' };
+                 resell: card.getAttribute('data-resell') === 'yes',
+                 resellPrice: catalogProd && catalogProd.resellPrice != null ? catalogProd.resellPrice : null };
       }
       var RESELL_MULT = 3;
+      function resellPriceFor(data) { return data.resellPrice != null ? data.resellPrice : Math.round(data.basePrice * RESELL_MULT); }
       var pmLicence = document.getElementById('pmLicence');
       var pmLicLabel = document.querySelector('.pm-lic-label');
       var licBtns = document.querySelectorAll('#pmLicence .pm-lic');
@@ -1103,14 +1176,14 @@
       function refreshLicPrices() {
         if (!active) return;
         licPriceEls.forEach(function (el) {
-          var p = el.getAttribute('data-licprice') === 'resell' ? Math.round(active.basePrice * RESELL_MULT) : active.basePrice;
+          var p = el.getAttribute('data-licprice') === 'resell' ? resellPriceFor(active) : active.basePrice;
           el.textContent = money(p);
         });
       }
       function setLicence(lic) {
         if (!active) return;
         active.licence = lic;
-        active.price = lic === 'resell' ? Math.round(active.basePrice * RESELL_MULT) : active.basePrice;
+        active.price = lic === 'resell' ? resellPriceFor(active) : active.basePrice;
         if (pmPrice) pmPrice.textContent = money(active.price);
         licBtns.forEach(function (b) { b.classList.toggle('active', b.getAttribute('data-lic') === lic); });
       }
@@ -1624,8 +1697,7 @@
         overlay.querySelector('#navSignoutConfirm').addEventListener('click', function () {
           overlay.hidden = true;
           try { localStorage.setItem('coldd_auth', 'out'); } catch (e) {}
-          if (window.coldAuth) window.coldAuth.signOut();
-          location.href = '/';
+          (window.coldAuth ? window.coldAuth.signOut() : Promise.resolve()).then(function () { location.href = '/'; });
         });
       }
       function openConfirm() { if (!overlay) buildConfirm(); overlay.hidden = false; }
@@ -1687,6 +1759,7 @@
       // localStorage array product.html already reads/writes (an array
       // of catalog ids), so this panel is just a live view onto it.
       var WISH_KEY = 'coldd_wish_v1';
+      function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
       function wishIds() { try { return JSON.parse(localStorage.getItem(WISH_KEY) || '[]') || []; } catch (e) { return []; } }
       function saveWishIds(ids) { try { localStorage.setItem(WISH_KEY, JSON.stringify(ids)); } catch (e) {} }
       function renderWishlist() {
@@ -1697,8 +1770,8 @@
         var items = ids.map(function (id) { return cat.filter(function (p) { return p.id === id; })[0]; }).filter(Boolean);
         if (!items.length) { el.innerHTML = '<p class="dash-empty-note">Nothing saved yet - tap the heart on any product to add it here.</p>'; return; }
         el.innerHTML = items.map(function (p) {
-          return '<div class="dash-row" data-id="' + p.id + '"><span class="dr-thumb" style="background-image:url(\'' + p.image + '\')"></span>' +
-            '<div class="dr-main"><div class="dr-title">' + p.title + '</div><div class="dr-sub"><span class="p-price" data-usd="' + p.priceNum + '">' + (window.__money ? window.__money(p.priceNum) : ('$' + p.priceNum)) + '</span></div></div>' +
+          return '<div class="dash-row" data-id="' + esc(p.id) + '"><span class="dr-thumb" style="background-image:url(\'' + p.image + '\')"></span>' +
+            '<div class="dr-main"><div class="dr-title">' + esc(p.title) + '</div><div class="dr-sub"><span class="p-price" data-usd="' + p.priceNum + '">' + (window.__money ? window.__money(p.priceNum) : ('$' + p.priceNum)) + '</span></div></div>' +
             '<div class="dr-actions"><button class="btn btn-ghost dr-cart" type="button">Add to cart</button><button class="wl-remove" type="button" aria-label="Remove">×</button></div></div>';
         }).join('');
       }
@@ -1712,7 +1785,7 @@
         var items = ids.map(function (id) { return cat.filter(function (p) { return p.id === id; })[0]; }).filter(Boolean);
         el.innerHTML = items.length ? items.map(function (p) {
           return '<div class="dash-row"><span class="dr-thumb" style="background-image:url(\'' + p.image + '\')"></span>' +
-            '<div class="dr-main"><div class="dr-title">' + p.title + '</div><div class="dr-sub"><span class="p-price" data-usd="' + p.priceNum + '">' + (window.__money ? window.__money(p.priceNum) : ('$' + p.priceNum)) + '</span></div></div>' +
+            '<div class="dr-main"><div class="dr-title">' + esc(p.title) + '</div><div class="dr-sub"><span class="p-price" data-usd="' + p.priceNum + '">' + (window.__money ? window.__money(p.priceNum) : ('$' + p.priceNum)) + '</span></div></div>' +
             '<div class="dr-actions"><a class="btn btn-ghost dr-btn" href="/product?id=' + encodeURIComponent(p.id) + '">View</a></div></div>';
         }).join('') : '<p class="dash-empty-note">Nothing saved yet - tap the heart on any product to add it here.</p>';
       }
@@ -1766,7 +1839,7 @@
         if (!orders.length) { body.innerHTML = '<tr><td colspan="5">No orders yet.</td></tr>'; return; }
         body.innerHTML = orders.map(function (o) {
           var items = o.order_items || [];
-          var titles = items.map(function (i) { return i.title; }).join(', ') || '—';
+          var titles = esc(items.map(function (i) { return i.title; }).join(', ') || '—');
           var badge = o.status === 'paid' ? 'ok' : 'warn';
           var label = o.status.charAt(0).toUpperCase() + o.status.slice(1);
           var isRobux = o.currency === 'robux';
@@ -1787,7 +1860,7 @@
             var first = items[0];
             var slug = first ? first.product_slug : '';
             var img = (first && first.products && first.products.image) ? window.imgUrl(first.products.image) : '/banner.jpg';
-            var titles = items.map(function (i) { return i.title; }).join(', ') || '—';
+            var titles = esc(items.map(function (i) { return i.title; }).join(', ') || '—');
             var actions = slug ? '<a class="btn btn-ghost dr-btn" href="/product?id=' + encodeURIComponent(slug) + '">View</a>' : '';
             if (slug && o.status === 'paid') {
               actions += '<button class="btn btn-ghost dr-btn dr-download" type="button" data-slug="' + slug + '">Download</button>' +
@@ -1866,7 +1939,7 @@
           .eq('user_id', userId)
           .order('created_at', { ascending: false })
           .then(function (res) {
-            var orders = (res && res.data) || [];
+            var orders = ((res && res.data) || []).filter(function (o) { return o.status !== 'failed'; });
             renderOverview(orders);
             renderPurchases(orders);
             renderOwnedAndDownloads(orders);
@@ -2045,7 +2118,7 @@
         var hh = function (s) { var h = 5381; for (var i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) >>> 0; return h; };
         refProdBody.innerHTML = cat.map(function (p) {
           var h = hh(p.id), sales = h % 9, earn = Math.round(p.priceNum * 0.2 * 100) / 100;
-          return '<tr><td>' + p.title + '</td><td><span class="p-price" data-usd="' + earn + '">' + fmt(earn) + '</span></td>' +
+          return '<tr><td>' + esc(p.title) + '</td><td><span class="p-price" data-usd="' + earn + '">' + fmt(earn) + '</span></td>' +
             '<td>' + sales + '</td><td><span class="p-price" data-usd="' + (earn * sales) + '">' + fmt(earn * sales) + '</span></td>' +
             '<td><button class="btn btn-ghost ref-prod-copy" type="button" data-link="' + (p.page || '/product') + '?id=' + p.id + '&ref=you">Copy link</button></td></tr>';
         }).join('');
@@ -2148,8 +2221,7 @@
           if (!window.coldAuth) return;
           setBtnLoading(fin, true);
           window.coldAuth.invokeFn('delete-account', {}).then(function () {
-            if (window.coldAuth) window.coldAuth.signOut();
-            location.href = '/';
+            return (window.coldAuth ? window.coldAuth.signOut() : Promise.resolve()).then(function () { location.href = '/'; });
           }).catch(function (err) {
             setBtnLoading(fin, false);
             if (delErr) delErr.textContent = err.message || 'Could not delete your account.';
@@ -2466,8 +2538,9 @@
       if (soConfirm) soConfirm.addEventListener('click', function () {
         soOverlay.hidden = true;
         setState(false);
-        if (window.coldAuth) window.coldAuth.signOut();
-        if (window.__go) window.__go('home'); else location.href = '/';
+        (window.coldAuth ? window.coldAuth.signOut() : Promise.resolve()).then(function () {
+          if (window.__go) window.__go('home'); else location.href = '/';
+        });
       });
     })();
 
@@ -2482,8 +2555,21 @@
       var CART_KEY = 'coldd_cart_v1';
       var money = function (n) { return window.__money ? window.__money(n) : ('$' + n); };
       function load() { try { return JSON.parse(localStorage.getItem(CART_KEY) || '[]') || []; } catch (e) { return []; } }
-      function save(c) { try { localStorage.setItem(CART_KEY, JSON.stringify(c)); } catch (e) {} scheduleCartSnapshot(); }
+      function save(c) {
+        try { localStorage.setItem(CART_KEY, JSON.stringify(c)); } catch (e) {}
+        scheduleCartSnapshot();
+        try { window.dispatchEvent(new CustomEvent('coldd:cart-sync', { detail: { source: 'checkout' } })); } catch (e) {}
+      }
       var cart = load();
+      // Same fix as the cart drawer (app.js's other IIFE): if the drawer
+      // (or any other cart instance on this page) changes the cart, reload
+      // from localStorage and re-render so this page never builds the
+      // create-checkout-session payload from a stale snapshot.
+      window.addEventListener('coldd:cart-sync', function (e) {
+        if (e.detail && e.detail.source === 'checkout') return;
+        cart = load();
+        render();
+      });
 
       // Abandoned-cart tracking for the admin panel - debounced so typing/
       // adjusting quantities doesn't spam the backend. Reuses the same
@@ -2559,6 +2645,7 @@
         return appliedCoupon ? appliedCoupon.discountUsd : 0;
       }
 
+      function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
       function renderItems() {
         if (!itemsEl) return;
         itemsEl.innerHTML = '';
@@ -2567,7 +2654,7 @@
           var row = document.createElement('div'); row.className = 'co-item';
           var lic = i.licence === 'resell' ? ' · Resell licence' : '';
           row.innerHTML = '<span class="co-item-thumb" style="background-image:url(\'' + i.image + '\')"></span>' +
-            '<div class="co-item-info"><div class="co-item-title">' + i.title + '</div><div class="co-item-sub">Qty ' + i.qty + lic + '</div></div>' +
+            '<div class="co-item-info"><div class="co-item-title">' + esc(i.title) + '</div><div class="co-item-sub">Qty ' + i.qty + lic + '</div></div>' +
             '<span class="co-item-price">' + lineMoney(i) + '</span>';
           itemsEl.appendChild(row);
         });
@@ -2592,7 +2679,10 @@
         if (fx) fx.textContent = 'All prices in USD. Your card is charged in USD via Stripe.';
         return total;
       }
-      function render() { renderItems(); renderTotals(); updateResell(); }
+      function render() {
+        renderItems(); renderTotals(); updateResell();
+        if (typeof payMethod !== 'undefined' && payMethod === 'robux') renderRobuxPanel();
+      }
 
       function updateResell() {
         var wrap = document.getElementById('coResellWrap');
@@ -2650,11 +2740,16 @@
       // Roblox's own site. This panel: link Roblox account if needed ->
       // create a pending order (which hands back each item's gamepass
       // ID) -> "Buy on Roblox" links per item -> verify against the
-      // buyer's inventory. robuxOrderId is created once per checkout
-      // page load and reused across tab switches; cart edits after that
-      // point start a fresh order on the next verify attempt.
+      // buyer's inventory. robuxOrderId is reused across tab switches as
+      // long as the cart hasn't changed since it was created (tracked via
+      // robuxOrderSignature below) - editing the cart after opening this
+      // tab starts a fresh order instead of verifying against stale items.
       var robuxOrderId = null;
       var robuxOrderItems = null;
+      var robuxOrderSignature = null;
+      function robuxItemsSignature(items) {
+        return JSON.stringify(items.map(function (i) { return [i.slug, i.qty, i.licence]; }).sort());
+      }
       function renderRobuxPanel() {
         var resellBlock = document.getElementById('coRobuxResellBlock');
         var linkBlock = document.getElementById('coRobuxLinkBlock');
@@ -2672,6 +2767,12 @@
         buyBlock.hidden = true;
         if (!robuxItems.length || !window.coldAuth) return;
 
+        var signature = robuxItemsSignature(robuxItems);
+        if (robuxOrderId && robuxOrderSignature !== signature) {
+          robuxOrderId = null;
+          robuxOrderItems = null;
+        }
+
         window.coldAuth.robloxLinkStatus().then(function (res) {
           if (!res || !res.linked) { linkBlock.hidden = false; return; }
           buyBlock.hidden = false;
@@ -2679,6 +2780,7 @@
           window.coldAuth.invokeFn('create-robux-order', { items: robuxItems }).then(function (data) {
             robuxOrderId = data.orderId;
             robuxOrderItems = data.items;
+            robuxOrderSignature = signature;
             deleteCartSnapshot();
             renderRobuxItems();
           }).catch(function (err) {
@@ -2692,7 +2794,7 @@
         var totalEl = document.getElementById('coRobuxTotal');
         if (!itemsEl || !robuxOrderItems) return;
         itemsEl.innerHTML = robuxOrderItems.map(function (it) {
-          return '<div class="co-item"><div class="co-item-info"><div class="co-item-title">' + it.title + '</div>' +
+          return '<div class="co-item"><div class="co-item-info"><div class="co-item-title">' + esc(it.title) + '</div>' +
             '<div class="co-item-sub">Qty ' + it.qty + ' · R$ ' + it.unitRobux.toLocaleString('en-US') + ' each</div></div>' +
             '<a class="btn btn-ghost" href="https://www.roblox.com/game-pass/' + it.gamePassId + '/" target="_blank" rel="noopener">Buy on Roblox</a></div>';
         }).join('');

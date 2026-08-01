@@ -128,16 +128,24 @@
 
   function upsertBasicProfile(user) {
     var email = user.email || '';
-    var name = (user.user_metadata && (user.user_metadata.username || user.user_metadata.full_name || user.user_metadata.name)) || (email ? email.split('@')[0] : 'Member');
-    var payload = { id: user.id, username: name, email: email, updated_at: new Date().toISOString() };
-    client.from('profiles').upsert(payload).then(function (res) {
-      if (res.error) console.warn('[coldd] profile upsert failed:', res.error.message);
-      else attributeReferral();
+    var derivedName = (user.user_metadata && (user.user_metadata.username || user.user_metadata.full_name || user.user_metadata.name)) || (email ? email.split('@')[0] : 'Member');
+    // Only set username if the profile doesn't already have one - a user
+    // who customized their display name via Account Settings must not have
+    // it silently reverted to their OAuth/email-derived name on every
+    // future sign-in.
+    client.from('profiles').select('username').eq('id', user.id).maybeSingle().then(function (existingRes) {
+      var existingName = existingRes && existingRes.data ? existingRes.data.username : null;
+      var name = existingName || derivedName;
+      var payload = { id: user.id, email: email, updated_at: new Date().toISOString() };
+      if (!existingName) payload.username = derivedName;
+      client.from('profiles').upsert(payload).then(function (res) {
+        if (res.error) console.warn('[coldd] profile upsert failed:', res.error.message);
+        else attributeReferral();
+      });
+      var profile = { id: user.id, provider: 'email', name: name, email: email, avatar: '' };
+      saveProfile(profile);
+      try { localStorage.setItem(AUTH_KEY, 'in'); } catch (e) {}
     });
-    var profile = { id: user.id, provider: 'email', name: name, email: email, avatar: '' };
-    saveProfile(profile);
-    try { localStorage.setItem(AUTH_KEY, 'in'); } catch (e) {}
-    return profile;
   }
 
   window.coldAuth = {
@@ -241,7 +249,7 @@
     signOut: function () {
       clearProfile();
       try { localStorage.setItem(AUTH_KEY, 'out'); } catch (e) {}
-      client.auth.signOut().catch(function () {});
+      return client.auth.signOut().catch(function () {});
     }
   };
 

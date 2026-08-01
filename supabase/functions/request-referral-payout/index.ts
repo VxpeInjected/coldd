@@ -11,7 +11,6 @@
 // Body: { method: 'usd'|'robux'|'store_credit', amount }
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { REFERRAL_RATE } from "../_shared/referrals.ts";
 
 const ALLOWED_ORIGIN = "https://coldd.dev";
 const METHODS = ["usd", "robux", "store_credit"];
@@ -55,47 +54,20 @@ Deno.serve(async (req: Request) => {
     const requestedAmount = Number(body.amount);
     if (!requestedAmount || requestedAmount <= 0) return json({ ok: false, error: "Enter an amount." }, 400);
 
-    const { data: referred } = await admin.from("profiles").select("id").eq("referred_by", uid);
-    const referredIds = (referred || []).map((r: { id: string }) => r.id);
-
-    let earnedUsd = 0, earnedRobux = 0;
-    if (referredIds.length) {
-      const { data: orders } = await admin
-        .from("orders")
-        .select("currency, total_usd, total_robux")
-        .in("user_id", referredIds)
-        .eq("status", "paid");
-      (orders || []).forEach((o: { currency: string; total_usd: number | null; total_robux: number | null }) => {
-        if (o.currency === "robux") earnedRobux += Number(o.total_robux || 0) * REFERRAL_RATE;
-        else earnedUsd += Number(o.total_usd || 0) * REFERRAL_RATE;
-      });
-    }
-
-    const { data: payouts } = await admin
-      .from("referral_payouts")
-      .select("method, amount_usd, amount_robux, status")
-      .eq("user_id", uid)
-      .neq("status", "denied");
-
-    let reservedUsd = 0, reservedRobux = 0;
-    (payouts || []).forEach((p: { method: string; amount_usd: number | null; amount_robux: number | null }) => {
-      if (p.method === "robux") reservedRobux += Number(p.amount_robux || 0);
-      else reservedUsd += Number(p.amount_usd || 0);
+    // The balance check + insert happen atomically inside this single
+    // Postgres function (see supabase/referral_payout_atomic.sql), serialized
+    // per-user with an advisory lock - closes the check-then-act race that a
+    // separate SELECT-then-INSERT here would have.
+    const { data: result, error: rpcErr } = await admin.rpc("request_referral_payout", {
+      p_user_id: uid,
+      p_method: method,
+      p_amount: requestedAmount,
     });
-
-    const row: Record<string, unknown> = { user_id: uid, method, status: "requested" };
-    if (method === "robux") {
-      const available = Math.max(0, earnedRobux - reservedRobux);
-      if (requestedAmount > available) return json({ ok: false, error: "Amount exceeds your available Robux balance." }, 400);
-      row.amount_robux = Math.round(requestedAmount);
-    } else {
-      const available = Math.max(0, earnedUsd - reservedUsd);
-      if (requestedAmount > available) return json({ ok: false, error: "Amount exceeds your available USD balance." }, 400);
-      row.amount_usd = Math.round(requestedAmount * 100) / 100;
+    if (rpcErr) {
+      console.error("[request-referral-payout] rpc error:", rpcErr);
+      return json({ ok: false, error: "Could not submit payout request." }, 500);
     }
-
-    const { error: insErr } = await admin.from("referral_payouts").insert(row);
-    if (insErr) return json({ ok: false, error: "Could not submit payout request." }, 500);
+    if (!result?.ok) return json({ ok: false, error: result?.error || "Could not submit payout request." }, 400);
 
     return json({ ok: true });
   } catch (err) {

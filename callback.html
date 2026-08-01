@@ -62,19 +62,21 @@
           // Email/password account confirming for the first time (or any
           // other non-Discord provider) - simple profile, no guild lookups.
           var basicName = meta.full_name || meta.name || (email ? email.split('@')[0] : 'Member');
-          var upsertBasic = await window.coldSupabase.from('profiles').upsert({
-            id: user.id,
-            username: basicName,
-            email: email,
-            updated_at: new Date().toISOString()
-          });
+          // Only set username if the profile doesn't already have one - a
+          // user who customized their display name via Account Settings
+          // must not have it silently reverted on every future sign-in.
+          var existingBasic = await window.coldSupabase.from('profiles').select('username').eq('id', user.id).maybeSingle();
+          var basicPayload = { id: user.id, email: email, updated_at: new Date().toISOString() };
+          var finalBasicName = (existingBasic.data && existingBasic.data.username) || basicName;
+          if (!existingBasic.data || !existingBasic.data.username) basicPayload.username = basicName;
+          var upsertBasic = await window.coldSupabase.from('profiles').upsert(basicPayload);
           if (upsertBasic.error) console.warn('[coldd] profile upsert failed:', upsertBasic.error.message);
 
-          window.coldAuth.saveProfile({ id: user.id, provider: provider, name: basicName, email: email, avatar: '' });
+          window.coldAuth.saveProfile({ id: user.id, provider: provider, name: finalBasicName, email: email, avatar: '' });
           try { localStorage.setItem('coldd_auth', 'in'); } catch (e) {}
           window.coldAuth.attributeReferral();
 
-          msg.textContent = 'Signed in as ' + basicName + '. Redirecting…';
+          msg.textContent = 'Signed in as ' + finalBasicName + '. Redirecting…';
           setTimeout(function () { location.href = postLoginRedirect(); }, 500);
           return;
         }
@@ -111,23 +113,30 @@
           }
         }
 
-        var upsertRes = await window.coldSupabase.from('profiles').upsert({
+        // Only set username if the profile doesn't already have one - a
+        // user who customized their display name via Account Settings
+        // must not have it silently reverted to their Discord name on
+        // every future sign-in.
+        var existingDiscord = await window.coldSupabase.from('profiles').select('username').eq('id', user.id).maybeSingle();
+        var finalName = (existingDiscord.data && existingDiscord.data.username) || name;
+        var discordPayload = {
           id: user.id,
           discord_id: discordId,
-          username: name,
           email: email,
           avatar_url: avatar,
           guilds: guilds,
           member_info: memberInfo,
           updated_at: new Date().toISOString()
-        });
+        };
+        if (!existingDiscord.data || !existingDiscord.data.username) discordPayload.username = name;
+        var upsertRes = await window.coldSupabase.from('profiles').upsert(discordPayload);
         if (upsertRes.error) console.warn('[coldd] profile upsert failed:', upsertRes.error.message);
 
-        window.coldAuth.saveProfile({ id: user.id, provider: 'discord', discordId: discordId, name: name, email: email, avatar: avatar, guilds: guilds, memberInfo: memberInfo });
+        window.coldAuth.saveProfile({ id: user.id, provider: 'discord', discordId: discordId, name: finalName, email: email, avatar: avatar, guilds: guilds, memberInfo: memberInfo });
         try { localStorage.setItem('coldd_auth', 'in'); } catch (e) {}
         window.coldAuth.attributeReferral();
 
-        msg.textContent = 'Signed in as ' + name + '. Redirecting…';
+        msg.textContent = 'Signed in as ' + finalName + '. Redirecting…';
         setTimeout(function () { location.href = postLoginRedirect(); }, 500);
       } catch (err) {
         console.error('[coldd] callback error:', err);

@@ -19,6 +19,11 @@ const ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // no 0/O/1/I - avoids misr
 const CODE_LENGTH = 6;
 const EXPIRY_MINUTES = 10;
 const MAX_ATTEMPTS = 5;
+// Matches the client-side resend cooldown (auth.js's RESEND_SECONDS) -
+// without this, nothing stops a script from spamming send requests for an
+// email that isn't even the caller's inbox to receive (rate limited on our
+// side, not just disabled in the UI).
+const RESEND_COOLDOWN_SECONDS = 30;
 
 const ALLOWED_ORIGIN = "https://coldd.dev";
 
@@ -127,6 +132,15 @@ Deno.serve(async (req: Request) => {
     const action = body.action;
 
     if (action === "send") {
+      const { data: existing } = await admin.from("email_otps").select("expires_at").eq("email", email).maybeSingle();
+      if (existing) {
+        const lastSentAt = new Date(existing.expires_at).getTime() - EXPIRY_MINUTES * 60_000;
+        const elapsedSeconds = (Date.now() - lastSentAt) / 1000;
+        if (elapsedSeconds < RESEND_COOLDOWN_SECONDS) {
+          return json({ ok: false, error: "Please wait a moment before requesting another code." }, 429);
+        }
+      }
+
       const code = generateCode();
       const code_hash = await hashCode(code);
       const expires_at = new Date(Date.now() + EXPIRY_MINUTES * 60_000).toISOString();

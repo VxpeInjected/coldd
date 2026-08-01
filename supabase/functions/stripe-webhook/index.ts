@@ -56,14 +56,26 @@ Deno.serve(async (req: Request) => {
       const paymentIntentId = typeof session.payment_intent === "string" ? session.payment_intent : session.payment_intent?.id ?? null;
 
       if (orderId) {
-        // Idempotent: only rows still 'pending' get flipped, so a replayed
-        // webhook delivery (Stripe retries on anything but a 2xx) is a no-op.
-        const { error } = await admin
+        // Idempotent: only rows still not 'paid' get flipped, so a replayed
+        // webhook delivery (Stripe retries on anything but a 2xx) is a no-op -
+        // .select() lets us tell whether this delivery was the one that
+        // actually transitioned the order, so the coupon usage bump below
+        // only ever fires once per order.
+        const { data: updated, error } = await admin
           .from("orders")
           .update({ status: "paid", stripe_payment_intent_id: paymentIntentId, paid_at: new Date().toISOString() })
           .eq("id", orderId)
-          .neq("status", "paid");
-        if (error) console.error("[stripe-webhook] failed to mark order paid:", error);
+          .neq("status", "paid")
+          .select("coupon_code")
+          .single();
+        if (error && error.code !== "PGRST116") console.error("[stripe-webhook] failed to mark order paid:", error);
+
+        if (updated?.coupon_code) {
+          const { data: coupon } = await admin.from("coupons").select("usage_count").eq("code", updated.coupon_code).single();
+          if (coupon) {
+            await admin.from("coupons").update({ usage_count: coupon.usage_count + 1 }).eq("code", updated.coupon_code);
+          }
+        }
       }
     } else if (event.type === "checkout.session.async_payment_failed" || event.type === "checkout.session.expired") {
       const session = event.data.object as Stripe.Checkout.Session;

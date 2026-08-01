@@ -160,17 +160,15 @@ Deno.serve(async (req: Request) => {
 
     const missingTargets = targets.filter((t) => missing.includes(t.gamePassId));
     const missingTitles = missingTargets.map((t) => t.title);
+    // checkedRobloxUserId/gamePassId are internal identifiers - logged for
+    // support/debugging, never returned to the caller.
+    console.log("[verify-robux-order] unverified:", { orderId, robloxUserId: tokenSet.robloxId, gamePassIds: missingTargets.map((t) => t.gamePassId) });
     return json({
       ok: true,
       verified: false,
       status: "pending",
       missing: missingTitles,
-      // Temporary debug fields so a real mismatch (wrong Roblox account
-      // linked, wrong gamepass id, etc.) is visible without needing
-      // function logs - remove once Robux checkout is confirmed solid.
-      debug: { checkedRobloxUserId: tokenSet.robloxId, gamePassIds: missingTargets.map((t) => t.gamePassId) },
-      message: "Could not confirm: " + missingTitles.join(", ") + " (checked Roblox account " + tokenSet.robloxId +
-        " for gamepass " + missingTargets.map((t) => t.gamePassId).join(", ") + "). Roblox purchases can take a few minutes to show up - try again shortly.",
+      message: "Could not confirm: " + missingTitles.join(", ") + ". Roblox purchases can take a few minutes to show up - try again shortly.",
     });
   } catch (err) {
     console.error("[verify-robux-order] error:", err);

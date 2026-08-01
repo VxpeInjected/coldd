@@ -184,6 +184,9 @@
         setLoading(si, false);
         location.href = '/dashboard';
       });
+    }).catch(function () {
+      setLoading(si, false);
+      flash(si, 'Something went wrong. Please try again.');
     });
   });
 
@@ -209,6 +212,9 @@
         if (otpRes.error) flash(su, "Account created, but we couldn't send the code. Try resending on the next screen.");
         showVerifyStep(email);
       });
+    }).catch(function () {
+      setLoading(su, false);
+      flash(su, 'Something went wrong. Please try again.');
     });
   });
 
@@ -228,6 +234,9 @@
       }
       fieldErr(sv, 'code', '');
       location.href = '/dashboard';
+    }).catch(function () {
+      setLoading(sv, false);
+      flash(sv, 'Something went wrong. Please try again.');
     });
   });
 
@@ -249,7 +258,7 @@
 
   function startForgotCooldown() {
     if (!foResendBtn) return;
-    var remaining = RESEND_SECONDS_ALT;
+    var remaining = RESEND_SECONDS;
     foResendBtn.disabled = true;
     foResendBtn.textContent = 'Resend code (' + remaining + 's)';
     clearInterval(foResendTimer);
@@ -282,6 +291,9 @@
         if (sub) sub.textContent = 'Enter the code we emailed to ' + email + ', plus your new password.';
       }
       startForgotCooldown();
+    }).catch(function () {
+      setLoading(fo, false);
+      flash(fo, 'Something went wrong. Please try again.');
     });
   });
 
@@ -299,6 +311,9 @@
       if (res.error) { flash(frc, 'Incorrect or expired code.'); return; }
       flash(frc, 'Password updated! Redirecting…');
       setTimeout(function () { location.href = '/dashboard'; }, 900);
+    }).catch(function () {
+      setLoading(frc, false);
+      flash(frc, 'Something went wrong. Please try again.');
     });
   });
 
@@ -325,10 +340,15 @@
     if (pass.length < 8) { fieldErr(rs, 'password', 'Use at least 8 characters.'); ok = false; } else fieldErr(rs, 'password', '');
     if (!conf || conf !== pass) { fieldErr(rs, 'confirm', "Passwords don't match."); ok = false; } else fieldErr(rs, 'confirm', '');
     if (!ok || !window.coldAuth) return;
+    setLoading(rs, true);
     window.coldAuth.updatePassword(pass).then(function (res) {
+      setLoading(rs, false);
       if (res.error) { flash(rs, res.error.message); return; }
       flash(rs, 'Password updated — you can sign in now.');
       setTimeout(function () { location.href = '/signin'; }, 1200);
+    }).catch(function () {
+      setLoading(rs, false);
+      flash(rs, 'Something went wrong. Please try again.');
     });
   });
 })();

@@ -167,17 +167,9 @@ Deno.serve(async (req: Request) => {
 
       await admin.from("orders").update({ stripe_checkout_session_id: session.id }).eq("id", order.id);
 
-      if (appliedCouponCode) {
-        // Best-effort usage increment - not wrapped in a transaction with the
-        // order/session creation above, so a failure here just means the
-        // coupon's usage_count under-counts by one rather than blocking the
-        // purchase. A concurrent double-increment race is an acceptable risk
-        // at this traffic scale.
-        const { data: current } = await admin.from("coupons").select("usage_count").eq("code", appliedCouponCode).single();
-        if (current) {
-          await admin.from("coupons").update({ usage_count: current.usage_count + 1 }).eq("code", appliedCouponCode);
-        }
-      }
+      // usage_count is incremented by stripe-webhook once the order actually
+      // pays, not here - incrementing at session-creation time would count
+      // abandoned/expired/failed checkouts against the coupon's usage_limit.
 
       return json({ ok: true, url: session.url });
     } catch (stripeErr) {

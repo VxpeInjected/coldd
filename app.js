@@ -251,15 +251,13 @@
       const nums = Array.prototype.slice.call(wrap.querySelectorAll('.hn[data-target]'));
       if (!nums.length) return;
 
-      // Products: real catalog count (both platforms), rounded down to the
-      // nearest 50 so the number doesn't need updating on every single
-      // product add/remove (e.g. 823 -> "800+").
+      // Products: real, exact catalog count (both platforms).
       const productsEl = document.getElementById('heroStatProducts');
       if (productsEl) {
         const count = (window.__CATALOG || []).length;
         if (count > 0) {
-          productsEl.setAttribute('data-target', Math.floor(count / 50) * 50);
-          productsEl.setAttribute('data-suffix', '+');
+          productsEl.setAttribute('data-target', count);
+          productsEl.setAttribute('data-suffix', '');
         }
       }
 

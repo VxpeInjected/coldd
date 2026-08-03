@@ -64,14 +64,17 @@
        keeps its atmosphere and everything below it sits on clean graphite. */
     .backdrop { position: absolute; top: 0; left: 0; width: 100%;
       height: max(104vh, 940px); z-index: -4;
-      background: #0b0c0f url('banner.jpg') center top / cover no-repeat; filter: blur(4px); }
+      background: #0b0c0f url('banner.jpg') center top / cover no-repeat;
+      /* 4px left the artwork legible enough to compete with the headline it
+         sits behind. Pushed to 14px so it reads as depth, not as content. */
+      filter: blur(14px); }
 
     .scrim { position: absolute; top: 0; left: 0; width: 100%;
       height: max(104vh, 940px); z-index: -3; pointer-events: none;
       background: linear-gradient(180deg,
-        rgba(21,22,27,0.10) 0%,
-        rgba(21,22,27,0.38) 26%,
-        rgba(21,22,27,0.82) 55%,
+        rgba(17,18,22,0.52) 0%,
+        rgba(17,18,22,0.62) 30%,
+        rgba(19,20,25,0.86) 58%,
         var(--bg) 88%); }
 
     /* Retired atmosphere: animated blur blobs, the red radial wash and the grain
@@ -595,12 +598,19 @@
 .p-rc { margin-left: 6px; font-size: 11px; color: var(--fg-3); }
 .p-sum { font-size: 12px; color: var(--fg-2); line-height: 1.5; margin: 10px 0 14px;
   display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+/* Ghost by default, ember on intent. A grid of twelve identical filled-red
+   buttons spends the accent on wallpaper; DESIGN.md's One Ember Rule wants red
+   to mean "act here", so the card states its action quietly until you reach
+   for it. This is also what DESIGN.md already documents for product cards. */
 .p-add { margin-top: auto; width: 100%; min-height: 40px; font-family: inherit; font-size: 13px; font-weight: 700;
-  color: #fff; background: var(--accent-deep); border: none; border-radius: 10px; cursor: pointer;
-  transition: background .18s ease, box-shadow .18s ease; box-shadow: 0 10px 24px -12px rgba(0,0,0,0.75); }
-.p-add:hover { transform: translateY(-1px); box-shadow: 0 14px 30px -12px rgba(0,0,0,0.82); }
-.p-add:active { transform: scale(0.97); }
-.p-add:disabled { background: var(--bg-2); color: var(--fg-3); box-shadow: none; cursor: default; transform: none; }
+  color: var(--fg); background: rgba(255,255,255,0.06); border: 1px solid var(--hairline);
+  border-radius: 10px; cursor: pointer;
+  transition: background .18s ease, border-color .18s ease, color .18s ease; }
+.p-add:hover { background: var(--accent-deep); border-color: rgba(255,255,255,0.2); color: #fff; }
+.p-add:active { background: #cf2f27; }
+.p-add:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.p-add:disabled { background: var(--bg-2); color: var(--fg-3); border-color: var(--hairline);
+  cursor: not-allowed; }
 .cart-fab-count.bump { animation: cfBump .32s var(--ease); }
 @keyframes cfBump { 0% { transform: scale(1); } 40% { transform: scale(1.35); } 100% { transform: scale(1); } }
 @media (prefers-reduced-motion: reduce) { .cart-fab-count.bump { animation: none; } }
@@ -1512,7 +1522,7 @@ button.dt-badge:disabled { cursor: default; opacity: 0.6; }
 .hero-h1 .hl { color: var(--accent); display: inline-block; transition: opacity .35s ease; }
 .hero-h1 .hl.hl-fade { opacity: 0; }
 .hero-h1 .hl.hl-minecraft { color: #6cc25c; }
-.hero-sub { font-size: clamp(16px, 1.5vw, 18.5px); color: var(--fg-2); line-height: 1.62; max-width: 520px; margin: 20px 0 0; }
+.hero-sub { font-size: clamp(16px, 1.5vw, 18px); color: var(--fg-1); line-height: 1.62; max-width: 520px; margin: 20px 0 0; }
 .hero-copy .hero-cta { display: flex; justify-content: flex-start; gap: 12px; flex-wrap: wrap; margin-top: 30px; }
 .hero-copy .hero-cta .btn { min-height: 50px; padding: 0 30px; font-size: 15px; }
 /* Read as a sentence of facts on one baseline, not as a stat-card row. The
@@ -1553,12 +1563,21 @@ button.dt-badge:disabled { cursor: default; opacity: 0.6; }
 @media (max-width: 920px) {
   .hero { padding-top: 88px; }
   .hero-grid { grid-template-columns: 1fr; gap: 40px; }
-  .hero-show { min-height: 340px; max-width: 520px; }
-  .hero-stats { gap: 28px; }
+  .hero-show { min-height: 340px; }
+  /* The showcase drops to a single 520px column here, but the mini cards keep
+     their -26px outdents, so they covered the featured card and hung off the
+     left edge of the viewport. They belong to the two-column composition. */
+  .hero-mini { display: none; }
 }
 @media (max-width: 520px) {
-  .hero-mini { display: none; }
   .hero-show { min-height: 260px; }
+}
+@media (max-width: 560px) {
+  /* Facts wrap to two lines rather than squeezing; the divider only ever sits
+     between neighbours on the same line. */
+  .hstat { padding: 0 14px; }
+  .hstat .hn { font-size: 18px; }
+  .hstat .hl2 { font-size: var(--t-label); }
 }
 
 .fc-cat-group { margin-bottom: 1px; }

@@ -116,8 +116,14 @@
       }
     });
 
+    // The separator lives here, not in the markup: the heading ships as
+    // "Welcome back." with an empty span, so a profile that never loads reads
+    // as a plain greeting rather than a dangling comma.
     var welcome = document.getElementById('dashWelcomeName');
-    if (welcome) welcome.textContent = (displayName || '').split(' ')[0] || displayName;
+    if (welcome) {
+      var first = (displayName || '').split(' ')[0] || displayName;
+      welcome.textContent = first ? ', ' + first : '';
+    }
 
     var acName = document.getElementById('ac-name');
     if (acName) acName.value = displayName || '';

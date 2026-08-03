@@ -116,7 +116,7 @@
     <main class="page dash-page">
     <div class="wrap dash">
       <aside class="dash-side glass">
-        <div class="dash-user"><span class="dash-av" id="dashAvatar">K</span><div class="dash-user-info"><div class="dash-name" id="dashName">Kaden R.</div><div class="dash-email" id="dashEmail">kaden@example.com</div></div></div>
+        <div class="dash-user"><span class="dash-av" id="dashAvatar"></span><div class="dash-user-info"><div class="dash-name" id="dashName"></div><div class="dash-email" id="dashEmail"></div></div></div>
         <nav class="dash-nav">
         <a href="#" data-panel="overview" class="active"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg><span>Overview</span></a>
         <a href="#" data-panel="purchases"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg><span>Purchase History</span></a>
@@ -131,7 +131,7 @@
       </aside>
       <div class="dash-main">
       <section class="dash-panel" id="panel-overview">
-        <div class="dash-head"><h1>Welcome back, <span id="dashWelcomeName">Kaden</span>.</h1><p>Here's a snapshot of your coldd account.</p></div>
+        <div class="dash-head"><h1>Welcome back<span id="dashWelcomeName"></span>.</h1><p>Here's a snapshot of your coldd account.</p></div>
         <div class="dash-card glass">
           <div class="dash-card-head"><h2>Recent purchases</h2><a href="#" data-panel="purchases">View all</a></div>
           <div class="dash-rows" id="dashRecentPurchases"><p class="dash-empty-note">Loading…</p></div>
@@ -223,8 +223,8 @@
         <div class="dash-head"><h1>Account settings</h1><p>Update your details, manage security, or close your account.</p></div>
         <div class="dash-card glass"><div class="dash-card-head"><h2>Change account details</h2></div>
           <form class="auth-form" id="acctForm" novalidate style="max-width:420px;">
-            <div class="auth-field" data-for="name"><label for="ac-name">Display name</label><input id="ac-name" name="name" type="text" value="Kaden R." /><span class="auth-err"></span></div>
-            <div class="auth-field" data-for="email"><label for="ac-email">Email</label><input id="ac-email" name="email" type="email" value="kaden@example.com" readonly />
+            <div class="auth-field" data-for="name"><label for="ac-name">Display name</label><input id="ac-name" name="name" type="text" value="" /><span class="auth-err"></span></div>
+            <div class="auth-field" data-for="email"><label for="ac-email">Email</label><input id="ac-email" name="email" type="email" value="" readonly />
               <p class="auth-hint">Verify your identity below to edit this information.</p><span class="auth-err"></span></div>
             <button class="btn btn-primary auth-submit" type="submit" style="width:auto;align-self:flex-start;"><span class="btn-label">Save changes</span><span class="btn-spinner" hidden></span></button>
             <div class="auth-msg"></div>

@@ -11,7 +11,11 @@
       --fg: #f4f6f9;
       --fg-1: #e2e6ec;  /* body text one step below primary; was referenced in 19 rules but never defined */
       --fg-2: #aab2c0;
-      --fg-3: #6b7280;
+      /* Lifted from #6b7280, which computed 3.33:1 on --bg-3 and 3.74:1 on
+         --bg - under WCAG AA's 4.5:1 at the small sizes it is used at. This
+         clears 4.5 on all three surfaces while staying well under --fg-2, so
+         the three-step text hierarchy survives. */
+      --fg-3: #80899a;
 
       --accent: #ff4d44;
       --accent-deep: #e2382f;
@@ -173,6 +177,18 @@
     .nav-cta .btn { min-height: 38px; padding: 9px 16px; font-size: 13px; }
     .menu-btn { display: none; background: rgba(255,255,255,0.06); border: 1px solid var(--hairline);
       color: var(--fg); width: 38px; height: 38px; border-radius: 10px; cursor: pointer; }
+
+    /* The header controls are deliberately compact - 34-43px - which leaves
+       them under the 44px touch guideline. Rather than inflate the pill, each
+       one projects an invisible 44px hit area, the same trick .nr-dot already
+       uses for the carousel dots. The expansions stay smaller than the gaps
+       between neighbours (8px in .nav-cta, 18px after .brand), so no control
+       can swallow the one next to it. */
+    .menu-btn, .nav-account, .brand, .cart-fab { position: relative; }
+    .menu-btn::after, .nav-account::after, .brand::after, .cart-fab::after {
+      content: ""; position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+      width: 100%; height: 100%; min-width: 44px; min-height: 44px; }
+    .nav-cta .btn { min-height: 44px; }
 
     .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); border: 0; }
     .hero { position: relative; padding: 92px 0 24px; }
@@ -2225,16 +2241,33 @@ input[type="checkbox"]:focus-visible { outline: 2px solid var(--accent); outline
   display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; color: #fff;
   background-size: cover; background-position: center; }
 
-/* disabled OAuth buttons (Google/Roblox not yet available) */
-.auth-oauth.oauth-disabled { opacity: 0.4; cursor: not-allowed; position: relative; }
-.auth-oauth.oauth-disabled:hover { opacity: 0.4; }
-.auth-oauth.oauth-disabled::after {
-  content: attr(data-tooltip);
-  position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%);
-  background: #0b0b0b; border: 1px solid var(--hairline); color: var(--fg);
-  font-size: 11px; line-height: 1.4; padding: 7px 10px; border-radius: 7px;
-  width: 160px; text-align: center; white-space: normal;
-  opacity: 0; pointer-events: none; transition: opacity 0.15s ease;
-  z-index: 50;
+/* Identity fields ship empty rather than carrying a fabricated "Kaden R. /
+   kaden@example.com", which rendered as a real signed-in user whenever the
+   profile fetch had not resolved - or failed. These give the empty state a
+   shape to hold so the panel does not jump when the real values land. */
+#dashName:empty, #dashEmail:empty, #coUserName:empty, #coUserEmail:empty {
+  display: block; min-width: 108px; height: 0.85em; border-radius: 5px;
+  background: rgba(255,255,255,0.07);
 }
-.auth-oauth.oauth-disabled:hover::after { opacity: 1; }
+#dashEmail:empty, #coUserEmail:empty { min-width: 148px; }
+.dash-av:empty, #coAvatar:empty { background: rgba(255,255,255,0.07); }
+@media (prefers-reduced-motion: no-preference) {
+  #dashName:empty, #dashEmail:empty, #coUserName:empty, #coUserEmail:empty,
+  .dash-av:empty, #coAvatar:empty { animation: skelPulse 1.5s ease-in-out infinite; }
+}
+@keyframes skelPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.45; } }
+
+/* disabled OAuth buttons (Google/Roblox not yet available)
+   The reason used to live in a hover-only tooltip, which a touch user can
+   never see - they just tapped a dimmed button that did nothing. It is an
+   always-visible chip now, and the dimming is light enough to keep the chip
+   readable rather than the 0.4 that greyed out its own explanation. */
+.auth-oauth.oauth-disabled { opacity: 0.62; cursor: not-allowed; position: relative; }
+.auth-oauth.oauth-disabled:hover { opacity: 0.62; background: rgba(255,255,255,0.04); border-color: var(--hairline); }
+.auth-oauth.oauth-disabled::after {
+  content: "Soon";
+  margin-left: 2px; padding: 3px 8px; border-radius: 980px;
+  background: rgba(255,255,255,0.08); border: 1px solid var(--hairline);
+  font-size: 10px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase;
+  color: var(--fg-2); white-space: nowrap;
+}

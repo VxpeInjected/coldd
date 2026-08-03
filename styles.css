@@ -17,6 +17,10 @@
       --accent-deep: #e2382f;
       --accent-ink: #ff8079;
       --price: #34e08a;
+      /* Ratings are not an action, so they are not ember. One token because
+         the homepage reviews and the product cards were rendering the same
+         thing in two different colours. */
+      --star: #ffc24b;
 
       /* Type ramp: whole-pixel steps only. The old system ran 9.5/10.5/11.5/12.5/
          13.5/14.5/15.5/16.5 alongside their integer neighbours, which is noise,
@@ -249,7 +253,7 @@
     .avatars span { width: 36px; height: 36px; border-radius: 50%; margin-left: -10px; border: 2px solid #14151a; background: linear-gradient(160deg, #2a3340, #161b22); }
     .avatars span:first-child { margin-left: 0; }
     .avatars .more { display: grid; place-items: center; font-size: 12px; font-weight: 600; color: var(--fg-2); background: var(--glass-top); }
-    .stars { color: var(--accent); letter-spacing: 2px; font-size: 15px; margin-top: 4px; }
+    .stars { color: var(--star); letter-spacing: 2px; font-size: 15px; margin-top: 4px; }
     .ico-chip { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; background: var(--glass-top); border: 1px solid var(--hairline); color: var(--fg); }
 
     .cap-strip { margin-top: 14px; display: flex; align-items: stretch; padding: 6px;
@@ -618,7 +622,7 @@
 .p-price-row .p-was { font-size: 13px; font-weight: 600; color: var(--fg-3); text-decoration: line-through; }
 .p-stars { display: flex; align-items: center; gap: 2px; margin-top: 9px; font-size: 13px; line-height: 1; }
 .p-stars .st { color: var(--fg-3); }
-.p-stars .st.on { color: #ffc24b; }
+.p-stars .st.on { color: var(--star); }
 .p-rc { margin-left: 6px; font-size: 11px; color: var(--fg-3); }
 .p-sum { font-size: 12px; color: var(--fg-2); line-height: 1.5; margin: 10px 0 14px;
   display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
@@ -654,7 +658,10 @@
   border: 1px solid var(--hairline); box-shadow: 0 1px 0 rgba(255,255,255,0.05) inset, 0 20px 46px -26px rgba(0,0,0,0.75); }
 .fc-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
 .fc-head-title { display: flex; align-items: center; gap: 10px; font-size: 16px; font-weight: 700; letter-spacing: -0.01em; }
-.fc-head svg { color: var(--accent); flex: 0 0 auto; }
+/* Neutral: the panel already says "Filters" in words, so the icon beside it
+   is decoration and does not need the accent. Matches the neutral treatment
+   the active category icon already uses. */
+.fc-head svg { color: var(--fg-2); flex: 0 0 auto; }
 .fc-clear { font-family: inherit; font-size: 12px; font-weight: 600; color: var(--accent); background: none;
   border: none; cursor: pointer; padding: 4px 2px; }
 .fc-clear:hover { text-decoration: underline; }
@@ -926,7 +933,9 @@ body.no-scroll { overflow: hidden; }
 .pd-crumb a { color: var(--fg-3); text-decoration: none; }
 .pd-crumb a:hover { color: var(--fg); }
 .pd-crumb span { color: var(--fg-4, var(--fg-3)); }
-.pd-crumb .pd-crumb-cur { color: var(--accent); }
+/* The current crumb is the one item in the trail you cannot click, so it is
+   the last thing that should be wearing the "act here" colour. */
+.pd-crumb .pd-crumb-cur { color: var(--fg-2); }
 .pd-head { margin-bottom: 24px; }
 .pd-title { font-size: 33px; font-weight: 800; line-height: 1.1; letter-spacing: -0.02em; }
 .pd-ver { color: var(--fg-3); font-weight: 700; }
@@ -1023,7 +1032,11 @@ body.no-scroll { overflow: hidden; }
 .pd-sec-h { font-size: 14px; font-weight: 700; margin-bottom: 12px; }
 .pd-feat-list { list-style: none; display: grid; gap: 9px; margin-top: 14px; }
 .pd-feat-list li { position: relative; padding-left: 22px; font-size: 13px; color: var(--fg-1); line-height: 1.45; }
-.pd-feat-list li::before { content: ""; position: absolute; left: 0; top: 6px; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
+/* Neutral marker, not ember. These bullets are decoration - nothing about them
+   is actionable - and five of them stacked beside the buy button spent the
+   accent on punctuation. DESIGN.md's One Ember Rule keeps red for "act here".
+   Smaller too: a 8px dot beside 13px text was reading as a control. */
+.pd-feat-list li::before { content: ""; position: absolute; left: 2px; top: 8px; width: 5px; height: 5px; border-radius: 50%; background: var(--fg-3); }
 .pd-tech-list { display: grid; gap: 0; }
 .pd-tech-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--hairline); }
 .pd-tech-row:last-child { border-bottom: none; }
@@ -1178,7 +1191,9 @@ body.no-scroll { overflow: hidden; }
   background: transparent; border: none; cursor: pointer; color: var(--fg); font-family: inherit; }
 .cur-row:hover { background: rgba(255,255,255,0.06); }
 .cur-row.active { background: rgba(255,77,68,0.14); }
-.cur-row .cr-sym { flex: 0 0 38px; font-weight: 700; color: var(--accent); font-size: 13px; }
+/* One ember symbol per row turned the open currency list into a column of
+   red. The symbol is a label, not the action - picking the row is. */
+.cur-row .cr-sym { flex: 0 0 38px; font-weight: 700; color: var(--fg-2); font-size: 13px; }
 .cur-row .cr-code { flex: 0 0 auto; font-weight: 600; font-size: 13px; }
 .cur-row .cr-name { flex: 1; min-width: 0; color: var(--fg-3); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: right; }
 .cur-empty { padding: 16px; text-align: center; color: var(--fg-3); font-size: 13px; }
@@ -1683,7 +1698,10 @@ button.dt-badge:disabled { cursor: default; opacity: 0.6; }
   transition: background .15s var(--ease), color .15s var(--ease); }
 .fc-sub:hover { background: rgba(255,255,255,0.05); color: var(--fg); }
 .fc-sub.active { background: rgba(255,255,255,0.09); color: #fff; font-weight: 600; }
-.fc-cat-resell { color: var(--accent); }
+/* Promoted, not actionable-in-red: a single ember row sitting among neutral
+   categories read as the selected one. Weight carries the emphasis instead,
+   the same neutral-fill-plus-weight-step the active category uses. */
+.fc-cat-resell { color: var(--fg); font-weight: 600; }
 
 .nr-frame { position: relative; height: clamp(280px, 38vw, 420px); border-radius: 20px; overflow: hidden;
   border: 1px solid var(--hairline); background: #0f1014; }

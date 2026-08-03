@@ -806,6 +806,100 @@
         function isFiltered() {
           return curCat !== 'all' || !!curSub || !!query || lo > 0 || hi < maxPrice || onSale || onFree;
         }
+
+        // Below 1040px .shop-side becomes a sheet (see styles.css) so the grid,
+        // not ~1050px of filter UI, is what a phone user lands on. The trigger
+        // and the sheet's own controls are built here rather than in the page
+        // markup: they only mean anything with scripting, and the CSS that
+        // hides the panel is scoped to html.js for the same reason.
+        const side = shop.querySelector('.shop-side');
+        const resultsBar = shop.querySelector('.shop-resultsbar');
+        let filtersBtn = null, filtersN = null, doneBtn = null, scrim = null;
+
+        function sheetActive() { return !!filtersBtn && getComputedStyle(filtersBtn).display !== 'none'; }
+        function countActiveFilters() {
+          let n = 0;
+          if (curCat !== 'all') n++;
+          if (curSub) n++;
+          if (lo > 0 || hi < maxPrice) n++;
+          if (onSale) n++;
+          if (onFree) n++;
+          return n;
+        }
+        // main.page carries a transform for the page-transition animation, and
+        // a transformed ancestor becomes the containing block for position:
+        // fixed descendants - the sheet anchored to the bottom of the document
+        // (y=5777) instead of the viewport. Portal it to <body> while it is
+        // open and put it back exactly where it was on close, so the desktop
+        // layout above 1040px is untouched.
+        let sideHome = null, sideNext = null;
+        function closeSheet() {
+          if (!side || !side.classList.contains('open')) return;
+          side.classList.remove('open');
+          document.body.classList.remove('shop-filters-open');
+          if (scrim) { scrim.remove(); scrim = null; }
+          if (sideHome) { sideHome.insertBefore(side, sideNext); sideHome = null; sideNext = null; }
+          if (filtersBtn) { filtersBtn.setAttribute('aria-expanded', 'false'); filtersBtn.focus(); }
+        }
+        function openSheet() {
+          if (!side || side.classList.contains('open')) return;
+          scrim = document.createElement('div');
+          scrim.className = 'shop-filters-scrim';
+          scrim.addEventListener('click', closeSheet);
+          sideHome = side.parentNode;
+          sideNext = side.nextSibling;
+          document.body.appendChild(scrim);
+          document.body.appendChild(side);
+          // Flush the moved node's style at translateY(101%) before adding the
+          // class that animates it to 0, or the sheet jumps into place with no
+          // transition. A forced reflow rather than rAF, so the sheet still
+          // opens when the frame loop is throttled (background tab).
+          void side.offsetWidth;
+          side.classList.add('open');
+          document.body.classList.add('shop-filters-open');
+          if (filtersBtn) filtersBtn.setAttribute('aria-expanded', 'true');
+          const firstCtl = side.querySelector('button, input, select, a[href]');
+          if (firstCtl) firstCtl.focus();
+        }
+        function syncFilterSheet(matchedCount) {
+          if (!filtersBtn) return;
+          const n = countActiveFilters();
+          filtersN.textContent = n ? String(n) : '';
+          filtersBtn.setAttribute('aria-label', n ? 'Filters, ' + n + ' active' : 'Filters');
+          if (doneBtn) {
+            doneBtn.textContent = matchedCount === 1
+              ? 'Show 1 result'
+              : 'Show ' + matchedCount + ' results';
+          }
+          if (!sheetActive()) closeSheet();
+        }
+
+        if (side && resultsBar) {
+          filtersBtn = document.createElement('button');
+          filtersBtn.type = 'button';
+          filtersBtn.className = 'shop-filters-btn';
+          filtersBtn.setAttribute('aria-expanded', 'false');
+          filtersBtn.innerHTML =
+            '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="21" y1="4" x2="14" y2="4"/><line x1="10" y1="4" x2="3" y2="4"/><circle cx="12" cy="4" r="2"/><line x1="21" y1="12" x2="12" y2="12"/><line x1="8" y1="12" x2="3" y2="12"/><circle cx="10" cy="12" r="2"/><line x1="21" y1="20" x2="16" y2="20"/><line x1="12" y1="20" x2="3" y2="20"/><circle cx="14" cy="20" r="2"/></svg>' +
+            '<span>Filters</span><span class="shop-filters-n"></span>';
+          filtersN = filtersBtn.querySelector('.shop-filters-n');
+          filtersBtn.addEventListener('click', function () {
+            side.classList.contains('open') ? closeSheet() : openSheet();
+          });
+          resultsBar.appendChild(filtersBtn);
+
+          doneBtn = document.createElement('button');
+          doneBtn.type = 'button';
+          doneBtn.className = 'shop-filters-done';
+          doneBtn.textContent = 'Show results';
+          doneBtn.addEventListener('click', closeSheet);
+          side.appendChild(doneBtn);
+
+          document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeSheet(); });
+          // Past the breakpoint the panel returns to the flow, so a sheet left
+          // open would otherwise strand the scroll lock and scrim behind it.
+          window.addEventListener('resize', function () { if (!sheetActive()) closeSheet(); });
+        }
         function sortMatches(arr) {
           const mode = sortMode || 'recommended';
           if (mode === 'recommended') return arr;
@@ -865,6 +959,7 @@
               : 'Showing ' + matched.length + ' of ' + products.length + ' results';
           }
           if (clearBtn) clearBtn.hidden = !isFiltered();
+          syncFilterSheet(matched.length);
         }
         function setCat(cat) { curCat = cat; curSub = null; syncCats(); refilter(true); }
         function setSub(cat, sub) { curCat = cat; curSub = sub; syncCats(); refilter(true); }

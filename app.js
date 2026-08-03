@@ -619,6 +619,56 @@
       document.addEventListener('keydown', function (e) { if (e.key === 'Escape') close(); });
     })();
 
+    // Ratings render from the live catalog only. Product cards used to carry
+    // hardcoded stars and counts that no database row backed, so a card
+    // advertising "(214)" opened onto a product page reading "Reviews (0)" -
+    // and the sort read data-reviews, which those cards never set, so it
+    // ranked them as 0 while displaying 214. Shared because the shop grids and
+    // the homepage's featured/deals grids both need it.
+    window.__coldRating = (function () {
+      function slugOf(card) {
+        var nameEl = card.querySelector('.p-name');
+        var t = nameEl ? nameEl.textContent.trim() : '';
+        return t.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+      }
+      function starsHtmlFor(p) {
+        if (!(p.reviews > 0)) return '';
+        var full = Math.round(p.rating), st = '';
+        for (var i = 0; i < 5; i++) st += '<span class="st' + (i < full ? ' on' : '') + '">★</span>';
+        return '<div class="p-stars">' + st + '<span class="p-rc">(' + p.reviews + ')</span></div>';
+      }
+      function applyRating(card, p) {
+        card.setAttribute('data-reviews', p.reviews || 0);
+        card.setAttribute('data-rating', p.rating || 0);
+        var current = card.querySelector('.p-stars');
+        var html = starsHtmlFor(p);
+        if (!html) { if (current) current.remove(); return; }
+        if (current) { current.outerHTML = html; return; }
+        var priceRow = card.querySelector('.p-price-row');
+        if (priceRow) priceRow.insertAdjacentHTML('afterend', html);
+      }
+      return { slugOf: slugOf, starsHtmlFor: starsHtmlFor, applyRating: applyRating };
+    })();
+
+    (function () {
+      // The homepage's featured/deals cards are static markup outside any
+      // .shop, so the shop reconciler below never reached them and they kept
+      // whatever rating the HTML hardcoded. The products themselves are real,
+      // so match them to the catalog by name and let the live row supply the
+      // stars. The static markup stays as the no-JS fallback; it just no
+      // longer asserts a review count of its own.
+      var cards = document.querySelectorAll('.featured-grid .product');
+      if (!cards.length) return;
+      var byId = {};
+      (window.__CATALOG || []).forEach(function (p) { byId[p.id] = p; });
+      Array.prototype.forEach.call(cards, function (card) {
+        var p = byId[window.__coldRating.slugOf(card)];
+        if (!p) return;
+        card.setAttribute('data-id', p.id);
+        window.__coldRating.applyRating(card, p);
+      });
+    })();
+
     (function () {
       const shops = document.querySelectorAll('.shop');
       if (!shops.length) return;
@@ -658,27 +708,24 @@
           var shopPlatform = base === '/minecraft' ? 'Minecraft' : 'Roblox';
           var catSlugByLabel = {};
           (window.__CATEGORIES || []).forEach(function (c) { if (c.platform === shopPlatform) catSlugByLabel[c.label] = c.slug; });
+          var starsHtmlFor = window.__coldRating.starsHtmlFor;
+          var applyRating = window.__coldRating.applyRating;
+
           var existingByCardId = {};
           Array.prototype.slice.call(grid.querySelectorAll('.product')).forEach(function (el) {
-            var nameEl = el.querySelector('.p-name');
-            var t = nameEl ? nameEl.textContent.trim() : '';
-            existingByCardId[t.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')] = el;
+            existingByCardId[window.__coldRating.slugOf(el)] = el;
           });
           (window.__CATALOG || []).filter(function (p) { return p.platform === shopPlatform; }).forEach(function (p) {
             var existing = existingByCardId[p.id];
             if (existing) {
               existing.setAttribute('data-id', p.id);
               if (p.createdAt) existing.setAttribute('data-created', p.createdAt);
+              applyRating(existing, p);
               return;
             }
             var onSale = p.was > p.priceNum;
             var offPct = onSale ? Math.round((1 - p.priceNum / p.was) * 100) : 0;
-            var starsHtml = '';
-            if (p.reviews > 0) {
-              var full = Math.round(p.rating), st = '';
-              for (var i = 0; i < 5; i++) st += '<span class="st' + (i < full ? ' on' : '') + '">★</span>';
-              starsHtml = '<div class="p-stars">' + st + '<span class="p-rc">(' + p.reviews + ')</span></div>';
-            }
+            var starsHtml = starsHtmlFor(p);
             var art = document.createElement('article');
             art.className = 'product';
             art.setAttribute('data-id', p.id);

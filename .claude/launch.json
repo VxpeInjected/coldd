@@ -3,9 +3,10 @@
   "configurations": [
     {
       "name": "coldd-static",
-      "runtimeExecutable": "node",
-      "runtimeArgs": [".claude/static-server.mjs"],
-      "port": 8080
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["/private/tmp/claude-501/-Users-jordangallagher-Downloads-coldd-main/7f7a3821-90d7-43ec-a4ca-29387cd323e2/scratchpad/static-server.py"],
+      "port": 8080,
+      "autoPort": true
     }
   ]
 }

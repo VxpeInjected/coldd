@@ -404,28 +404,42 @@
     .d1 { transition-delay: .06s; } .d2 { transition-delay: .12s; } .d3 { transition-delay: .18s; }
     .d4 { transition-delay: .24s; } .d5 { transition-delay: .30s; }
 
-    @media (max-width: 900px) {
+    /* The nav pill and the currency/cart pill (.tc) are two independently
+       positioned fixed elements: the pill centres itself on the viewport while
+       .tc is pinned right, so they collide whenever the viewport is too narrow
+       to hold both. The full pill is ~580px and .tc claims ~235px including its
+       gutter, which needs ~1100px of viewport - below that the links collapse
+       into the hamburger so the two occupy disjoint bands by construction.
+       This is a wider breakpoint than the 900px used for page layout below;
+       they are separate concerns and deliberately not shared. */
+    @media (max-width: 1100px) {
       .nav-links { display: none; } .menu-btn { display: grid; place-items: center; }
       .nav-cta .btn span.txt { display: none; }
       .nav-cta .btn { padding: 12px 14px; }
-      .bento { grid-template-columns: repeat(2, 1fr); }
-      .t-featured, .t-community { grid-column: span 2; }
-      .cap-strip { flex-wrap: wrap; }
-      .cap-strip .item { flex: 1 1 44%; }
-      .cap-strip .item + .item::before { display: none; }
-      .asset-feature { grid-template-columns: 1fr; }
-      .asset-feature .vis { min-height: 240px; }
-      .asset-duo { grid-template-columns: 1fr; }
-      .team { grid-template-columns: repeat(2, 1fr); }
-      .cta { padding: 44px 24px; }
+
+      /* Left-anchored rather than centred, so the pill grows away from .tc.
+         brand+account+Join+burger (~208px) and currency+cart (~211px) still do
+         not both fit the ~349px available at 375px, so the currency switcher -
+         the one low-frequency control of the set - moves into the menu panel
+         (app.js relocates the live node) and .tc keeps just the cart. */
+      header.nav { left: 12px; right: auto; transform: none;
+        max-width: calc(100% - 24px - 104px); }
+      .tc > .cur-switch { display: none; }
+      .nav-links.mobile-open .cur-switch { display: inline-flex; align-self: flex-start; margin-top: 22px; }
 
       /* Mobile nav menu - .menu-btn previously had no JS wired to it at all,
-         so on any viewport <=900px (where .nav-links is hidden above) there
-         was no way to reach Home/Shop/Blog/About from the header. app.js
-         toggles this class; the panel reuses .nav-links itself (search bar
-         included) instead of duplicating the link markup. */
+         so on any collapsed viewport there was no way to reach Home/Shop/
+         Blog/About from the header. app.js toggles this class; the panel
+         reuses .nav-links itself (search bar included) instead of duplicating
+         the link markup.
+         The panel is a descendant of header.nav, so these z-indexes resolve
+         against the header's own stacking context, not the page. The panel
+         must stay under the brand and the .nav-cta that holds the close
+         button - at z-index 90 over a static .nav-cta it covered its own
+         close control and the menu could only be dismissed with Escape. */
+      .brand, .nav-cta { position: relative; z-index: 2; }
       .nav-links.mobile-open {
-        display: flex; position: fixed; inset: 0; z-index: 90;
+        display: flex; position: fixed; inset: 0; z-index: 1;
         flex-direction: column; align-items: stretch; justify-content: flex-start;
         padding: 100px 24px 32px; background: var(--bg-2, #191b21);
         overflow-y: auto; -webkit-overflow-scrolling: touch;
@@ -445,6 +459,19 @@
         background: var(--bg-3); border-radius: 10px;
       }
       body.nav-menu-open { overflow: hidden; }
+    }
+
+    @media (max-width: 900px) {
+      .bento { grid-template-columns: repeat(2, 1fr); }
+      .t-featured, .t-community { grid-column: span 2; }
+      .cap-strip { flex-wrap: wrap; }
+      .cap-strip .item { flex: 1 1 44%; }
+      .cap-strip .item + .item::before { display: none; }
+      .asset-feature { grid-template-columns: 1fr; }
+      .asset-feature .vis { min-height: 240px; }
+      .asset-duo { grid-template-columns: 1fr; }
+      .team { grid-template-columns: repeat(2, 1fr); }
+      .cta { padding: 44px 24px; }
     }
     @media (max-width: 560px) {
       .bento { grid-template-columns: 1fr; grid-auto-rows: auto; }

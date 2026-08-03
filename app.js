@@ -516,6 +516,20 @@
       const OPEN_ICON = menuBtn.innerHTML;
       const CLOSE_ICON = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>';
       function isMenuOpen() { return links.classList.contains('mobile-open'); }
+
+      // The currency switcher is hidden from .tc below 900px: the nav pill and
+      // .tc cannot both fit a full control set at 375px, and currency is the
+      // low-frequency one. Move (not clone, so its listeners survive) the live
+      // node into the menu panel while open, and put it back on close.
+      const curSwitch = document.getElementById('curSwitch');
+      const curHome = curSwitch && curSwitch.parentElement;
+      function stowCurrency() {
+        if (curSwitch && curHome && curSwitch.parentElement !== curHome) curHome.appendChild(curSwitch);
+      }
+      function lendCurrency() {
+        if (curSwitch && curSwitch.parentElement !== links) links.appendChild(curSwitch);
+      }
+
       function closeMenu() {
         if (!isMenuOpen()) return;
         links.classList.remove('mobile-open');
@@ -523,6 +537,7 @@
         menuBtn.setAttribute('aria-expanded', 'false');
         menuBtn.setAttribute('aria-label', 'Menu');
         document.body.classList.remove('nav-menu-open');
+        stowCurrency();
       }
       function openMenu() {
         if (isMenuOpen()) return;
@@ -531,12 +546,16 @@
         menuBtn.setAttribute('aria-expanded', 'true');
         menuBtn.setAttribute('aria-label', 'Close menu');
         document.body.classList.add('nav-menu-open');
+        lendCurrency();
       }
       menuBtn.setAttribute('aria-expanded', 'false');
       menuBtn.addEventListener('click', function () { isMenuOpen() ? closeMenu() : openMenu(); });
       links.addEventListener('click', function (e) { if (e.target.closest('a')) closeMenu(); });
       document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeMenu(); });
-      window.addEventListener('resize', function () { if (window.innerWidth > 900) closeMenu(); });
+      // Must match the nav collapse breakpoint in styles.css: past it the
+      // links return to the pill and the panel has to give the currency
+      // switcher back to .tc.
+      window.addEventListener('resize', function () { if (window.innerWidth > 1100) closeMenu(); });
     })();
 
     (function () {

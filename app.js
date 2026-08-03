@@ -2654,10 +2654,30 @@
       }
 
       function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+      // The place-order button used to stay fully enabled and styled as the
+      // primary action on an empty cart, while its handler bailed out on
+      // `if (!cart.length) return;` — so clicking it did nothing at all and
+      // said nothing about why. The empty cart is now reflected in the control.
+      function syncPlaceButtonToCart() {
+        var btn = document.getElementById('coPlace');
+        if (!btn || btn.hidden) return;
+        if (btn.getAttribute('data-busy') === '1') return;
+        // A method that is disabled for its own reason keeps its own message.
+        if (btn.textContent === 'Crypto checkout coming soon') return;
+        if (!cart.length) {
+          btn.disabled = true;
+          btn.textContent = 'Your cart is empty';
+        } else if (btn.textContent === 'Your cart is empty') {
+          btn.disabled = false;
+          btn.textContent = 'Place order';
+        }
+      }
+
       function renderItems() {
         if (!itemsEl) return;
         itemsEl.innerHTML = '';
         if (emptyEl) emptyEl.hidden = cart.length > 0;
+        syncPlaceButtonToCart();
         cart.forEach(function (i) {
           var row = document.createElement('div'); row.className = 'co-item';
           var lic = i.licence === 'resell' ? ' · Resell licence' : '';
@@ -2847,7 +2867,7 @@
         });
         var placeBtnEl = document.getElementById('coPlace');
         if (placeBtnEl) {
-          if (method === 'stripe') { placeBtnEl.hidden = false; placeBtnEl.disabled = false; placeBtnEl.textContent = 'Place order'; }
+          if (method === 'stripe') { placeBtnEl.hidden = false; placeBtnEl.disabled = false; placeBtnEl.textContent = 'Place order'; syncPlaceButtonToCart(); }
           else if (method === 'robux') { placeBtnEl.hidden = true; }
           else { placeBtnEl.hidden = false; placeBtnEl.disabled = true; placeBtnEl.textContent = 'Crypto checkout coming soon'; }
         }
@@ -2878,6 +2898,7 @@
         if (!ok) { if (msg) { msg.className = 'co-msg err show'; msg.textContent = 'Please fix the highlighted fields above.'; } return; }
 
         var prevText = placeBtn.textContent;
+        placeBtn.setAttribute('data-busy', '1');
         placeBtn.disabled = true; placeBtn.textContent = 'Redirecting to secure checkout…';
         if (msg) { msg.className = 'co-msg'; msg.textContent = ''; }
 
@@ -2894,6 +2915,7 @@
             location.href = data.url;
           })
           .catch(function (err) {
+            placeBtn.removeAttribute('data-busy');
             placeBtn.disabled = false; placeBtn.textContent = prevText;
             if (msg) { msg.className = 'co-msg err show'; msg.textContent = (err && err.message) || 'Something went wrong. Please try again.'; }
           });

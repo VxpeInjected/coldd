@@ -282,37 +282,11 @@
         el.textContent = target.toLocaleString('en-US') + (el.getAttribute('data-suffix') || '');
       }
 
-      function animate(el) {
-        var target = Number(el.getAttribute('data-target')) || 0;
-        var suffix = el.getAttribute('data-suffix') || '';
-        var start = performance.now();
-        var duration = 1400;
-        function tick(now) {
-          var p = Math.min(1, (now - start) / duration);
-          var eased = 1 - Math.pow(1 - p, 3);
-          el.textContent = Math.round(target * eased).toLocaleString('en-US') + suffix;
-          if (p < 1) requestAnimationFrame(tick);
-        }
-        requestAnimationFrame(tick);
-      }
-
-      if (reduce || !('IntersectionObserver' in window)) {
-        discordReady.then(function () { nums.forEach(setFinal); });
-        return;
-      }
-      var entered = false, dataReady = false;
-      function maybePlay() {
-        if (!entered || !dataReady) return;
-        nums.forEach(animate);
-      }
-      var io2 = new IntersectionObserver(function (entries) {
-        if (entered || !entries.some(function (e) { return e.isIntersecting; })) return;
-        entered = true;
-        io2.unobserve(wrap);
-        maybePlay();
-      }, { threshold: 0.4 });
-      io2.observe(wrap);
-      discordReady.then(function () { dataReady = true; maybePlay(); });
+      // These are real figures (live catalog count, live Discord membership),
+      // so they are printed as soon as they resolve. The odometer count-up that
+      // used to run here was decoration: it delayed the number the visitor came
+      // to read, and it is one of the most recognisable generated-site tics.
+      discordReady.then(function () { nums.forEach(setFinal); });
     })();
 
     (function () {

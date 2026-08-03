@@ -970,6 +970,17 @@
           setCat(c.getAttribute('data-cat'));
           try { history.replaceState(null, '', curCat === 'all' ? base : (base + '?cat=' + curCat)); } catch (_) {}
         });
+        // The subcategory lists open via grid-template-rows: 0fr -> 1fr, which
+        // needs every item inside one grid row. Wrapping here rather than in
+        // the page markup keeps the two shop pages from having to repeat it
+        // around 11 groups each.
+        if (sideCats) sideCats.querySelectorAll('.fc-subs').forEach(function (subs) {
+          if (subs.querySelector(':scope > .fc-subs-inner')) return;
+          const inner = document.createElement('div');
+          inner.className = 'fc-subs-inner';
+          while (subs.firstChild) inner.appendChild(subs.firstChild);
+          subs.appendChild(inner);
+        });
         if (sideCats) sideCats.addEventListener('click', function (e) {
           const sub = e.target.closest('.fc-sub');
           if (sub) { setSub(sub.getAttribute('data-cat'), sub.getAttribute('data-subcat')); return; }

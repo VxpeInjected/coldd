@@ -746,8 +746,8 @@
                 '<div class="p-price-row">' + (onSale ? '<span class="p-was">' + fmtPriceStr(p.was) + '</span>' : '') + '<span class="p-price">' + p.price + '</span></div>' +
                 starsHtml +
                 '<p class="p-sum">' + escHtml(p.desc || '') + '</p>' +
-                '<div class="p-actions"><button class="p-add" type="button">Add to cart</button>' +
-                '<button class="p-buy" type="button">Buy now</button></div>' +
+                '<div class="p-actions"><button class="p-buy" type="button">Buy now</button>' +
+                '<button class="p-add" type="button">Add to cart</button></div>' +
               '</div>';
             grid.appendChild(art);
           });
@@ -1611,8 +1611,8 @@
             '<div class="p-body"><h3 class="p-name">' + esc(p.title) + '</h3>' +
             '<div class="p-price-row"><span class="p-price" data-usd="' + p.priceNum + '">' + (window.__money ? window.__money(p.priceNum) : ('$' + p.priceNum)) + '</span></div>' +
             '<p class="p-sum">' + esc(p.desc) + '</p>' +
-            '<div class="p-actions"><button class="p-add" type="button">Add to cart</button>' +
-            '<button class="p-buy" type="button">Buy now</button></div></div></article>';
+            '<div class="p-actions"><button class="p-buy" type="button">Buy now</button>' +
+            '<button class="p-add" type="button">Add to cart</button></div></div></article>';
         }
         function related(p) {
           var cat = (window.__CATALOG || []).filter(function (x) { return x.id !== p.id && x.platform === p.platform; });

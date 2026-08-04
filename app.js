@@ -3109,32 +3109,7 @@
       render();
     })();
 
-    (function () {
-      var loader = document.getElementById('pageLoader');
-      if (!loader) return;
-      var DELAY = 2500;
-      document.addEventListener('click', function (e) {
-        var tile = e.target.closest('.bento .tile');
-        if (!tile) return;
-        var href = tile.getAttribute('href');
-        if (!href) return;
-        e.preventDefault();
-        e.stopPropagation();
-        loader.hidden = false;
-        requestAnimationFrame(function () { loader.classList.add('show'); });
-        var base = href.split('?')[0];
-        var view = base === '/' ? 'home' : base.replace('.html', '');
-        setTimeout(function () {
-          if (window.__go) {
-            window.__go(view, 'all');
-            loader.classList.remove('show');
-            setTimeout(function () { loader.hidden = true; }, 320);
-          } else {
-            window.location.href = href;
-          }
-        }, DELAY);
-      }, true);
-    })();
+
 
     (function () {
       var root = document.querySelector('.success-page');

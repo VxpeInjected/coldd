@@ -191,7 +191,6 @@
     .nav-cta .btn { min-height: 44px; }
 
     .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); border: 0; }
-    .hero { position: relative; padding: 92px 0 24px; }
     .hero-content { position: relative; z-index: 1; text-align: center; }
     .hero .lead { font-size: clamp(16px, 2.1vw, 20px); color: #d3d8e1; max-width: 520px; margin: 0 auto;
       text-shadow: 0 2px 22px rgba(0,0,0,0.7); }
@@ -630,7 +629,7 @@
   color: #fff; padding: 5px 9px; border-radius: 8px; background: var(--accent-deep);
   box-shadow: 0 6px 16px -6px rgba(0,0,0,0.80); }
 .p-owned-badge { position: absolute; top: 10px; right: 10px; z-index: 1; font-size: 12px; font-weight: 800; letter-spacing: 0.02em;
-  color: #fff; padding: 5px 9px; border-radius: 8px; background: linear-gradient(180deg, #2fbf6a, #1f9c53);
+  color: #fff; padding: 5px 9px; border-radius: 8px; background: #1f9c53;
   box-shadow: 0 6px 16px -6px rgba(0,0,0,0.80); }
 .p-body { padding: 14px 16px 16px; display: flex; flex-direction: column; flex: 1; }
 .p-name { font-size: 15px; font-weight: 600; letter-spacing: -0.01em; }
@@ -950,7 +949,7 @@ body.no-scroll { overflow: hidden; }
 .pd-crumb { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; font-size: 13px; font-weight: 600; margin-bottom: 16px; }
 .pd-crumb a { color: var(--fg-3); text-decoration: none; }
 .pd-crumb a:hover { color: var(--fg); }
-.pd-crumb span { color: var(--fg-4, var(--fg-3)); }
+.pd-crumb span { color: var(--fg-3); }
 /* The current crumb is the one item in the trail you cannot click, so it is
    the last thing that should be wearing the "act here" colour. */
 .pd-crumb .pd-crumb-cur { color: var(--fg-2); }
@@ -965,7 +964,7 @@ body.no-scroll { overflow: hidden; }
   background: #0f1014; border: 1px solid var(--hairline); }
 .pd-main img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .pd-sale { position: absolute; left: 16px; top: 16px; z-index: 3; font-size: 12px; font-weight: 800; letter-spacing: 0.04em;
-  text-transform: uppercase; color: #fff; background: #2ec16a; padding: 6px 12px; border-radius: 8px; }
+  text-transform: uppercase; color: #fff; background: #1f9c53; padding: 6px 12px; border-radius: 8px; }
 .pd-thumbs { display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
 .pd-thumb { width: 96px; height: 62px; border-radius: 10px; background-size: cover; background-position: center;
   cursor: pointer; border: 2px solid var(--hairline); opacity: 0.9; transition: opacity .15s var(--ease), border-color .15s var(--ease); }
@@ -1042,7 +1041,7 @@ body.no-scroll { overflow: hidden; }
   padding: 10px; border-radius: 11px; border: 1px solid var(--hairline); background: transparent; transition: color .15s var(--ease), border-color .15s var(--ease); }
 .pd-wish:hover { color: var(--fg); border-color: rgba(255,255,255,0.22); }
 .pd-wish.on { color: var(--accent); border-color: rgba(255,77,68,0.5); }
-.pd-owned-badge { display: inline-block; font-size: 13px; font-weight: 700; color: #2ec16a; margin-bottom: 12px; }
+.pd-owned-badge { display: inline-block; font-size: 13px; font-weight: 700; color: var(--price); margin-bottom: 12px; }
 .pd-upgrade { width: 100%; margin-top: 10px; justify-content: center; }
 .pd-lic-label { display: block; font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--fg-3); margin: 18px 0 10px; }
 
@@ -1265,7 +1264,6 @@ html[data-ann="on"] header.nav { top: 52px; }
 .free-btn { margin-top: auto; width: 100%; min-height: 40px; justify-content: center; padding: 10px 16px; font-size: 13px; }
 @media (max-width: 700px) { .free-grid { grid-template-columns: repeat(2, 1fr); } }
 @media (max-width: 440px) { .free-grid { grid-template-columns: 1fr; } }
-@media (max-width: 440px) { .free-grid { grid-template-columns: 1fr; } }
 
 body.auth-page { min-height: 100vh; }
 .auth-home { position: fixed; top: 22px; left: 26px; z-index: 5; display: inline-flex; }
@@ -1364,7 +1362,7 @@ body.auth-page { min-height: 100vh; }
 .ds-num .p-price { font-size: 26px; }
 .ds-sub { font-size: 12px; color: var(--fg-3); }
 .ds-delta { font-size: 12px; font-weight: 700; display: inline-flex; align-items: center; gap: 3px; width: fit-content; }
-.ds-delta.up { color: #3fbf6f; }
+.ds-delta.up { color: var(--price); }
 .ds-delta.down { color: var(--accent); }
 .ds-delta.flat { color: var(--fg-3); }
 .adm-todo-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--hairline); }

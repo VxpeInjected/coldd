@@ -6,7 +6,7 @@ ROOT = Path(__file__).parent
 
 FONT = ('<link rel="preconnect" href="https://fonts.googleapis.com" />'
         '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />'
-        '<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />')
+        '<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />')
 
 GOOGLE = ('<svg viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>'
           '<path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>'
@@ -95,11 +95,13 @@ PAGES = {'signin': ('Sign in', SIGNIN), 'signup': ('Create account', SIGNUP),
          'forgot': ('Reset password', FORGOT), 'reset': ('New password', RESET)}
 
 def shell(title, body_main, head_extra='', scripts='  <script src="auth.js"></script>'):
-    return (f'<!DOCTYPE html>\n<html lang="en">\n<head>\n  <meta charset="UTF-8" />\n'
+    return (f'<!DOCTYPE html>\n<html lang="en">\n<head>\n'
+            f'  <script>document.documentElement.classList.add("js")</script>\n'
+            f'  <meta charset="UTF-8" />\n'
             f'  <meta name="viewport" content="width=device-width, initial-scale=1" />\n'
             f'  <title>coldd Development {title}</title>\n  <link rel="icon" type="image/png" href="logo.png" />\n  {FONT}\n  {head_extra}\n</head>\n'
-            f'<body class="auth-page">\n  <div class="backdrop"></div>\n  <div class="glow"></div>\n'
-            f'  <div class="scrim"></div>\n  <div class="grain"></div>\n'
+            f'<body class="auth-page">\n  <div class="backdrop"></div>\n'
+            f'  <div class="scrim"></div>\n'
             f'  <a class="auth-home" href="index.html" aria-label="coldd home"><img class="logo" src="logo.png" alt="coldd" /></a>\n'
             f'{body_main}\n{scripts}\n</body>\n</html>\n')
 
@@ -146,11 +148,13 @@ ROUTER = '''
 logo_uri = data_uri('logo.png')
 main = ('  <a class="auth-home" href="#" aria-label="coldd home"><img class="logo" src="' + logo_uri + '" alt="coldd" /></a>\n'
         '  <main class="auth-wrap">\n' + screens + '  </main>')
-combined = (f'<!DOCTYPE html>\n<html lang="en">\n<head>\n  <meta charset="UTF-8" />\n'
+combined = (f'<!DOCTYPE html>\n<html lang="en">\n<head>\n'
+            f'  <script>document.documentElement.classList.add("js")</script>\n'
+            f'  <meta charset="UTF-8" />\n'
             f'  <meta name="viewport" content="width=device-width, initial-scale=1" />\n'
             f'  <title>coldd Development Account</title>\n  <link rel="icon" type="image/png" href="{logo_uri}" />\n  {FONT}\n  <style>\n{css}\n</style>\n</head>\n'
-            f'<body class="auth-page">\n  <div class="backdrop"></div>\n  <div class="glow"></div>\n'
-            f'  <div class="scrim"></div>\n  <div class="grain"></div>\n'
+            f'<body class="auth-page">\n  <div class="backdrop"></div>\n'
+            f'  <div class="scrim"></div>\n'
             f'{main}\n  <script>\n{js}\n</script>\n{ROUTER}\n</body>\n</html>\n')
 
 (ROOT / 'auth-preview.html').write_text(combined)

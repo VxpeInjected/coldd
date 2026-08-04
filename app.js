@@ -1540,7 +1540,12 @@
         }
 
         function setMain(src) {
-          if (pdImg) pdImg.src = src || '';
+          // alt was never set here, so the primary product visual on every
+          // product page announced nothing to a screen reader.
+          if (pdImg) {
+            pdImg.src = src || '';
+            pdImg.alt = cur && cur.title ? cur.title : '';
+          }
           pdThumbs && pdThumbs.querySelectorAll('.pd-thumb').forEach(function (t) {
             t.classList.toggle('active', t.getAttribute('data-src') === src);
           });

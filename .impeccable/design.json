@@ -1,35 +1,63 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-08-02T00:00:00Z",
+  "generatedAt": "2026-08-03T00:00:00Z",
   "title": "Design System: coldd",
   "extensions": {
     "colorMeta": {
-      "ember": { "role": "primary", "displayName": "Ember", "canonical": "#ff4d44", "tonalRamp": ["#3d0c09", "#661711", "#99231a", "#cc2f23", "#ff4d44", "#ff7a73", "#ffa8a2", "#ffd6d3"] },
-      "ember-deep": { "role": "primary", "displayName": "Ember Deep", "canonical": "#e2382f", "tonalRamp": ["#341008", "#5c1c12", "#8a2a1c", "#b83224", "#e2382f", "#ea625a", "#f28f88", "#f9bcb7"] },
-      "price-green": { "role": "secondary", "displayName": "Price Green", "canonical": "#34e08a", "tonalRamp": ["#053018", "#0b5227", "#137838", "#209f52", "#34e08a", "#67e8a6", "#9af0c3", "#cdf8e1"] },
-      "minecraft-green": { "role": "secondary", "displayName": "Minecraft Green", "canonical": "#6cc25c", "tonalRamp": ["#132a0e", "#204a19", "#2e6b24", "#4c9a3f", "#6cc25c", "#8fd382", "#b3e2ab", "#d7f1d3"] },
-      "base": { "role": "neutral", "displayName": "Void", "canonical": "#15161b", "tonalRamp": ["#08090b", "#111217", "#15161b", "#191b21", "#1f2127", "#2a2c33", "#3a3d45", "#4d5058"] },
-      "ink": { "role": "neutral", "displayName": "Ink", "canonical": "#f4f6f9", "tonalRamp": ["#6b7280", "#8b909c", "#aab2c0", "#c3c9d3", "#dde0e6", "#eceef1", "#f4f6f9", "#ffffff"] }
+      "accent": { "role": "primary", "displayName": "Ember", "canonical": "#ff4d44", "tonalRamp": ["#3d0c09", "#661711", "#99231a", "#cc2f23", "#ff4d44", "#ff7a73", "#ffa8a2", "#ffd6d3"] },
+      "accent-deep": { "role": "primary", "displayName": "Ember Deep", "canonical": "#e2382f", "tonalRamp": ["#341008", "#5c1c12", "#8a2a1c", "#b83224", "#e2382f", "#ea625a", "#f28f88", "#f9bcb7"] },
+      "accent-press": { "role": "primary", "displayName": "Ember Press", "canonical": "#cf2f27", "tonalRamp": ["#2e0d07", "#521610", "#7d211a", "#a72923", "#cf2f27", "#dc5f58", "#e88f8a", "#f4bfbc"] },
+      "accent-ink": { "role": "primary", "displayName": "Ember Ink", "canonical": "#ff8079", "tonalRamp": ["#40201d", "#66312d", "#8c423d", "#b3534d", "#ff8079", "#ff9d97", "#ffbab6", "#ffd7d5"] },
+      "price": { "role": "secondary", "displayName": "Price Green", "canonical": "#34e08a", "tonalRamp": ["#053018", "#0b5227", "#137838", "#209f52", "#34e08a", "#67e8a6", "#9af0c3", "#cdf8e1"] },
+      "minecraft-word": { "role": "secondary", "displayName": "Minecraft Word Green", "canonical": "#6cc25c", "tonalRamp": ["#132a0e", "#204a19", "#2e6b24", "#4c9a3f", "#6cc25c", "#8fd382", "#b3e2ab", "#d7f1d3"] },
+      "minecraft-fill": { "role": "secondary", "displayName": "Minecraft Fill", "canonical": "#4a9a3f", "tonalRamp": ["#0f2109", "#1a3a12", "#27541c", "#376f28", "#4a9a3f", "#70b167", "#95c98f", "#bae0b6"] },
+      "star-gold": { "role": "tertiary", "displayName": "Star Gold", "canonical": "#ffc24b", "tonalRamp": ["#40300c", "#664c13", "#8c681a", "#b38421", "#ffc24b", "#ffd075", "#ffdf9f", "#ffedc9"] },
+      "bg": { "role": "neutral", "displayName": "Void", "canonical": "#15161b", "tonalRamp": ["#08090b", "#111217", "#15161b", "#191b21", "#1f2127", "#2a2c33", "#3a3d45", "#4d5058"] },
+      "bg-2": { "role": "neutral", "displayName": "Surface", "canonical": "#191b21", "tonalRamp": ["#0c0d10", "#141519", "#191b21", "#22242b", "#2e3138", "#3d414a", "#525661", "#6c717d"] },
+      "bg-3": { "role": "neutral", "displayName": "Surface Raised", "canonical": "#1f2127", "tonalRamp": ["#101115", "#171920", "#1f2127", "#282b33", "#343841", "#454952", "#5a5f6a", "#747985"] },
+      "frost": { "role": "neutral", "displayName": "Frost", "canonical": "rgba(17,18,24,0.74)", "tonalRamp": ["#0b0c10", "#111218", "#1a1c24", "#262934", "#3a3e4c", "#666b7c", "#9ba0ad", "#d3d6dd"] },
+      "fg": { "role": "neutral", "displayName": "Ink", "canonical": "#f4f6f9", "tonalRamp": ["#6b7280", "#8b909c", "#aab2c0", "#c3c9d3", "#dde0e6", "#eceef1", "#f4f6f9", "#ffffff"] },
+      "fg-1": { "role": "neutral", "displayName": "Ink Body", "canonical": "#e2e6ec", "tonalRamp": ["#1a1d21", "#292d33", "#3d4148", "#565b63", "#82878f", "#aeb3bb", "#c9ced5", "#e2e6ec"] },
+      "fg-2": { "role": "neutral", "displayName": "Ink Muted", "canonical": "#aab2c0", "tonalRamp": ["#15181d", "#22262d", "#333944", "#48505d", "#697280", "#8d95a3", "#aab2c0", "#d4d9e1"] },
+      "fg-3": { "role": "neutral", "displayName": "Ink Faint", "canonical": "#6b7280", "tonalRamp": ["#0f1115", "#1a1d23", "#282c34", "#3b4048", "#535963", "#6b7280", "#9ba1ad", "#cbcfd6"] },
+      "hairline": { "role": "neutral", "displayName": "Hairline", "canonical": "rgba(255,255,255,0.09)", "tonalRamp": ["rgba(255,255,255,0.02)", "rgba(255,255,255,0.035)", "rgba(255,255,255,0.055)", "rgba(255,255,255,0.07)", "rgba(255,255,255,0.09)", "rgba(255,255,255,0.12)", "rgba(255,255,255,0.16)", "rgba(255,255,255,0.24)"] },
+      "hairline-strong": { "role": "neutral", "displayName": "Hairline Strong", "canonical": "rgba(255,255,255,0.16)", "tonalRamp": ["rgba(255,255,255,0.04)", "rgba(255,255,255,0.06)", "rgba(255,255,255,0.09)", "rgba(255,255,255,0.12)", "rgba(255,255,255,0.16)", "rgba(255,255,255,0.24)", "rgba(255,255,255,0.35)", "rgba(255,255,255,0.5)"] },
+      "glass-top": { "role": "neutral", "displayName": "Glass Top", "canonical": "rgba(255,255,255,0.055)", "tonalRamp": ["rgba(255,255,255,0.012)", "rgba(255,255,255,0.022)", "rgba(255,255,255,0.035)", "rgba(255,255,255,0.045)", "rgba(255,255,255,0.055)", "rgba(255,255,255,0.07)", "rgba(255,255,255,0.10)", "rgba(255,255,255,0.16)"] },
+      "glass-bot": { "role": "neutral", "displayName": "Glass Bottom", "canonical": "rgba(255,255,255,0.022)", "tonalRamp": ["rgba(255,255,255,0.005)", "rgba(255,255,255,0.010)", "rgba(255,255,255,0.016)", "rgba(255,255,255,0.022)", "rgba(255,255,255,0.030)", "rgba(255,255,255,0.045)", "rgba(255,255,255,0.07)", "rgba(255,255,255,0.11)"] }
     },
     "typographyMeta": {
-      "display": { "displayName": "Display", "purpose": "Hero headline only, one per page." },
-      "headline": { "displayName": "Headline", "purpose": "Homepage/section headers." },
-      "body": { "displayName": "Body", "purpose": "Descriptions, paragraphs, legal/long-form text." },
-      "label": { "displayName": "Label", "purpose": "Buttons, nav, form labels, badges - the busiest size band in the system (13.5-14.5px)." }
+      "display": { "displayName": "Display", "purpose": "Hero headline and page-head h1 only. 800 weight, -0.04em." },
+      "h2": { "displayName": "Headline", "purpose": "Section headers. Deliberately a full step below Display so bands do not shout at hero volume." },
+      "h3": { "displayName": "Title", "purpose": "Card, modal and panel titles." },
+      "lead": { "displayName": "Lead", "purpose": "Section sub-headers, page-head deck, large-card intro paragraphs." },
+      "body": { "displayName": "Body", "purpose": "Document default. Long-form legal and post copy runs 15-16px at 1.75 line-height." },
+      "md": { "displayName": "Medium", "purpose": "Panel paragraphs, review copy, legal paragraphs." },
+      "sm": { "displayName": "Small", "purpose": "Buttons, table cells, list rows, form values." },
+      "label": { "displayName": "Label", "purpose": "Nav links, chips, badges, footer links, dropdown options, form labels." },
+      "micro": { "displayName": "Micro", "purpose": "Meta lines, hints, counts, timestamps." },
+      "nano": { "displayName": "Nano", "purpose": "Uppercase group labels above filter and form sections; card eyebrow tags." }
     },
     "shadows": [
-      { "name": "cta-lift", "value": "0 12px 30px -12px rgba(255,77,68,0.55)", "purpose": "Primary/platform buttons at rest; intensifies to 0 16px 38px -12px rgba(255,77,68,0.62) on hover, paired with a 2px translateY lift." },
-      { "name": "panel-float", "value": "0 26px 60px -28px rgba(0,0,0,0.85)", "purpose": "Glass cards, dropdowns, modals - large soft neutral shadow, the 'floating above the backdrop' cue." }
+      { "name": "e-1", "value": "0 1px 2px rgba(0,0,0,0.4)", "purpose": "Pressed state. Filled buttons drop to this on :active." },
+      { "name": "e-2", "value": "0 4px 12px -4px rgba(0,0,0,0.55)", "purpose": "Resting shadow of a filled button. Small, tight, black." },
+      { "name": "e-3", "value": "0 18px 44px -24px rgba(0,0,0,0.8)", "purpose": "Glass panels at rest; cards and tiles on hover." },
+      { "name": "e-4", "value": "0 30px 70px -34px rgba(0,0,0,0.88)", "purpose": "Heaviest step - the expanded team panel and equivalent full-attention surfaces." },
+      { "name": "frost-panel", "value": "0 1px 0 rgba(255,255,255,0.05) inset, 0 20px 46px -26px rgba(0,0,0,0.75)", "purpose": "Frosted panels: inset white top line plus soft black spread." }
     ],
     "motion": [
-      { "name": "ease-standard", "value": "cubic-bezier(0.22, 1, 0.36, 1)", "purpose": "The system's one easing curve - used on every hover/transition, transform, and reveal animation." },
-      { "name": "duration-hover", "value": "0.25s", "purpose": "Standard button/link hover transition duration." },
-      { "name": "duration-reveal", "value": "0.7s", "purpose": "Scroll-in-view fade/rise for .reveal-class sections - decorative only, must never gate primary content visibility." }
+      { "name": "ease", "value": "cubic-bezier(0.22, 1, 0.36, 1)", "purpose": "Default easing for state and layout transitions." },
+      { "name": "ease-out", "value": "cubic-bezier(0.16, 1, 0.3, 1)", "purpose": "Entrance easing for .reveal and page-in transitions." },
+      { "name": "control-state", "value": "0.18s ease", "purpose": "Fill, border and colour changes on buttons and controls." },
+      { "name": "card-hover", "value": "0.3s cubic-bezier(0.22, 1, 0.36, 1)", "purpose": "Card and tile 2px lift plus shadow step." },
+      { "name": "reveal", "value": "0.55s cubic-bezier(0.16, 1, 0.3, 1)", "purpose": "Scroll entrance; the hidden state is scoped to html.js only." }
     ],
     "breakpoints": [
+      { "name": "xs", "value": "440px" },
       { "name": "sm", "value": "560px" },
       { "name": "md", "value": "640px" },
-      { "name": "lg", "value": "900px" }
+      { "name": "lg", "value": "900px" },
+      { "name": "xl", "value": "1040px" },
+      { "name": "2xl", "value": "1400px" }
     ]
   },
   "components": [
@@ -37,88 +65,122 @@
       "name": "Primary Button",
       "kind": "button",
       "refersTo": "button-primary",
-      "description": "The single most important action on a screen - red gradient with a colored glow shadow that lifts on hover.",
-      "html": "<button class=\"ds-btn-primary\">Add to Cart</button>",
-      "css": ".ds-btn-primary { display: inline-flex; align-items: center; gap: 8px; font-family: 'Inter', sans-serif; font-size: 14.5px; font-weight: 600; color: #fff; background: linear-gradient(180deg, #ff5247, #e23229); border: 1px solid transparent; border-radius: 980px; padding: 12px 22px; min-height: 46px; cursor: pointer; box-shadow: 0 12px 30px -12px rgba(255,77,68,0.55); transition: transform .25s cubic-bezier(0.22,1,0.36,1), background .25s, box-shadow .25s; } .ds-btn-primary:hover { transform: translateY(-2px); background: linear-gradient(180deg, #ff6056, #e8392f); box-shadow: 0 16px 38px -12px rgba(255,77,68,0.62); } .ds-btn-primary:focus-visible { outline: 2px solid #ff4d44; outline-offset: 2px; }"
+      "description": "The single most important action on a screen or card. Flat ember fill, no gradient, no coloured glow, no hover lift.",
+      "html": "<button class=\"ds-btn ds-btn-primary\">Browse assets</button>",
+      "css": ".ds-btn { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; font-family: 'Archivo', 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 14px; font-weight: 600; letter-spacing: -0.004em; text-decoration: none; padding: 12px 22px; border-radius: 980px; border: 1px solid transparent; min-height: 46px; transition: background .18s ease, border-color .18s ease, color .18s ease, box-shadow .18s ease; } .ds-btn-primary { color: #fff; background: #e2382f; border-color: rgba(255,255,255,0.14); box-shadow: 0 4px 12px -4px rgba(0,0,0,0.55); } .ds-btn-primary:hover { background: #ff4d44; border-color: rgba(255,255,255,0.24); } .ds-btn-primary:active { background: #cf2f27; box-shadow: 0 1px 2px rgba(0,0,0,0.4); } .ds-btn-primary:focus-visible { outline: 2px solid #ff4d44; outline-offset: 3px; }"
     },
     {
       "name": "Ghost Button",
       "kind": "button",
       "refersTo": "button-ghost",
-      "description": "Secondary action sitting next to a Primary button - translucent glass fill, no accent color.",
-      "html": "<button class=\"ds-btn-ghost\">Learn More</button>",
-      "css": ".ds-btn-ghost { display: inline-flex; align-items: center; gap: 8px; font-family: 'Inter', sans-serif; font-size: 14.5px; font-weight: 600; color: #f4f6f9; background: rgba(255,255,255,0.065); border: 1px solid rgba(255,255,255,0.09); border-radius: 980px; padding: 12px 22px; min-height: 46px; cursor: pointer; transition: transform .25s cubic-bezier(0.22,1,0.36,1), background .25s, border-color .25s; } .ds-btn-ghost:hover { transform: translateY(-2px); background: rgba(255,255,255,0.10); border-color: rgba(255,255,255,0.16); } .ds-btn-ghost:focus-visible { outline: 2px solid #ff4d44; outline-offset: 2px; }"
-    },
-    {
-      "name": "Glass Card",
-      "kind": "card",
-      "refersTo": "card-glass",
-      "description": "The default surface treatment - frosted, translucent, sits over the blurred page backdrop.",
-      "html": "<div class=\"ds-card-glass\"><h3 class=\"ds-card-glass-title\">What we do</h3><p class=\"ds-card-glass-body\">We create high-quality, ready-to-use assets for Roblox developers.</p></div>",
-      "css": ".ds-card-glass { position: relative; border-radius: 24px; padding: 46px 50px; background: linear-gradient(180deg, rgba(255,255,255,0.065), rgba(255,255,255,0.028)); box-shadow: 0 1px 0 rgba(255,255,255,0.05) inset, 0 26px 60px -28px rgba(0,0,0,0.85); } .ds-card-glass::before { content: ''; position: absolute; inset: 0; border-radius: inherit; padding: 1px; background: linear-gradient(180deg, rgba(255,255,255,0.28), rgba(255,255,255,0.04) 38%, rgba(255,255,255,0.02)); -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; pointer-events: none; } .ds-card-glass-title { margin: 0 0 12px; font-size: 20px; font-weight: 700; color: #f4f6f9; } .ds-card-glass-body { margin: 0; font-size: 15.5px; line-height: 1.68; color: #aab2c0; }"
+      "description": "Default partner beside a Primary. Translucent white fill, hairline border, neutral throughout.",
+      "html": "<button class=\"ds-btn ds-btn-ghost\">View details</button>",
+      "css": ".ds-btn { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; font-family: 'Archivo', 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 14px; font-weight: 600; letter-spacing: -0.004em; padding: 12px 22px; border-radius: 980px; border: 1px solid transparent; min-height: 46px; transition: background .18s ease, border-color .18s ease, color .18s ease; } .ds-btn-ghost { color: #f4f6f9; background: rgba(255,255,255,0.055); border-color: rgba(255,255,255,0.09); } .ds-btn-ghost:hover { background: rgba(255,255,255,0.10); border-color: rgba(255,255,255,0.16); } .ds-btn-ghost:active { background: rgba(255,255,255,0.06); } .ds-btn-ghost:focus-visible { outline: 2px solid #ff4d44; outline-offset: 3px; }"
     },
     {
       "name": "Product Card",
       "kind": "card",
       "refersTo": "card-product",
-      "description": "Solid (non-glass) card for product photography - price in Price Green, discount badge on the thumbnail.",
-      "html": "<article class=\"ds-product-card\"><div class=\"ds-product-thumb\"><span class=\"ds-product-badge\">-25%</span></div><div class=\"ds-product-body\"><h3 class=\"ds-product-title\">Asset Mega Bundle</h3><div class=\"ds-product-price-row\"><span class=\"ds-product-was\">$199</span><span class=\"ds-product-price\">$150</span></div><button class=\"ds-btn-ghost\" style=\"width:100%;justify-content:center;\">Add to Cart</button></div></article>",
-      "css": ".ds-product-card { border-radius: 16px; overflow: hidden; border: 1px solid rgba(255,255,255,0.09); background: #1f2127; } .ds-product-thumb { position: relative; aspect-ratio: 16/10; background: #0f1014 center/cover no-repeat; } .ds-product-badge { position: absolute; top: 10px; left: 10px; background: #ff4d44; color: #fff; font-size: 12px; font-weight: 700; padding: 3px 8px; border-radius: 999px; } .ds-product-body { padding: 16px; display: flex; flex-direction: column; gap: 10px; } .ds-product-title { margin: 0; font-size: 15px; font-weight: 600; color: #f4f6f9; } .ds-product-price-row { display: flex; align-items: baseline; gap: 8px; } .ds-product-was { font-size: 13px; color: #6b7280; text-decoration: line-through; } .ds-product-price { font-size: 17px; font-weight: 700; color: #34e08a; }"
+      "description": "Catalog tile. Solid raised surface so photography has a stable background; lifts 2px on hover and steps its border. The add button is ghost until hover, per the One Ember Rule.",
+      "html": "<article class=\"ds-product\"><div class=\"ds-p-thumb\"><span class=\"ds-p-off\">-30%</span></div><div class=\"ds-p-body\"><h3 class=\"ds-p-name\">Obby Template Pack</h3><div class=\"ds-p-price-row\"><span class=\"ds-p-price\">$24</span><span class=\"ds-p-was\">$34</span></div><p class=\"ds-p-sum\">Fully scripted obby framework with checkpoints, shop and leaderboard.</p><button class=\"ds-p-add\">Add to cart</button></div></article>",
+      "css": ".ds-product { position: relative; width: 260px; border-radius: 16px; overflow: hidden; border: 1px solid rgba(255,255,255,0.09); background: #1f2127; display: flex; flex-direction: column; transition: transform .3s cubic-bezier(0.22,1,0.36,1), border-color .3s, box-shadow .3s; cursor: pointer; font-family: 'Archivo', 'Helvetica Neue', Helvetica, Arial, sans-serif; } .ds-product:hover { transform: translateY(-2px); border-color: rgba(255,255,255,0.16); box-shadow: 0 18px 44px -24px rgba(0,0,0,0.8); } .ds-p-thumb { height: 140px; position: relative; background: linear-gradient(160deg, #2a2d36, #16181d); } .ds-p-off { position: absolute; top: 10px; left: 10px; font-size: 12px; font-weight: 800; letter-spacing: 0.02em; color: #fff; padding: 5px 9px; border-radius: 8px; background: #e2382f; box-shadow: 0 6px 16px -6px rgba(0,0,0,0.80); } .ds-p-body { padding: 14px 16px 16px; display: flex; flex-direction: column; flex: 1; } .ds-p-name { font-size: 15px; font-weight: 600; letter-spacing: -0.01em; margin: 0; color: #f4f6f9; } .ds-p-price-row { display: flex; align-items: baseline; gap: 9px; margin-top: 8px; } .ds-p-price { font-size: 17px; font-weight: 700; color: #34e08a; font-variant-numeric: tabular-nums; } .ds-p-was { font-size: 13px; font-weight: 600; color: #6b7280; text-decoration: line-through; } .ds-p-sum { font-size: 12px; color: #aab2c0; line-height: 1.5; margin: 10px 0 14px; } .ds-p-add { margin-top: auto; width: 100%; min-height: 40px; font-family: inherit; font-size: 13px; font-weight: 700; color: #f4f6f9; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.09); border-radius: 10px; cursor: pointer; transition: background .18s ease, border-color .18s ease, color .18s ease; } .ds-p-add:hover { background: #e2382f; border-color: rgba(255,255,255,0.2); color: #fff; } .ds-p-add:active { background: #cf2f27; } .ds-p-add:focus-visible { outline: 2px solid #ff4d44; outline-offset: 2px; }"
+    },
+    {
+      "name": "Glass Panel",
+      "kind": "card",
+      "refersTo": "card-glass",
+      "description": "Base container: translucent white gradient, a masked 1px near-even ring, and a neutral e-3 shadow.",
+      "html": "<section class=\"ds-glass\"><h3 class=\"ds-glass-title\">Order summary</h3><p class=\"ds-glass-body\">Three items, delivered instantly after payment.</p></section>",
+      "css": ".ds-glass { position: relative; width: 320px; padding: 22px 24px; border-radius: 24px; background: linear-gradient(180deg, rgba(255,255,255,0.055), rgba(255,255,255,0.022)); box-shadow: 0 18px 44px -24px rgba(0,0,0,0.8); font-family: 'Archivo', 'Helvetica Neue', Helvetica, Arial, sans-serif; } .ds-glass::before { content: \"\"; position: absolute; inset: 0; border-radius: inherit; padding: 1px; background: linear-gradient(180deg, rgba(255,255,255,0.11), rgba(255,255,255,0.05) 50%, rgba(255,255,255,0.035)); -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; pointer-events: none; } .ds-glass-title { margin: 0; font-size: 17px; font-weight: 700; letter-spacing: -0.02em; color: #f4f6f9; } .ds-glass-body { margin: 8px 0 0; font-size: 14px; line-height: 1.55; color: #aab2c0; }"
     },
     {
       "name": "Text Input",
       "kind": "input",
       "refersTo": "input-text",
-      "description": "Standard text field - note the 16px mobile font-size floor fixed this session (iOS zoom-on-focus bug).",
-      "html": "<input class=\"ds-input\" type=\"email\" placeholder=\"you@example.com\" />",
-      "css": ".ds-input { width: 100%; min-height: 46px; padding: 12px 14px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.09); background: rgba(255,255,255,0.04); color: #f4f6f9; font-family: 'Inter', sans-serif; font-size: 14.5px; outline: none; box-sizing: border-box; transition: border-color .2s, background .2s; } .ds-input::placeholder { color: #6b7280; } .ds-input:focus { border-color: rgba(255,255,255,0.22); background: rgba(255,255,255,0.06); } @media (max-width: 640px) { .ds-input { font-size: 16px; } }"
+      "description": "Standard field. Translucent fill, hairline border, ember-tinted border on focus and no glow ring. Floors at 16px on mobile.",
+      "html": "<label class=\"ds-field\"><span class=\"ds-field-label\">Email</span><input class=\"ds-input\" type=\"email\" placeholder=\"you@studio.dev\" /></label>",
+      "css": ".ds-field { display: flex; flex-direction: column; gap: 7px; width: 300px; font-family: 'Archivo', 'Helvetica Neue', Helvetica, Arial, sans-serif; } .ds-field-label { font-size: 13px; font-weight: 600; color: #aab2c0; } .ds-input { width: 100%; min-height: 46px; padding: 12px 14px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.09); background: rgba(255,255,255,0.04); color: #f4f6f9; font-family: inherit; font-size: 14px; outline: none; transition: border-color .2s, background .2s; } .ds-input::placeholder { color: #6b7280; } .ds-input:focus { border-color: rgba(255,77,68,0.5); background: rgba(255,255,255,0.06); } @media (max-width: 640px) { .ds-input { font-size: 16px; } }"
     },
     {
-      "name": "Mobile Nav Overlay",
-      "kind": "nav",
-      "refersTo": "nav-mobile",
-      "description": "Full-screen solid-background nav panel opened by the header hamburger below 900px. Fixed this session - previously had no working open/close behavior at all. Solid (not glass) so link text stays legible regardless of page content behind it.",
-      "html": "<button class=\"ds-menu-btn\" aria-label=\"Menu\" aria-expanded=\"false\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\"><path d=\"M3 12h18M3 6h18M3 18h18\"/></svg></button><nav class=\"ds-nav-mobile-open\"><a href=\"#\">Home</a><a href=\"#\">Shop</a><a href=\"#\">Blog &amp; Tutorials</a><a href=\"#\">About Us</a></nav>",
-      "css": ".ds-menu-btn { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 10px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.09); color: #f4f6f9; cursor: pointer; } .ds-nav-mobile-open { display: flex; flex-direction: column; align-items: stretch; gap: 2px; padding: 24px; background: #191b21; } .ds-nav-mobile-open a { padding: 17px 4px; font-family: 'Inter', sans-serif; font-size: 17px; font-weight: 600; color: #f4f6f9; text-decoration: none; border-bottom: 1px solid rgba(255,255,255,0.09); }"
-    },
-    {
-      "name": "Discount Badge",
+      "name": "Filter Chip",
       "kind": "chip",
-      "refersTo": "badge-discount",
-      "description": "Small overlay badge on discounted product thumbnails.",
-      "html": "<span class=\"ds-badge\">-25%</span>",
-      "css": ".ds-badge { display: inline-block; background: #ff4d44; color: #fff; font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 700; padding: 3px 8px; border-radius: 999px; }"
+      "refersTo": "chip-filter",
+      "description": "Single-choice catalog filter. Neutral at rest; the chosen chip takes a solid ember fill because it is the current view.",
+      "html": "<div class=\"ds-chips\"><button class=\"ds-chip ds-chip-active\">All</button><button class=\"ds-chip\">Scripts</button><button class=\"ds-chip\">Maps</button></div>",
+      "css": ".ds-chips { display: flex; gap: 8px; font-family: 'Archivo', 'Helvetica Neue', Helvetica, Arial, sans-serif; } .ds-chip { font-family: inherit; font-size: 13px; font-weight: 500; color: #aab2c0; cursor: pointer; padding: 8px 15px; border-radius: 999px; background: #1f2127; border: 1px solid rgba(255,255,255,0.09); transition: color .2s, background .2s, border-color .2s; } .ds-chip:hover { color: #f4f6f9; border-color: rgba(255,255,255,0.2); } .ds-chip-active { color: #fff; background: #e2382f; border-color: transparent; } .ds-chip:focus-visible { outline: 2px solid #ff4d44; outline-offset: 3px; }"
+    },
+    {
+      "name": "Filter Rail Category",
+      "kind": "nav",
+      "refersTo": "list-item-active",
+      "description": "Sidebar category row. Selection is carried by a neutral fill plus a weight step - never by a coloured rail down the side.",
+      "html": "<nav class=\"ds-cats\"><button class=\"ds-cat ds-cat-active\">All products<span class=\"ds-cat-n\">128</span></button><button class=\"ds-cat\">Game templates<span class=\"ds-cat-n\">34</span></button><button class=\"ds-cat\">Scripts &amp; UI<span class=\"ds-cat-n\">51</span></button></nav>",
+      "css": ".ds-cats { display: flex; flex-direction: column; gap: 3px; width: 240px; font-family: 'Archivo', 'Helvetica Neue', Helvetica, Arial, sans-serif; } .ds-cat { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; padding: 11px 13px 11px 12px; border: none; background: transparent; color: #e2e6ec; font-family: inherit; font-size: 14px; font-weight: 500; line-height: 1.3; text-align: left; cursor: pointer; border-radius: 9px; transition: background .18s cubic-bezier(0.22,1,0.36,1), color .18s cubic-bezier(0.22,1,0.36,1); } .ds-cat:hover { background: rgba(255,255,255,0.05); } .ds-cat-active { background: rgba(255,255,255,0.09); color: #fff; font-weight: 600; } .ds-cat:focus-visible { outline: 2px solid #ff4d44; outline-offset: -2px; } .ds-cat-n { color: #6b7280; font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; }"
+    },
+    {
+      "name": "Floating Nav Pill",
+      "kind": "nav",
+      "refersTo": "nav",
+      "description": "Self-contained centred header pill with its own dark gradient and masked ring, independent of the page glass system.",
+      "html": "<header class=\"ds-nav\"><div class=\"ds-nav-inner\"><span class=\"ds-brand\">coldd</span><a class=\"ds-nav-link ds-nav-link-active\" href=\"#\">Home</a><a class=\"ds-nav-link\" href=\"#\">Shop</a><a class=\"ds-nav-link\" href=\"#\">Blog</a><button class=\"ds-nav-cta\">Sign in</button></div></header>",
+      "css": ".ds-nav { display: flex; justify-content: center; font-family: 'Archivo', 'Helvetica Neue', Helvetica, Arial, sans-serif; } .ds-nav-inner { position: relative; display: flex; align-items: center; gap: 6px; height: 50px; padding: 0 8px 0 14px; border-radius: 15px; background: linear-gradient(180deg, rgba(32,34,42,0.95), rgba(20,22,28,0.95)); box-shadow: 0 1px 0 rgba(255,255,255,0.06) inset, 0 18px 50px -22px rgba(0,0,0,0.7); } .ds-nav-inner::before { content: \"\"; position: absolute; inset: 0; border-radius: inherit; padding: 1px; background: linear-gradient(180deg, rgba(255,255,255,0.13), rgba(255,255,255,0.05) 50%, rgba(255,255,255,0.035)); -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; pointer-events: none; } .ds-brand { font-size: 15px; font-weight: 800; letter-spacing: -0.03em; color: #f4f6f9; margin-right: 10px; } .ds-nav-link { color: #aab2c0; text-decoration: none; font-size: 13px; font-weight: 500; white-space: nowrap; padding: 7px 13px; border-radius: 9px; transition: color .2s, background .2s; } .ds-nav-link:hover { color: #f4f6f9; background: rgba(255,255,255,0.06); } .ds-nav-link-active { color: #f4f6f9; } .ds-nav-cta { margin-left: 6px; font-family: inherit; font-size: 13px; font-weight: 600; color: #fff; background: #e2382f; border: 1px solid rgba(255,255,255,0.14); border-radius: 980px; padding: 9px 16px; min-height: 38px; cursor: pointer; box-shadow: 0 4px 12px -4px rgba(0,0,0,0.55); transition: background .18s ease, border-color .18s ease; } .ds-nav-cta:hover { background: #ff4d44; border-color: rgba(255,255,255,0.24); }"
+    },
+    {
+      "name": "Hero Statistics",
+      "kind": "custom",
+      "refersTo": "hero-stats",
+      "description": "Real figures set inline on one baseline and separated by 1px hairlines - not a row of stat cards.",
+      "html": "<div class=\"ds-hstats\"><span class=\"ds-hstat\"><b class=\"ds-hn\">128+</b><span class=\"ds-hl\">products shipped</span></span><span class=\"ds-hstat\"><b class=\"ds-hn\">4.9</b><span class=\"ds-hl\">average rating</span></span><span class=\"ds-hstat\"><b class=\"ds-hn\">Instant</b><span class=\"ds-hl\">delivery</span></span></div>",
+      "css": ".ds-hstats { display: flex; align-items: center; flex-wrap: wrap; gap: 0; font-family: 'Archivo', 'Helvetica Neue', Helvetica, Arial, sans-serif; } .ds-hstat { display: flex; align-items: baseline; gap: 7px; padding: 0 18px; } .ds-hstat:first-child { padding-left: 0; } .ds-hstat + .ds-hstat { border-left: 1px solid rgba(255,255,255,0.09); } .ds-hn { font-size: 20px; font-weight: 700; letter-spacing: -0.02em; color: #f4f6f9; font-variant-numeric: tabular-nums; } .ds-hl { font-size: 14px; color: #aab2c0; font-weight: 500; letter-spacing: 0; text-transform: none; }"
     }
   ],
   "narrative": {
     "northStar": "The Late-Night Workshop",
-    "overview": "coldd's own origin story is the brief: a few people in a Discord, trading builds late at night because what was for sale just wasn't good enough. The visual system plays that literally - a near-black room with one warm light source. Everything else recedes into dark neutrals so the ember-red accent reads as the signal in the room, not one color among several. Surfaces are frosted glass, not solid panels: cards use a barely-there top-light gradient over a blurred, dimmed banner photograph fixed behind the entire page. The glass doesn't just sit on a color - it sits on an image, blurred into ambience, so panels feel like they're floating in front of something real. Type is Inter throughout, doing real work at scale: hero display type runs up to 66px at 800-weight with tight, almost condensed tracking, while body copy stays relaxed for long legal/product text.",
+    "overview": "coldd's origin story is the brief: a few people in a Discord trading builds late at night because what was for sale wasn't good enough. The system plays that literally - a near-black room (#15161b) with one warm light source. Everything else recedes into graphite neutrals so the ember accent reads as the signal in the room rather than one colour among several. Ember appears on CTAs, the hero's swapped platform word, active filter chips, focus rings and small state marks. It never fills a background band, never washes the page, and never tints a shadow.\n\nThe atmosphere is scoped, not ambient. A blurred banner photograph sits behind the top of the document only - position: absolute, height: max(104vh, 940px), blur(14px) - with a scrim gradient that resolves fully to var(--bg) by 88%. Below the fold, panels sit on clean graphite. Depth comes from three flat ingredients: a barely-there white gradient inside glass panels, a 1px hairline ring, and a neutral black shadow. Panels that need real separation from a photograph add a genuine backdrop-filter: blur(13px) saturate(130%) over rgba(17,18,24,0.74).\n\nType is Archivo throughout, loaded from Google Fonts at 400/500/600/700/800/900 on every page. The scale is a whole-pixel ramp - --t-display down to --t-nano - with no half-pixel step anywhere in the stylesheet. Display type is heavy and tightly tracked (800 weight, -0.04em); body copy is relaxed (1.55 line-height, -0.006em) for long product and legal text. Buttons and chips are full pills; cards and tiles are soft rectangles. Interactive things are pills, informational surfaces are rectangles.",
     "keyCharacteristics": [
-      "One accent color, used rarely, always meaning \"act here\"",
-      "Frosted glass over a blurred photographic backdrop, not a flat dark background",
-      "Inter at two very different intensities: tight/heavy for display, relaxed for body",
-      "Pills for actions, soft rectangles for content",
-      "No light mode - this is a committed dark system, not a dark variant of a light one"
+      "One accent colour, used rarely, always meaning \"act here\" or \"you are here\"",
+      "Flat fills - no gradient buttons, no coloured glows, no tinted halos",
+      "Neutral four-step elevation (--e-1 through --e-4); shadows are black, never accent-tinted",
+      "Scoped atmosphere: the blurred banner belongs to the top of the page, not the whole scroll",
+      "Archivo on a whole-pixel ramp - integer sizes only",
+      "Cards lift 2px on hover; buttons never lift, they change fill",
+      "No light mode - a committed dark system, not a dark variant of a light one"
     ],
     "rules": [
-      { "name": "The One Ember Rule", "body": "The accent color signals action or emphasis, never decoration. If a new element wants red \"to stand out,\" that's a sign it should compete for attention with a CTA, which it should lose - use a neutral instead.", "section": "colors" },
-      { "name": "The Two Greens Rule", "body": "Price Green and Minecraft Green are not interchangeable even though both are green. Price Green = \"you're getting a good number.\" Minecraft Green = \"you're on the Minecraft side of the site.\" Never let one bleed into the other's context.", "section": "colors" },
-      { "name": "The Body Floor Rule", "body": "No form input, select, or textarea renders under 16px at mobile widths - this was a real production bug (iOS Safari force-zooms any focused field under 16px) fixed this session with a blanket mobile override. Never reintroduce a sub-16px form field on narrow viewports.", "section": "typography" },
-      { "name": "The Colored-Glow Rule", "body": "Only buttons get shadows tinted to their own color (red glow on red buttons, green on the Minecraft button). Structural surfaces (cards, dropdowns, nav) always use a neutral black shadow regardless of any accent nearby.", "section": "elevation" }
+      { "name": "The One Ember Rule", "body": "Ember means \"act here\" or \"you are here\". It is never decoration, never a background band, never a glow. If a new element wants red so it will stand out, it is asking to compete with a CTA - give it a neutral and let the CTA win. Where a grid would repeat ember many times over (the product grid's twelve add buttons), the accent is deferred to hover: the card states its action quietly until you reach for it.", "section": "colors" },
+      { "name": "The Two Greens Rule", "body": "Price Green and Minecraft Green are not interchangeable. Price Green means \"this number is good news\". Minecraft Green means \"you are on the Minecraft side of the site\". Never let one bleed into the other's context, and never introduce a third green for a generic success state - use Price Green.", "section": "colors" },
+      { "name": "The Neutral Border Rule", "body": "Every resting border in the system is Hairline; every hover border is Hairline Strong. Accent-tinted borders are reserved for genuine selection on radio-style controls and for input focus. Do not add a fourth border colour.", "section": "colors" },
+      { "name": "The Whole-Pixel Rule", "body": "Font sizes are integers. The old system ran 9.5 / 10.5 / 11.5 / 12.5 / 13.5 / 14.5 / 15.5 / 16.5px alongside their integer neighbours - 127 declarations of noise pretending to be hierarchy. They were collapsed onto the ten ramp steps. A new size that is not already on the ramp is a request to reuse an existing step, not to add one, and a half-pixel size is never correct.", "section": "typography" },
+      { "name": "The Body Floor Rule", "body": "No text input, select or textarea renders under 16px at or below 640px. iOS Safari force-zooms the page on focus for any field under 16px and there is no way back out except a manual pinch. A single blanket override enforces this; never work around it with a narrower selector.", "section": "typography" },
+      { "name": "The Two Intensities Rule", "body": "Archivo is tight and heavy above 26px and plain below it. Do not carry display tracking (-0.04em) into body copy, and do not set body weight (400) on anything at Headline size or above.", "section": "typography" },
+      { "name": "The Neutral Shadow Rule", "body": "Nothing gets a shadow tinted to its own colour - buttons included. This inverts the system's previous doctrine. Red buttons get --e-2, green buttons get --e-2, glass panels get --e-3. If a shadow needs an rgba() with a hue in it, the design is asking for a glow; give it a border step or a fill step instead.", "section": "elevation" },
+      { "name": "The Cards Lift, Buttons Fill Rule", "body": "Hover response is split by element class. Cards, tiles and product cards lift a uniform translateY(-2px), step their border to Hairline Strong, and take --e-3. Buttons do not move at all - .btn transitions background, border-colour, colour and box-shadow, and nothing else. A button that lifts is a bug.", "section": "elevation" },
+      { "name": "The Flat Fill Rule", "body": "Filled controls are one solid colour. No gradient buttons, no gradient chips, no gradient badges. Depth on a filled control comes from a real 1px white border (rgba(255,255,255,0.14) on primary, stepping to 0.24 on hover) plus a neutral shadow.", "section": "elevation" },
+      { "name": "The No Coloured Rail Rule", "body": "A border-left heavier than 1px, in any accent colour, is banned system-wide. It is the most recognisable generated-UI tell. Vertical rails exist only as 1px hairlines used for structure - the sub-category indent, legal clause indents, and the dividers between hero statistics. Never colour them.", "section": "shapes" },
+      { "name": "The Pill/Rectangle Rule", "body": "If you press it, it is a pill. If you read it, it is a soft rectangle. Never mix the two on the same element type, and never introduce a \"barely rounded\" 4-6px corner between the families.", "section": "shapes" },
+      { "name": "The Visible-Without-JS Rule", "body": "Content is visible by default and animation removes that default, never grants it. Any entrance effect must be written so that a blocked, failed or slow script leaves the page fully readable. This is a robustness constraint, not a stylistic preference - the legal pages once went permanently blank in exactly this way. Never author a .reveal-style effect whose resting state is opacity: 0 outside an html.js scope.", "section": "components" }
     ],
     "dos": [
-      "Do keep the red accent to CTAs, active states, and the platform-swap hero word - if you're using it for a third or fourth element on the same screen, pick a neutral instead.",
-      "Do use the pill radius (980px) for anything pressable and the soft-rectangle radius (16-24px) for anything that contains content - never mix them on the same element type.",
-      "Do default new cards to the .glass frosted treatment; only switch to solid Surface when there's a specific readability/robustness reason (as with the legal pages this session).",
+      "Do keep ember to CTAs, active states, focus rings, small state marks and the hero platform word. If it is the third or fourth red thing on screen, make it neutral.",
+      "Do use flat fills on every filled control, with a white border and a neutral shadow for depth.",
+      "Do reach for --e-1 through --e-4. Every shadow in the system is one of those four or a close neutral relative.",
+      "Do lift cards 2px on hover and step their border to --hairline-strong; leave buttons where they are and change their fill instead.",
+      "Do pick font sizes off the ten-step ramp, integers only.",
       "Do keep form fields at 16px+ on mobile viewports, full stop.",
-      "Do give every button the 2px hover-lift + intensifying shadow - it's the one interaction pattern users should feel consistently everywhere."
+      "Do default new panels to .glass; switch to frosted (--frost + blur) when the panel sits over photography, and to solid --bg-2 when reading contrast must not depend on the background.",
+      "Do carry selection in list and menu UI with a neutral fill plus a weight step."
     ],
     "donts": [
-      "Don't introduce a second border color - every border in the system resolves to the one hairline value.",
-      "Don't let content visibility depend on JavaScript succeeding. .reveal-class scroll animations are fine for homepage flourish but must never be the only thing making primary content visible.",
-      "Don't use Minecraft Green and Price Green interchangeably - they mean different things even though both are green.",
-      "Don't add a light mode or a second theme. This is a committed single dark system, not a dark variant of something else.",
-      "Don't put a hard, sharp 0px or barely-rounded 4-8px corner anywhere - it breaks the pill/rectangle shape language the whole system depends on."
+      "Don't tint a shadow to an element's own colour. No red glow under a red button, no green glow under a green one.",
+      "Don't give a button a gradient, a hover lift, or a coloured halo.",
+      "Don't use a coloured border-left heavier than 1px as a selection or emphasis device anywhere.",
+      "Don't reintroduce a half-pixel font size, or add an eleventh step to the type ramp.",
+      "Don't put a fixed, full-page background image, a radial accent wash, a grain overlay, or an animated blob behind the page - all four were removed on purpose.",
+      "Don't author an entrance animation whose resting state is invisible outside the html.js scope.",
+      "Don't use Minecraft Green and Price Green interchangeably, or invent a third green for success states.",
+      "Don't introduce a border colour beyond Hairline and Hairline Strong (accent borders are for radio-style selection and input focus only).",
+      "Don't add a light mode or a second theme. This is a committed single dark system.",
+      "Don't put a sharp 0px or barely-rounded 4-6px corner anywhere - it breaks the pill/rectangle language."
     ]
   }
 }

@@ -625,6 +625,7 @@
     // and the sort read data-reviews, which those cards never set, so it
     // ranked them as 0 while displaying 214. Shared because the shop grids and
     // the homepage's featured/deals grids both need it.
+    var STAR_SVG = "<svg viewBox=\"0 0 24 24\" fill=\"currentColor\" aria-hidden=\"true\"><path d=\"M12 2.1l2.95 5.98 6.6.96-4.78 4.66 1.13 6.57L12 17.16l-5.9 3.11 1.13-6.57L2.45 9.04l6.6-.96z\"/></svg>";
     window.__coldRating = (function () {
       function slugOf(card) {
         var nameEl = card.querySelector('.p-name');
@@ -634,7 +635,7 @@
       function starsHtmlFor(p) {
         if (!(p.reviews > 0)) return '';
         var full = Math.round(p.rating), st = '';
-        for (var i = 0; i < 5; i++) st += '<span class="st' + (i < full ? ' on' : '') + '">★</span>';
+        for (var i = 0; i < 5; i++) st += '<span class="st' + (i < full ? ' on' : '') + '">' + STAR_SVG + '</span>';
         return '<div class="p-stars">' + st + '<span class="p-rc">(' + p.reviews + ')</span></div>';
       }
       function applyRating(card, p) {
@@ -745,7 +746,8 @@
                 '<div class="p-price-row">' + (onSale ? '<span class="p-was">' + fmtPriceStr(p.was) + '</span>' : '') + '<span class="p-price">' + p.price + '</span></div>' +
                 starsHtml +
                 '<p class="p-sum">' + escHtml(p.desc || '') + '</p>' +
-                '<button class="p-add" type="button">Add to Cart</button>' +
+                '<div class="p-actions"><button class="p-add" type="button">Add to cart</button>' +
+                '<button class="p-buy" type="button">Buy now</button></div>' +
               '</div>';
             grid.appendChild(art);
           });
@@ -762,8 +764,10 @@
             var addBtn = card.querySelector('.p-add');
             if (addBtn) {
               addBtn.disabled = owned;
-              addBtn.textContent = owned ? 'Owned' : 'Add to Cart';
+              addBtn.textContent = owned ? 'Owned' : 'Add to cart';
             }
+            var buyBtn = card.querySelector('.p-buy');
+            if (buyBtn) buyBtn.disabled = owned;
             var thumb = card.querySelector('.p-thumb');
             var badge = thumb ? thumb.querySelector('.p-owned-badge') : null;
             if (owned && thumb && !badge) thumb.insertAdjacentHTML('beforeend', '<span class="p-owned-badge">Owned</span>');
@@ -1412,7 +1416,8 @@
         if (!card) return;
         e.preventDefault();
         if (card.getAttribute('data-free') === 'yes') { window.open('https://discord.gg/coldd', '_blank', 'noopener'); return; }
-        if (e.target.closest('.p-add')) { add(readCard(card)); openCart(); }
+        if (e.target.closest('.p-buy')) { add(readCard(card)); location.href = '/checkout'; }
+        else if (e.target.closest('.p-add')) { add(readCard(card)); openCart(); }
         else {
           var a = document.createElement('a');
           a.href = '/product?id=' + encodeURIComponent(readCard(card).id);
@@ -1597,7 +1602,7 @@
 
         function starRow(n) {
           var h = '';
-          for (var i = 0; i < 5; i++) h += '<span class="pd-star ' + (i < n ? 'on' : '') + '">' + (i < n ? '★' : '☆') + '</span>';
+          for (var i = 0; i < 5; i++) h += '<span class="pd-star ' + (i < n ? 'on' : '') + '">' + STAR_SVG + '</span>';
           return h;
         }
         function relatedCard(p) {
@@ -1606,7 +1611,8 @@
             '<div class="p-body"><h3 class="p-name">' + esc(p.title) + '</h3>' +
             '<div class="p-price-row"><span class="p-price" data-usd="' + p.priceNum + '">' + (window.__money ? window.__money(p.priceNum) : ('$' + p.priceNum)) + '</span></div>' +
             '<p class="p-sum">' + esc(p.desc) + '</p>' +
-            '<button class="p-add" type="button">Add to Cart</button></div></article>';
+            '<div class="p-actions"><button class="p-add" type="button">Add to cart</button>' +
+            '<button class="p-buy" type="button">Buy now</button></div></div></article>';
         }
         function related(p) {
           var cat = (window.__CATALOG || []).filter(function (x) { return x.id !== p.id && x.platform === p.platform; });
@@ -1712,7 +1718,7 @@
               '<form class="pd-rev-form" id="pdRevForm">' +
                 '<h4>Leave a review</h4>' +
                 '<div class="pd-rev-stars-input" id="pdRevStarsInput">' +
-                  [1, 2, 3, 4, 5].map(function (n) { return '<button type="button" class="pd-rev-star-btn" data-star="' + n + '" aria-label="' + n + ' star">★</button>'; }).join('') +
+                  [1, 2, 3, 4, 5].map(function (n) { return '<button type="button" class="pd-rev-star-btn" data-star="' + n + '" aria-label="' + n + ' star">' + STAR_SVG + '</button>'; }).join('') +
                 '</div>' +
                 '<textarea id="pdRevText" maxlength="2000" rows="3" placeholder="Share what you thought of this product..."></textarea>' +
                 '<button type="submit" class="btn btn-primary" id="pdRevSubmit">Submit review</button>' +

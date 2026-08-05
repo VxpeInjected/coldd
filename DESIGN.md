@@ -488,6 +488,19 @@ Real figures set inline on one baseline, separated by 1px hairlines — a 20px/7
 
 **The Visible-Without-JS Rule.** Content is visible by default and animation *removes* that default, never grants it. Any entrance effect must be written so that a blocked, failed or slow script leaves the page fully readable. This is a robustness constraint, not a stylistic preference — the legal pages once went permanently blank in exactly this way. The same reasoning scopes the mobile filter sheet to `html.js`: without scripting the panel stays in the document flow rather than becoming unreachable.
 
+**The Compositor Rule, and its eight exceptions.** Animate `transform` and `opacity`. Everything else forces layout on every frame, and on a catalog page that means re-laying out a grid of product cards sixty times a second.
+
+Eight declarations deliberately break this, and each one is a case where `transform` would deform the thing being animated rather than move it:
+
+- **The nav search field** (three rules: `max-width`, `margin`, `width`/`padding`). The field genuinely grows from a 32px button into a 190px input. `scaleX` would stretch the placeholder text and the magnifier glyph with it.
+- **The carousel dot** (`width`). A 7px circle grows into an 18px pill; scaling would smear the border-radius into an ellipse.
+- **The currency switcher thumb** (`left`, `width`). Slides and resizes between tabs of different widths.
+- **The subcategory accordion** (`margin`). Height itself is already correct — it animates `grid-template-rows: 0fr → 1fr` against a `.fc-subs-inner` wrapper, so it measures real content instead of racing a `max-height` guess. Only the 8px margin remains on the layout path.
+- **The password-strength panel** (`max-height`). It has two direct children, so the `0fr → 1fr` grid technique cannot apply without a wrapper that does not exist yet. This is the one genuine candidate for conversion.
+- **The password-strength bar** (`width`). A meter filling. `scaleX` would squash its rounded cap.
+
+Do not add a ninth without the same justification, and never animate width or height on anything that repeats in a grid.
+
 ## Do's and Don'ts
 
 ### Do:

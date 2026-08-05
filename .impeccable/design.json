@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-08-05T04:40:41Z",
+  "generatedAt": "2026-08-05T04:52:29Z",
   "title": "Design System: coldd",
   "extensions": {
     "colorMeta": {
@@ -388,6 +388,41 @@
         "role": "neutral",
         "displayName": "Ink 85",
         "canonical": "rgba(0,0,0,0.85)"
+      },
+      "warn-line": {
+        "role": "warning",
+        "displayName": "Warning Line",
+        "canonical": "rgba(246,196,84,0.28)"
+      },
+      "mc": {
+        "role": "secondary",
+        "displayName": "Minecraft Fill",
+        "canonical": "#4a9a3f"
+      },
+      "mc-hover": {
+        "role": "secondary",
+        "displayName": "Minecraft Hover",
+        "canonical": "#58ad4a"
+      },
+      "mc-press": {
+        "role": "secondary",
+        "displayName": "Minecraft Press",
+        "canonical": "#418a37"
+      },
+      "brand-stripe": {
+        "role": "brand-external",
+        "displayName": "Stripe Mark",
+        "canonical": "#8a83ff"
+      },
+      "brand-paypal": {
+        "role": "brand-external",
+        "displayName": "PayPal Mark",
+        "canonical": "#7b95d6"
+      },
+      "brand-crypto": {
+        "role": "brand-external",
+        "displayName": "Crypto Mark",
+        "canonical": "#e8b64c"
       }
     },
     "typographyMeta": {
@@ -438,6 +473,10 @@
       "h5": {
         "displayName": "Heading 5",
         "purpose": "Dense titles: cart head, list-row headings, small panel heads."
+      },
+      "mono": {
+        "displayName": "Mono",
+        "purpose": "System mono stack. Strings read character by character only; never a technical texture."
       }
     },
     "shadows": [

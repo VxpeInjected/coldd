@@ -32,6 +32,13 @@ colors:
   frosted-fill: "rgba(17,18,24,0.74)"
   minecraft-word: "#6cc25c"
   minecraft-fill: "#4a9a3f"
+  mc: "#4a9a3f"
+  mc-hover: "#58ad4a"
+  mc-press: "#418a37"
+  warn-line: "rgba(246,196,84,0.28)"
+  brand-stripe: "#8a83ff"
+  brand-paypal: "#7b95d6"
+  brand-crypto: "#e8b64c"
 typography:
   display:
     fontFamily: "Archivo, 'Helvetica Neue', Helvetica, Arial, sans-serif"
@@ -274,7 +281,10 @@ Graphite neutrals carry all structure; one warm ember carries all emphasis; gree
 ### Secondary
 - **Price Green** (`--price`): Prices, totals, "you saved" figures, the cart total once it has items, secure-checkout confirmations, the current download version. A different green from Minecraft's on purpose.
 - **Minecraft Word** (`--minecraft-word`, hard-coded literal): The hero headline's swapped word when the storefront is Minecraft-scoped.
-- **Minecraft Fill** (`--minecraft-fill`, hard-coded literal): The `.btn-minecraft` resting fill; hover `#58ad4a`, active `#418a37`. Only ever appears in explicitly Minecraft-scoped UI.
+- **Minecraft Fill** (`--mc`) with **`--mc-hover`** and **`--mc-press`**: The `.btn-minecraft` state ladder. Minecraft is a second brand fill, not an accent, and it only ever appears in explicitly Minecraft-scoped UI. Its three states are tokens so the button steps like every other filled control.
+
+### Payment brand marks
+Three colours sit deliberately outside the palette because they are other companies' identities, not ours: Stripe `#8a83ff`, PayPal `#7b95d6`, Crypto `#e8b64c`. They are permitted **only** as the `fill`/`color` of the payment-method SVG inside `.co-pay-btn`, never as a surface, border or text colour. The tiles themselves share one neutral surface — the moment a brand colour becomes a background, four vendors start competing with each other and with the ember.
 
 ### Tertiary
 - **Success** (`--ok`) with **Success Tint** (`--ok-tint`): One token for "this passed / this is fixed" — met password-checklist rows, the easiest tutorial difficulty, the "fix" release-kind badge. Two different greens used to both mean success; this is now the single value.

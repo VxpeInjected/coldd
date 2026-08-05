@@ -1292,6 +1292,9 @@
       if (pmMedia) {
         pmImg = document.createElement('img');
         pmImg.className = 'pm-img'; pmImg.alt = ''; pmImg.decoding = 'async';
+        // Transparent placeholder so the element is never a src-less <img>
+        // between construction and the first product being opened.
+        pmImg.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
         pmMedia.appendChild(pmImg);
       }
 
@@ -1305,7 +1308,12 @@
         return imgs;
       }
       function setMainImage(src) {
-        if (pmImg) pmImg.src = src || '';
+        // alt was fixed at '' for the modal's whole life, so the quick-view
+        // image announced nothing. Named from the product being previewed.
+        if (pmImg) {
+          pmImg.src = src || '';
+          pmImg.alt = active && active.title ? active.title : '';
+        }
         if (pmThumbs) pmThumbs.querySelectorAll('.pm-thumb').forEach(function (t) {
           t.classList.toggle('active', t.getAttribute('data-src') === src);
         });

@@ -97,6 +97,11 @@ typography:
     fontSize: "11px"
     fontWeight: 700
     letterSpacing: "0.09em"
+  mono:
+    fontFamily: "ui-monospace, SFMono-Regular, Menlo, Consolas, monospace"
+    fontSize: "12px"
+    fontWeight: 400
+    letterSpacing: "0"
 rounded:
   xs: "4px"
   ctl: "10px"
@@ -321,6 +326,7 @@ Graphite neutrals carry all structure; one warm ember carries all emphasis; gree
 - **Label / 13px** (500–700): Nav links, chips, filter sub-rows, badges, footer links, dropdown options, form labels, card action buttons.
 - **Micro / 12px** (600): Meta lines, hints, counts, timestamps, filter group labels.
 - **Nano / 11px** (700, up to 0.09em, often uppercase): Eyebrow tags on cards, search group labels, difficulty and release-kind badges, review counts. This is the floor.
+- **Mono** (`ui-monospace, SFMono-Regular, Menlo, Consolas, monospace`): The only non-Archivo face in the system, and it is a system stack, never a webfont. Reserved for strings the user must read character by character — the account-deletion confirmation code and the ABN in the legal pages. It is not a texture: monospace as a costume for "technical" is not a use.
 
 ### Named Rules
 

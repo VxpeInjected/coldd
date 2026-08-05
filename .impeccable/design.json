@@ -1,63 +1,551 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-08-03T00:00:00Z",
+  "generatedAt": "2026-08-05T04:40:41Z",
   "title": "Design System: coldd",
   "extensions": {
     "colorMeta": {
-      "accent": { "role": "primary", "displayName": "Ember", "canonical": "#ff4d44", "tonalRamp": ["#3d0c09", "#661711", "#99231a", "#cc2f23", "#ff4d44", "#ff7a73", "#ffa8a2", "#ffd6d3"] },
-      "accent-deep": { "role": "primary", "displayName": "Ember Deep", "canonical": "#e2382f", "tonalRamp": ["#341008", "#5c1c12", "#8a2a1c", "#b83224", "#e2382f", "#ea625a", "#f28f88", "#f9bcb7"] },
-      "accent-press": { "role": "primary", "displayName": "Ember Press", "canonical": "#cf2f27", "tonalRamp": ["#2e0d07", "#521610", "#7d211a", "#a72923", "#cf2f27", "#dc5f58", "#e88f8a", "#f4bfbc"] },
-      "accent-ink": { "role": "primary", "displayName": "Ember Ink", "canonical": "#ff8079", "tonalRamp": ["#40201d", "#66312d", "#8c423d", "#b3534d", "#ff8079", "#ff9d97", "#ffbab6", "#ffd7d5"] },
-      "price": { "role": "secondary", "displayName": "Price Green", "canonical": "#34e08a", "tonalRamp": ["#053018", "#0b5227", "#137838", "#209f52", "#34e08a", "#67e8a6", "#9af0c3", "#cdf8e1"] },
-      "minecraft-word": { "role": "secondary", "displayName": "Minecraft Word Green", "canonical": "#6cc25c", "tonalRamp": ["#132a0e", "#204a19", "#2e6b24", "#4c9a3f", "#6cc25c", "#8fd382", "#b3e2ab", "#d7f1d3"] },
-      "minecraft-fill": { "role": "secondary", "displayName": "Minecraft Fill", "canonical": "#4a9a3f", "tonalRamp": ["#0f2109", "#1a3a12", "#27541c", "#376f28", "#4a9a3f", "#70b167", "#95c98f", "#bae0b6"] },
-      "star-gold": { "role": "tertiary", "displayName": "Star Gold", "canonical": "#ffc24b", "tonalRamp": ["#40300c", "#664c13", "#8c681a", "#b38421", "#ffc24b", "#ffd075", "#ffdf9f", "#ffedc9"] },
-      "bg": { "role": "neutral", "displayName": "Void", "canonical": "#15161b", "tonalRamp": ["#08090b", "#111217", "#15161b", "#191b21", "#1f2127", "#2a2c33", "#3a3d45", "#4d5058"] },
-      "bg-2": { "role": "neutral", "displayName": "Surface", "canonical": "#191b21", "tonalRamp": ["#0c0d10", "#141519", "#191b21", "#22242b", "#2e3138", "#3d414a", "#525661", "#6c717d"] },
-      "bg-3": { "role": "neutral", "displayName": "Surface Raised", "canonical": "#1f2127", "tonalRamp": ["#101115", "#171920", "#1f2127", "#282b33", "#343841", "#454952", "#5a5f6a", "#747985"] },
-      "frost": { "role": "neutral", "displayName": "Frost", "canonical": "rgba(17,18,24,0.74)", "tonalRamp": ["#0b0c10", "#111218", "#1a1c24", "#262934", "#3a3e4c", "#666b7c", "#9ba0ad", "#d3d6dd"] },
-      "fg": { "role": "neutral", "displayName": "Ink", "canonical": "#f4f6f9", "tonalRamp": ["#6b7280", "#8b909c", "#aab2c0", "#c3c9d3", "#dde0e6", "#eceef1", "#f4f6f9", "#ffffff"] },
-      "fg-1": { "role": "neutral", "displayName": "Ink Body", "canonical": "#e2e6ec", "tonalRamp": ["#1a1d21", "#292d33", "#3d4148", "#565b63", "#82878f", "#aeb3bb", "#c9ced5", "#e2e6ec"] },
-      "fg-2": { "role": "neutral", "displayName": "Ink Muted", "canonical": "#aab2c0", "tonalRamp": ["#15181d", "#22262d", "#333944", "#48505d", "#697280", "#8d95a3", "#aab2c0", "#d4d9e1"] },
-      "fg-3": { "role": "neutral", "displayName": "Ink Faint", "canonical": "#6b7280", "tonalRamp": ["#0f1115", "#1a1d23", "#282c34", "#3b4048", "#535963", "#6b7280", "#9ba1ad", "#cbcfd6"] },
-      "hairline": { "role": "neutral", "displayName": "Hairline", "canonical": "rgba(255,255,255,0.09)", "tonalRamp": ["rgba(255,255,255,0.02)", "rgba(255,255,255,0.035)", "rgba(255,255,255,0.055)", "rgba(255,255,255,0.07)", "rgba(255,255,255,0.09)", "rgba(255,255,255,0.12)", "rgba(255,255,255,0.16)", "rgba(255,255,255,0.24)"] },
-      "hairline-strong": { "role": "neutral", "displayName": "Hairline Strong", "canonical": "rgba(255,255,255,0.16)", "tonalRamp": ["rgba(255,255,255,0.04)", "rgba(255,255,255,0.06)", "rgba(255,255,255,0.09)", "rgba(255,255,255,0.12)", "rgba(255,255,255,0.16)", "rgba(255,255,255,0.24)", "rgba(255,255,255,0.35)", "rgba(255,255,255,0.5)"] },
-      "glass-top": { "role": "neutral", "displayName": "Glass Top", "canonical": "rgba(255,255,255,0.055)", "tonalRamp": ["rgba(255,255,255,0.012)", "rgba(255,255,255,0.022)", "rgba(255,255,255,0.035)", "rgba(255,255,255,0.045)", "rgba(255,255,255,0.055)", "rgba(255,255,255,0.07)", "rgba(255,255,255,0.10)", "rgba(255,255,255,0.16)"] },
-      "glass-bot": { "role": "neutral", "displayName": "Glass Bottom", "canonical": "rgba(255,255,255,0.022)", "tonalRamp": ["rgba(255,255,255,0.005)", "rgba(255,255,255,0.010)", "rgba(255,255,255,0.016)", "rgba(255,255,255,0.022)", "rgba(255,255,255,0.030)", "rgba(255,255,255,0.045)", "rgba(255,255,255,0.07)", "rgba(255,255,255,0.11)"] }
+      "accent": {
+        "role": "primary",
+        "displayName": "Ember",
+        "canonical": "#ff4d44",
+        "tonalRamp": [
+          "#3d0c09",
+          "#661711",
+          "#99231a",
+          "#cc2f23",
+          "#ff4d44",
+          "#ff7a73",
+          "#ffa8a2",
+          "#ffd6d3"
+        ]
+      },
+      "accent-deep": {
+        "role": "primary",
+        "displayName": "Ember Deep",
+        "canonical": "#e2382f",
+        "tonalRamp": [
+          "#341008",
+          "#5c1c12",
+          "#8a2a1c",
+          "#b83224",
+          "#e2382f",
+          "#ea625a",
+          "#f28f88",
+          "#f9bcb7"
+        ]
+      },
+      "accent-press": {
+        "role": "primary",
+        "displayName": "Ember Press",
+        "canonical": "#cf2f27",
+        "tonalRamp": [
+          "#2e0d07",
+          "#521610",
+          "#7d211a",
+          "#a72923",
+          "#cf2f27",
+          "#dc5f58",
+          "#e88f8a",
+          "#f4bfbc"
+        ]
+      },
+      "accent-ink": {
+        "role": "primary",
+        "displayName": "Ember Ink",
+        "canonical": "#ff8079",
+        "tonalRamp": [
+          "#40201d",
+          "#66312d",
+          "#8c423d",
+          "#b3534d",
+          "#ff8079",
+          "#ff9d97",
+          "#ffbab6",
+          "#ffd7d5"
+        ]
+      },
+      "price": {
+        "role": "secondary",
+        "displayName": "Price Green",
+        "canonical": "#34e08a",
+        "tonalRamp": [
+          "#053018",
+          "#0b5227",
+          "#137838",
+          "#209f52",
+          "#34e08a",
+          "#67e8a6",
+          "#9af0c3",
+          "#cdf8e1"
+        ]
+      },
+      "minecraft-word": {
+        "role": "secondary",
+        "displayName": "Minecraft Word Green",
+        "canonical": "#6cc25c",
+        "tonalRamp": [
+          "#132a0e",
+          "#204a19",
+          "#2e6b24",
+          "#4c9a3f",
+          "#6cc25c",
+          "#8fd382",
+          "#b3e2ab",
+          "#d7f1d3"
+        ]
+      },
+      "minecraft-fill": {
+        "role": "secondary",
+        "displayName": "Minecraft Fill",
+        "canonical": "#4a9a3f",
+        "tonalRamp": [
+          "#0f2109",
+          "#1a3a12",
+          "#27541c",
+          "#376f28",
+          "#4a9a3f",
+          "#70b167",
+          "#95c98f",
+          "#bae0b6"
+        ]
+      },
+      "star-gold": {
+        "role": "tertiary",
+        "displayName": "Star Gold",
+        "canonical": "#ffc24b",
+        "tonalRamp": [
+          "#40300c",
+          "#664c13",
+          "#8c681a",
+          "#b38421",
+          "#ffc24b",
+          "#ffd075",
+          "#ffdf9f",
+          "#ffedc9"
+        ]
+      },
+      "bg": {
+        "role": "neutral",
+        "displayName": "Void",
+        "canonical": "#15161b",
+        "tonalRamp": [
+          "#08090b",
+          "#111217",
+          "#15161b",
+          "#191b21",
+          "#1f2127",
+          "#2a2c33",
+          "#3a3d45",
+          "#4d5058"
+        ]
+      },
+      "bg-2": {
+        "role": "neutral",
+        "displayName": "Surface",
+        "canonical": "#191b21",
+        "tonalRamp": [
+          "#0c0d10",
+          "#141519",
+          "#191b21",
+          "#22242b",
+          "#2e3138",
+          "#3d414a",
+          "#525661",
+          "#6c717d"
+        ]
+      },
+      "bg-3": {
+        "role": "neutral",
+        "displayName": "Surface Raised",
+        "canonical": "#1f2127",
+        "tonalRamp": [
+          "#101115",
+          "#171920",
+          "#1f2127",
+          "#282b33",
+          "#343841",
+          "#454952",
+          "#5a5f6a",
+          "#747985"
+        ]
+      },
+      "frost": {
+        "role": "neutral",
+        "displayName": "Frost",
+        "canonical": "rgba(17,18,24,0.74)",
+        "tonalRamp": [
+          "#0b0c10",
+          "#111218",
+          "#1a1c24",
+          "#262934",
+          "#3a3e4c",
+          "#666b7c",
+          "#9ba0ad",
+          "#d3d6dd"
+        ]
+      },
+      "fg": {
+        "role": "neutral",
+        "displayName": "Ink",
+        "canonical": "#f4f6f9",
+        "tonalRamp": [
+          "#6b7280",
+          "#8b909c",
+          "#aab2c0",
+          "#c3c9d3",
+          "#dde0e6",
+          "#eceef1",
+          "#f4f6f9",
+          "#ffffff"
+        ]
+      },
+      "fg-1": {
+        "role": "neutral",
+        "displayName": "Ink Body",
+        "canonical": "#e2e6ec",
+        "tonalRamp": [
+          "#1a1d21",
+          "#292d33",
+          "#3d4148",
+          "#565b63",
+          "#82878f",
+          "#aeb3bb",
+          "#c9ced5",
+          "#e2e6ec"
+        ]
+      },
+      "fg-2": {
+        "role": "neutral",
+        "displayName": "Ink Muted",
+        "canonical": "#aab2c0",
+        "tonalRamp": [
+          "#15181d",
+          "#22262d",
+          "#333944",
+          "#48505d",
+          "#697280",
+          "#8d95a3",
+          "#aab2c0",
+          "#d4d9e1"
+        ]
+      },
+      "fg-3": {
+        "role": "neutral",
+        "displayName": "Ink Faint",
+        "canonical": "#6b7280",
+        "tonalRamp": [
+          "#0f1115",
+          "#1a1d23",
+          "#282c34",
+          "#3b4048",
+          "#535963",
+          "#6b7280",
+          "#9ba1ad",
+          "#cbcfd6"
+        ]
+      },
+      "hairline": {
+        "role": "neutral",
+        "displayName": "Hairline",
+        "canonical": "rgba(255,255,255,0.09)",
+        "tonalRamp": [
+          "rgba(255,255,255,0.02)",
+          "rgba(255,255,255,0.035)",
+          "rgba(255,255,255,0.055)",
+          "rgba(255,255,255,0.07)",
+          "rgba(255,255,255,0.09)",
+          "rgba(255,255,255,0.12)",
+          "rgba(255,255,255,0.16)",
+          "rgba(255,255,255,0.24)"
+        ]
+      },
+      "hairline-strong": {
+        "role": "neutral",
+        "displayName": "Hairline Strong",
+        "canonical": "rgba(255,255,255,0.16)",
+        "tonalRamp": [
+          "rgba(255,255,255,0.04)",
+          "rgba(255,255,255,0.06)",
+          "rgba(255,255,255,0.09)",
+          "rgba(255,255,255,0.12)",
+          "rgba(255,255,255,0.16)",
+          "rgba(255,255,255,0.24)",
+          "rgba(255,255,255,0.35)",
+          "rgba(255,255,255,0.5)"
+        ]
+      },
+      "glass-top": {
+        "role": "neutral",
+        "displayName": "Glass Top",
+        "canonical": "rgba(255,255,255,0.055)",
+        "tonalRamp": [
+          "rgba(255,255,255,0.012)",
+          "rgba(255,255,255,0.022)",
+          "rgba(255,255,255,0.035)",
+          "rgba(255,255,255,0.045)",
+          "rgba(255,255,255,0.055)",
+          "rgba(255,255,255,0.07)",
+          "rgba(255,255,255,0.10)",
+          "rgba(255,255,255,0.16)"
+        ]
+      },
+      "glass-bot": {
+        "role": "neutral",
+        "displayName": "Glass Bottom",
+        "canonical": "rgba(255,255,255,0.022)",
+        "tonalRamp": [
+          "rgba(255,255,255,0.005)",
+          "rgba(255,255,255,0.010)",
+          "rgba(255,255,255,0.016)",
+          "rgba(255,255,255,0.022)",
+          "rgba(255,255,255,0.030)",
+          "rgba(255,255,255,0.045)",
+          "rgba(255,255,255,0.07)",
+          "rgba(255,255,255,0.11)"
+        ]
+      },
+      "ok": {
+        "role": "success",
+        "displayName": "Success Green",
+        "canonical": "#6bd88a",
+        "tonalRamp": [
+          "#0f1e13",
+          "#1e3c27",
+          "#2f5f3d",
+          "#428656",
+          "#6bd88a",
+          "#94e3ab",
+          "#bcedca",
+          "#e4f8ea"
+        ]
+      },
+      "ok-tint": {
+        "role": "success",
+        "displayName": "Success Tint",
+        "canonical": "rgba(107,216,138,0.14)"
+      },
+      "warn": {
+        "role": "warning",
+        "displayName": "Warning Amber",
+        "canonical": "#f6c454",
+        "tonalRamp": [
+          "#221b0c",
+          "#453718",
+          "#6c5625",
+          "#997a34",
+          "#f6c454",
+          "#f9d584",
+          "#fbe4b2",
+          "#fdf4e0"
+        ]
+      },
+      "warn-tint": {
+        "role": "warning",
+        "displayName": "Warning Tint",
+        "canonical": "rgba(246,196,84,0.12)"
+      },
+      "info": {
+        "role": "info",
+        "displayName": "Info Blue",
+        "canonical": "#7db8ff",
+        "tonalRamp": [
+          "#121a24",
+          "#233447",
+          "#375170",
+          "#4e729e",
+          "#7db8ff",
+          "#a1ccff",
+          "#c5dfff",
+          "#e8f2ff"
+        ]
+      },
+      "info-tint": {
+        "role": "info",
+        "displayName": "Info Tint",
+        "canonical": "rgba(70,140,255,0.12)"
+      },
+      "ink-25": {
+        "role": "neutral",
+        "displayName": "Ink 25",
+        "canonical": "rgba(0,0,0,0.25)"
+      },
+      "ink-40": {
+        "role": "neutral",
+        "displayName": "Ink 40",
+        "canonical": "rgba(0,0,0,0.4)"
+      },
+      "ink-60": {
+        "role": "neutral",
+        "displayName": "Ink 60",
+        "canonical": "rgba(0,0,0,0.6)"
+      },
+      "ink-75": {
+        "role": "neutral",
+        "displayName": "Ink 75",
+        "canonical": "rgba(0,0,0,0.75)"
+      },
+      "ink-85": {
+        "role": "neutral",
+        "displayName": "Ink 85",
+        "canonical": "rgba(0,0,0,0.85)"
+      }
     },
     "typographyMeta": {
-      "display": { "displayName": "Display", "purpose": "Hero headline and page-head h1 only. 800 weight, -0.04em." },
-      "h2": { "displayName": "Headline", "purpose": "Section headers. Deliberately a full step below Display so bands do not shout at hero volume." },
-      "h3": { "displayName": "Title", "purpose": "Card, modal and panel titles." },
-      "lead": { "displayName": "Lead", "purpose": "Section sub-headers, page-head deck, large-card intro paragraphs." },
-      "body": { "displayName": "Body", "purpose": "Document default. Long-form legal and post copy runs 15-16px at 1.75 line-height." },
-      "md": { "displayName": "Medium", "purpose": "Panel paragraphs, review copy, legal paragraphs." },
-      "sm": { "displayName": "Small", "purpose": "Buttons, table cells, list rows, form values." },
-      "label": { "displayName": "Label", "purpose": "Nav links, chips, badges, footer links, dropdown options, form labels." },
-      "micro": { "displayName": "Micro", "purpose": "Meta lines, hints, counts, timestamps." },
-      "nano": { "displayName": "Nano", "purpose": "Uppercase group labels above filter and form sections; card eyebrow tags." }
+      "display": {
+        "displayName": "Display",
+        "purpose": "Hero headline and page-head h1 only. 800 weight, -0.04em."
+      },
+      "h2": {
+        "displayName": "Headline",
+        "purpose": "Section headers. Deliberately a full step below Display so bands do not shout at hero volume."
+      },
+      "h3": {
+        "displayName": "Heading 3",
+        "purpose": "Largest in-page heading below a section head: product title, panel title."
+      },
+      "lead": {
+        "displayName": "Lead",
+        "purpose": "Section sub-headers, page-head deck, large-card intro paragraphs."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Document default. Long-form legal and post copy runs 15-16px at 1.75 line-height."
+      },
+      "md": {
+        "displayName": "Medium",
+        "purpose": "Panel paragraphs, review copy, legal paragraphs."
+      },
+      "sm": {
+        "displayName": "Small",
+        "purpose": "Buttons, table cells, list rows, form values."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Nav links, chips, badges, footer links, dropdown options, form labels."
+      },
+      "micro": {
+        "displayName": "Micro",
+        "purpose": "Meta lines, hints, counts, timestamps."
+      },
+      "nano": {
+        "displayName": "Nano",
+        "purpose": "Uppercase group labels above filter and form sections; card eyebrow tags."
+      },
+      "h4": {
+        "displayName": "Heading 4",
+        "purpose": "Card, modal and panel titles."
+      },
+      "h5": {
+        "displayName": "Heading 5",
+        "purpose": "Dense titles: cart head, list-row headings, small panel heads."
+      }
     },
     "shadows": [
-      { "name": "e-1", "value": "0 1px 2px rgba(0,0,0,0.4)", "purpose": "Pressed state. Filled buttons drop to this on :active." },
-      { "name": "e-2", "value": "0 4px 12px -4px rgba(0,0,0,0.55)", "purpose": "Resting shadow of a filled button. Small, tight, black." },
-      { "name": "e-3", "value": "0 18px 44px -24px rgba(0,0,0,0.8)", "purpose": "Glass panels at rest; cards and tiles on hover." },
-      { "name": "e-4", "value": "0 30px 70px -34px rgba(0,0,0,0.88)", "purpose": "Heaviest step - the expanded team panel and equivalent full-attention surfaces." },
-      { "name": "frost-panel", "value": "0 1px 0 rgba(255,255,255,0.05) inset, 0 20px 46px -26px rgba(0,0,0,0.75)", "purpose": "Frosted panels: inset white top line plus soft black spread." }
+      {
+        "name": "e-1",
+        "value": "0 1px 2px rgba(0,0,0,0.4)",
+        "purpose": "Pressed state. Filled buttons drop to this on :active."
+      },
+      {
+        "name": "e-2",
+        "value": "0 4px 12px -4px rgba(0,0,0,0.55)",
+        "purpose": "Resting shadow of a filled button. Small, tight, black."
+      },
+      {
+        "name": "e-3",
+        "value": "0 18px 44px -24px rgba(0,0,0,0.8)",
+        "purpose": "Glass panels at rest; cards and tiles on hover."
+      },
+      {
+        "name": "e-4",
+        "value": "0 30px 70px -34px rgba(0,0,0,0.88)",
+        "purpose": "Heaviest step - the expanded team panel and equivalent full-attention surfaces."
+      },
+      {
+        "name": "frost-panel",
+        "value": "0 1px 0 rgba(255,255,255,0.05) inset, 0 20px 46px -26px rgba(0,0,0,0.75)",
+        "purpose": "Frosted panels: inset white top line plus soft black spread."
+      }
     ],
     "motion": [
-      { "name": "ease", "value": "cubic-bezier(0.22, 1, 0.36, 1)", "purpose": "Default easing for state and layout transitions." },
-      { "name": "ease-out", "value": "cubic-bezier(0.16, 1, 0.3, 1)", "purpose": "Entrance easing for .reveal and page-in transitions." },
-      { "name": "control-state", "value": "0.18s ease", "purpose": "Fill, border and colour changes on buttons and controls." },
-      { "name": "card-hover", "value": "0.3s cubic-bezier(0.22, 1, 0.36, 1)", "purpose": "Card and tile 2px lift plus shadow step." },
-      { "name": "reveal", "value": "0.55s cubic-bezier(0.16, 1, 0.3, 1)", "purpose": "Scroll entrance; the hidden state is scoped to html.js only." }
+      {
+        "name": "ease",
+        "value": "cubic-bezier(0.22, 1, 0.36, 1)",
+        "purpose": "Default easing for state and layout transitions."
+      },
+      {
+        "name": "ease-out",
+        "value": "cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "Entrance easing for .reveal and page-in transitions."
+      },
+      {
+        "name": "control-state",
+        "value": "0.18s ease",
+        "purpose": "Fill, border and colour changes on buttons and controls."
+      },
+      {
+        "name": "card-hover",
+        "value": "0.3s cubic-bezier(0.22, 1, 0.36, 1)",
+        "purpose": "Card and tile 2px lift plus shadow step."
+      },
+      {
+        "name": "reveal",
+        "value": "0.55s cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "Scroll entrance; the hidden state is scoped to html.js only."
+      }
     ],
     "breakpoints": [
-      { "name": "xs", "value": "440px" },
-      { "name": "sm", "value": "560px" },
-      { "name": "md", "value": "640px" },
-      { "name": "lg", "value": "900px" },
-      { "name": "xl", "value": "1040px" },
-      { "name": "2xl", "value": "1400px" }
+      {
+        "name": "xs",
+        "value": "440px"
+      },
+      {
+        "name": "sm",
+        "value": "560px"
+      },
+      {
+        "name": "md",
+        "value": "640px"
+      },
+      {
+        "name": "lg",
+        "value": "900px"
+      },
+      {
+        "name": "xl",
+        "value": "1040px"
+      },
+      {
+        "name": "2xl",
+        "value": "1400px"
+      }
+    ],
+    "radii": [
+      {
+        "name": "r-xs",
+        "value": "4px",
+        "purpose": "Badges, ticks, small icon plates."
+      },
+      {
+        "name": "r-ctl",
+        "value": "10px",
+        "purpose": "Control radius: card action buttons, inputs, list rows, thumbnails."
+      },
+      {
+        "name": "r-sm",
+        "value": "16px",
+        "purpose": "Panels and inner cards."
+      },
+      {
+        "name": "r",
+        "value": "24px",
+        "purpose": "Large cards and section surfaces."
+      },
+      {
+        "name": "r-pill",
+        "value": "999px",
+        "purpose": "Anything pressed or read as a token: buttons, chips, badges."
+      }
     ]
   },
   "components": [
@@ -76,6 +564,11 @@
       "description": "Default partner beside a Primary. Translucent white fill, hairline border, neutral throughout.",
       "html": "<button class=\"ds-btn ds-btn-ghost\">View details</button>",
       "css": ".ds-btn { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; font-family: 'Archivo', 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 14px; font-weight: 600; letter-spacing: -0.004em; padding: 12px 22px; border-radius: 980px; border: 1px solid transparent; min-height: 46px; transition: background .18s ease, border-color .18s ease, color .18s ease; } .ds-btn-ghost { color: #f4f6f9; background: rgba(255,255,255,0.055); border-color: rgba(255,255,255,0.09); } .ds-btn-ghost:hover { background: rgba(255,255,255,0.10); border-color: rgba(255,255,255,0.16); } .ds-btn-ghost:active { background: rgba(255,255,255,0.06); } .ds-btn-ghost:focus-visible { outline: 2px solid #ff4d44; outline-offset: 3px; }"
+    },
+    {
+      "name": "Tinted Button",
+      "purpose": "Secondary half of a buy pair. Carries the accent as a tint rather than a fill so Buy now keeps the page's one solid ember.",
+      "snippet": ".btn-tinted { color: var(--accent-ink); background: rgba(255,77,68,0.10); border-color: rgba(255,77,68,0.34); }"
     },
     {
       "name": "Product Card",
@@ -147,18 +640,66 @@
       "No light mode - a committed dark system, not a dark variant of a light one"
     ],
     "rules": [
-      { "name": "The One Ember Rule", "body": "Ember means \"act here\" or \"you are here\". It is never decoration, never a background band, never a glow. If a new element wants red so it will stand out, it is asking to compete with a CTA - give it a neutral and let the CTA win. Where a grid would repeat ember many times over (the product grid's twelve add buttons), the accent is deferred to hover: the card states its action quietly until you reach for it.", "section": "colors" },
-      { "name": "The Two Greens Rule", "body": "Price Green and Minecraft Green are not interchangeable. Price Green means \"this number is good news\". Minecraft Green means \"you are on the Minecraft side of the site\". Never let one bleed into the other's context, and never introduce a third green for a generic success state - use Price Green.", "section": "colors" },
-      { "name": "The Neutral Border Rule", "body": "Every resting border in the system is Hairline; every hover border is Hairline Strong. Accent-tinted borders are reserved for genuine selection on radio-style controls and for input focus. Do not add a fourth border colour.", "section": "colors" },
-      { "name": "The Whole-Pixel Rule", "body": "Font sizes are integers. The old system ran 9.5 / 10.5 / 11.5 / 12.5 / 13.5 / 14.5 / 15.5 / 16.5px alongside their integer neighbours - 127 declarations of noise pretending to be hierarchy. They were collapsed onto the ten ramp steps. A new size that is not already on the ramp is a request to reuse an existing step, not to add one, and a half-pixel size is never correct.", "section": "typography" },
-      { "name": "The Body Floor Rule", "body": "No text input, select or textarea renders under 16px at or below 640px. iOS Safari force-zooms the page on focus for any field under 16px and there is no way back out except a manual pinch. A single blanket override enforces this; never work around it with a narrower selector.", "section": "typography" },
-      { "name": "The Two Intensities Rule", "body": "Archivo is tight and heavy above 26px and plain below it. Do not carry display tracking (-0.04em) into body copy, and do not set body weight (400) on anything at Headline size or above.", "section": "typography" },
-      { "name": "The Neutral Shadow Rule", "body": "Nothing gets a shadow tinted to its own colour - buttons included. This inverts the system's previous doctrine. Red buttons get --e-2, green buttons get --e-2, glass panels get --e-3. If a shadow needs an rgba() with a hue in it, the design is asking for a glow; give it a border step or a fill step instead.", "section": "elevation" },
-      { "name": "The Cards Lift, Buttons Fill Rule", "body": "Hover response is split by element class. Cards, tiles and product cards lift a uniform translateY(-2px), step their border to Hairline Strong, and take --e-3. Buttons do not move at all - .btn transitions background, border-colour, colour and box-shadow, and nothing else. A button that lifts is a bug.", "section": "elevation" },
-      { "name": "The Flat Fill Rule", "body": "Filled controls are one solid colour. No gradient buttons, no gradient chips, no gradient badges. Depth on a filled control comes from a real 1px white border (rgba(255,255,255,0.14) on primary, stepping to 0.24 on hover) plus a neutral shadow.", "section": "elevation" },
-      { "name": "The No Coloured Rail Rule", "body": "A border-left heavier than 1px, in any accent colour, is banned system-wide. It is the most recognisable generated-UI tell. Vertical rails exist only as 1px hairlines used for structure - the sub-category indent, legal clause indents, and the dividers between hero statistics. Never colour them.", "section": "shapes" },
-      { "name": "The Pill/Rectangle Rule", "body": "If you press it, it is a pill. If you read it, it is a soft rectangle. Never mix the two on the same element type, and never introduce a \"barely rounded\" 4-6px corner between the families.", "section": "shapes" },
-      { "name": "The Visible-Without-JS Rule", "body": "Content is visible by default and animation removes that default, never grants it. Any entrance effect must be written so that a blocked, failed or slow script leaves the page fully readable. This is a robustness constraint, not a stylistic preference - the legal pages once went permanently blank in exactly this way. Never author a .reveal-style effect whose resting state is opacity: 0 outside an html.js scope.", "section": "components" }
+      {
+        "name": "The One Ember Rule",
+        "body": "Ember means \"act here\" or \"you are here\". It is never decoration, never a background band, never a glow. If a new element wants red so it will stand out, it is asking to compete with a CTA - give it a neutral and let the CTA win. Where a grid would repeat ember many times over (the product grid's twelve add buttons), the accent is deferred to hover: the card states its action quietly until you reach for it.",
+        "section": "colors"
+      },
+      {
+        "name": "The Two Greens Rule",
+        "body": "Price Green and Minecraft Green are not interchangeable. Price Green means \"this number is good news\". Minecraft Green means \"you are on the Minecraft side of the site\". Never let one bleed into the other's context, and never introduce a third green for a generic success state - use Price Green.",
+        "section": "colors"
+      },
+      {
+        "name": "The Neutral Border Rule",
+        "body": "Every resting border in the system is Hairline; every hover border is Hairline Strong. Accent-tinted borders are reserved for genuine selection on radio-style controls and for input focus. Do not add a fourth border colour.",
+        "section": "colors"
+      },
+      {
+        "name": "The Whole-Pixel Rule",
+        "body": "Font sizes are integers. The old system ran 9.5 / 10.5 / 11.5 / 12.5 / 13.5 / 14.5 / 15.5 / 16.5px alongside their integer neighbours - 127 declarations of noise pretending to be hierarchy. They were collapsed onto the ten ramp steps. A new size that is not already on the ramp is a request to reuse an existing step, not to add one, and a half-pixel size is never correct.",
+        "section": "typography"
+      },
+      {
+        "name": "The Body Floor Rule",
+        "body": "No text input, select or textarea renders under 16px at or below 640px. iOS Safari force-zooms the page on focus for any field under 16px and there is no way back out except a manual pinch. A single blanket override enforces this; never work around it with a narrower selector.",
+        "section": "typography"
+      },
+      {
+        "name": "The Two Intensities Rule",
+        "body": "Archivo is tight and heavy above 26px and plain below it. Do not carry display tracking (-0.04em) into body copy, and do not set body weight (400) on anything at Headline size or above.",
+        "section": "typography"
+      },
+      {
+        "name": "The Neutral Shadow Rule",
+        "body": "Nothing gets a shadow tinted to its own colour - buttons included. This inverts the system's previous doctrine. Red buttons get --e-2, green buttons get --e-2, glass panels get --e-3. If a shadow needs an rgba() with a hue in it, the design is asking for a glow; give it a border step or a fill step instead.",
+        "section": "elevation"
+      },
+      {
+        "name": "The Cards Lift, Buttons Fill Rule",
+        "body": "Hover response is split by element class. Cards, tiles and product cards lift a uniform translateY(-2px), step their border to Hairline Strong, and take --e-3. Buttons do not move at all - .btn transitions background, border-colour, colour and box-shadow, and nothing else. A button that lifts is a bug.",
+        "section": "elevation"
+      },
+      {
+        "name": "The Flat Fill Rule",
+        "body": "Filled controls are one solid colour. No gradient buttons, no gradient chips, no gradient badges. Depth on a filled control comes from a real 1px white border (rgba(255,255,255,0.14) on primary, stepping to 0.24 on hover) plus a neutral shadow.",
+        "section": "elevation"
+      },
+      {
+        "name": "The No Coloured Rail Rule",
+        "body": "A border-left heavier than 1px, in any accent colour, is banned system-wide. It is the most recognisable generated-UI tell. Vertical rails exist only as 1px hairlines used for structure - the sub-category indent, legal clause indents, and the dividers between hero statistics. Never colour them.",
+        "section": "shapes"
+      },
+      {
+        "name": "The Pill/Rectangle Rule",
+        "body": "If you press it, it is a pill. If you read it, it is a soft rectangle. Never mix the two on the same element type, and never introduce a \"barely rounded\" 4-6px corner between the families.",
+        "section": "shapes"
+      },
+      {
+        "name": "The Visible-Without-JS Rule",
+        "body": "Content is visible by default and animation removes that default, never grants it. Any entrance effect must be written so that a blocked, failed or slow script leaves the page fully readable. This is a robustness constraint, not a stylistic preference - the legal pages once went permanently blank in exactly this way. Never author a .reveal-style effect whose resting state is opacity: 0 outside an html.js scope.",
+        "section": "components"
+      }
     ],
     "dos": [
       "Do keep ember to CTAs, active states, focus rings, small state marks and the hero platform word. If it is the third or fourth red thing on screen, make it neutral.",

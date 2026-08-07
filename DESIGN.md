@@ -143,14 +143,14 @@ components:
   button-ghost-hover:
     backgroundColor: "rgba(255,255,255,0.10)"
   button-tinted:
-    backgroundColor: "rgba(255,77,68,0.10)"
-    textColor: "{colors.accent-ink}"
+    backgroundColor: "rgba(255,255,255,0.07)"
+    textColor: "{colors.fg}"
     typography: "{typography.sm}"
     rounded: "{rounded.pill}"
     padding: "12px 22px"
     height: "46px"
   button-tinted-hover:
-    backgroundColor: "rgba(255,77,68,0.17)"
+    backgroundColor: "rgba(255,255,255,0.12)"
     textColor: "#ffffff"
   button-minecraft:
     backgroundColor: "{colors.minecraft-fill}"
@@ -198,14 +198,14 @@ components:
   product-buy-hover:
     backgroundColor: "{colors.accent}"
   product-add:
-    backgroundColor: "rgba(255,77,68,0.10)"
-    textColor: "{colors.accent-ink}"
+    backgroundColor: "rgba(255,255,255,0.07)"
+    textColor: "{colors.fg}"
     typography: "{typography.label}"
     rounded: "{rounded.ctl}"
     height: "40px"
     width: "100%"
   product-add-hover:
-    backgroundColor: "rgba(255,77,68,0.17)"
+    backgroundColor: "rgba(255,255,255,0.12)"
     textColor: "#ffffff"
   input-text:
     backgroundColor: "rgba(255,255,255,0.04)"
@@ -255,7 +255,9 @@ coldd's origin story is the brief: a few people in a Discord trading builds late
 
 The atmosphere is scoped, not ambient. A blurred banner photograph sits behind the **top of the document only** — `position: absolute`, `height: max(104vh, 940px)`, `blur(14px)` — with a scrim gradient that resolves fully to `var(--bg)` by 88%. Below the fold, panels sit on clean graphite. Depth comes from three flat ingredients: a barely-there white gradient inside glass panels, a 1px hairline ring, and a black shadow drawn from the five-step ink scale. Panels that need real separation from a photograph (product buy rail, dashboard, checkout, blog, post, tutorial) add a genuine `backdrop-filter: blur(13px) saturate(130%)` over the frosted fill.
 
-Everything that looks like an icon is drawn. Stars are authored SVG, arrows and chevrons are `mask-image` shapes tinted with `currentColor`, ticks are two rotated borders. There is not one glyph-as-icon left in the stylesheet. Type is Archivo throughout, on a whole-pixel ramp with a real heading ladder between 17px and 30px. Buttons and chips are full pills; cards and tiles are soft rectangles on a five-step radius scale. Interactive things are pills, informational surfaces are rectangles.
+Everything that looks like an icon is drawn. Stars are authored SVG, arrows and chevrons are `mask-image` shapes tinted with `currentColor`, ticks are two rotated borders. There is not one glyph-as-icon left in the stylesheet.
+
+**The icon library is Google Material Symbols (Outlined, 24dp), used as inline SVG geometry — never as the icon webfont.** The font ships icons as ligature *text*, which is precisely what the drawn-icon rule exists to prevent, and it would add a render-blocking external request that degrades to visible glyph names when it fails. Paths are copied verbatim from Google's own SVGs, so Material icons carry a `0 -960 960 960` viewBox and `fill: currentColor`, while the older hand-drawn icons in this file are *stroked* on a `0 0 24 24` viewBox — never give a Material path a stroke. `window.msym(name, size)` in `app.js` renders one for JS-built markup and holds the shared path registry; static markup inlines the same `<svg class="msym">`. Reach for Material first; author a custom SVG only when the set genuinely has no match. Type is Archivo throughout, on a whole-pixel ramp with a real heading ladder between 17px and 30px. Buttons and chips are full pills; cards and tiles are soft rectangles on a five-step radius scale. Interactive things are pills, informational surfaces are rectangles.
 
 **Key Characteristics:**
 - One accent colour, used rarely, always meaning "act here" or "you are here"
@@ -275,7 +277,7 @@ Graphite neutrals carry all structure; one warm ember carries all emphasis; gree
 ### Primary
 - **Ember** (`--accent`): The signal colour. Focus rings (`outline: 2px solid`, 3px offset), the hero's swapped platform word, the product-detail tab underline, small state marks (checkbox tick fill, range thumbs, radio dot, carousel dot), inline links inside legal and body copy, and the primary button's hover fill. Never a page background, never a shadow tint.
 - **Ember Deep** (`--accent-deep`): The resting fill of every primary action — `.btn-primary`, the card-level **Buy now**, discount badges, the currency-switcher thumb, the checked filter checkbox. Ember Deep is the *default* and Ember is the *hover*; the fill steps **up** in brightness on intent.
-- **Ember Ink** (`--accent-ink`): The text colour of the tinted secondary action (`.btn-tinted`, `.p-add`). It is the only place a light ember reads as type rather than as fill.
+- **Ember Ink** (`--accent-ink`): A light ember reading as type rather than as fill. No longer used by `.btn-tinted` / `.p-add`, which are now neutral; the token remains for any future case that genuinely needs ember as text.
 - **Ember Press** (`#cf2f27`, hard-coded literal): The pressed fill of primary buttons and of the card-level Buy now. It is no longer a `:root` token; it appears twice as a literal.
 
 ### Secondary
@@ -407,7 +409,7 @@ Two families chosen by function, not by size: **pill** for anything you press or
 ### Buttons
 - **Shape:** Full pill (999px), `min-height: 46px`, `padding: 12px 22px`, 14px at 600 weight with -0.004em tracking, 8px gap for an icon. Compact contexts override height only (nav CTA 44px, dashboard row actions 36px, hero CTA 50px at 15px).
 - **Primary:** Flat `--accent-deep` fill, white text, `1px solid rgba(255,255,255,0.14)` border, `--e-2`. Hover steps the fill up to `--accent` and the border to `rgba(255,255,255,0.24)`. Active drops to `#cf2f27` and `--e-1`. The button does not move.
-- **Tinted:** Ember as a tint, not a fill — `rgba(255,77,68,0.10)` background, `rgba(255,77,68,0.34)` border, `--accent-ink` text. Hover goes `0.17` / `0.5` / white text; active settles at `0.13`. This is the **secondary half of a buy pair**: it reads as a real commerce action while leaving Primary as the page's one solid ember.
+- **Tinted:** A **neutral** raised secondary — `rgba(255,255,255,0.07)` background, Hairline Strong border, Ink text. Hover goes `0.12` / `rgba(255,255,255,0.26)` / white text; active settles at `0.09`. This is the **secondary half of a buy pair**. It was an ember tint until it was found sitting next to a solid ember primary on every card, product page and modal: two red buttons side by side is a generated-commerce tell and contradicted the accent-discipline rule in the Do list below. It stays heavier than Ghost — stronger border, brighter label — so the pair still reads as two real commerce actions rather than a button and an afterthought.
 - **Ghost:** `--glass-top` fill, Hairline border, Ink text. Hover fills to `rgba(255,255,255,0.10)` and borders to Hairline Strong; active returns to `0.06`. The default partner beside a Primary in non-commerce contexts.
 - **Minecraft:** Same flat-fill pattern in the Minecraft palette; only ever in Minecraft-scoped UI.
 - **Disabled:** `--bg-3` fill, `--fg-3` text, Hairline border, no shadow, `cursor: not-allowed`.
@@ -532,3 +534,11 @@ Do not add a ninth without the same justification, and never animate width or he
 - **Don't** use Minecraft Green, Price Green and Success Green interchangeably, or invent a fourth green.
 - **Don't** introduce a border colour beyond Hairline and Hairline Strong.
 - **Don't** add a light mode or a second theme. This is a committed single dark system.
+
+### Cookie Consent Bar
+
+A fixed bottom bar (`.cookie-bar`), frosted fill, hairline top border, injected by `supabase-init.js` only when no decision is stored. **Never a modal:** it does not trap focus, does not cover the page, and everything behind it stays readable and usable. A consent prompt that holds the site hostage is a dark pattern, and the modal rule above already refuses modals for tasks needing neither interruption nor protected focus.
+
+Both choices are equally weighted `.btn`s side by side in the standard buy-pair order — **Essential only** as `.btn-tinted`, **Accept all** as `.btn-primary`. Declining must stay exactly as easy as accepting: never demote the decline to a text link, a smaller control, or a second screen. Below 620px the two go full-width and equal-flex so neither shrinks.
+
+The consent model has exactly two categories. **Essential** (auth session, cart, currency, site gate, the consent record itself) is never optional and is never offered as a toggle. **Analytics** (the pageview beacon, the abandoned-cart snapshot) defaults to *off* and waits for an explicit yes — `coldConsent.allows()` returns false while undecided, so silence is a decline, not consent. Any new non-essential storage or beacon must be gated behind `window.coldConsent.allows('analytics')` and must not mint an identifier before that check passes.

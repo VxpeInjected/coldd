@@ -172,12 +172,22 @@
     .btn-ghost { color: var(--fg); background: var(--glass-top); border-color: var(--hairline); }
     .btn-ghost:hover { background: rgba(255,255,255,0.10); border-color: var(--hairline-strong); }
     .btn-ghost:active { background: rgba(255,255,255,0.06); }
-    /* The secondary half of a buy pair. Carries the accent so it reads as a
-       real commerce action, but as a tint rather than a fill, so Buy now keeps
-       the page's one solid ember. */
-    .btn-tinted { color: var(--accent-ink); background: rgba(255,77,68,0.10); border-color: rgba(255,77,68,0.34); }
-    .btn-tinted:hover { background: rgba(255,77,68,0.17); border-color: rgba(255,77,68,0.5); color: #fff; }
-    .btn-tinted:active { background: rgba(255,77,68,0.13); }
+    /* The secondary half of a buy pair - deliberately NEUTRAL.
+
+       This used to be a red-on-red tint: accent text, accent fill, accent
+       border, sat next to a solid accent primary. Two ember buttons side by
+       side is the single most recognisable generated-commerce tell, and it
+       broke the accent-discipline rule two lines down in DESIGN.md's own Do
+       list - if it is the third or fourth red thing on screen, make it
+       neutral. Add to cart is a secondary action; it should not compete with
+       Buy now for the page's one solid ember.
+
+       It stays heavier than .btn-ghost (stronger border, brighter label) so
+       the pair still reads as two real commerce actions rather than a button
+       and an afterthought. */
+    .btn-tinted { color: var(--fg); background: rgba(255,255,255,0.07); border-color: var(--hairline-strong); }
+    .btn-tinted:hover { background: rgba(255,255,255,0.12); border-color: rgba(255,255,255,0.26); color: #fff; }
+    .btn-tinted:active { background: rgba(255,255,255,0.09); }
     .btn-minecraft { color: #fff; background: var(--mc);
       border-color: rgba(255,255,255,0.16); box-shadow: var(--e-2); }
     .btn-minecraft:hover { background: var(--mc-hover); border-color: rgba(255,255,255,0.26); }
@@ -185,6 +195,19 @@
     .btn[disabled], .btn:disabled { background: var(--bg-3); color: var(--fg-3);
       border-color: var(--hairline); box-shadow: none; cursor: not-allowed; }
     .btn-plat-ic { display: block; border-radius: 4px; }
+    /* Material Symbols ship as filled geometry on a 0 -960 960 960 viewBox, so
+       they take `fill: currentColor` and must never be given a stroke - the
+       hand-drawn icons elsewhere in this file are stroked, these are not.
+       Inside a .btn they become a flex item and inherit the button's 8px gap. */
+    .msym { flex: 0 0 auto; display: block; fill: currentColor; }
+    /* A brand mark, not a cropped tile: no rounded corners to fake an app icon,
+       and no fill behind it. The glyph is already white, so it reads directly
+       on the ember primary the way the Studio tile's blue never could. Marks
+       carry more optical weight than tiles, so they sit a step smaller. */
+    .btn-plat-mark { border-radius: 0; width: 22px; height: 22px; object-fit: contain;
+      /* Nudges the mark off the cap-height baseline so it centres against the
+         label rather than against the button box. */
+      margin-top: -1px; }
     .btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 
     header.nav { position: fixed; top: 12px; left: 50%; transform: translateX(-50%); z-index: 100;
@@ -795,7 +818,9 @@
 .fc-head { display: flex; align-items: center; justify-content: space-between; gap: 10px;
   margin: 0; padding: 15px 18px; border-bottom: 1px solid var(--hairline);
   background: rgba(255,255,255,0.028); }
-.fc-head-title { display: flex; align-items: center; gap: 9px; font-size: 14px; font-weight: 700; letter-spacing: 0.01em; }
+/* No tracking. 0.01em resolved to 0.14px - below the threshold anyone can
+   see, so it was noise standing in for a decision, not a decision. */
+.fc-head-title { display: flex; align-items: center; gap: 9px; font-size: 14px; font-weight: 700; }
 .fc-head svg { color: var(--fg-3); flex: 0 0 auto; }
 .fc-clear { font-family: inherit; font-size: 12px; font-weight: 600; color: var(--fg-2); background: none;
   border: 1px solid var(--hairline); border-radius: 10px; cursor: pointer; padding: 5px 10px;
@@ -813,6 +838,10 @@
 .fc-group { margin: 0; padding: 18px; border-top: 1px solid var(--hairline); }
 .fc-group:first-of-type { border-top: none; }
 .fc-check-list { display: flex; flex-direction: column; gap: 2px; }
+/* The two price conditions now live inside the Price group, under the numeric
+   boxes. They were their own section headed "Availability", which was the
+   wrong noun - On Sale and Free describe price, not stock. */
+.pr-vals + .fc-check-list { margin-top: 14px; }
 .fc-check { display: flex; align-items: center; gap: 10px; cursor: pointer; user-select: none;
   font-size: 13px; color: var(--fg-1); position: relative; padding: 8px 8px; margin: 0 -8px;
   border-radius: 10px; transition: background .15s ease; }
@@ -865,7 +894,11 @@
 .pr-box::-webkit-outer-spin-button, .pr-box::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 .pr-box { -moz-appearance: textfield; appearance: textfield; }
 .pr-sep { color: var(--fg-3); }
-.fc-cats { display: flex; flex-direction: column; gap: 3px; }
+/* One gap for every stacked list in this panel. It was 3px here, 2px in the
+   checkbox list, 1px between category groups and 1px again inside the
+   subcategory list - four different sub-pixel-feeling values in one panel,
+   which reads as unconsidered rather than tight. */
+.fc-cats { display: flex; flex-direction: column; gap: 2px; }
 /* Selection is carried by fill and weight, not by a thick coloured tab down the
    side. The 2px accent border-left is the most recognisable generated-UI tell
    and the same one removed from the legal clauses. */
@@ -891,6 +924,12 @@
    Scoped to html.js: the sheet needs the trigger app.js injects, so without
    scripting the panel stays in the flow rather than becoming unreachable. */
 .shop-filters-btn { display: none; }
+/* Both of these are mobile filter-sheet controls that app.js creates
+   unconditionally, so both need a base display:none - the sheet's done button
+   was missing one. Every rule styling it lived inside the 1040px breakpoint,
+   so above that width it rendered as a raw native <button>: system font, white
+   fill, square corners, parked at the bottom of the desktop filter panel. */
+.shop-filters-done { display: none; }
 @media (max-width: 1040px) {
   html.js .shop-filters-btn {
     display: inline-flex; align-items: center; gap: 8px; margin-left: auto;
@@ -927,6 +966,7 @@
     backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px);
   }
   html.js .shop-filters-done {
+    display: block;
     position: sticky; bottom: 0; width: calc(100% - 40px); margin: 4px 20px 16px;
     min-height: 46px; font-family: inherit; font-size: 14px; font-weight: 700;
     color: #fff; background: var(--accent-deep); border: 1px solid transparent;
@@ -1830,7 +1870,7 @@ button.dt-badge:disabled { cursor: default; opacity: 0.6; }
   .hstat .hl2 { font-size: var(--t-label); }
 }
 
-.fc-cat-group { margin-bottom: 1px; }
+.fc-cat-group { margin-bottom: 0; }
 .fc-cat .fc-chev { transition: transform .2s var(--ease); color: var(--fg-3); }
 .fc-cat-group.open > .fc-cat .fc-chev { transform: rotate(90deg); color: var(--fg-2); }
 .fc-cat-group.open > .fc-cat { background: rgba(255,255,255,0.045); }
@@ -1844,7 +1884,7 @@ button.dt-badge:disabled { cursor: default; opacity: 0.6; }
   border-left: 1px solid var(--hairline); opacity: 0; overflow: hidden;
   transition: grid-template-rows .26s var(--ease), opacity .2s var(--ease), margin .26s var(--ease); }
 .fc-subs[hidden] { display: grid; }
-.fc-subs-inner { display: flex; flex-direction: column; gap: 1px; min-height: 0; }
+.fc-subs-inner { display: flex; flex-direction: column; gap: 2px; min-height: 0; }
 .fc-cat-group.open .fc-subs { grid-template-rows: 1fr; opacity: 1; margin-bottom: 8px; }
 @media (prefers-reduced-motion: reduce) { .fc-subs { transition: none; } }
 .fc-sub { display: block; width: 100%; text-align: left; padding: 8px 12px; border: none; background: transparent;
@@ -1870,6 +1910,28 @@ button.dt-badge:disabled { cursor: default; opacity: 0.6; }
   color: #fff; background: var(--accent-deep); border: none; border-radius: 10px;
   box-shadow: 0 10px 24px -12px var(--ink-75); }
 .nr-view:hover { box-shadow: var(--e-2); }
+
+/* The track slid, but nothing inside the frame moved, so the change read as a
+   static image swap rather than a transition. The active slide now drifts a
+   slow scale while its caption staggers in behind it.
+
+   Both are transform/opacity only, so the compositor rule holds. Everything is
+   scoped to html.js and the resting state is fully visible: without scripting
+   the caption still reads, per the Visible-Without-JS rule. The blanket
+   reduced-motion rule caps these durations at 0.01ms, so no separate opt-out
+   is needed. Scale only ever grows from 1, never below, so the slide can never
+   expose an edge inside the frame. */
+@keyframes nrDrift { from { transform: scale(1); } to { transform: scale(1.07); } }
+@keyframes nrCapIn { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+
+html.js .nr-frame .nr-slide { transform-origin: center; }
+html.js .nr-frame .nr-slide.is-active { animation: nrDrift 7.2s var(--ease-out) forwards; }
+/* `backwards` holds the from-state during the delay, so a caption never flashes
+   at full opacity for a frame before its stagger begins. */
+html.js .nr-frame .nr-slide.is-active .nr-cap > * { animation: nrCapIn .62s var(--ease-out) backwards; }
+html.js .nr-frame .nr-slide.is-active .nr-cap > :nth-child(1) { animation-delay: .10s; }
+html.js .nr-frame .nr-slide.is-active .nr-cap > :nth-child(2) { animation-delay: .18s; }
+html.js .nr-frame .nr-slide.is-active .nr-cap > :nth-child(3) { animation-delay: .26s; }
 .featured-grid { grid-template-columns: repeat(4, 1fr); }
 @media (max-width: 1000px) { .featured-grid { grid-template-columns: repeat(2, 1fr); } }
 @media (max-width: 460px) { .featured-grid { grid-template-columns: 1fr; } }
@@ -2410,4 +2472,52 @@ input[type="checkbox"]:focus-visible { outline: 2px solid var(--accent); outline
   background: rgba(255,255,255,0.08); border: 1px solid var(--hairline);
   font-size: 11px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase;
   color: var(--fg-2); white-space: nowrap;
+}
+
+/* ---------------------------------------------------------------------
+   Cookie consent bar
+
+   A bar, not a modal. It never traps focus, never covers the page, and the
+   visitor can read and use everything behind it - a consent prompt that
+   holds the site hostage is a dark pattern, and DESIGN.md already refuses
+   modals for tasks that need neither interruption nor protected focus.
+
+   Both choices are equally weighted controls, side by side, in the standard
+   buy-pair order: neither is hidden behind a link or styled as an
+   afterthought, so declining is exactly as easy as accepting.
+   --------------------------------------------------------------------- */
+.cookie-bar {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 400;
+  background: var(--frosted-fill);
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+  border-top: 1px solid var(--hairline);
+  box-shadow: 0 -24px 60px -30px var(--ink-85);
+  padding: 16px 20px calc(16px + env(safe-area-inset-bottom));
+  transform: translateY(100%);
+  transition: transform .34s var(--ease-out);
+}
+.cookie-bar.in { transform: translateY(0); }
+.cookie-bar-inner {
+  max-width: 1200px; margin: 0 auto;
+  display: flex; align-items: center; justify-content: space-between; gap: 22px; flex-wrap: wrap;
+}
+.cookie-bar-tx { flex: 1 1 460px; min-width: 0; }
+/* A real heading element so the region is navigable, sized as body-adjacent
+   text - this is a notice, not a section title competing with the page. */
+.cookie-bar-h { font-size: var(--t-sm); font-weight: 700; color: var(--fg); margin: 0 0 3px; letter-spacing: -0.01em; }
+.cookie-bar-tx p { font-size: var(--t-sm); line-height: 1.5; color: var(--fg-2); margin: 0; max-width: 78ch; }
+.cookie-bar-tx a { color: var(--fg-1); text-decoration: underline; text-underline-offset: 2px; }
+.cookie-bar-tx a:hover { color: var(--fg); }
+.cookie-bar-actions { display: flex; align-items: center; gap: 10px; flex: 0 0 auto; }
+.cookie-bar-actions .btn { min-height: 42px; padding: 10px 20px; }
+@media (max-width: 620px) {
+  .cookie-bar-inner { gap: 14px; }
+  .cookie-bar-actions { width: 100%; }
+  /* Full-width and equal on small screens, so the two choices stay visibly
+     equivalent rather than one shrinking to fit. */
+  .cookie-bar-actions .btn { flex: 1 1 0; justify-content: center; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cookie-bar { transition: none; }
 }

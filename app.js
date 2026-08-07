@@ -1,3 +1,24 @@
+    // Google Material Symbols (Outlined, 24dp) shipped as inline SVG geometry
+    // rather than the icon webfont. The font renders icons as ligature TEXT,
+    // which DESIGN.md's "draw every icon" rule exists specifically to prevent -
+    // and it would add a render-blocking external request that fails closed to
+    // visible glyph names. Paths are lifted verbatim from Google's own SVGs, so
+    // the 0 -960 960 960 viewBox is theirs, not a mistake.
+    window.MSYM = {
+      visibility: 'M607.5-372.5Q660-425 660-500t-52.5-127.5Q555-680 480-680t-127.5 52.5Q300-575 300-500t52.5 127.5Q405-320 480-320t127.5-52.5Zm-204-51Q372-455 372-500t31.5-76.5Q435-608 480-608t76.5 31.5Q588-545 588-500t-31.5 76.5Q525-392 480-392t-76.5-31.5ZM214-281.5Q94-363 40-500q54-137 174-218.5T480-800q146 0 266 81.5T920-500q-54 137-174 218.5T480-200q-146 0-266-81.5ZM480-500Zm207.5 160.5Q782-399 832-500q-50-101-144.5-160.5T480-720q-113 0-207.5 59.5T128-500q50 101 144.5 160.5T480-280q113 0 207.5-59.5Z',
+      download: 'M480-320 280-520l56-58 104 104v-326h80v326l104-104 56 58-200 200ZM240-160q-33 0-56.5-23.5T160-240v-120h80v120h480v-120h80v120q0 33-23.5 56.5T720-160H240Z',
+      reviews: 'm363-390 117-71 117 71-31-133 104-90-137-11-53-126-53 126-137 11 104 90-31 133ZM80-80v-720q0-33 23.5-56.5T160-880h640q33 0 56.5 23.5T880-800v480q0 33-23.5 56.5T800-240H240L80-80Zm126-240h594v-480H160v525l46-45Zm-46 0v-480 480Z'
+    };
+    // Decorative by default: these sit beside a text label, so announcing them
+    // would just double-read the button.
+    window.msym = function (name, size) {
+      var d = window.MSYM[name];
+      if (!d) return '';
+      var s = size || 16;
+      return '<svg class="msym" viewBox="0 -960 960 960" width="' + s + '" height="' + s +
+        '" fill="currentColor" aria-hidden="true"><path d="' + d + '"/></svg>';
+    };
+
     (function () {
       // Shared "which products does the signed-in user own" cache - both
       // the product page and the shop/catalog grid need this, so it's
@@ -282,11 +303,66 @@
         el.textContent = target.toLocaleString('en-US') + (el.getAttribute('data-suffix') || '');
       }
 
-      // These are real figures (live catalog count, live Discord membership),
-      // so they are printed as soon as they resolve. The odometer count-up that
-      // used to run here was decoration: it delayed the number the visitor came
-      // to read, and it is one of the most recognisable generated-site tics.
-      discordReady.then(function () { nums.forEach(setFinal); });
+      var reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+      // Count-up runs on the REAL resolved figure, never on the static fallback
+      // baked into the markup - otherwise the number visibly climbs to 850 and
+      // then snaps to the true catalog count, which reads as broken. The
+      // tabular-nums lock in CSS keeps the digits from reflowing mid-count.
+      function countUp(el) {
+        var target = Number(el.getAttribute('data-target')) || 0;
+        var suffix = el.getAttribute('data-suffix') || '';
+        if (reduced || target <= 0) { setFinal(el); return; }
+
+        // Longer for bigger numbers, but bounded - a visitor should never wait
+        // on a decoration to read a figure they came for.
+        var dur = Math.min(1600, 700 + Math.log10(Math.max(target, 10)) * 260);
+        var start = 0;
+
+        function frame(now) {
+          if (!start) start = now;
+          var t = Math.min((now - start) / dur, 1);
+          // easeOutExpo: fast out of the gate, long settle. Reads as an odometer
+          // landing rather than a linear tick.
+          var eased = t === 1 ? 1 : 1 - Math.pow(2, -10 * t);
+          el.textContent = Math.round(target * eased).toLocaleString('en-US') + suffix;
+          if (t < 1) requestAnimationFrame(frame);
+          else setFinal(el);
+        }
+        requestAnimationFrame(frame);
+      }
+
+      // Only animate once, and only while the stats are actually on screen -
+      // counting up in a scrolled-past viewport is motion nobody sees.
+      var played = false;
+      function play() {
+        if (played) return;
+        played = true;
+        discordReady.then(function () { nums.forEach(countUp); });
+      }
+
+      if (!('IntersectionObserver' in window)) { play(); return; }
+      var statIo = new IntersectionObserver(function (entries) {
+        entries.forEach(function (e) {
+          if (e.isIntersecting) { play(); statIo.disconnect(); }
+        });
+      }, { threshold: 0.4 });
+      statIo.observe(wrap);
+
+      // Truth outranks the animation. The markup ships a static fallback (850
+      // products) that the live catalog count replaces, so if the observer
+      // never fires - zero-height viewport, a browser that reports no
+      // intersection, the section never scrolled to - the visitor would be
+      // left reading a stale, wrong number indefinitely. Print the real
+      // figures regardless once they resolve; if the count-up has already
+      // started this is a no-op, since play() is latched.
+      discordReady.then(function () {
+        setTimeout(function () {
+          if (played) return;
+          played = true;
+          nums.forEach(setFinal);
+        }, 1200);
+      });
     })();
 
     (function () {
@@ -316,10 +392,26 @@
       // to opt into); the CSS's own reduced-motion rule already strips the slide transition,
       // so this just becomes an instant cut instead of a smooth slide.
       let i = 0, timer = null;
+      const slideEls = Array.prototype.slice.call(track.children);
       function go(n) {
         i = (n % slides + slides) % slides;
         track.style.transform = 'translateX(' + (-i * 100) + '%)';
         dots.forEach(function (d, idx) { d.classList.toggle('active', idx === i); });
+        // Drives the drift + caption stagger in CSS. The class is removed and
+        // re-added rather than left on, so returning to a slide replays its
+        // entrance instead of showing an already-finished animation.
+        slideEls.forEach(function (s, idx) {
+          if (idx === i) {
+            s.classList.remove('is-active');
+            // Reading offsetWidth forces a style flush between the remove and
+            // the add; without it the browser coalesces both into one frame and
+            // the animation never restarts.
+            void s.offsetWidth;
+            s.classList.add('is-active');
+          } else {
+            s.classList.remove('is-active');
+          }
+        });
       }
       function start() { if (!timer) timer = setInterval(function () { go(i + 1); }, DELAY); }
       function stop() { clearInterval(timer); timer = null; }
@@ -1985,7 +2077,7 @@
         el.innerHTML = items.length ? items.map(function (p) {
           return '<div class="dash-row"><span class="dr-thumb" style="background-image:url(\'' + p.image + '\')"></span>' +
             '<div class="dr-main"><div class="dr-title">' + esc(p.title) + '</div><div class="dr-sub"><span class="p-price" data-usd="' + p.priceNum + '">' + (window.__money ? window.__money(p.priceNum) : ('$' + p.priceNum)) + '</span></div></div>' +
-            '<div class="dr-actions"><a class="btn btn-ghost dr-btn" href="/product?id=' + encodeURIComponent(p.id) + '">View</a></div></div>';
+            '<div class="dr-actions"><a class="btn btn-ghost dr-btn" href="/product?id=' + encodeURIComponent(p.id) + '">' + window.msym('visibility') + 'View</a></div></div>';
         }).join('') : '<p class="dash-empty-note">Nothing saved yet - tap the heart on any product to add it here.</p>';
       }
       var wishlistRows = document.getElementById('dashWishlistRows');
@@ -2060,10 +2152,10 @@
             var slug = first ? first.product_slug : '';
             var img = (first && first.products && first.products.image) ? window.imgUrl(first.products.image) : '/banner.jpg';
             var titles = esc(items.map(function (i) { return i.title; }).join(', ') || '—');
-            var actions = slug ? '<a class="btn btn-ghost dr-btn" href="/product?id=' + encodeURIComponent(slug) + '">View</a>' : '';
+            var actions = slug ? '<a class="btn btn-ghost dr-btn" href="/product?id=' + encodeURIComponent(slug) + '">' + window.msym('visibility') + 'View</a>' : '';
             if (slug && o.status === 'paid') {
-              actions += '<button class="btn btn-ghost dr-btn dr-download" type="button" data-slug="' + slug + '">Download</button>' +
-                '<a class="btn btn-ghost dr-btn" href="/product?id=' + encodeURIComponent(slug) + '&tab=reviews">Review</a>';
+              actions += '<button class="btn btn-ghost dr-btn dr-download" type="button" data-slug="' + slug + '">' + window.msym('download') + 'Download</button>' +
+                '<a class="btn btn-ghost dr-btn" href="/product?id=' + encodeURIComponent(slug) + '&tab=reviews">' + window.msym('reviews') + 'Review</a>';
             }
             return '<div class="dash-row"><span class="dr-thumb" style="background-image:url(\'' + img + '\')"></span>' +
               '<div class="dr-main"><div class="dr-title">' + titles + '</div><div class="dr-sub">' + fmtDate(o.created_at) + ' · ' + shortOrderId(o.id) + '</div></div>' +
@@ -2783,6 +2875,10 @@
       }
       function scheduleCartSnapshot() {
         if (!window.coldAuth) return;
+        // The snapshot exists for abandoned-cart follow-up in the admin panel,
+        // not to make the visitor's own cart work - that is pure localStorage.
+        // So it is analytics, and waits for consent.
+        if (!window.coldConsent || !window.coldConsent.allows('analytics')) return;
         clearTimeout(cartSnapshotTimer);
         cartSnapshotTimer = setTimeout(function () {
           var sid = cartSessionId(); if (!sid) return;

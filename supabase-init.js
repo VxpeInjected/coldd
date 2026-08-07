@@ -259,5 +259,104 @@
     }
   };
 
+  // ---------------------------------------------------------------------
+  // Cookie / storage consent
+  //
+  // Two categories only, because the site genuinely has two.
+  //
+  //   essential - the Supabase auth session, the cart, the site gate, and this
+  //               consent record itself. Never optional: without them the site
+  //               cannot do the thing the visitor came to do, so they are not
+  //               offered as a choice and no banner button can switch them off.
+  //   analytics - the pageview beacon and the abandoned-cart snapshot. Both
+  //               exist for the admin panel, not for the visitor, so both wait
+  //               for an explicit yes.
+  //
+  // The default before any choice is made is NO. allows() returns false while
+  // the decision is undecided, so a visitor who ignores the banner entirely is
+  // treated as having declined rather than as having agreed by silence.
+  // ---------------------------------------------------------------------
+  var CONSENT_KEY = 'coldd_cookie_consent';
+  var CONSENT_VERSION = 1;
+
+  function readConsent() {
+    try {
+      var raw = JSON.parse(localStorage.getItem(CONSENT_KEY) || 'null');
+      if (!raw || raw.version !== CONSENT_VERSION) return null;
+      return raw;
+    } catch (e) { return null; }
+  }
+
+  function writeConsent(analytics) {
+    var rec = { version: CONSENT_VERSION, analytics: !!analytics, ts: new Date().toISOString() };
+    try { localStorage.setItem(CONSENT_KEY, JSON.stringify(rec)); } catch (e) {}
+    // Lets already-loaded scripts react without a reload - catalog.js listens
+    // so a visitor who accepts gets counted on the page they accepted from,
+    // rather than only from the next navigation onward.
+    try { window.dispatchEvent(new CustomEvent('coldd:consent', { detail: rec })); } catch (e) {}
+    return rec;
+  }
+
+  window.coldConsent = {
+    get: readConsent,
+    decided: function () { return !!readConsent(); },
+    allows: function (category) {
+      if (category === 'essential') return true;
+      var c = readConsent();
+      return !!(c && c[category]);
+    },
+    accept: function () { return writeConsent(true); },
+    reject: function () { return writeConsent(false); },
+    // Exposed so the privacy policy can offer a "change your choice" control.
+    reopen: function () {
+      try { localStorage.removeItem(CONSENT_KEY); } catch (e) {}
+      showConsentBanner();
+    }
+  };
+
+  function showConsentBanner() {
+    if (document.getElementById('cookieBanner')) return;
+
+    var bar = document.createElement('div');
+    bar.className = 'cookie-bar';
+    bar.id = 'cookieBanner';
+    // role=region + aria-label rather than role=dialog: this does not trap
+    // focus and must not stop anyone reading the page behind it.
+    bar.setAttribute('role', 'region');
+    bar.setAttribute('aria-label', 'Cookie choices');
+    bar.innerHTML =
+      '<div class="cookie-bar-inner">' +
+        '<div class="cookie-bar-tx">' +
+          '<h2 class="cookie-bar-h">Cookies</h2>' +
+          '<p>We use essential cookies to keep you signed in and your cart intact. ' +
+          'We would also like optional analytics cookies to see which pages people actually use. ' +
+          '<a href="/privacy-policy">Read our privacy policy</a>.</p>' +
+        '</div>' +
+        '<div class="cookie-bar-actions">' +
+          '<button type="button" class="btn btn-tinted cookie-reject">Essential only</button>' +
+          '<button type="button" class="btn btn-primary cookie-accept">Accept all</button>' +
+        '</div>' +
+      '</div>';
+
+    function close() { bar.classList.remove('in'); setTimeout(function () { bar.remove(); }, 220); }
+    bar.querySelector('.cookie-accept').addEventListener('click', function () { window.coldConsent.accept(); close(); });
+    bar.querySelector('.cookie-reject').addEventListener('click', function () { window.coldConsent.reject(); close(); });
+
+    document.body.appendChild(bar);
+    // Next frame, so the entrance transition has a resting state to animate
+    // from instead of being applied in the same style pass.
+    requestAnimationFrame(function () { bar.classList.add('in'); });
+  }
+
+  function maybeShowConsentBanner() {
+    if (readConsent()) return;
+    // The gate page and the OAuth callbacks are not places to ask - they are
+    // transient redirects, and the banner would flash and vanish.
+    var p = location.pathname;
+    if (/lock\.html|callback\.html/.test(p)) return;
+    showConsentBanner();
+  }
+
   document.addEventListener('DOMContentLoaded', applyProfile);
+  document.addEventListener('DOMContentLoaded', maybeShowConsentBanner);
 })();

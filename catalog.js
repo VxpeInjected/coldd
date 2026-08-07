@@ -13,14 +13,28 @@
   // Fire-and-forget pageview beacon for the admin Analytics panel - no PII,
   // just a random id that resets every browser session. Doesn't block
   // rendering or the catalog fetch below.
+  //
+  // Gated on analytics consent, which defaults to NO. Note the session id is
+  // only minted inside the consented path: an undecided or declining visitor
+  // gets no beacon AND no identifier written to sessionStorage.
   (function trackPageview() {
-    try {
-      var sid = sessionStorage.getItem('coldd_session_id');
-      if (!sid) { sid = Math.random().toString(36).slice(2) + Date.now().toString(36); sessionStorage.setItem('coldd_session_id', sid); }
-      if (window.coldSupabase) {
-        window.coldSupabase.functions.invoke('track-pageview', { body: { sessionId: sid, path: location.pathname } }).catch(function () {});
-      }
-    } catch (e) {}
+    var sent = false;
+    function send() {
+      if (sent) return;
+      if (!window.coldConsent || !window.coldConsent.allows('analytics')) return;
+      sent = true;
+      try {
+        var sid = sessionStorage.getItem('coldd_session_id');
+        if (!sid) { sid = Math.random().toString(36).slice(2) + Date.now().toString(36); sessionStorage.setItem('coldd_session_id', sid); }
+        if (window.coldSupabase) {
+          window.coldSupabase.functions.invoke('track-pageview', { body: { sessionId: sid, path: location.pathname } }).catch(function () {});
+        }
+      } catch (e) {}
+    }
+    send();
+    // Accepting from the banner counts the page it was accepted on, rather
+    // than silently starting from the next navigation.
+    window.addEventListener('coldd:consent', send);
   })();
 
   window.__CATEGORIES = [{"label": "Resell License", "slug": "resell", "platform": "Roblox", "page": "/assets"}, {"label": "Finished Games & Templates", "slug": "game-templates", "platform": "Roblox", "page": "/assets"}, {"label": "Maps", "slug": "maps", "platform": "Roblox", "page": "/assets"}, {"label": "Scripts & UI", "slug": "scripts-ui", "platform": "Roblox", "page": "/assets"}, {"label": "Graphics", "slug": "graphics", "platform": "Roblox", "page": "/assets"}, {"label": "Buildings", "slug": "buildings", "platform": "Roblox", "page": "/assets"}, {"label": "Assets", "slug": "assets", "platform": "Roblox", "page": "/assets"}, {"label": "Uniforms & Gear", "slug": "uniforms-gear", "platform": "Roblox", "page": "/assets"}, {"label": "Boats", "slug": "boats", "platform": "Roblox", "page": "/assets"}, {"label": "Weapons", "slug": "weapons", "platform": "Roblox", "page": "/assets"}, {"label": "Vehicles", "slug": "vehicles", "platform": "Roblox", "page": "/assets"}, {"label": "Animations & VFX", "slug": "animations-vfx", "platform": "Roblox", "page": "/assets"}, {"label": "Hubs", "slug": "hubs", "platform": "Minecraft", "page": "/minecraft"}, {"label": "Lobbies", "slug": "lobbies", "platform": "Minecraft", "page": "/minecraft"}, {"label": "Maps", "slug": "maps", "platform": "Minecraft", "page": "/minecraft"}, {"label": "Builds", "slug": "builds", "platform": "Minecraft", "page": "/minecraft"}, {"label": "Plugins", "slug": "plugins", "platform": "Minecraft", "page": "/minecraft"}, {"label": "Full Setups", "slug": "setups", "platform": "Minecraft", "page": "/minecraft"}];

@@ -194,6 +194,11 @@
     .btn-minecraft:active { background: var(--mc-press); box-shadow: var(--e-1); }
     .btn[disabled], .btn:disabled { background: var(--bg-3); color: var(--fg-3);
       border-color: var(--hairline); box-shadow: none; cursor: not-allowed; }
+    /* .btn sets display:inline-flex, and an author display beats the browser's
+       [hidden]{display:none}. Without this, `btn.hidden = true` sets the
+       attribute and changes nothing on screen - which is how the Place order
+       button stayed visible on the Robux panel, where it does nothing. */
+    .btn[hidden] { display: none; }
     .btn-plat-ic { display: block; border-radius: 4px; }
     /* Material Symbols ship as filled geometry on a 0 -960 960 960 viewBox, so
        they take `fill: currentColor` and must never be given a stroke - the
@@ -1707,6 +1712,12 @@ button.dt-badge:disabled { cursor: default; opacity: 0.6; }
 .co-robux-box { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 16px; border-radius: 16px; background: rgba(255,255,255,0.04); border: 1px solid var(--hairline); }
 .co-robux-amt { font-size: 20px; font-weight: 800; color: var(--price); }
 .co-check { display: flex; align-items: flex-start; gap: 11px; font-size: 13px; color: var(--fg-2); line-height: 1.5; cursor: pointer; padding: 7px 0; }
+/* Any author `display` beats the browser's default [hidden]{display:none}, so
+   a class that sets display MUST restate it - otherwise app.js sets .hidden,
+   the attribute lands, and the element stays on screen anyway. That is exactly
+   how the resell-licence agreement was showing on carts with no resell item.
+   Same defect previously hit the tutorials/releases tabs. */
+.co-check[hidden] { display: none; }
 .co-check input { margin-top: 2px; width: 16px; height: 16px; accent-color: var(--accent); flex: 0 0 auto; cursor: pointer; }
 .co-check a { color: var(--accent); text-decoration: none; }
 .co-place { width: 100%; justify-content: center; min-height: 52px; font-size: 15px; }
@@ -2540,3 +2551,15 @@ input[type="checkbox"]:focus-visible { outline: 2px solid var(--accent); outline
 @media (prefers-reduced-motion: reduce) {
   .cookie-bar { transition: none; }
 }
+
+/* Author `display` overrides the browser's [hidden]{display:none}, so every
+   class that sets display and is also toggled via the hidden attribute has to
+   restate it. Found by auditing every element in the markup carrying `hidden`
+   against the classes that declare a display - the resell-licence agreement
+   and the Place order button were both visibly wrong because of this. */
+.cart-drawer[hidden] { display: none; }
+.confirm-overlay[hidden] { display: none; }
+.adm-field[hidden] { display: none; }
+.pm-lic[hidden] { display: none; }
+.msym[hidden] { display: none; }
+.ico-ext[hidden] { display: none; }

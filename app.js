@@ -571,7 +571,14 @@
               '<span class="sresult-price">' + esc(priceStr(p.price)) + '</span>';
             b.addEventListener('mousedown', function (e) { e.preventDefault(); });
             b.addEventListener('click', function () {
-              if (window.__openProduct) window.__openProduct(p);
+              // Opens the real product page in a new tab, matching what a
+              // catalog card already does. This was the last caller of the
+              // retired quick-view modal, which is why that panel could still
+              // appear from search long after it was removed everywhere else.
+              var a = document.createElement('a');
+              a.href = '/product?id=' + encodeURIComponent(p.id);
+              a.target = '_blank'; a.rel = 'noopener';
+              a.click();
               close();
             });
             list.appendChild(b);

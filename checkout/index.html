@@ -184,9 +184,15 @@
         </section>
 
         <section class="co-sec glass">
+          <div class="co-sec-head"><h2>Before you pay</h2></div>
           <label class="co-check"><input id="coTos" type="checkbox" /> <span>I agree to the <a href="/terms-of-service">Terms of Service</a>.</span></label>
           <label class="co-check" id="coResellWrap" hidden><input id="coResell" type="checkbox" /> <span>I agree to the <a href="/resell-license">Resell License Terms</a>, I agree that if the terms are broken my reselling license may be revoked.</span></label>
-          <label class="co-check"><input id="coMkt" type="checkbox" checked /> <span>Email me deals, drops, and product updates (optional).</span></label>
+          <!-- NOT pre-checked. A pre-ticked marketing box is not consent under
+               GDPR (it requires a clear affirmative act) and is the opposite of
+               the privacy-preserving default the cookie banner already commits
+               to. Opting in stays one click; it just has to be the buyer's
+               click. -->
+          <label class="co-check"><input id="coMkt" type="checkbox" /> <span>Email me deals, drops, and product updates (optional).</span></label>
           <span class="auth-err" id="coAgreeErr"></span>
         </section>
 
@@ -207,9 +213,14 @@
           <div class="co-totals">
             <div class="co-line"><span>Subtotal</span><span id="coSubtotal">$0</span></div>
             <div class="co-line co-disc" id="coDiscLine" hidden><span id="coDiscLabel">Discount</span><span id="coDiscAmt">-$0</span></div>
-            <div class="co-line"><span>Tax (est.)</span><span id="coTax">$0</span></div>
+            <!-- Hidden unless tax is actually charged. A permanent "Tax (est.)
+                 $0" row implies tax might apply and then always says it does
+                 not, which is a question raised and never answered. -->
+            <div class="co-line" id="coTaxLine" hidden><span>Tax</span><span id="coTax">$0</span></div>
             <div class="co-line co-grand"><span>Total</span><span id="coTotal">$0</span></div>
-            <div class="co-fx" id="coFx"></div>
+            <!-- The settle line under the payment methods now states what is
+                 actually charged, in context and next to the choice it affects.
+                 Repeating it here said the same thing twice. -->
           </div>
         </div>
       </aside>
@@ -433,6 +444,6 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.2/dist/umd/supabase.min.js" integrity="sha384-B2duOBIryCXbX4eDE4BdJwtNkQMRQde3o6IsjfPW28E6aH1CYE96hHeZRG3zY56O" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script src="/supabase-init.js?v=20260807b"></script>
   <script src="/site-gate.js?v=20260729b"></script>
-  <script src="/catalog.js?v=20260807b" data-then="/app.js?v=20260807c"></script>
+  <script src="/catalog.js?v=20260807b" data-then="/app.js?v=20260808a"></script>
 </body>
 </html>

@@ -2991,10 +2991,13 @@
             set('coDiscAmt', '-' + money(disc));
           }
         }
+        // Tax is not currently charged on any order. The row stays hidden
+        // rather than showing a permanent zero; when tax does apply, set the
+        // value and unhide in one place.
+        var taxLine = document.getElementById('coTaxLine');
+        if (taxLine) taxLine.hidden = true;
         set('coTax', money(0));
         set('coTotal', disc > 0 ? money(total) : subtotalMoney());
-        var fx = document.getElementById('coFx');
-        if (fx) fx.textContent = 'All prices in USD. Your card is charged in USD via Stripe.';
         renderPayAmounts(total);
         return total;
       }

@@ -213,45 +213,6 @@
     </div>
   </aside>
 
-  <div class="pm-overlay" id="pmOverlay" hidden>
-    <div class="pm-modal glass" role="dialog" aria-modal="true" aria-labelledby="pmTitle">
-      <button class="pm-x" id="pmClose" type="button" aria-label="Close"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
-      <div class="pm-media" id="pmMedia"><span class="pm-tag" id="pmTag" hidden></span></div>
-      <div class="pm-thumbs" id="pmThumbs"></div>
-      <div class="pm-info">
-        <h3 id="pmTitle"></h3>
-        <p class="pm-desc" id="pmDesc"></p>
-        <ul class="pm-feats">
-          <li><svg class="pm-feat-ic" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span>Instant delivery</span></li>
-          <li><svg class="pm-feat-ic" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span>Instant access to asset files</span></li>
-          <li><svg class="pm-feat-ic" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span>Free updates and support</span></li>
-        </ul>
-        <span class="pm-lic-label" id="pmLicLabel">License</span>
-        <div class="pm-licence" id="pmLicence">
-          <button class="pm-lic active" type="button" data-lic="standard">
-            <span class="pm-lic-radio"></span>
-            <span class="pm-lic-text"><span class="pm-lic-name">Personal use</span><span class="pm-lic-note">Use and monetize in your own games</span></span>
-            <span class="pm-lic-price" data-licprice="standard"></span>
-          </button>
-          <button class="pm-lic" type="button" data-lic="resell">
-            <span class="pm-lic-radio"></span>
-            <span class="pm-lic-text"><span class="pm-lic-name">Resell license</span><span class="pm-lic-note">Resell in your own store</span></span>
-            <span class="pm-lic-price" data-licprice="resell"></span>
-          </button>
-        </div>
-        <div class="pm-foot">
-          <div class="pm-total"><span class="pm-total-label" id="pmTotalLabel">Total</span><span class="pm-price" id="pmPrice"></span></div>
-          <button class="btn btn-ghost pm-details" id="pmDetails" type="button">View full details<span class="ico-arrow" aria-hidden="true"></span></button>
-          <div class="pm-actions">
-            <button class="btn btn-primary" id="pmBuy" type="button">Buy now</button>
-            <button class="btn btn-tinted" id="pmAdd" type="button">Add to cart</button>
-          </div>
-          <p class="pm-note">USD pricing is up to 50% cheaper than Robux!</p>
-        </div>
-      </div>
-    </div>
-  </div>
-
   <div class="pay-overlay" id="payOverlay" hidden>
     <div class="pay-modal glass" role="dialog" aria-modal="true" aria-labelledby="payTitle">
       <button class="pm-x" id="payClose" type="button" aria-label="Close"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
@@ -337,6 +298,6 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.2/dist/umd/supabase.min.js" integrity="sha384-B2duOBIryCXbX4eDE4BdJwtNkQMRQde3o6IsjfPW28E6aH1CYE96hHeZRG3zY56O" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script src="/supabase-init.js?v=20260807b"></script>
   <script src="/site-gate.js?v=20260729b"></script>
-  <script src="/catalog.js?v=20260807b" data-then="/app.js?v=20260808c"></script>
+  <script src="/catalog.js?v=20260807b" data-then="/app.js?v=20260808d"></script>
 </body>
 </html>

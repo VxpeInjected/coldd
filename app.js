@@ -1354,9 +1354,18 @@
           row.querySelector('[data-act="inc"]').addEventListener('click', function () { setQty(i.id, i.qty + 1); });
           row.querySelector('[data-act="rm"]').addEventListener('click', function () { setQty(i.id, 0); });
 
-          var reopen = function () { closeCart(); openModal({ id: i.id, title: i.title, price: i.price, image: i.image, tag: i.tag || '' }); };
-          row.querySelector('.ci-thumb').addEventListener('click', reopen);
-          row.querySelector('.ci-info').addEventListener('click', reopen);
+          // Opens the real product page in a new tab, like every other route
+          // to a product. This was the last caller of the retired quick-view
+          // modal - clicking a line in the cart / order summary reopened it.
+          var openProductPage = function () {
+            closeCart();
+            var a = document.createElement('a');
+            a.href = '/product?id=' + encodeURIComponent(i.id);
+            a.target = '_blank'; a.rel = 'noopener';
+            a.click();
+          };
+          row.querySelector('.ci-thumb').addEventListener('click', openProductPage);
+          row.querySelector('.ci-info').addEventListener('click', openProductPage);
           itemsEl.appendChild(row);
         });
         if (subEl) subEl.textContent = subtotalMoney();
@@ -3269,6 +3278,17 @@
           .then(function (res) {
             var data = res && res.data, error = res && res.error;
             if (error || !data || !data.ok) {
+              // On a non-2xx the SDK reports only "Edge Function returned a
+              // non-2xx status code" and leaves data null, hiding the actual
+              // reason. The response body is on error.context, so read it and
+              // surface the server's own message instead.
+              if (error && error.context && typeof error.context.json === 'function') {
+                return error.context.json()
+                  .catch(function () { return null; })
+                  .then(function (parsed) {
+                    throw new Error((parsed && parsed.error) || error.message || 'Could not start checkout.');
+                  });
+              }
               throw new Error((data && data.error) || (error && error.message) || 'Could not start checkout.');
             }
             deleteCartSnapshot();

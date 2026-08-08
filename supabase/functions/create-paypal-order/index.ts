@@ -149,7 +149,19 @@ Deno.serve(async (req: Request) => {
 
     return json({ ok: true, url, orderId: order.id, env: paypalEnv() });
   } catch (e) {
-    console.error("create-paypal-order error", e instanceof Error ? e.message : e);
-    return json({ ok: false, error: "Unexpected error starting PayPal checkout." }, 500);
+    const detail = e instanceof Error ? e.message : String(e);
+    console.error("create-paypal-order error", detail);
+    // These messages are ours and contain no secrets - the auth helper never
+    // echoes PayPal's response body. Surfacing them turns a useless
+    // "unexpected error" into something diagnosable from the browser, which
+    // matters most when the credentials or environment are misconfigured.
+    const known = detail.startsWith("PayPal credentials are not configured") ||
+      detail.startsWith("PayPal auth failed") ||
+      detail.startsWith("PayPal auth returned no token");
+    return json({
+      ok: false,
+      error: known ? detail : "Unexpected error starting PayPal checkout.",
+      env: paypalEnv(),
+    }, known ? 502 : 500);
   }
 });

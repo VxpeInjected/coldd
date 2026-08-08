@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <script>document.documentElement.classList.add('js');</script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Page not found — coldd Development</title>
+  <link rel="icon" type="image/png" href="/logo.png" />
+  <meta name="robots" content="noindex" />
+  <meta name="description" content="That page doesn't exist. Browse the coldd Roblox and Minecraft catalogs instead." />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="/styles.css?v=20260807c" />
+</head>
+<body>
+  <div class="backdrop"></div>
+  <div class="scrim"></div>
+
+  <!-- Deliberately not the full site chrome. The mega-menu, search panel, cart
+       and auth overlays all need app.js, and app.js is chained behind
+       catalog.js's Supabase fetch - so on a 404 caused by a broken deploy or a
+       blocked CDN, that whole header would render as dead controls. A logo that
+       links home always works. -->
+  <header class="nf-top">
+    <a class="brand" href="/" aria-label="coldd home">
+      <img class="logo" src="/logo.png" alt="coldd" />
+    </a>
+  </header>
+
+  <main class="nf-main">
+    <div class="wrap nf-wrap">
+      <p class="nf-code">404</p>
+      <h1 class="nf-h1">This page doesn't exist</h1>
+      <p class="nf-sub">The link may be out of date, or the product may have been unlisted. Everything below still works.</p>
+
+      <div class="nf-cta">
+        <a class="btn btn-primary" href="/assets">Browse Roblox</a>
+        <a class="btn btn-minecraft" href="/minecraft">Browse Minecraft</a>
+        <a class="btn btn-tinted" href="/">Home</a>
+      </div>
+
+      <nav class="nf-links" aria-label="Other pages">
+        <a href="/blog">Blog &amp; Tutorials</a>
+        <a href="/faq">FAQ</a>
+        <a href="/about">About</a>
+        <a href="https://discord.gg/coldd" target="_blank" rel="noopener">Discord support</a>
+      </nav>
+    </div>
+  </main>
+
+  <style>
+    /* Scoped to this page only. It ships no shared chrome, so these few rules
+       live here rather than adding weight to every other page's stylesheet. */
+    .nf-top { padding: 26px 24px; }
+    .nf-top .logo { height: 30px; width: auto; display: block; }
+    .nf-main { min-height: calc(100vh - 82px); display: flex; align-items: center; padding: 40px 0 80px; }
+    .nf-wrap { display: flex; flex-direction: column; align-items: flex-start; gap: 0; }
+    .nf-code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 13px; font-weight: 400; letter-spacing: 0.14em;
+      color: var(--fg-3); margin: 0 0 14px;
+    }
+    .nf-h1 {
+      font-size: clamp(34px, 5.2vw, 58px); font-weight: 800;
+      letter-spacing: -0.038em; line-height: 1.04; margin: 0; text-wrap: balance;
+    }
+    .nf-sub { color: var(--fg-2); font-size: 17px; line-height: 1.55; max-width: 52ch; margin: 16px 0 0; }
+    .nf-cta { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 32px; }
+    .nf-links { display: flex; flex-wrap: wrap; gap: 22px; margin-top: 40px; padding-top: 24px;
+      border-top: 1px solid var(--hairline); width: 100%; }
+    .nf-links a { color: var(--fg-2); font-size: 14px; font-weight: 500; text-decoration: none; }
+    .nf-links a:hover { color: var(--fg); }
+    .nf-links a:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
+    @media (max-width: 560px) {
+      .nf-cta .btn { flex: 1 1 100%; justify-content: center; }
+      .nf-links { gap: 14px 20px; }
+    }
+  </style>
+</body>
+</html>

@@ -1,2 +1,7 @@
 .claude/settings.local.json
 supabase/.temp/
+
+# Ephemeral impeccable session state - not site content, and it was
+# being published on the live domain.
+.impeccable/questions/
+test.txt

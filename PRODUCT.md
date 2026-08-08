@@ -53,7 +53,7 @@ Do not present either of these, or the about-page copy, as *the* confirmed diffe
 ## Brand Commitments
 
 - Name: **coldd** (storefront/product brand) under **coldd Development** (legal/company name).
-- Visual identity already established and in production: dark theme, red/crimson accent (`#ff4d44`-family), glass/translucent card surfaces over a dark backdrop, Inter typeface. Not to be treated as greenfield - see incumbent CSS (`styles.css`) as design authority for any refinement work.
+- Visual identity already established and in production: dark theme (single, committed - no light mode), one ember accent (`#ff4d44` / `#e2382f`), graphite neutrals, flat fills with neutral elevation, and **Archivo** as the typeface across the board. Icons come from Google Material Symbols as inline SVG, never the webfont. Not to be treated as greenfield - `DESIGN.md` is the authority for any design work, with `styles.css` as the incumbent implementation.
 - Voice, per existing site copy: direct, confident, slightly informal ("we build what we'd actually want to buy," "no filler, no disappearing after the sale") - not corporate/formal.
 - Not affiliated with Roblox Corporation or Mojang Studios (stated in every page footer) - never imply official endorsement by either platform.
 

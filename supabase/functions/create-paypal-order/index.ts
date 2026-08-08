@@ -1,0 +1,155 @@
+// Creates a coldd order + a PayPal order, and returns the URL to send the
+// buyer to for approval.
+//
+// Mirrors create-checkout-session deliberately: same server-side pricing via
+// _shared/coupon.ts, same "write a pending order BEFORE talking to the payment
+// provider" ordering, same optional-sign-in behaviour. The two flows should
+// stay recognisably the same shape so a fix to one is obviously needed in the
+// other.
+//
+// Prices are ALWAYS recomputed here from the database. The client sends product
+// slugs and quantities, never amounts - a client-supplied price is a client-
+// controlled price.
+
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { priceItems, resolveCoupon } from "../_shared/coupon.ts";
+import { paypalToken, paypalFetch, money, approveLink, paypalEnv } from "../_shared/paypal.ts";
+
+const ALLOWED_ORIGIN = "https://coldd.dev";
+
+function corsHeaders() {
+  return {
+    "Access-Control-Allow-Origin": ALLOWED_ORIGIN,
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+  };
+}
+
+function json(body: unknown, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders(), "Content-Type": "application/json" },
+  });
+}
+
+Deno.serve(async (req: Request) => {
+  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders() });
+
+  try {
+    const authHeader = req.headers.get("Authorization") ?? "";
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const siteUrl = Deno.env.get("SITE_URL") ?? ALLOWED_ORIGIN;
+
+    // Signing in stays optional, same as card checkout - a guest order just
+    // leaves user_id null and PayPal collects the payer's email itself.
+    let user: { id: string } | null = null;
+    if (authHeader) {
+      const userClient = createClient(supabaseUrl, anonKey, {
+        global: { headers: { Authorization: authHeader } },
+      });
+      const { data: userData } = await userClient.auth.getUser();
+      if (userData?.user) user = userData.user;
+    }
+
+    const body = await req.json().catch(() => ({}));
+    const admin = createClient(supabaseUrl, serviceKey);
+
+    const priced = await priceItems(admin, Array.isArray(body.items) ? body.items : []);
+    if (!priced.ok) return json({ ok: false, error: priced.error }, 400);
+    const { lines, subtotal } = priced;
+    if (subtotal <= 0) return json({ ok: false, error: "Order total must be greater than zero." }, 400);
+
+    let discount = 0;
+    let appliedCouponCode: string | null = null;
+    if (body.couponCode) {
+      const couponResult = await resolveCoupon(admin, String(body.couponCode), lines);
+      // Same call as the Stripe flow: a coupon that stopped resolving between
+      // validation and here quietly doesn't apply rather than failing the
+      // whole order after the shopper already saw it accepted.
+      if (couponResult.ok) {
+        discount = couponResult.discount;
+        appliedCouponCode = couponResult.code;
+      }
+    }
+    const total = Math.max(0, Math.round((subtotal - discount) * 100) / 100);
+    if (total <= 0) return json({ ok: false, error: "Order total must be greater than zero." }, 400);
+
+    const { data: order, error: orderErr } = await admin
+      .from("orders")
+      .insert({
+        user_id: user ? user.id : null,
+        status: "pending",
+        subtotal_usd: subtotal,
+        discount_usd: discount,
+        total_usd: total,
+        coupon_code: appliedCouponCode,
+        payment_provider: "paypal",
+      })
+      .select()
+      .single();
+    if (orderErr || !order) return json({ ok: false, error: "Could not create order." }, 500);
+
+    const { error: itemsErr } = await admin.from("order_items").insert(
+      lines.map((li) => ({
+        order_id: order.id,
+        product_id: li.productId,
+        product_slug: li.slug,
+        title: li.title,
+        licence: li.licence,
+        unit_price_usd: li.unitPrice,
+        qty: li.qty,
+      })),
+    );
+    if (itemsErr) {
+      await admin.from("orders").update({ status: "canceled" }).eq("id", order.id);
+      return json({ ok: false, error: "Could not create order items." }, 500);
+    }
+
+    const token = await paypalToken();
+    const created = await paypalFetch("/v2/checkout/orders", {
+      method: "POST",
+      token,
+      body: JSON.stringify({
+        intent: "CAPTURE",
+        purchase_units: [{
+          // custom_id is what capture-paypal-order correlates on. It survives
+          // the whole PayPal round trip, so we never have to trust an order id
+          // handed back by the browser.
+          custom_id: order.id,
+          amount: { currency_code: "USD", value: money(total) },
+          description: `coldd order ${String(order.id).slice(0, 8)}`,
+        }],
+        application_context: {
+          brand_name: "coldd",
+          user_action: "PAY_NOW",
+          shipping_preference: "NO_SHIPPING", // digital goods only
+          return_url: `${siteUrl}/success/?provider=paypal&orderId=${order.id}`,
+          cancel_url: `${siteUrl}/checkout/?canceled=1`,
+        },
+      }),
+    });
+
+    if (!created.ok || !created.data?.id) {
+      await admin.from("orders").update({ status: "failed" }).eq("id", order.id);
+      console.error("PayPal create failed", created.status, created.data?.name, created.data?.message);
+      return json({ ok: false, error: "Could not start PayPal checkout." }, 502);
+    }
+
+    await admin.from("orders")
+      .update({ paypal_order_id: created.data.id })
+      .eq("id", order.id);
+
+    const url = approveLink(created.data);
+    if (!url) {
+      await admin.from("orders").update({ status: "failed" }).eq("id", order.id);
+      return json({ ok: false, error: "PayPal did not return an approval link." }, 502);
+    }
+
+    return json({ ok: true, url, orderId: order.id, env: paypalEnv() });
+  } catch (e) {
+    console.error("create-paypal-order error", e instanceof Error ? e.message : e);
+    return json({ ok: false, error: "Unexpected error starting PayPal checkout." }, 500);
+  }
+});

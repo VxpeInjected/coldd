@@ -3229,7 +3229,10 @@
       var placeBtn = document.getElementById('coPlace'), msg = document.getElementById('coMsg'), agreeErr = document.getElementById('coAgreeErr');
       if (placeBtn) placeBtn.addEventListener('click', function () {
         if (!cart.length) return;
-        if (payMethod !== 'stripe') return;
+        // Card and PayPal both place an order from this button; they differ
+        // only in which function mints the redirect. Robux and crypto drive
+        // their own panels and never reach here.
+        if (payMethod !== 'stripe' && payMethod !== 'paypal') return;
 
         // Signing in is optional - a guest can check out fine (create-checkout-session
         // leaves orders.user_id null for them); this just ties the order to an
@@ -3250,7 +3253,12 @@
         var checkoutBody = { items: cartToItems() };
         if (appliedCoupon) checkoutBody.couponCode = appliedCoupon.code;
 
-        window.coldSupabase.functions.invoke('create-checkout-session', { body: checkoutBody })
+        // Only slugs, quantities and a coupon code are ever sent. Both
+        // functions re-price the whole cart from the database, so a tampered
+        // request buys nothing at the wrong price.
+        var checkoutFn = payMethod === 'paypal' ? 'create-paypal-order' : 'create-checkout-session';
+
+        window.coldSupabase.functions.invoke(checkoutFn, { body: checkoutBody })
           .then(function (res) {
             var data = res && res.data, error = res && res.error;
             if (error || !data || !data.ok) {
@@ -3282,6 +3290,15 @@
       var subEl = document.getElementById('successSub');
       var sessionId = new URLSearchParams(location.search).get('session_id');
       var robuxOrderIdParam = new URLSearchParams(location.search).get('order_id');
+      // PayPal returns here after approval. Approval is NOT payment - the
+      // capture below is what actually moves the money, so this page must run
+      // it before it can honestly say the order is paid.
+      var paypalOrderIdParam = new URLSearchParams(location.search).get('provider') === 'paypal'
+        ? new URLSearchParams(location.search).get('orderId')
+        : null;
+      // Downstream polling looks orders up the same way for both, so fold the
+      // PayPal id into the generic order-id slot.
+      if (paypalOrderIdParam && !robuxOrderIdParam) robuxOrderIdParam = paypalOrderIdParam;
 
       try { localStorage.setItem('coldd_cart_v1', '[]'); } catch (e) {}
       window.dispatchEvent(new Event('currencychange'));
@@ -3345,5 +3362,26 @@
           });
       }
 
-      poll(10);
+      // Capture first, then poll. If the capture call itself fails we still
+      // poll: the order may already have been captured by an earlier attempt,
+      // and the poll is what tells the buyer the truth either way. The function
+      // is idempotent, so a retry here is always safe.
+      if (paypalOrderIdParam && window.coldSupabase) {
+        if (titleEl) titleEl.textContent = 'Completing your payment…';
+        if (subEl) subEl.textContent = 'Confirming with PayPal. Please do not close this page.';
+        window.coldSupabase.functions
+          .invoke('capture-paypal-order', { body: { orderId: paypalOrderIdParam } })
+          .then(function (res) {
+            var data = res && res.data;
+            if (data && data.ok === false && subEl) {
+              // A hard failure here means money did not move. Say so plainly
+              // rather than letting the poll time out into a vague message.
+              subEl.textContent = data.error || 'PayPal could not complete this payment.';
+            }
+          })
+          .catch(function () {})
+          .then(function () { poll(10); });
+      } else {
+        poll(10);
+      }
     })();

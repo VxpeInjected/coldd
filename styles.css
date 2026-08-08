@@ -1715,35 +1715,49 @@ button.dt-badge:disabled { cursor: default; opacity: 0.6; }
 .co-msg.show { display: block; }
 .co-msg.err { background: rgba(255,77,68,0.1); border-color: rgba(255,77,68,0.3); }
 
-.co-pay-methods { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
-.co-pay-btn { display: flex; align-items: center; justify-content: center; gap: 9px; padding: 15px 18px; border-radius: 16px;
+/* A vertical list, not a 2x2 grid of centred pills. Each row carries a name,
+   what it actually is, and the total in that method's own unit - which needs
+   a real left-to-right structure to sit in. */
+.co-pay-methods { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
+.co-pay-btn { display: grid; grid-template-columns: 28px 1fr auto; align-items: center; gap: 13px; padding: 14px 16px; border-radius: 14px;
   background: var(--ink-25); border: 1px solid var(--hairline); color: var(--fg-2); font-family: inherit;
   font-size: 15px; font-weight: 700; cursor: pointer; transition: border-color .18s var(--ease), background .18s var(--ease), color .18s var(--ease); }
-.co-pay-btn svg { flex: 0 0 auto; }
-.co-pay-btn:hover { border-color: rgba(255,255,255,0.22); color: var(--fg); }
-.co-pay-btn.active { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; color: var(--fg); background: rgba(255,255,255,0.06); }
+.co-pay-btn svg { display: block; }
+@media (hover: hover) and (pointer: fine) {
+  .co-pay-btn:hover { border-color: var(--hairline-strong); color: var(--fg); }
+}
+/* Radio-style selection, so an ember border is the correct device here per the
+   Neutral Border Rule. The old inset ring doubled the border to ~2px and made
+   the selected row bloom; one clean border plus a fill step is enough. */
+.co-pay-btn.active { border-color: var(--accent); color: var(--fg); background: rgba(255,255,255,0.06); }
+.co-pay-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.co-pay-ic { display: flex; align-items: center; justify-content: center; width: 28px; }
+.co-pay-tx { display: flex; flex-direction: column; gap: 2px; min-width: 0; text-align: left; }
+.co-pay-name { font-size: 15px; font-weight: 700; letter-spacing: -0.01em; color: inherit; }
+.co-pay-sub { font-size: 12.5px; font-weight: 500; line-height: 1.35; color: var(--fg-3); }
+/* The per-method figure. Tabular so the four rows' amounts align down the
+   right edge instead of jittering by digit width. */
+.co-pay-amt { font-size: 15px; font-weight: 700; letter-spacing: -0.01em; color: var(--fg);
+  font-variant-numeric: tabular-nums; white-space: nowrap; text-align: right; }
+.co-pay-btn:not(.active) .co-pay-amt { color: var(--fg-2); }
+.co-pay-settle { font-size: 12.5px; line-height: 1.5; color: var(--fg-3); margin: 0 0 16px; }
+
 /* Brand colour lives in the mark, not in the slab behind it. */
-.co-pay-btn--stripe svg { color: #8a83ff; }
-.co-pay-btn--paypal svg { color: #7b95d6; }
-.co-pay-btn--crypto svg { color: #e8b64c; }
-.co-pay-btn--robux svg { color: var(--price); }
+.co-pay-btn--stripe svg { color: var(--brand-stripe); }
+.co-pay-btn--paypal svg { color: var(--brand-paypal); }
+.co-pay-btn--crypto svg { color: var(--brand-crypto); }
+.co-pay-btn--robux .co-pay-robux-ic { color: var(--price); }
 .co-pay-panel[hidden] { display: none; }
-.co-pay-carousel-wrap { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
-.co-pay-carousel-wrap[hidden] { display: none; }
-.co-pay-accepts { flex: 0 0 auto; font-size: 12px; font-weight: 700; color: var(--fg-3); text-transform: uppercase; letter-spacing: .03em; }
-.co-pay-carousel { flex: 1; min-width: 0; overflow: hidden;
-  -webkit-mask-image: linear-gradient(90deg, #000, #000 85%, transparent);
-  mask-image: linear-gradient(90deg, #000, #000 85%, transparent); }
-.co-pay-carousel-track { display: flex; gap: 8px; width: max-content; animation: coPayScroll 26s linear infinite; }
-.co-pay-carousel:hover .co-pay-carousel-track { animation-play-state: paused; }
-.co-pay-chip { flex: 0 0 auto; font-size: 12px; font-weight: 600; color: var(--fg-3); padding: 7px 13px;
-  border-radius: 999px; background: rgba(255,255,255,0.04); border: 1px solid var(--hairline); white-space: nowrap; }
-@keyframes coPayScroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }
-@media (prefers-reduced-motion: reduce) { .co-pay-carousel-track { animation: none; } }
 .co-pay-soon { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--warn);
   background: var(--warn-tint); border: 1px solid var(--warn-line); border-radius: 10px; padding: 12px 14px; }
 .co-pay-soon[hidden] { display: none; }
-.co-pay-robux-ic { font-size: 12px; font-weight: 800; }
+.co-pay-robux-ic { font-size: 13px; font-weight: 800; letter-spacing: -0.02em; }
+@media (max-width: 460px) {
+  /* The descriptor is the first thing to go when the row gets tight - the
+     name and the amount are what the choice actually turns on. */
+  .co-pay-sub { display: none; }
+}
 
 .co-side { position: sticky; top: 96px; display: flex; flex-direction: column; gap: 16px; }
 .co-sum, .co-suggest { padding: 22px 24px;

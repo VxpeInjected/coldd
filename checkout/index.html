@@ -12,7 +12,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
 
-  <link rel="stylesheet" href="/styles.css?v=20260807c" />
+  <link rel="stylesheet" href="/styles.css?v=20260807d" />
 </head>
 <body>
   <div class="backdrop"></div>
@@ -114,55 +114,52 @@
 
         <section class="co-sec glass">
           <h2>Payment</h2>
-          <div class="co-pay-methods" id="coPayMethods">
-            <button type="button" class="co-pay-btn co-pay-btn--stripe active" data-key="stripe" data-method="stripe">
-              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
-              Stripe
+          <!-- One row per method, each carrying the total in that method's own
+               unit. The old tiles were centred icon+label with nowhere for a
+               number to live, which is why the amount never appeared. -->
+          <div class="co-pay-methods" id="coPayMethods" role="radiogroup" aria-label="Payment method">
+            <button type="button" class="co-pay-btn co-pay-btn--stripe active" data-key="stripe" data-method="stripe" role="radio" aria-checked="true">
+              <span class="co-pay-ic"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg></span>
+              <span class="co-pay-tx">
+                <span class="co-pay-name">Card</span>
+                <span class="co-pay-sub">Visa, Mastercard, Amex, Apple&nbsp;Pay and more via Stripe</span>
+              </span>
+              <span class="co-pay-amt" data-pay-amt="stripe"></span>
             </button>
-            <button type="button" class="co-pay-btn co-pay-btn--paypal" data-key="paypal" data-method="stripe">
-              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3h7a4 4 0 0 1 4 4.5c-.4 3-2.7 5-5.7 5H9.5L8 21H4L7 3Z"/><path d="M11 12.5h2.3c3 0 5.3-2 5.7-5"/></svg>
-              PayPal
+            <!-- Still routed through Stripe Checkout, where PayPal appears as a
+                 payment option. Direct PayPal (Orders API) is built separately;
+                 until then this must stay data-method="stripe" or the Place
+                 order handler's `payMethod !== 'stripe'` guard silently
+                 swallows the click. -->
+            <button type="button" class="co-pay-btn co-pay-btn--paypal" data-key="paypal" data-method="stripe" role="radio" aria-checked="false">
+              <span class="co-pay-ic"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3h7a4 4 0 0 1 4 4.5c-.4 3-2.7 5-5.7 5H9.5L8 21H4L7 3Z"/><path d="M11 12.5h2.3c3 0 5.3-2 5.7-5"/></svg></span>
+              <span class="co-pay-tx">
+                <span class="co-pay-name">PayPal</span>
+                <span class="co-pay-sub">Pay with your PayPal balance or a linked card</span>
+              </span>
+              <span class="co-pay-amt" data-pay-amt="paypal"></span>
             </button>
-            <button type="button" class="co-pay-btn co-pay-btn--crypto" data-key="crypto" data-method="crypto">
-              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9 8h4a2 2 0 1 1 0 4H9m0 0h4a2 2 0 1 1 0 4H9m1.5-9V6m0 12v-1.5"/></svg>
-              Crypto
+            <button type="button" class="co-pay-btn co-pay-btn--crypto" data-key="crypto" data-method="crypto" role="radio" aria-checked="false">
+              <span class="co-pay-ic"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9 8h4a2 2 0 1 1 0 4H9m0 0h4a2 2 0 1 1 0 4H9m1.5-9V6m0 12v-1.5"/></svg></span>
+              <span class="co-pay-tx">
+                <span class="co-pay-name">Crypto</span>
+                <span class="co-pay-sub">Bitcoin, Ethereum, USDC and more</span>
+              </span>
+              <span class="co-pay-amt" data-pay-amt="crypto"></span>
             </button>
-            <button type="button" class="co-pay-btn co-pay-btn--robux" data-key="robux" data-method="robux">
-              <span class="co-pay-robux-ic">R$</span>
-              Robux
+            <button type="button" class="co-pay-btn co-pay-btn--robux" data-key="robux" data-method="robux" role="radio" aria-checked="false">
+              <span class="co-pay-ic co-pay-robux-ic">R$</span>
+              <span class="co-pay-tx">
+                <span class="co-pay-name">Robux</span>
+                <span class="co-pay-sub">Buy a gamepass on Roblox — no card needed</span>
+              </span>
+              <span class="co-pay-amt" data-pay-amt="robux"></span>
             </button>
           </div>
-          <div class="co-pay-carousel-wrap" id="coPayCarouselWrap">
-            <span class="co-pay-accepts">Stripe accepts</span>
-            <div class="co-pay-carousel" aria-hidden="true">
-              <div class="co-pay-carousel-track">
-                <span class="co-pay-chip">Visa</span>
-                <span class="co-pay-chip">Mastercard</span>
-                <span class="co-pay-chip">Amex</span>
-                <span class="co-pay-chip">Apple Pay</span>
-                <span class="co-pay-chip">Google Pay</span>
-                <span class="co-pay-chip">Buy Now Pay Later</span>
-                <span class="co-pay-chip">Alipay</span>
-                <span class="co-pay-chip">WeChat Pay</span>
-                <span class="co-pay-chip">Direct Debit</span>
-                <span class="co-pay-chip">iDEAL</span>
-                <span class="co-pay-chip">Bancontact</span>
-                <span class="co-pay-chip">Klarna</span>
-                <span class="co-pay-chip">Visa</span>
-                <span class="co-pay-chip">Mastercard</span>
-                <span class="co-pay-chip">Amex</span>
-                <span class="co-pay-chip">Apple Pay</span>
-                <span class="co-pay-chip">Google Pay</span>
-                <span class="co-pay-chip">Buy Now Pay Later</span>
-                <span class="co-pay-chip">Alipay</span>
-                <span class="co-pay-chip">WeChat Pay</span>
-                <span class="co-pay-chip">Direct Debit</span>
-                <span class="co-pay-chip">iDEAL</span>
-                <span class="co-pay-chip">Bancontact</span>
-                <span class="co-pay-chip">Klarna</span>
-              </div>
-            </div>
-          </div>
+          <!-- The one honest line about what actually leaves the account.
+               Every method settles the same flat USD amount; the figures above
+               are that amount expressed in each method's own unit. -->
+          <p class="co-pay-settle" id="coPaySettle"></p>
 
           <div id="payCard" class="co-pay-panel" data-method-panel="stripe">
             <p class="co-hint">You'll choose exactly how to pay on Stripe's secure checkout page after placing your order.</p>
@@ -436,6 +433,6 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.2/dist/umd/supabase.min.js" integrity="sha384-B2duOBIryCXbX4eDE4BdJwtNkQMRQde3o6IsjfPW28E6aH1CYE96hHeZRG3zY56O" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script src="/supabase-init.js?v=20260807b"></script>
   <script src="/site-gate.js?v=20260729b"></script>
-  <script src="/catalog.js?v=20260807b" data-then="/app.js?v=20260807b"></script>
+  <script src="/catalog.js?v=20260807b" data-then="/app.js?v=20260807c"></script>
 </body>
 </html>

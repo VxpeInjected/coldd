@@ -123,6 +123,9 @@
       window.__fiat = function (usd) { return fmtFiat(usd, byCode[fiatCode] || byCode.USD); };
       window.__money = function (usd) { return mode === 'robux' ? window.__robux(usd) : fmtFiat(usd, byCode[fiatCode] || byCode.USD); };
       window.__currencyMode = function () { return mode; };
+      // Checkout needs to know WHICH fiat is selected, not just how to format
+      // it - a conversion note is noise when the buyer is already on USD.
+      window.__fiatCode = function () { return fiatCode; };
 
       const switchEl = document.getElementById('curSwitch');
       const fiatBtn = document.getElementById('curFiat');
@@ -2992,7 +2995,42 @@
         set('coTotal', disc > 0 ? money(total) : subtotalMoney());
         var fx = document.getElementById('coFx');
         if (fx) fx.textContent = 'All prices in USD. Your card is charged in USD via Stripe.';
+        renderPayAmounts(total);
         return total;
+      }
+
+      // Each method shows the SAME order total expressed in its own unit. The
+      // amount that actually leaves the account is always the flat USD figure -
+      // stated once, below the list, rather than repeated four times.
+      function renderPayAmounts(total) {
+        var usd = window.__usd ? window.__usd(total) : ('$' + total);
+        var fiat = window.__fiat ? window.__fiat(total) : usd;
+        var code = window.__fiatCode ? window.__fiatCode() : 'USD';
+        var onUsd = code === 'USD';
+
+        function set(key, v) {
+          var el = document.querySelector('[data-pay-amt="' + key + '"]');
+          if (el) el.textContent = v;
+        }
+        // Card and PayPal both settle in fiat, so both show the buyer's
+        // selected currency.
+        set('stripe', fiat);
+        set('paypal', fiat);
+        // Crypto stays in USD on purpose: the coin amount is only known once
+        // Coinbase quotes it at the live rate on its own checkout page.
+        // Printing a BTC figure here would be a number we invented.
+        set('crypto', usd);
+        // No local fallback here on purpose: ROBUX_PER_USD is scoped to a
+        // different IIFE in this file, so a fallback expression referencing it
+        // would throw rather than degrade. __robux is defined unconditionally
+        // at the top of this same file, so it is always present.
+        set('robux', window.__robux ? window.__robux(total) : usd);
+
+        var settle = document.getElementById('coPaySettle');
+        if (!settle) return;
+        settle.textContent = onUsd
+          ? 'Every method settles the same ' + usd + ' USD. Robux and crypto are converted at the time you pay.'
+          : 'Shown in ' + code + ' for reference only — every method settles the same ' + usd + ' USD, and your bank sets the final ' + code + ' rate.';
       }
       function render() {
         renderItems(); renderTotals(); updateResell();
@@ -3154,13 +3192,30 @@
         });
         var placeBtnEl = document.getElementById('coPlace');
         if (placeBtnEl) {
-          if (method === 'stripe') { placeBtnEl.hidden = false; placeBtnEl.disabled = false; placeBtnEl.textContent = 'Place order'; syncPlaceButtonToCart(); }
-          else if (method === 'robux') { placeBtnEl.hidden = true; }
-          else { placeBtnEl.hidden = false; placeBtnEl.disabled = true; placeBtnEl.textContent = 'Crypto checkout coming soon'; }
+          // Explicit per method. This used to be an if/else-if/else where the
+          // final branch caught everything that wasn't Stripe or Robux and
+          // labelled it "Crypto checkout coming soon" - so adding any new
+          // method silently inherited the crypto copy.
+          if (method === 'stripe' || method === 'paypal') {
+            placeBtnEl.hidden = false; placeBtnEl.disabled = false;
+            placeBtnEl.textContent = 'Place order';
+            syncPlaceButtonToCart();
+          } else if (method === 'robux') {
+            placeBtnEl.hidden = true;
+          } else if (method === 'crypto') {
+            placeBtnEl.hidden = false; placeBtnEl.disabled = true;
+            placeBtnEl.textContent = 'Crypto checkout coming soon';
+          } else {
+            placeBtnEl.hidden = false; placeBtnEl.disabled = true;
+            placeBtnEl.textContent = 'Unavailable';
+          }
         }
         if (method === 'robux') renderRobuxPanel();
-        var carouselWrap = document.getElementById('coPayCarouselWrap');
-        if (carouselWrap) carouselWrap.hidden = key !== 'stripe';
+        // Selection is exposed to assistive tech, not just painted. The row
+        // group is a radiogroup, so each row has to carry its own state.
+        document.querySelectorAll('.co-pay-btn').forEach(function (b) {
+          b.setAttribute('aria-checked', b.classList.contains('active') ? 'true' : 'false');
+        });
       }
       if (payMethodsWrap) payMethodsWrap.addEventListener('click', function (e) {
         var btn = e.target.closest('.co-pay-btn'); if (!btn) return;

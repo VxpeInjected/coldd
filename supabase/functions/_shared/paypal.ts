@@ -28,8 +28,12 @@ export function paypalBase(): string {
  * to save one cheap round trip.
  */
 export async function paypalToken(): Promise<string> {
-  const id = Deno.env.get("PAYPAL_CLIENT_ID");
-  const secret = Deno.env.get("PAYPAL_CLIENT_SECRET");
+  // Trimmed, because a trailing newline or stray space survives
+  // `supabase secrets set` intact and corrupts the Basic header - producing a
+  // 401 that looks exactly like wrong credentials. Cheap to defend against,
+  // and impossible to diagnose from the outside once it happens.
+  const id = (Deno.env.get("PAYPAL_CLIENT_ID") ?? "").trim();
+  const secret = (Deno.env.get("PAYPAL_CLIENT_SECRET") ?? "").trim();
   if (!id || !secret) throw new Error("PayPal credentials are not configured.");
 
   const res = await fetch(`${paypalBase()}/v1/oauth2/token`, {
@@ -42,9 +46,39 @@ export async function paypalToken(): Promise<string> {
   });
 
   if (!res.ok) {
-    // Never echo the response body - on a credentials failure PayPal can quote
+    // On an auth failure, probe the OTHER environment before giving up. Live
+    // and Sandbox credentials are indistinguishable by inspection - same
+    // prefix, same length - so this is the only way to tell a wrong-environment
+    // pair from a revoked one without the operator hand-testing both.
+    //
+    // Safe: this is an OAuth token request. It moves no money, creates no
+    // order, and the token is discarded. It only answers "do these credentials
+    // authenticate over there?"
+    let otherEnvNote = "";
+    try {
+      const otherBase = paypalEnv() === "live" ? SANDBOX_BASE : LIVE_BASE;
+      const probe = await fetch(`${otherBase}/v1/oauth2/token`, {
+        method: "POST",
+        headers: {
+          Authorization: `Basic ${btoa(`${id}:${secret}`)}`,
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: "grant_type=client_credentials",
+      });
+      otherEnvNote = probe.ok
+        ? ` These credentials ARE valid for ${paypalEnv() === "live" ? "sandbox" : "live"} - wrong environment.`
+        : " They are rejected by both environments, so the secret is stale or revoked.";
+    } catch {
+      otherEnvNote = "";
+    }
+
+    // Never echo PayPal's response body - on a credentials failure it can quote
     // parts of the request back, and this string ends up in function logs.
-    throw new Error(`PayPal auth failed (${res.status}).`);
+    // Lengths only: enough to spot a truncated or placeholder value without
+    // ever revealing the credential itself.
+    throw new Error(
+      `PayPal auth failed (${res.status}). [env=${paypalEnv()} idLen=${id.length} secretLen=${secret.length}]${otherEnvNote}`,
+    );
   }
   const data = await res.json();
   if (!data?.access_token) throw new Error("PayPal auth returned no token.");

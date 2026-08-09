@@ -74,11 +74,12 @@ export async function paypalToken(): Promise<string> {
 
     // Never echo PayPal's response body - on a credentials failure it can quote
     // parts of the request back, and this string ends up in function logs.
-    // Lengths only: enough to spot a truncated or placeholder value without
-    // ever revealing the credential itself.
-    throw new Error(
-      `PayPal auth failed (${res.status}). [env=${paypalEnv()} idLen=${id.length} secretLen=${secret.length}]${otherEnvNote}`,
-    );
+    //
+    // Credential lengths were reported here while the integration was being
+    // brought up, which is how a 131-character paste was caught. Removed once
+    // working: it is a small info leak on a response any caller can trigger,
+    // and the environment probe below is the part that actually diagnoses.
+    throw new Error(`PayPal auth failed (${res.status}) in ${paypalEnv()}.${otherEnvNote}`);
   }
   const data = await res.json();
   if (!data?.access_token) throw new Error("PayPal auth returned no token.");

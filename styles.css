@@ -2568,3 +2568,24 @@ input[type="checkbox"]:focus-visible { outline: 2px solid var(--accent); outline
 .pm-lic[hidden] { display: none; }
 .msym[hidden] { display: none; }
 .ico-ext[hidden] { display: none; }
+
+/* Cookie configure panel. Collapsed by default: the two common answers stay
+   one click, while per-category control is one click further rather than
+   hidden behind a link on another page. */
+.cookie-cats { display: flex; flex-direction: column; gap: 14px; width: 100%;
+  margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--hairline); }
+.cookie-cats[hidden] { display: none; }
+.cookie-cat { display: grid; grid-template-columns: 18px 1fr; gap: 12px; align-items: start; cursor: pointer; }
+/* Essential is checked and disabled, not hidden. Showing it locked is more
+   honest than implying there is nothing else stored. */
+.cookie-cat.is-locked { cursor: default; opacity: 0.85; }
+.cookie-cat input { width: 18px; height: 18px; margin: 2px 0 0; accent-color: var(--accent); cursor: inherit; }
+.cookie-cat-tx { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.cookie-cat-n { font-size: 14px; font-weight: 650; color: var(--fg); display: flex; align-items: center; gap: 8px; }
+.cookie-cat-tag { font-size: 10.5px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--fg-3); border: 1px solid var(--hairline); border-radius: 4px; padding: 2px 6px; }
+.cookie-cat-d { font-size: 12.5px; line-height: 1.5; color: var(--fg-3); max-width: 70ch; }
+.cookie-cats .cookie-save { align-self: flex-start; min-height: 40px; padding: 9px 18px; }
+@media (max-width: 620px) {
+  .cookie-cats .cookie-save { align-self: stretch; justify-content: center; }
+}

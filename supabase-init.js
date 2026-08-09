@@ -333,14 +333,51 @@
           '<a href="/privacy-policy">Read our privacy policy</a>.</p>' +
         '</div>' +
         '<div class="cookie-bar-actions">' +
+          '<button type="button" class="btn btn-ghost cookie-config" aria-expanded="false">Configure</button>' +
           '<button type="button" class="btn btn-tinted cookie-reject">Essential only</button>' +
           '<button type="button" class="btn btn-primary cookie-accept">Accept all</button>' +
+        '</div>' +
+        // Per-category detail. Collapsed by default so the common cases stay
+        // one click - a preferences panel nobody asked for is friction, but
+        // burying the choice behind a link is a dark pattern. Expanding is the
+        // middle path.
+        '<div class="cookie-cats" hidden>' +
+          '<label class="cookie-cat is-locked">' +
+            '<input type="checkbox" checked disabled />' +
+            '<span class="cookie-cat-tx">' +
+              '<span class="cookie-cat-n">Essential <span class="cookie-cat-tag">Always on</span></span>' +
+              '<span class="cookie-cat-d">Keeps you signed in, remembers your cart and currency, and stores this cookie choice. The site cannot work without it, so it is not optional.</span>' +
+            '</span>' +
+          '</label>' +
+          '<label class="cookie-cat">' +
+            '<input type="checkbox" class="cookie-cat-analytics" />' +
+            '<span class="cookie-cat-tx">' +
+              '<span class="cookie-cat-n">Analytics</span>' +
+              '<span class="cookie-cat-d">Tells us which pages get used and whether a cart was abandoned. Never shared, never used to identify you. Off unless you turn it on.</span>' +
+            '</span>' +
+          '</label>' +
+          '<button type="button" class="btn btn-primary cookie-save">Save preferences</button>' +
         '</div>' +
       '</div>';
 
     function close() { bar.classList.remove('in'); setTimeout(function () { bar.remove(); }, 220); }
     bar.querySelector('.cookie-accept').addEventListener('click', function () { window.coldConsent.accept(); close(); });
     bar.querySelector('.cookie-reject').addEventListener('click', function () { window.coldConsent.reject(); close(); });
+
+    var cats = bar.querySelector('.cookie-cats');
+    var configBtn = bar.querySelector('.cookie-config');
+    configBtn.addEventListener('click', function () {
+      var open = cats.hidden;
+      cats.hidden = !open;
+      configBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    });
+    bar.querySelector('.cookie-save').addEventListener('click', function () {
+      // Saving reflects exactly what the toggles say. An untouched panel saves
+      // analytics off, which matches the default - silence is still a decline.
+      var on = bar.querySelector('.cookie-cat-analytics').checked;
+      if (on) window.coldConsent.accept(); else window.coldConsent.reject();
+      close();
+    });
 
     document.body.appendChild(bar);
     // Next frame, so the entrance transition has a resting state to animate

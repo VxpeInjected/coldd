@@ -1271,17 +1271,31 @@
         return p && p.robuxPrice != null ? p.robuxPrice : null;
       }
       function itemUnitMoney(item) {
-        if (window.__currencyMode && window.__currencyMode() === 'robux' && item.licence !== 'resell') {
+        var robuxMode = window.__currencyMode && window.__currencyMode() === 'robux';
+        if (robuxMode && item.licence !== 'resell') {
           var rbx = catalogRobuxPrice(item.id);
           if (rbx != null) return 'R$ ' + Math.round(rbx).toLocaleString('en-US');
+        }
+        // A resell licence is never sold in Robux, so it must show USD even in
+        // Robux mode. Falling through to money() applied the flat 80-per-dollar
+        // display estimate and quoted a Robux price for something that cannot
+        // be bought with Robux at all.
+        if (robuxMode && item.licence === 'resell') {
+          return window.__usd ? window.__usd(item.price) : ('$' + item.price);
         }
         return money(item.price);
       }
       function subtotalMoney() {
         if (window.__currencyMode && window.__currencyMode() === 'robux') {
+          // A cart holding any resell item cannot total in Robux, so the whole
+          // subtotal falls back to USD rather than silently estimating one.
+          var hasResell = cart.some(function (i) { return i.licence === 'resell'; });
+          if (hasResell) {
+            return window.__usd ? window.__usd(subtotal()) : ('$' + subtotal());
+          }
           var total = 0, allPriced = true;
           cart.forEach(function (i) {
-            var rbx = i.licence !== 'resell' ? catalogRobuxPrice(i.id) : null;
+            var rbx = catalogRobuxPrice(i.id);
             if (rbx == null) { allPriced = false; return; }
             total += rbx * i.qty;
           });
@@ -1709,7 +1723,14 @@
           var robuxMode = window.__currencyMode ? window.__currencyMode() === 'robux' : false;
           licPriceEls.forEach(function (el) {
             var isResellOpt = el.getAttribute('data-licprice') === 'resell';
-            if (isResellOpt && robuxMode) { el.textContent = 'Not available'; return; }
+            // Resell licences are not sold in Robux, but "Not available" read
+            // as though the licence itself were unavailable rather than just
+            // that one currency. Showing the real USD price is honest and
+            // still buyable - the buyer simply pays for it by card.
+            if (isResellOpt && robuxMode) {
+              el.textContent = window.__usd ? window.__usd(resellUsd) : ('$' + resellUsd);
+              return;
+            }
             if (!isResellOpt && robuxMode && cur.robuxPrice != null) { el.textContent = robuxRaw(cur.robuxPrice); return; }
             var pp = isResellOpt ? resellUsd : cur.priceNum;
             el.textContent = window.__money ? window.__money(pp) : fiat(pp);

@@ -18,6 +18,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { priceRobuxItems } from "../_shared/roblox.ts";
+import { leasePassForOrder } from "../_shared/roblox_pool.ts";
 
 const ALLOWED_ORIGIN = "https://coldd.dev";
 
@@ -102,16 +103,35 @@ Deno.serve(async (req: Request) => {
       return json({ ok: false, error: "Could not create order items." }, 500);
     }
 
+    // One pass for the whole order, priced to the exact total - not one pass
+    // per product. The buyer makes a single Roblox purchase regardless of how
+    // many items are in the cart.
+    const leased = await leasePassForOrder(admin, order.id, totalRobux);
+    if (!leased.ok) {
+      await admin.from("orders").update({ status: "canceled" }).eq("id", order.id);
+      return json({ ok: false, error: leased.error, code: leased.code }, 503);
+    }
+
+    await admin.from("orders")
+      .update({ roblox_gamepass_id: leased.pass.gamepassId })
+      .eq("id", order.id);
+
     return json({
       ok: true,
       orderId: order.id,
       totalRobux,
+      // The single pass to buy. priceRobux is what we actually set on Roblox,
+      // which verification checks against - it is not merely the display total.
+      gamePassId: leased.pass.gamepassId,
+      priceRobux: leased.pass.priceRobux,
+      // Held so the buyer knows the window; the pass returns to the pool after
+      // this and the order has to be restarted.
+      expiresInSeconds: 900,
       items: lines.map((li) => ({
         slug: li.slug,
         title: li.title,
         qty: li.qty,
         unitRobux: li.unitRobux,
-        gamePassId: li.gamePassId,
       })),
     });
   } catch (err) {

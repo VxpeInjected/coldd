@@ -3,22 +3,29 @@
 // Deploy with:
 //   supabase functions deploy verify-robux-order
 //
-// Called after the buyer says they've bought each gamepass on Roblox.
-// Primary check: the buyer's own Roblox inventory (via their linked
-// OAuth token, user.inventory-item:read scope) - this is the
-// Open-Cloud-documented, officially-supported way to confirm ownership.
-// Fallback (only if ROBLOX_FALLBACK_COOKIE is configured - see
-// _shared/roblox.ts): scan the group's recent sale transactions for any
-// gamepass the inventory check missed. If neither confirms a given
-// gamepass, the order stays 'pending' - it's still visible in the admin
-// Orders panel for a manual "Mark completed" override
-// (admin-manage-order, already built), so nothing is ever silently lost,
-// it just needs a human to look.
+// Confirms a Robux order after the buyer says they've bought the gamepass.
+//
+// POOL MODEL. The order was served ONE pooled pass, priced to its exact total,
+// leased for a fixed window. Proving payment therefore means proving a SALE of
+// that pass, for that amount, after that lease began.
+//
+// Inventory ownership is deliberately no longer used. Pooled passes are reused
+// across buyers and orders, and gamepass ownership is permanent - so a buyer who
+// legitimately paid for a pass last week still owns it forever, and an ownership
+// check would hand them every later order that happened to draw the same pass,
+// for free. That is not a hardening detail; it is the reason the old approach
+// cannot survive pooling.
+//
+// Consequence worth knowing: the group sale ledger (ROBLOX_FALLBACK_COOKIE) is
+// now REQUIRED, not a fallback. Without it there is no safe way to confirm a
+// pooled purchase, so verification fails closed and the order waits for the
+// admin override in the Orders panel rather than being auto-confirmed.
 //
 // Body: { orderId }
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { checkGroupTransactionForSale, findOwnedGamePasses, getValidRobloxToken, RobloxInsufficientScopeError, robloxFallbackConfigured } from "../_shared/roblox.ts";
+import { findPoolSale, getValidRobloxToken } from "../_shared/roblox.ts";
+import { getLeasedPass, releasePass } from "../_shared/roblox_pool.ts";
 
 const ALLOWED_ORIGIN = "https://coldd.dev";
 
@@ -57,119 +64,87 @@ Deno.serve(async (req: Request) => {
     const orderId = String((await req.json().catch(() => ({}))).orderId || "");
     if (!orderId) return json({ ok: false, error: "Missing orderId." }, 400);
 
-    const { data: order, error: orderErr } = await admin.from("orders").select("*").eq("id", orderId).single();
+    const { data: order, error: orderErr } = await admin
+      .from("orders").select("*").eq("id", orderId).single();
     if (orderErr || !order) return json({ ok: false, error: "Order not found." }, 404);
     if (order.user_id !== userData.user.id) return json({ ok: false, error: "This isn't your order." }, 403);
     if (order.currency !== "robux") return json({ ok: false, error: "Not a Robux order." }, 400);
 
     if (order.status === "paid") return json({ ok: true, verified: true, status: "paid" });
-    if (order.status !== "pending") return json({ ok: false, error: `Order is ${order.status}, not pending.` }, 400);
+    if (order.status !== "pending") {
+      return json({ ok: false, error: `Order is ${order.status}, not pending.` }, 400);
+    }
 
-    const { data: items, error: itemsErr } = await admin
-      .from("order_items")
-      .select("product_id, title, qty")
-      .eq("order_id", orderId);
-    if (itemsErr || !items?.length) return json({ ok: false, error: "Could not load order items." }, 500);
-
-    const { data: products, error: prodErr } = await admin
-      .from("products")
-      .select("id, title, roblox_gamepass_id")
-      .in("id", items.map((i: { product_id: string }) => i.product_id));
-    if (prodErr || !products) return json({ ok: false, error: "Could not load products." }, 500);
-
-    // deno-lint-ignore no-explicit-any
-    const gamePassByProduct = new Map(products.map((p: any) => [p.id, { gamePassId: p.roblox_gamepass_id as string, title: p.title as string }]));
-    // deno-lint-ignore no-explicit-any
-    const targets = items
-      .map((i: any) => ({ productId: i.product_id as string, ...(gamePassByProduct.get(i.product_id) || {}) }))
-      .filter((t: any): t is { productId: string; gamePassId: string; title: string } => !!t.gamePassId);
-    if (!targets.length) return json({ ok: false, error: "This order has no linked gamepasses to verify." }, 500);
-    const gamePassIds = targets.map((t) => t.gamePassId);
+    // The lease is the source of truth for which pass and which price. If it
+    // has already been reclaimed, the window closed and the order must be
+    // restarted - re-pricing a pass mid-flight is exactly what the lease exists
+    // to prevent.
+    const pass = await getLeasedPass(admin, orderId);
+    if (!pass) {
+      return json({
+        ok: true,
+        verified: false,
+        status: "pending",
+        code: "LEASE_EXPIRED",
+        message: "This order's payment window expired. Please start the order again — you have not been charged.",
+      });
+    }
 
     const tokenSet = await getValidRobloxToken(admin, userData.user.id);
-    if (!tokenSet) {
-      return json({ ok: false, error: "Your Roblox link has expired - please re-link your account and try again.", code: "RELINK_NEEDED" }, 400);
+    const buyerId = order.roblox_buyer_id || (tokenSet ? tokenSet.robloxId : null);
+    if (!buyerId) {
+      return json({ ok: false, error: "Link your Roblox account first.", code: "NOT_LINKED" }, 400);
     }
 
-    const buyerId = order.roblox_buyer_id || tokenSet.robloxId;
+    // Prefer the price actually set on Roblox for this lease over the order
+    // total. If those ever disagree, the buyer could only have paid the former.
+    const expectedRobux = Number(pass.lease_price_robux ?? order.total_robux ?? 0);
+    if (!(expectedRobux > 0)) {
+      return json({ ok: false, error: "This order has no confirmed price to verify against." }, 500);
+    }
 
-    // Roblox doesn't expose a purchase timestamp for gamepasses (addTime
-    // is explicitly documented as "not populated for passes"), so plain
-    // ownership can't distinguish a purchase made for THIS order from one
-    // made long ago (or for an earlier order of the same product) - a
-    // buyer could otherwise get infinite free re-verifications on repeat
-    // orders for a gamepass they already own. Only the first order for a
-    // given (buyer, product) may be auto-confirmed via inventory; later
-    // ones fall through to the group-transaction fallback (which checks
-    // actual per-sale records) or manual admin review. This must match
-    // ANY prior paid order regardless of how it was verified - excluding
-    // group_transaction-verified orders here would let a buyer re-claim
-    // the same already-owned gamepass for free on every order after the
-    // first one that happened to go through the fallback path.
-    const { data: priorPaid } = await admin
-      .from("orders")
-      .select("id, order_items(product_id)")
-      .eq("roblox_buyer_id", buyerId)
-      .eq("status", "paid")
-      .neq("id", orderId);
-    const alreadyClaimedProductIds = new Set<string>();
-    // deno-lint-ignore no-explicit-any
-    (priorPaid || []).forEach((o: any) => (o.order_items || []).forEach((it: any) => alreadyClaimedProductIds.add(it.product_id)));
+    const sale = await findPoolSale(
+      String(pass.gamepass_id),
+      String(buyerId),
+      expectedRobux,
+      String(pass.leased_at ?? order.created_at),
+    );
 
-    let owned: Set<string>;
-    try {
-      owned = await findOwnedGamePasses(tokenSet.accessToken, tokenSet.robloxId, gamePassIds);
-    } catch (err) {
-      if (err instanceof RobloxInsufficientScopeError) {
+    if (!sale.found) {
+      if (sale.reason === "NOT_CONFIGURED" || sale.reason === "COOKIE_BROKEN") {
+        // Fail closed. There is no ownership fallback under pooling, so an
+        // unavailable ledger means "cannot confirm", never "assume paid".
+        console.error("[verify-robux-order] sale ledger unavailable:", sale.reason);
         return json({
           ok: false,
-          error: "Your Roblox link doesn't have inventory permission yet - unlink and re-link your Roblox account, then try again.",
-          code: "RELINK_NEEDED",
-        }, 400);
+          code: "VERIFY_UNAVAILABLE",
+          error: "We can't confirm Robux payments right now. Contact support and we'll complete your order manually — your payment is safe.",
+        }, 503);
       }
-      console.error("[verify-robux-order] inventory check error:", err);
-      return json({ ok: false, error: "Could not check your Roblox inventory: " + (err as Error).message }, 502);
-    }
-    // Inventory-confirmed, but only counts as fresh proof-of-purchase if
-    // this (buyer, product) hasn't already been used to confirm a
-    // different order.
-    const freshlyOwned = new Set(
-      targets.filter((t) => owned.has(t.gamePassId) && !alreadyClaimedProductIds.has(t.productId)).map((t) => t.gamePassId),
-    );
-    let missing = gamePassIds.filter((id) => !freshlyOwned.has(id));
-    let usedFallback = false;
-
-    if (missing.length && robloxFallbackConfigured()) {
-      const stillMissing: string[] = [];
-      for (const id of missing) {
-        const foundInGroup = await checkGroupTransactionForSale(id, buyerId);
-        if (foundInGroup) usedFallback = true;
-        else stillMissing.push(id);
-      }
-      missing = stillMissing;
+      return json({
+        ok: true,
+        verified: false,
+        status: "pending",
+        message: "We haven't seen your purchase yet. Roblox can take a few minutes to report it — try again shortly.",
+      });
     }
 
-    if (missing.length === 0) {
-      const method = usedFallback ? "group_transaction" : "inventory";
-      await admin
-        .from("orders")
-        .update({ status: "paid", paid_at: new Date().toISOString(), roblox_verification_method: method })
-        .eq("id", orderId);
-      return json({ ok: true, verified: true, status: "paid" });
-    }
+    // Conditional update doubles as the guard against two verify calls racing.
+    await admin
+      .from("orders")
+      .update({
+        status: "paid",
+        paid_at: new Date().toISOString(),
+        roblox_verification_method: "pool_sale",
+      })
+      .eq("id", orderId)
+      .neq("status", "paid");
 
-    const missingTargets = targets.filter((t) => missing.includes(t.gamePassId));
-    const missingTitles = missingTargets.map((t) => t.title);
-    // checkedRobloxUserId/gamePassId are internal identifiers - logged for
-    // support/debugging, never returned to the caller.
-    console.log("[verify-robux-order] unverified:", { orderId, robloxUserId: tokenSet.robloxId, gamePassIds: missingTargets.map((t) => t.gamePassId) });
-    return json({
-      ok: true,
-      verified: false,
-      status: "pending",
-      missing: missingTitles,
-      message: "Could not confirm: " + missingTitles.join(", ") + ". Roblox purchases can take a few minutes to show up - try again shortly.",
-    });
+    // Hand the pass back and take it off sale, so nobody can pay this order's
+    // price in the gap before it is re-leased and re-priced.
+    await releasePass(admin, orderId, String(pass.universe_id), String(pass.gamepass_id));
+
+    return json({ ok: true, verified: true, status: "paid" });
   } catch (err) {
     console.error("[verify-robux-order] error:", err);
     return json({ ok: false, error: "Server error." }, 500);

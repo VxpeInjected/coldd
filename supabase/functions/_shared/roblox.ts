@@ -278,6 +278,72 @@ export function robloxFallbackConfigured(): boolean {
   return !!Deno.env.get("ROBLOX_FALLBACK_COOKIE");
 }
 
+/**
+ * Pool-model verification: proves a purchase of THIS pass, at THIS price, AFTER
+ * this lease began.
+ *
+ * Ownership is useless once passes are pooled and reused. A gamepass is owned
+ * forever, so a buyer who legitimately paid for pool pass #3 last week still
+ * "owns" it - and an ownership check would hand them every future order free the
+ * next time that pass came round. Only a sale record carries the amount and the
+ * timestamp that distinguish one purchase from another.
+ *
+ * All three conditions are required. Dropping any one of them reintroduces a way
+ * to pay less than the order is worth, or to reuse an older purchase.
+ */
+export async function findPoolSale(
+  gamePassId: string,
+  buyerRobloxId: string,
+  expectedRobux: number,
+  leasedAtIso: string,
+): Promise<{ found: boolean; reason?: string }> {
+  const cookie = Deno.env.get("ROBLOX_FALLBACK_COOKIE");
+  const groupId = Deno.env.get("ROBLOX_GROUP_ID");
+  if (!cookie || !groupId) return { found: false, reason: "NOT_CONFIGURED" };
+
+  try {
+    const url = `https://economy.roblox.com/v2/groups/${groupId}/transactions?transactionType=Sale&limit=100&sortOrder=Desc`;
+    const res = await fetch(url, { headers: { Cookie: `.ROBLOSECURITY=${cookie}` } });
+    if (res.status === 401 || res.status === 403) {
+      console.error("[roblox] sale lookup: cookie rejected", res.status);
+      await notifyRobloxCookieBroken(`Pool sale lookup got HTTP ${res.status} - the cookie is likely expired.`);
+      return { found: false, reason: "COOKIE_BROKEN" };
+    }
+    if (!res.ok) return { found: false, reason: "LOOKUP_FAILED" };
+
+    const data = await res.json().catch(() => ({}));
+    // deno-lint-ignore no-explicit-any
+    const rows: any[] = data.data || [];
+    const leasedAt = Date.parse(leasedAtIso);
+
+    const match = rows.find((row) => {
+      const details = row.details || {};
+      const agent = row.agent || {};
+      if (String(details.id) !== String(gamePassId)) return false;
+      if (String(agent.id) !== String(buyerRobloxId)) return false;
+
+      // Amount. Roblox reports the group's share, which for a group-owned pass
+      // is the full price less their cut, so compare with tolerance rather than
+      // exact equality - but never accept materially less than expected.
+      const amount = Math.abs(Number(row.currency?.amount ?? NaN));
+      if (!Number.isFinite(amount)) return false;
+      if (amount < expectedRobux * 0.65) return false;
+
+      // Time. Must postdate the lease, or an older purchase of this same pooled
+      // pass would satisfy a brand-new order.
+      const created = Date.parse(row.created ?? "");
+      if (!Number.isFinite(created) || !Number.isFinite(leasedAt)) return false;
+      // Small allowance for clock skew between Roblox and us.
+      return created >= leasedAt - 120_000;
+    });
+
+    return { found: !!match };
+  } catch (err) {
+    console.error("[roblox] pool sale lookup error:", err);
+    return { found: false, reason: "LOOKUP_FAILED" };
+  }
+}
+
 // Checks the group's recent Sale transactions for a purchase of the given
 // gamePassId by the given Roblox buyer. Returns true/false; never throws.
 export async function checkGroupTransactionForSale(

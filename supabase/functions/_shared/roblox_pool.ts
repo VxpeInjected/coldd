@@ -1,0 +1,168 @@
+// Order-queue gamepass pool.
+//
+// Replaces the per-product gamepass model. A small pool of reusable passes is
+// kept; each Robux checkout LEASES one, has its Roblox price set to that order's
+// exact total, and serves that single pass to the buyer.
+//
+// Ordering matters and is not arbitrary:
+//
+//   1. LEASE FIRST, in Postgres. Exclusivity has to be won before anything is
+//      mutated on Roblox, because Roblox has no transactions and no
+//      compare-and-set on price. Two buyers sharing a pass means the cheaper
+//      one can pay the cheaper price and be credited the dearer order.
+//   2. THEN set the price on Roblox.
+//   3. THEN record the price we set, so verification compares against the price
+//      for THIS lease rather than against the order total alone.
+//
+// If step 2 fails the lease is released immediately - holding a pass we could
+// not price would shrink the pool for nothing.
+
+import { createGamepass, updateGamepass, pickContainer } from "./roblox.ts";
+
+export type LeasedPass = {
+  gamepassId: string;
+  universeId: string;
+  priceRobux: number;
+};
+
+export type LeaseOutcome =
+  | { ok: true; pass: LeasedPass }
+  | { ok: false; error: string; code?: string };
+
+/** How long a buyer has to complete before the pass returns to the pool. */
+const LEASE_TTL_SECONDS = 900; // 15 minutes
+
+// deno-lint-ignore no-explicit-any
+async function tryLease(admin: any, orderId: string) {
+  const { data, error } = await admin.rpc("lease_roblox_pass", {
+    p_order_id: orderId,
+    p_ttl_seconds: LEASE_TTL_SECONDS,
+  });
+  if (error) throw new Error(`lease_roblox_pass failed: ${error.message}`);
+  // The RPC returns the row, or nothing when the pool is exhausted.
+  const row = Array.isArray(data) ? data[0] : data;
+  return row && row.id ? row : null;
+}
+
+/**
+ * Adds one pass to the pool. Called only when every existing pass is busy, so
+ * the pool grows to meet real concurrency instead of being sized by guesswork.
+ *
+ * Roblox caps a universe at 50 gamepasses and offers no API to create new
+ * experiences, so this can genuinely run out - in which case the caller must
+ * fail the checkout rather than silently serve a wrong pass.
+ */
+// deno-lint-ignore no-explicit-any
+async function provisionPass(admin: any): Promise<boolean> {
+  const container = await pickContainer(admin);
+  if (!container) return false;
+
+  const created = await createGamepass(container.universe_id, {
+    name: `coldd order pass ${Date.now().toString(36)}`,
+    description: "Automatically managed by coldd checkout. Price changes per order.",
+    price: 1,
+  });
+  const gamepassId = String(created.gamePassId ?? "");
+  if (!gamepassId) return false;
+
+  const { error } = await admin.from("roblox_pool_passes").insert({
+    gamepass_id: gamepassId,
+    universe_id: container.universe_id,
+    label: "auto-provisioned",
+  });
+  if (error) {
+    // The pass exists on Roblox but we could not record it. Leaving it
+    // unrecorded is the safe failure: an untracked pass is inert, whereas a
+    // duplicate row could be leased twice.
+    console.error("[roblox_pool] created gamepass but insert failed", error.message);
+    return false;
+  }
+
+  await admin.rpc("increment_roblox_container", { p_id: container.id });
+  return true;
+}
+
+/**
+ * Leases a pass for an order and prices it. Idempotent per order: calling twice
+ * returns the same pass rather than consuming a second one, which is what makes
+ * a double-submitted or retried checkout safe.
+ */
+// deno-lint-ignore no-explicit-any
+export async function leasePassForOrder(
+  admin: any,
+  orderId: string,
+  priceRobux: number,
+): Promise<LeaseOutcome> {
+  const price = Math.max(1, Math.round(priceRobux));
+
+  let row = await tryLease(admin, orderId);
+
+  if (!row) {
+    // Pool exhausted. Grow it once and retry - "once" because a second failure
+    // means the containers are full, which no amount of retrying fixes.
+    const grew = await provisionPass(admin);
+    if (grew) row = await tryLease(admin, orderId);
+  }
+
+  if (!row) {
+    return {
+      ok: false,
+      code: "POOL_EXHAUSTED",
+      error: "Robux checkout is busy right now. Please try again in a few minutes.",
+    };
+  }
+
+  try {
+    await updateGamepass(String(row.universe_id), String(row.gamepass_id), {
+      price,
+      isForSale: true,
+    });
+  } catch (e) {
+    // Could not price it - hand the pass straight back rather than holding a
+    // pass the buyer cannot correctly pay for.
+    await admin.rpc("release_roblox_pass", { p_order_id: orderId });
+    console.error("[roblox_pool] price update failed", e instanceof Error ? e.message : e);
+    return { ok: false, error: "Could not prepare your Robux payment. Please try again." };
+  }
+
+  // Recorded only after Roblox confirmed the price, so the stored figure always
+  // reflects what a buyer could actually have paid.
+  await admin.rpc("set_roblox_pass_price", { p_order_id: orderId, p_price_robux: price });
+
+  return {
+    ok: true,
+    pass: {
+      gamepassId: String(row.gamepass_id),
+      universeId: String(row.universe_id),
+      priceRobux: price,
+    },
+  };
+}
+
+/** Returns the pass currently leased to an order, if any. */
+// deno-lint-ignore no-explicit-any
+export async function getLeasedPass(admin: any, orderId: string) {
+  const { data } = await admin
+    .from("roblox_pool_passes")
+    .select("gamepass_id, universe_id, lease_price_robux, lease_expires_at")
+    .eq("leased_order_id", orderId)
+    .maybeSingle();
+  return data ?? null;
+}
+
+/**
+ * Returns a pass to the pool and takes it off sale. Called after a verified
+ * purchase, so the next buyer cannot pay the previous buyer's price during the
+ * window before it is re-leased and re-priced.
+ */
+// deno-lint-ignore no-explicit-any
+export async function releasePass(admin: any, orderId: string, universeId: string, gamepassId: string) {
+  try {
+    await updateGamepass(universeId, gamepassId, { isForSale: false });
+  } catch (e) {
+    // Non-fatal: the pass is still released below, and the next lease re-prices
+    // and re-enables it before anyone is pointed at it.
+    console.error("[roblox_pool] could not take pass off sale", e instanceof Error ? e.message : e);
+  }
+  await admin.rpc("release_roblox_pass", { p_order_id: orderId });
+}

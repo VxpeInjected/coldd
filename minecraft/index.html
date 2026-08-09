@@ -314,7 +314,17 @@
                 <span class="fc-label">Categories</span>
                 <div class="fc-cats">
               <button class="fc-cat active" data-cat="all"><span>All</span><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></button>
-              <button class="fc-cat fc-cat-resell" data-cat="resell"><span>Resell License</span><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></button>
+              <div class="fc-cat-group">
+                <button class="fc-cat fc-cat-resell" data-cat="resell"><span>Resell License</span><svg class="fc-chev" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></button>
+                <div class="fc-subs" hidden>
+                  <button class="fc-sub" data-cat="resell" data-subcat="hubs">Hubs</button>
+                  <button class="fc-sub" data-cat="resell" data-subcat="lobbies">Lobbies</button>
+                  <button class="fc-sub" data-cat="resell" data-subcat="maps">Maps</button>
+                  <button class="fc-sub" data-cat="resell" data-subcat="builds">Builds</button>
+                  <button class="fc-sub" data-cat="resell" data-subcat="plugins">Plugins</button>
+                  <button class="fc-sub" data-cat="resell" data-subcat="setups">Full Setups</button>
+                </div>
+              </div>
               <button class="fc-cat" data-cat="hubs"><span>Hubs</span><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></button>
               <button class="fc-cat" data-cat="lobbies"><span>Lobbies</span><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></button>
               <button class="fc-cat" data-cat="maps"><span>Maps</span><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></button>
@@ -509,6 +519,6 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.2/dist/umd/supabase.min.js" integrity="sha384-B2duOBIryCXbX4eDE4BdJwtNkQMRQde3o6IsjfPW28E6aH1CYE96hHeZRG3zY56O" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script src="/supabase-init.js?v=20260809a"></script>
   <script src="/site-gate.js?v=20260729b"></script>
-  <script src="/catalog.js?v=20260807b" data-then="/app.js?v=20260809c"></script>
+  <script src="/catalog.js?v=20260807b" data-then="/app.js?v=20260809d"></script>
 </body>
 </html>

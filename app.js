@@ -909,7 +909,13 @@
           const okCat = curCat === 'all' ? true
                       : curCat === 'resell' ? p.getAttribute('data-resell') === 'yes'
                       : p.getAttribute('data-cat') === curCat;
-          const okSub = !curSub || p.getAttribute('data-subcat') === curSub;
+          // Resell License is a cross-cutting filter, not a category of its
+          // own - a resellable product still lives in Maps or Scripts & UI. So
+          // under Resell the sub-buttons ARE the real categories, and curSub
+          // matches data-cat rather than data-subcat.
+          const okSub = !curSub ? true
+                      : curCat === 'resell' ? p.getAttribute('data-cat') === curSub
+                      : p.getAttribute('data-subcat') === curSub;
           const okSale = !onSale || p.hasAttribute('data-was');
           const okFree = !onFree || p.getAttribute('data-free') === 'yes';
           return okCat && okSub && okSale && okFree && (!query || title.indexOf(query) >= 0) && price >= lo && price <= hi;

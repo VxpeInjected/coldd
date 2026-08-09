@@ -382,7 +382,12 @@
       if (newest.length) {
         function escNr(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
         track.innerHTML = newest.map(function (p) {
-          return '<div class="nr-slide" style="background-image:url(\'' + p.image + '\')"><div class="nr-cap"><span class="nr-chip">New</span><span class="nr-title">' + escNr(p.title) + '</span><a class="btn nr-view" href="/product?id=' + encodeURIComponent(p.id) + '" target="_blank" rel="noopener">View product</a></div></div>';
+          // The image lives on its own .nr-bg layer so the drift animation can
+          // scale the photograph without dragging the caption and button with
+          // it. The static placeholder slides in the markup keep their inline
+          // background on .nr-slide, which still renders if the catalog fetch
+          // never resolves.
+          return '<div class="nr-slide"><span class="nr-bg" style="background-image:url(\'' + p.image + '\')"></span><div class="nr-cap"><span class="nr-chip">New</span><span class="nr-title">' + escNr(p.title) + '</span><a class="btn nr-view" href="/product?id=' + encodeURIComponent(p.id) + '" target="_blank" rel="noopener">View product</a></div></div>';
         }).join('');
         if (dotsWrap) dotsWrap.innerHTML = newest.map(function () { return '<span class="nr-dot"></span>'; }).join('');
       }
@@ -2249,7 +2254,23 @@
           .eq('user_id', userId)
           .order('created_at', { ascending: false })
           .then(function (res) {
-            var orders = ((res && res.data) || []).filter(function (o) { return o.status !== 'failed'; });
+            // Purchase history should show purchases, not attempts. Abandoned
+            // checkouts leave 'pending' rows behind - the buyer opened Stripe
+            // or PayPal and never finished - and those piled up until the
+            // history was mostly things that never happened.
+            //
+            // Genuinely in-flight orders are still shown, because a crypto
+            // payment can legitimately sit pending for minutes while the
+            // network confirms and it would be alarming for it to vanish.
+            // Anything older than that window was abandoned.
+            var IN_FLIGHT_MS = 2 * 60 * 60 * 1000; // 2 hours
+            var now = Date.now();
+            var orders = ((res && res.data) || []).filter(function (o) {
+              if (o.status === 'paid') return true;
+              if (o.status === 'failed' || o.status === 'canceled') return false;
+              var age = now - Date.parse(o.created_at || '');
+              return Number.isFinite(age) && age < IN_FLIGHT_MS;
+            });
             renderOverview(orders);
             renderPurchases(orders);
             renderOwnedAndDownloads(orders);

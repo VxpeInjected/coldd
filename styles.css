@@ -1954,8 +1954,13 @@ button.dt-badge:disabled { cursor: default; opacity: 0.6; }
 @keyframes nrDrift { from { transform: scale(1); } to { transform: scale(1.07); } }
 @keyframes nrCapIn { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
 
-html.js .nr-frame .nr-slide { transform-origin: center; }
-html.js .nr-frame .nr-slide.is-active { animation: nrDrift 7.2s var(--ease-out) forwards; }
+/* The drift scales a dedicated background layer, NOT the slide.
+   Scaling .nr-slide scaled its children too, so the caption and the View
+   product button crept across the frame for 7.2s along with the image - which
+   read exactly like broken button positioning. Only the photograph should
+   move. */
+.nr-bg { position: absolute; inset: 0; background: center / cover no-repeat; transform-origin: center; }
+html.js .nr-frame .nr-slide.is-active .nr-bg { animation: nrDrift 7.2s var(--ease-out) forwards; }
 /* `backwards` holds the from-state during the delay, so a caption never flashes
    at full opacity for a frame before its stagger begins. */
 html.js .nr-frame .nr-slide.is-active .nr-cap > * { animation: nrCapIn .62s var(--ease-out) backwards; }

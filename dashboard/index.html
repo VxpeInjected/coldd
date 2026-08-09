@@ -28,7 +28,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
 
-  <link rel="stylesheet" href="/styles.css?v=20260809c" />
+  <link rel="stylesheet" href="/styles.css?v=20260809d" />
 </head>
 <body>
   <div class="backdrop"></div>
@@ -170,7 +170,7 @@
           <button class="ref-tab" type="button" data-reftab="product">Product referrals</button>
         </div>
         <div class="ref-pane" data-refpane="account">
-          <div class="dash-card glass ref-link"><span class="ref-label">Your sign-up referral link</span><div class="ref-box"><input id="refLink" type="text" readonly value="" /><button class="btn btn-primary" id="refCopy" type="button">Copy</button></div><p class="ref-note">Earn 20% of every purchase made by users who sign up through your link. Payouts are requested manually below and reviewed by our team - nothing is sent automatically.</p></div>
+          <div class="dash-card glass ref-link"><span class="ref-label">Your sign-up referral link</span><div class="ref-box"><input id="refLink" type="text" readonly aria-label="Your sign-up referral link" value="" /><button class="btn btn-primary" id="refCopy" type="button">Copy</button></div><p class="ref-note">Earn 20% of every purchase made by users who sign up through your link. Payouts are requested manually below and reviewed by our team - nothing is sent automatically.</p></div>
           <div class="dash-stats">
             <div class="dash-stat glass"><span class="ds-label">Link clicks</span><span class="ds-num" id="refStatClicks">0</span></div>
             <div class="dash-stat glass"><span class="ds-label">Sign-ups</span><span class="ds-num" id="refStatSignups">0</span></div>
@@ -263,7 +263,7 @@
           <div class="danger-confirm" id="delConfirm" hidden>
             <p>Are you sure? Type the code below to confirm - it can't be copy-pasted, you have to type it out.</p>
             <p class="danger-code" id="delCode" oncontextmenu="return false"></p>
-            <div class="danger-row"><input id="delInput" type="text" placeholder="Type the code" autocomplete="off" /><button class="btn danger-btn" id="delFinal" type="button"><span class="btn-label">Confirm delete</span><span class="btn-spinner" hidden></span></button><button class="btn btn-ghost" id="delCancel" type="button">Cancel</button></div>
+            <div class="danger-row"><input id="delInput" type="text" placeholder="Type the code" aria-label="Confirmation code to delete your account" autocomplete="off" /><button class="btn danger-btn" id="delFinal" type="button"><span class="btn-label">Confirm delete</span><span class="btn-spinner" hidden></span></button><button class="btn btn-ghost" id="delCancel" type="button">Cancel</button></div>
             <p class="auth-err" id="delErr"></p>
           </div>
         </div>
@@ -330,7 +330,7 @@
         </div>
 
         <div class="foot-col">
-          <h4>Explore</h4>
+          <h3>Explore</h3>
           <a href="/">Home</a>
           <a href="/blog">Blog</a>
           <a href="/blog?view=tutorials">Tutorials</a>
@@ -340,26 +340,26 @@
         </div>
 
         <div class="foot-col">
-          <h4>Our Assets</h4>
+          <h3>Our Assets</h3>
           <a href="/assets">Roblox</a>
           <a href="/minecraft">Minecraft</a>
         </div>
 
         <div class="foot-col">
-          <h4>Account</h4>
+          <h3>Account</h3>
           <a href="/signin">Sign in</a>
           <a href="/signup">Create Account</a>
           <a href="/dashboard">Dashboard</a>
         </div>
 
         <div class="foot-col">
-          <h4>Contact</h4>
+          <h3>Contact</h3>
           <a href="mailto:support@coldd.dev">support@coldd.dev</a>
           <a href="https://discord.gg/coldd" target="_blank" rel="noopener">Discord</a>
         </div>
 
         <div class="foot-col">
-          <h4>Legal</h4>
+          <h3>Legal</h3>
           <a href="/privacy-policy">Privacy Policy</a>
           <a href="/terms-of-service">Terms of Service</a>
           <a href="/refund-policy">Refund Policy</a>

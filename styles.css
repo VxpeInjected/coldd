@@ -514,7 +514,7 @@
     footer { border-top: 1px solid rgba(255,255,255,0.06); margin-top: 40px; padding: 54px 0 34px; }
     .foot-grid { display: grid; grid-template-columns: 1.5fr 1fr 1.7fr 0.9fr 1.1fr 0.9fr; gap: 34px 26px; }
     .foot-brand p { color: var(--fg-2); font-size: 13px; line-height: 1.6; margin: 16px 0 14px; max-width: 240px; }
-    .foot-col h4 { font-size: 12px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: #fff; margin: 0 0 14px; }
+    .foot-col h3 { font-size: 12px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: #fff; margin: 0 0 14px; }
     .foot-col a { display: block; color: var(--fg-2); text-decoration: none; font-size: var(--t-label); padding: 5px 0;
       transition: color .2s ease, transform .2s var(--ease); }
     .foot-col a:hover { color: var(--fg); transform: translateX(3px); }
@@ -522,8 +522,14 @@
     .foot-bottom { margin-top: 44px; padding-top: 22px; border-top: 1px solid rgba(255,255,255,0.06); display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px; align-items: center; }
     .foot-bottom .muted { font-size: 12px; color: var(--fg-3); }
     .foot-social { display: flex; align-items: center; gap: 16px; }
-    .foot-social a { display: inline-flex; color: var(--fg); opacity: 0.78; transition: opacity .2s, transform .2s var(--ease); }
+    /* The marks are 18px, which is below the 24px WCAG target minimum and well
+       under a comfortable thumb. The ::after projects a 44px hit area without
+       changing layout or the visual size - the same trick .nr-dot already uses
+       for the carousel dots. */
+    .foot-social a { position: relative; display: inline-flex; color: var(--fg); opacity: 0.78; transition: opacity .2s, transform .2s var(--ease); }
+    .foot-social a::after { content: ""; position: absolute; inset: -13px; }
     .foot-social a:hover { opacity: 1; }
+    .foot-social a:focus-visible { outline: 2px solid var(--accent); outline-offset: 6px; border-radius: var(--r-xs); }
     .foot-social svg { width: 18px; height: 18px; display: block; }
     @media (max-width: 980px) { .foot-grid { grid-template-columns: 1fr 1fr 1fr; } }
     @media (max-width: 560px) { .foot-grid { grid-template-columns: 1fr 1fr; } }

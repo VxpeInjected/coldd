@@ -1,0 +1,136 @@
+// Creates a coldd order and a hosted crypto invoice, and returns the URL to
+// send the buyer to.
+//
+// Mirrors create-paypal-order / create-checkout-session: same server-side
+// repricing, same pending-order-before-provider ordering, same optional
+// sign-in. Prices are always recomputed from the database - the client sends
+// slugs and quantities, never amounts.
+//
+// Note what this function does NOT do: it never marks anything paid. Crypto
+// settles on-chain minutes later, often after the buyer has closed the tab, so
+// fulfilment belongs exclusively to the signed webhook.
+
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { priceItems, resolveCoupon } from "../_shared/coupon.ts";
+import { activeProvider } from "../_shared/crypto.ts";
+
+const ALLOWED_ORIGIN = "https://coldd.dev";
+
+function corsHeaders() {
+  return {
+    "Access-Control-Allow-Origin": ALLOWED_ORIGIN,
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+  };
+}
+
+function json(body: unknown, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders(), "Content-Type": "application/json" },
+  });
+}
+
+Deno.serve(async (req: Request) => {
+  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders() });
+
+  try {
+    const authHeader = req.headers.get("Authorization") ?? "";
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const siteUrl = Deno.env.get("SITE_URL") ?? ALLOWED_ORIGIN;
+
+    let user: { id: string } | null = null;
+    if (authHeader) {
+      const userClient = createClient(supabaseUrl, anonKey, {
+        global: { headers: { Authorization: authHeader } },
+      });
+      const { data: userData } = await userClient.auth.getUser();
+      if (userData?.user) user = userData.user;
+    }
+
+    const body = await req.json().catch(() => ({}));
+    const admin = createClient(supabaseUrl, serviceKey);
+
+    const priced = await priceItems(admin, Array.isArray(body.items) ? body.items : []);
+    if (!priced.ok) return json({ ok: false, error: priced.error }, 400);
+    const { lines, subtotal } = priced;
+    if (subtotal <= 0) return json({ ok: false, error: "Order total must be greater than zero." }, 400);
+
+    let discount = 0;
+    let appliedCouponCode: string | null = null;
+    if (body.couponCode) {
+      const couponResult = await resolveCoupon(admin, String(body.couponCode), lines);
+      if (couponResult.ok) {
+        discount = couponResult.discount;
+        appliedCouponCode = couponResult.code;
+      }
+    }
+    const total = Math.max(0, Math.round((subtotal - discount) * 100) / 100);
+    if (total <= 0) return json({ ok: false, error: "Order total must be greater than zero." }, 400);
+
+    const provider = activeProvider();
+
+    const { data: order, error: orderErr } = await admin
+      .from("orders")
+      .insert({
+        user_id: user ? user.id : null,
+        status: "pending",
+        subtotal_usd: subtotal,
+        discount_usd: discount,
+        total_usd: total,
+        coupon_code: appliedCouponCode,
+        payment_provider: "crypto",
+        crypto_provider: provider.name,
+      })
+      .select()
+      .single();
+    if (orderErr || !order) return json({ ok: false, error: "Could not create order." }, 500);
+
+    const { error: itemsErr } = await admin.from("order_items").insert(
+      lines.map((li) => ({
+        order_id: order.id,
+        product_id: li.productId,
+        product_slug: li.slug,
+        title: li.title,
+        licence: li.licence,
+        unit_price_usd: li.unitPrice,
+        qty: li.qty,
+      })),
+    );
+    if (itemsErr) {
+      await admin.from("orders").update({ status: "canceled" }).eq("id", order.id);
+      return json({ ok: false, error: "Could not create order items." }, 500);
+    }
+
+    const charge = await provider.createCharge({
+      orderId: order.id,
+      amountUsd: total,
+      description: `coldd order ${String(order.id).slice(0, 8)}`,
+      // The success page only ever POLLS the order; it cannot mark it paid.
+      returnUrl: `${siteUrl}/success/?provider=crypto&orderId=${order.id}`,
+      cancelUrl: `${siteUrl}/checkout/?canceled=1`,
+      callbackUrl: `${supabaseUrl}/functions/v1/crypto-webhook`,
+    });
+
+    if (!charge.ok) {
+      await admin.from("orders").update({ status: "failed" }).eq("id", order.id);
+      return json({ ok: false, error: charge.error }, 502);
+    }
+
+    await admin.from("orders")
+      .update({ crypto_charge_id: charge.providerId })
+      .eq("id", order.id);
+
+    return json({ ok: true, url: charge.url, orderId: order.id });
+  } catch (e) {
+    const detail = e instanceof Error ? e.message : String(e);
+    console.error("create-crypto-charge error", detail);
+    const known = detail.startsWith("Crypto payments are not configured");
+    return json(
+      { ok: false, error: known ? detail : "Unexpected error starting crypto checkout." },
+      known ? 503 : 500,
+    );
+  }
+});

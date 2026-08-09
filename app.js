@@ -3222,8 +3222,9 @@
           } else if (method === 'robux') {
             placeBtnEl.hidden = true;
           } else if (method === 'crypto') {
-            placeBtnEl.hidden = false; placeBtnEl.disabled = true;
-            placeBtnEl.textContent = 'Crypto checkout coming soon';
+            placeBtnEl.hidden = false; placeBtnEl.disabled = false;
+            placeBtnEl.textContent = 'Place order';
+            syncPlaceButtonToCart();
           } else {
             placeBtnEl.hidden = false; placeBtnEl.disabled = true;
             placeBtnEl.textContent = 'Unavailable';
@@ -3248,7 +3249,7 @@
         // Card and PayPal both place an order from this button; they differ
         // only in which function mints the redirect. Robux and crypto drive
         // their own panels and never reach here.
-        if (payMethod !== 'stripe' && payMethod !== 'paypal') return;
+        if (payMethod !== 'stripe' && payMethod !== 'paypal' && payMethod !== 'crypto') return;
 
         // Signing in is optional - a guest can check out fine (create-checkout-session
         // leaves orders.user_id null for them); this just ties the order to an
@@ -3272,7 +3273,9 @@
         // Only slugs, quantities and a coupon code are ever sent. Both
         // functions re-price the whole cart from the database, so a tampered
         // request buys nothing at the wrong price.
-        var checkoutFn = payMethod === 'paypal' ? 'create-paypal-order' : 'create-checkout-session';
+        var checkoutFn = payMethod === 'paypal' ? 'create-paypal-order'
+          : payMethod === 'crypto' ? 'create-crypto-charge'
+          : 'create-checkout-session';
 
         window.coldSupabase.functions.invoke(checkoutFn, { body: checkoutBody })
           .then(function (res) {
@@ -3323,9 +3326,16 @@
       var paypalOrderIdParam = new URLSearchParams(location.search).get('provider') === 'paypal'
         ? new URLSearchParams(location.search).get('orderId')
         : null;
-      // Downstream polling looks orders up the same way for both, so fold the
-      // PayPal id into the generic order-id slot.
-      if (paypalOrderIdParam && !robuxOrderIdParam) robuxOrderIdParam = paypalOrderIdParam;
+      // Crypto returns here too, but must NEVER capture from the browser: the
+      // payment confirms on-chain minutes later, often after the buyer has
+      // gone, so the signed webhook is the only thing allowed to mark it paid.
+      // This page just polls and reports what the order row says.
+      var cryptoOrderIdParam = new URLSearchParams(location.search).get('provider') === 'crypto'
+        ? new URLSearchParams(location.search).get('orderId')
+        : null;
+      // Downstream polling looks orders up the same way for all of them, so
+      // fold whichever id we got into the generic order-id slot.
+      if (!robuxOrderIdParam) robuxOrderIdParam = paypalOrderIdParam || cryptoOrderIdParam;
 
       try { localStorage.setItem('coldd_cart_v1', '[]'); } catch (e) {}
       window.dispatchEvent(new Event('currencychange'));
@@ -3379,9 +3389,16 @@
               if (subEl) subEl.textContent = 'Your files are ready below.';
               renderItems(data.items || []);
             } else if (triesLeft > 0) {
+              // Crypto sits in "pending" for real minutes while the network
+              // confirms, so say that rather than leaving a blank wait.
+              if (cryptoOrderIdParam && subEl) {
+                subEl.textContent = 'Waiting for the network to confirm your payment. This usually takes a few minutes — you can close this page, your order will still complete.';
+              }
               setTimeout(function () { poll(triesLeft - 1); }, 1500);
             } else if (subEl) {
-              subEl.textContent = 'Still finalizing your payment — check the Download Centre in your dashboard shortly.';
+              subEl.textContent = cryptoOrderIdParam
+                ? 'Still confirming on the network. Your order will complete automatically once it lands — check your dashboard shortly.'
+                : 'Still finalizing your payment — check the Download Centre in your dashboard shortly.';
             }
           })
           .catch(function () {

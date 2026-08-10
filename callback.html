@@ -6,20 +6,38 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <meta name="robots" content="noindex" />
 <title>Signing in — coldd</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+<!-- This screen had its own hardcoded palette - #0a0a0a ground, a MONOSPACE
+     face, a #b23a3a spinner - so the moment right after signing in looked like
+     a terminal rather than coldd. It costs nothing to load the real stylesheet
+     here: the visitor arrived from /signin, so it is already cached. -->
+<link rel="stylesheet" href="/styles.css?v=20260809e" />
 <style>
-  html,body{height:100%;margin:0;background:#0a0a0a;color:#d7d7d7;font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;}
-  .cb-wrap{height:100%;display:flex;align-items:center;justify-content:center;}
-  .cb-card{border:1px solid #262626;background:#111;padding:32px 36px;text-align:center;min-width:280px;}
-  .cb-spin{width:22px;height:22px;margin:0 auto 16px;border:2px solid #262626;border-top-color:#b23a3a;border-radius:50%;animation:cbspin .8s linear infinite;}
-  @keyframes cbspin{to{transform:rotate(360deg);}}
-  .cb-card p{margin:0;font-size:13px;letter-spacing:.02em;color:#a3a3a3;}
+  .cb-wrap { min-height: 100vh; min-height: 100dvh; display: flex; align-items: center; justify-content: center; padding: 24px; }
+  .cb-card { display: flex; flex-direction: column; align-items: center; gap: 18px;
+    padding: 40px 44px; border-radius: var(--r); min-width: 280px; text-align: center; }
+  .cb-logo { height: 30px; width: auto; display: block; opacity: 0.92; }
+  /* Ember, matching every other loading state on the site. */
+  .cb-spin { width: 26px; height: 26px; border: 2px solid var(--hairline);
+    border-top-color: var(--accent); border-radius: 50%; animation: cbspin .8s linear infinite; }
+  @keyframes cbspin { to { transform: rotate(360deg); } }
+  .cb-card p { margin: 0; font-size: 14.5px; line-height: 1.5; color: var(--fg-2); max-width: 34ch; }
+  /* The spinner is the only motion here and it signals work in progress, so
+     under reduced motion it holds still rather than vanishing - a static ring
+     still reads as "waiting". */
+  @media (prefers-reduced-motion: reduce) { .cb-spin { animation: none; } }
 </style>
 </head>
 <body>
+  <div class="backdrop"></div>
+  <div class="scrim"></div>
   <div class="cb-wrap">
-    <div class="cb-card">
+    <div class="cb-card glass">
+      <img class="cb-logo" src="/logo.png" alt="coldd" />
       <div class="cb-spin" aria-hidden="true"></div>
-      <p id="cbMsg">Finishing sign-in…</p>
+      <p id="cbMsg" role="status">Finishing sign-in…</p>
     </div>
   </div>
 

@@ -3165,7 +3165,11 @@
         if (totalEl) totalEl.textContent = 'R$ ' + total.toLocaleString('en-US');
       }
       var robuxLinkBtn = document.getElementById('coRobuxLinkBtn');
-      if (robuxLinkBtn) robuxLinkBtn.addEventListener('click', function () { if (window.coldAuth) window.coldAuth.signInRoblox(); });
+      // Come back to checkout with Robux still selected, rather than landing
+      // on the dashboard with a half-finished order behind you.
+      if (robuxLinkBtn) robuxLinkBtn.addEventListener('click', function () {
+        if (window.coldAuth) window.coldAuth.signInRoblox('/checkout?method=robux');
+      });
       var robuxVerifyBtn = document.getElementById('coRobuxVerifyBtn');
       if (robuxVerifyBtn) robuxVerifyBtn.addEventListener('click', function () {
         if (!robuxOrderId || !window.coldAuth) return;
@@ -3232,7 +3236,14 @@
         var btn = e.target.closest('.co-pay-btn'); if (!btn) return;
         setPayMethod(btn.getAttribute('data-key'));
       });
-      setPayMethod('stripe');
+      // ?method= lets a round trip land back on the method it left from -
+      // notably returning from Roblox OAuth after linking to pay in Robux.
+      // Validated against the rendered buttons so an arbitrary value cannot
+      // select a method that does not exist.
+      var requestedMethod = new URLSearchParams(location.search).get('method');
+      var methodExists = requestedMethod && payMethodsWrap &&
+        payMethodsWrap.querySelector('.co-pay-btn[data-key="' + CSS.escape(requestedMethod) + '"]');
+      setPayMethod(methodExists ? requestedMethod : 'stripe');
 
       var placeBtn = document.getElementById('coPlace'), msg = document.getElementById('coMsg'), agreeErr = document.getElementById('coAgreeErr');
       if (placeBtn) placeBtn.addEventListener('click', function () {

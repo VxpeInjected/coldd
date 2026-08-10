@@ -192,11 +192,23 @@
     // exchange happens server-side in roblox-oauth-callback, invoked from
     // roblox-callback.html. Links an existing coldd account; not a
     // primary sign-in method.
-    signInRoblox: function () {
+    // `returnTo` is where roblox-callback.html should land once the round trip
+    // finishes. Linking from the Robux checkout used to end on the dashboard,
+    // which abandons a half-finished order: the buyer linked their account in
+    // order to pay, and got moved away from the payment they were making.
+    signInRoblox: function (returnTo) {
       if (!ROBLOX_OAUTH_CLIENT_ID) { console.error('[coldd] Roblox OAuth client ID not configured yet.'); return; }
       var redirectUri = location.origin + '/roblox-callback.html';
       var state = Math.random().toString(36).slice(2) + Date.now().toString(36);
       try { sessionStorage.setItem('coldd_roblox_oauth_state', state); } catch (e) {}
+      try {
+        // Same-origin paths only - this value comes back as a redirect target.
+        if (returnTo && returnTo.charAt(0) === '/' && returnTo.charAt(1) !== '/') {
+          sessionStorage.setItem('coldd_roblox_return', returnTo);
+        } else {
+          sessionStorage.removeItem('coldd_roblox_return');
+        }
+      } catch (e) {}
       var params = new URLSearchParams({
         client_id: ROBLOX_OAUTH_CLIENT_ID,
         redirect_uri: redirectUri,

@@ -488,6 +488,7 @@
   // Real data from public.admin_audit_log (see supabase/admin_audit_log.sql)
   // - shared across every admin's browser, not per-device localStorage.
   var AUDIT = [];
+  var AUDIT_PERSIST_ERROR = null;
 
   function logAudit(action) {
     var entry = { ts: new Date().toISOString(), actor: currentRole().name, action: action };
@@ -497,7 +498,14 @@
     window.coldSupabase.from('admin_audit_log').insert({
       actor_id: ADMIN.id, actor_name: entry.actor, action: action
     }).then(function (res) {
-      if (res.error) console.error('[logAudit] failed to persist:', res.error.message);
+      if (res.error) {
+        console.error('[logAudit] failed to persist:', res.error.message);
+        // Silently falling back to the in-memory copy is how this ends up
+        // looking like a session-only log: the entries are right there on
+        // screen, they just evaporate on reload. Say so instead.
+        AUDIT_PERSIST_ERROR = res.error.message || 'unknown error';
+        if (curPanel === 'audit') renderAudit();
+      }
     });
   }
 
@@ -507,7 +515,13 @@
       .order('created_at', { ascending: false })
       .limit(300)
       .then(function (res) {
-        if (res.error) { console.error('[refreshAuditLog] failed:', res.error.message); return; }
+        if (res.error) {
+          console.error('[refreshAuditLog] failed:', res.error.message);
+          AUDIT_PERSIST_ERROR = res.error.message || 'unknown error';
+          if (curPanel === 'audit') renderAudit();
+          return;
+        }
+        AUDIT_PERSIST_ERROR = null;
         AUDIT = (res.data || []).map(function (row) {
           return { ts: row.created_at, actor: row.actor_name, action: row.action };
         });
@@ -3013,10 +3027,61 @@
   /* ================================================================
      AUDIT LOG PANEL
      ================================================================ */
+  var auditQuery = '', auditActor = '';
+
+  // Declared before renderAudit() runs; makeDropdown returns a no-op shim if
+  // the element is missing, so this is safe even on a stripped page.
+  var auditActorDropdown = makeDropdown($('admAuditActorDD'), {
+    valueInput: $('admAuditActor'),
+    placeholder: 'All staff',
+    onChange: function (v) { auditActor = v || ''; renderAudit(); }
+  });
+  if ($('admAuditSearch')) {
+    $('admAuditSearch').addEventListener('input', function (e) {
+      auditQuery = e.target.value.trim();
+      renderAudit();
+    });
+  }
+
   function renderAudit() {
-    $('admAuditBody').innerHTML = AUDIT.map(function (a) {
+    var warn = $('admAuditWarn');
+    if (warn) {
+      warn.hidden = !AUDIT_PERSIST_ERROR;
+      if (AUDIT_PERSIST_ERROR) {
+        warn.innerHTML = '<strong>This log is not being saved.</strong> Entries below are only in this browser tab and ' +
+          'will disappear on reload. The admin_audit_log table is missing or unreadable - run ' +
+          '<code>supabase/admin_audit_log.sql</code> in the Supabase SQL editor. ' +
+          '<span class="adm-sub">(' + esc(AUDIT_PERSIST_ERROR) + ')</span>';
+      }
+    }
+
+    var actors = [];
+    AUDIT.forEach(function (a) { if (a.actor && actors.indexOf(a.actor) < 0) actors.push(a.actor); });
+    actors.sort();
+    if (auditActorDropdown) {
+      auditActorDropdown.setOptions([{ value: '', label: 'All staff' }].concat(actors.map(function (n) {
+        return { value: n, label: n };
+      })));
+      auditActorDropdown.setValue(auditActor, true);
+    }
+
+    var q = auditQuery.toLowerCase();
+    var rows = AUDIT.filter(function (a) {
+      if (auditActor && a.actor !== auditActor) return false;
+      if (q && (a.action || '').toLowerCase().indexOf(q) < 0 && (a.actor || '').toLowerCase().indexOf(q) < 0) return false;
+      return true;
+    });
+
+    if ($('admAuditCount')) {
+      $('admAuditCount').textContent = rows.length === AUDIT.length
+        ? (AUDIT.length + ' entr' + (AUDIT.length === 1 ? 'y' : 'ies'))
+        : (rows.length + ' of ' + AUDIT.length);
+    }
+
+    $('admAuditBody').innerHTML = rows.map(function (a) {
       return '<tr><td>' + fmtDateTime(new Date(a.ts)) + '</td><td>' + esc(a.actor) + '</td><td>' + esc(a.action) + '</td></tr>';
-    }).join('') || '<tr><td colspan="3" class="adm-empty">No actions logged yet this session.</td></tr>';
+    }).join('') || ('<tr><td colspan="3" class="adm-empty">' +
+      (AUDIT.length ? 'No entries match that filter.' : 'No actions logged yet.') + '</td></tr>');
   }
 
   /* ================================================================

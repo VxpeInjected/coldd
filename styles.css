@@ -2234,6 +2234,16 @@ html.js .nr-frame .nr-slide.is-active .nr-cap > :nth-child(3) { animation-delay:
 .adm-note-warn { color: var(--warn); font-weight: 600; }
 a.adm-sub[href] { color: var(--fg-1); cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
 .adm-note { color: var(--fg-3); font-size: 12px; line-height: 1.55; margin-top: 12px; }
+
+/* Audit log persistence warning. A log that quietly stops saving is worse
+   than no log, so this is warn-weight, not a footnote. */
+.adm-audit-warn { margin-bottom: 16px; padding: 14px 16px; border-radius: var(--r-sm);
+  background: var(--warn-tint); border: 1px solid var(--warn-line);
+  color: var(--fg-1); font-size: 13px; line-height: 1.6; }
+.adm-audit-warn[hidden] { display: none; }
+.adm-audit-warn strong { color: var(--warn); }
+.adm-audit-warn code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px; padding: 1px 5px; border-radius: var(--r-xs); background: rgba(255,255,255,0.08); }
 .adm-empty { color: var(--fg-3); font-size: 13px; padding: 18px 0; text-align: center; }
 .adm-rank { flex: 0 0 auto; width: 26px; color: var(--fg-3); font-weight: 700; font-size: 13px; }
 

@@ -1,18 +1,89 @@
-<!doctype html>
-<html>
+<!DOCTYPE html>
+<html lang="en">
 <head>
-  <script>document.documentElement.classList.add('js');</script><meta charset="utf-8"><title>Private</title></head>
-<body>
-<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;text-align:center;">
-  <div>
-    <p>This domain is private. Enter the password to unlock.</p>
-    <form id="lockForm">
-      <input type="password" id="lockPw" autocomplete="off" />
-      <button type="submit">Go</button>
-    </form>
-    <p id="lockErr" style="display:none;">Incorrect password.</p>
-  </div>
-</div>
+  <script>document.documentElement.classList.add('js');</script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>coldd Development — Private</title>
+  <link rel="icon" type="image/png" href="/logo.png" />
+  <meta name="robots" content="noindex" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+
+  <!-- This page previously loaded NO stylesheet at all, so the gate - the very
+       first thing anyone sees while the site is private - rendered as browser
+       defaults: Times New Roman on white, with unstyled form controls. It now
+       shares the site's own tokens and type. -->
+  <link rel="stylesheet" href="/styles.css?v=20260809e" />
+</head>
+<body class="lock-page">
+  <div class="backdrop"></div>
+  <div class="scrim"></div>
+
+  <main class="lock-wrap">
+    <div class="lock-card glass">
+      <img class="lock-logo" src="/logo.png" alt="coldd" />
+
+      <h1 class="lock-h1">This site isn't public yet</h1>
+      <p class="lock-sub">coldd is still being built. If you've been given a password, enter it below to take a look around.</p>
+
+      <form id="lockForm" class="lock-form" novalidate>
+        <label class="lock-field">
+          <span class="lock-label">Access password</span>
+          <input type="password" id="lockPw" autocomplete="current-password" placeholder="Enter password" aria-describedby="lockErr" />
+        </label>
+        <button class="btn btn-primary lock-go" type="submit">
+          <span class="lock-go-label">Unlock</span>
+        </button>
+      </form>
+
+      <p class="lock-err" id="lockErr" role="alert" hidden>That password isn't right. Check it and try again.</p>
+
+      <p class="lock-foot">Not expecting this? <a href="https://discord.gg/coldd" target="_blank" rel="noopener">Find us on Discord</a>.</p>
+    </div>
+  </main>
+
+  <style>
+    /* Scoped to the gate. It ships no shared chrome, so these few rules live
+       here rather than adding weight to every other page's stylesheet - same
+       reasoning as 404.html. */
+    .lock-wrap { min-height: 100vh; min-height: 100dvh; display: flex; align-items: center; justify-content: center; padding: 24px; }
+    .lock-card { width: 100%; max-width: 440px; padding: 40px 36px 32px; border-radius: var(--r);
+      display: flex; flex-direction: column; align-items: flex-start; gap: 0; }
+    .lock-logo { height: 34px; width: auto; display: block; margin-bottom: 26px; }
+    .lock-h1 { font-size: 27px; font-weight: 800; letter-spacing: -0.028em; line-height: 1.15; margin: 0; color: var(--fg); text-wrap: balance; }
+    .lock-sub { font-size: 14.5px; line-height: 1.55; color: var(--fg-2); margin: 10px 0 0; max-width: 46ch; }
+
+    .lock-form { display: flex; flex-direction: column; gap: 12px; width: 100%; margin-top: 26px; }
+    .lock-field { display: flex; flex-direction: column; gap: 7px; width: 100%; }
+    .lock-label { font-size: var(--t-label); font-weight: 600; color: var(--fg-2); }
+    /* 16px minimum so iOS Safari does not zoom the viewport on focus - the
+       same floor the rest of the site's inputs hold to. */
+    .lock-field input { width: 100%; font-family: inherit; font-size: 16px; color: var(--fg);
+      background: rgba(255,255,255,0.04); border: 1px solid var(--hairline); border-radius: var(--r-ctl);
+      padding: 12px 14px; min-height: 46px;
+      transition: border-color .18s var(--ease), background .18s var(--ease); }
+    .lock-field input::placeholder { color: var(--fg-3); }
+    .lock-field input:focus { outline: none; border-color: var(--accent); background: rgba(255,255,255,0.06); }
+    .lock-go { width: 100%; justify-content: center; margin-top: 2px; }
+
+    .lock-err { width: 100%; margin: 14px 0 0; font-size: 13.5px; line-height: 1.5;
+      color: var(--warn); background: var(--warn-tint); border: 1px solid var(--warn-line);
+      border-radius: var(--r-ctl); padding: 10px 13px; }
+    .lock-err[hidden] { display: none; }
+
+    .lock-foot { font-size: 13px; color: var(--fg-3); margin: 22px 0 0; }
+    .lock-foot a { color: var(--fg-2); text-decoration: underline; text-underline-offset: 2px; }
+    .lock-foot a:hover { color: var(--fg); }
+
+    @media (max-width: 460px) {
+      .lock-card { padding: 32px 24px 26px; }
+      .lock-h1 { font-size: 23px; }
+    }
+  </style>
+
 <script>
   // Password is checked server-side via a Supabase Edge Function - it is
   // never present in this file, so it can't be read via view-source or
@@ -24,7 +95,11 @@
     e.preventDefault();
     var v = document.getElementById('lockPw').value;
     var btn = e.target.querySelector('button');
+    var label = btn.querySelector('.lock-go-label');
+    var err = document.getElementById('lockErr');
+    err.hidden = true;
     btn.disabled = true;
+    if (label) label.textContent = 'Checking…';
     try {
       var res = await fetch(SUPABASE_URL + '/functions/v1/lock-check', {
         method: 'POST',
@@ -33,17 +108,21 @@
       });
       var data = await res.json();
       btn.disabled = false;
+      if (label) label.textContent = 'Unlock';
       if (data && data.ok) {
-        try { sessionStorage.setItem('coldd_unlocked', '1'); } catch (err) {}
+        try { sessionStorage.setItem('coldd_unlocked', '1'); } catch (err2) {}
         var params = new URLSearchParams(location.search);
         var dest = params.get('r');
         location.replace(dest ? decodeURIComponent(dest) : '/');
       } else {
-        document.getElementById('lockErr').style.display = 'block';
+        err.hidden = false;
+        document.getElementById('lockPw').select();
       }
-    } catch (err) {
+    } catch (err3) {
       btn.disabled = false;
-      document.getElementById('lockErr').style.display = 'block';
+      if (label) label.textContent = 'Unlock';
+      err.textContent = "Couldn't reach the server. Check your connection and try again.";
+      err.hidden = false;
     }
   });
 </script>

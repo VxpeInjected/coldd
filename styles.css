@@ -1494,7 +1494,11 @@ body.auth-page { min-height: 100vh; }
 .auth-input-wrap { position: relative; }
 .auth-field input[type="email"], .auth-field input[type="password"], .auth-field input[type="text"] {
   width: 100%; min-height: 46px; padding: 12px 14px; border-radius: 16px; border: 1px solid var(--hairline);
-  background: rgba(255,255,255,0.04); color: var(--fg); font-family: inherit; font-size: 14px; outline: none;
+  /* 16px, not 14px. Below 16px iOS Safari zooms the viewport the moment the
+     field is focused, which on the sign-in page means the layout lurches
+     exactly when someone is trying to type their password. DESIGN.md sets this
+     floor explicitly and the auth pages were the last place still breaking it. */
+  background: rgba(255,255,255,0.04); color: var(--fg); font-family: inherit; font-size: 16px; outline: none;
   transition: border-color .2s, background .2s; }
 .auth-field input::placeholder { color: var(--fg-3); }
 .auth-field input:focus { border-color: rgba(255,77,68,0.5); background: rgba(255,255,255,0.06); }
@@ -2408,12 +2412,15 @@ a.adm-sub[href] { color: var(--fg-1); cursor: pointer; text-decoration: underlin
 .auth-resend:not([disabled]):hover { border-color: rgba(255,255,255,0.3); color: var(--fg); }
 
 /* auth split-screen full page layout */
-body.auth-page { background: #050505; }
+/* The auth pages sat on near-pure #050505 while every other surface on the
+   site is the graphite --bg. Side by side they read as two different
+   products; the sign-in screen is now the same ground as everything else. */
+body.auth-page { background: var(--bg); }
 .auth-split { display: flex; min-height: 100vh; }
 .auth-split-left { flex: 0 0 46%; max-width: 560px; display: flex; flex-direction: column; justify-content: center;
-  padding: 118px 56px 56px; background: #050505; position: relative; z-index: 1; }
+  padding: 118px 56px 56px; background: var(--bg); position: relative; z-index: 1; }
 .auth-split-right { flex: 1; position: relative; overflow: hidden; background-image: url('builds.jpg'); background-size: cover; background-position: center; }
-.auth-split-right::before { content: ""; position: absolute; inset: 0; background: linear-gradient(160deg, rgba(5,5,5,0.65) 0%, rgba(226,56,47,0.28) 100%); }
+.auth-split-right::before { content: ""; position: absolute; inset: 0; background: linear-gradient(160deg, rgba(21,22,27,0.72) 0%, rgba(226,56,47,0.26) 100%); }
 .auth-split-logo { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
 .auth-split-logo img { width: 260px; max-width: 60%; opacity: 0.92; filter: drop-shadow(0 10px 34px var(--ink-60)); }
 .auth-split-left .auth-card { max-width: 100%; padding: 0; background: none; border: none; box-shadow: none; }

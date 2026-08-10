@@ -103,14 +103,20 @@
 
   <main class="page checkout-page success-page">
     <div class="wrap checkout">
-      <div class="co-main ty">
+      <div class="co-main ty" id="tyRoot" data-state="pending">
         <a class="co-back" href="/assets">Continue shopping</a>
 
-        <!-- app.js swaps the icon's state class once the order is confirmed
-             paid, so the mark must not claim success before the poll says so. -->
+        <!-- app.js swaps data-state once the order is confirmed paid, so the
+             mark must not claim success before the poll says so. While it is
+             pending the ring spins: this page can sit here for minutes on a
+             crypto confirmation, and a still frame reads as a hung page. -->
         <div class="ty-mark" id="successMark" data-state="pending" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <span class="ty-ring"></span>
+          <svg class="ty-tick" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M20 6 9 17l-5-5"/>
+          </svg>
+          <svg class="ty-cross" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18 6 6 18M6 6l12 12"/>
           </svg>
         </div>
 
@@ -118,6 +124,15 @@
         <p class="co-hint" id="successSub">Hang tight, this only takes a moment.</p>
 
         <div id="successItems"></div>
+
+        <!-- Primary exits. Without these the page is a dead end: the buyer has
+             their files and nothing to click. Shown once the order resolves,
+             including on failure, where "check your dashboard" is the whole
+             advice the copy gives. -->
+        <div class="ty-actions" id="tyActions">
+          <a class="btn btn-primary" href="/dashboard?panel=owned">Go to dashboard</a>
+          <a class="btn btn-ghost" href="/assets">Keep shopping</a>
+        </div>
 
         <section class="ty-next" aria-labelledby="tyNextTitle">
           <h2 id="tyNextTitle">What happens next</h2>

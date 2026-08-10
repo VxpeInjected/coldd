@@ -1760,19 +1760,51 @@ button.dt-badge:disabled { cursor: default; opacity: 0.6; }
    single column centres instead of leaving a 388px hole. */
 .success-page .checkout { grid-template-columns: min(720px, 100%); justify-content: center; }
 
-.ty-mark { display: grid; place-items: center; width: 52px; height: 52px; border-radius: var(--r-pill);
-  margin-bottom: 18px; border: 1px solid var(--hairline);
+.ty-mark { position: relative; display: grid; place-items: center; width: 56px; height: 56px;
+  border-radius: var(--r-pill); margin-bottom: 18px; border: 1px solid var(--hairline);
   background: rgba(255,255,255,0.05); color: var(--fg-3);
   transition: color .3s var(--ease-out), background .3s var(--ease-out), border-color .3s var(--ease-out); }
-.ty-mark svg { width: 26px; height: 26px; }
-/* Pending: the tick is present but unlit, so it reads as "not yet". */
-.ty-mark[data-state="pending"] svg { opacity: 0.4; }
+.ty-mark svg { grid-area: 1 / 1; width: 26px; height: 26px; }
+.ty-tick, .ty-cross { display: none; }
+
+/* Pending: an ember ring sweeps the mark. A card capture can take a few
+   seconds and a crypto confirmation genuinely takes minutes, so this is the
+   only thing telling the buyer the page is still working rather than stuck. */
+.ty-ring { position: absolute; inset: -1px; border-radius: var(--r-pill);
+  border: 2px solid transparent; border-top-color: var(--accent);
+  animation: tyspin .9s linear infinite; }
+@keyframes tyspin { to { transform: rotate(360deg); } }
+.ty-mark:not([data-state="pending"]) .ty-ring { display: none; }
+
 .ty-mark[data-state="ok"] { color: var(--ok); background: var(--ok-tint); border-color: rgba(107,216,138,0.32); }
+.ty-mark[data-state="ok"] .ty-tick { display: block; animation: tymark .3s var(--ease-out) both; }
 .ty-mark[data-state="fail"] { color: var(--accent); background: rgba(255,77,68,0.12); border-color: rgba(255,77,68,0.3); }
-.ty-mark[data-state="fail"] svg { opacity: 1; transform: rotate(45deg) scale(0.92); }
+.ty-mark[data-state="fail"] .ty-cross { display: block; animation: tymark .3s var(--ease-out) both; }
+@keyframes tymark { from { opacity: 0; transform: scale(0.7); } to { opacity: 1; transform: scale(1); } }
+
+/* A static ring still reads as "waiting"; the resolved states are meaning,
+   not decoration, so they stay - they just arrive without the pop. */
+@media (prefers-reduced-motion: reduce) {
+  .ty-ring { animation: none; }
+  .ty-mark[data-state="ok"] .ty-tick, .ty-mark[data-state="fail"] .ty-cross { animation: none; }
+}
 
 #successItems { display: flex; flex-direction: column; gap: 14px; margin-top: 24px; }
 #successItems:empty { display: none; }
+
+.ty-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 28px; }
+.ty-actions .btn { flex: 1 1 auto; justify-content: center; min-width: 170px; }
+
+/* While the payment is still resolving there is nothing to download and no
+   outcome to act on, so the exits and the "what happens next" steps - which
+   talk about download buttons that do not exist yet - stay hidden. The
+   support line below them is always visible, because a buyer stuck on a
+   pending payment is exactly who needs it. */
+.ty[data-state="pending"] .ty-actions,
+.ty[data-state="pending"] .ty-next,
+.ty[data-state="pending"] .ty-links { display: none; }
+/* On failure the steps are wrong but the exits are the entire remedy. */
+.ty[data-state="fail"] .ty-next { display: none; }
 
 .ty-next, .ty-links { margin-top: 34px; }
 .ty-next h2, .ty-links h2 { font-size: 17px; font-weight: 700; margin-bottom: 14px; }

@@ -3325,7 +3325,14 @@
       // Showing it on arrival would claim success while a PayPal capture or a
       // crypto confirmation is still outstanding, which is exactly the state
       // where the buyer most needs the truth.
-      function mark(state) { if (markEl) markEl.setAttribute('data-state', state); }
+      var tyRoot = document.getElementById('tyRoot');
+      function mark(state) {
+        if (markEl) markEl.setAttribute('data-state', state);
+        // The "what happens next" steps talk about download buttons that only
+        // exist once the order reads as paid, so they stay out of the way
+        // until then rather than instructing the buyer to click nothing.
+        if (tyRoot) tyRoot.setAttribute('data-state', state);
+      }
       var sessionId = new URLSearchParams(location.search).get('session_id');
       var robuxOrderIdParam = new URLSearchParams(location.search).get('order_id');
       // PayPal returns here after approval. Approval is NOT payment - the

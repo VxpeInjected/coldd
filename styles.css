@@ -1142,6 +1142,25 @@ body.no-scroll { overflow: hidden; }
 .pm-x { position: absolute; top: 14px; right: 14px; z-index: 2; background: rgba(10,11,14,0.55); }
 .product { cursor: pointer; }
 
+/* Breadcrumbs -------------------------------------------------------------
+   Sitewide trail. The product page keeps its own .pd-crumb because it sits in
+   a different container and is built by app.js from catalog data; this is the
+   static-page equivalent and matches it visually. */
+.crumbs { font-size: 13px; font-weight: 600; margin-bottom: 14px; }
+.crumbs ol { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; list-style: none; margin: 0; padding: 0; }
+.crumbs li { display: flex; align-items: center; gap: 8px; }
+.crumbs a { color: var(--fg-3); text-decoration: none; }
+.crumbs a:hover { color: var(--fg); }
+/* The current crumb is the one item you cannot click, so it should not wear
+   the "act here" colour. Same rule as .pd-crumb-cur. */
+.crumbs [aria-current="page"] { color: var(--fg-2); }
+.crumbs li + li::before { content: '\203A'; color: var(--fg-3); }
+/* .page-head centres its contents, so the trail has to follow. */
+.page-head .crumbs ol { justify-content: center; }
+.page-head .crumbs { margin-bottom: 18px; }
+/* On the catalog pages the trail sits above the toolbar rather than a title. */
+.shop .crumbs { margin-bottom: 16px; }
+
 .product-page { padding-top: 92px; padding-bottom: 84px; }
 .pd { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
 .pd-crumb { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; font-size: 13px; font-weight: 600; margin-bottom: 16px; }
@@ -1704,6 +1723,55 @@ button.dt-badge:disabled { cursor: default; opacity: 0.6; }
 .co-back { display: inline-block; color: var(--fg-2); text-decoration: none; font-size: 13px; font-weight: 600; margin-bottom: 12px; }
 .co-back:hover { color: var(--fg); }
 .co-main > h1 { font-size: var(--t-h3); letter-spacing: -0.03em; margin-bottom: 18px; }
+/* Thank-you page ----------------------------------------------------------
+   Reuses the checkout shell, but there is no order summary rail here, so the
+   single column centres instead of leaving a 388px hole. */
+.success-page .checkout { grid-template-columns: min(720px, 100%); justify-content: center; }
+
+.ty-mark { display: grid; place-items: center; width: 52px; height: 52px; border-radius: var(--r-pill);
+  margin-bottom: 18px; border: 1px solid var(--hairline);
+  background: rgba(255,255,255,0.05); color: var(--fg-3);
+  transition: color .3s var(--ease-out), background .3s var(--ease-out), border-color .3s var(--ease-out); }
+.ty-mark svg { width: 26px; height: 26px; }
+/* Pending: the tick is present but unlit, so it reads as "not yet". */
+.ty-mark[data-state="pending"] svg { opacity: 0.4; }
+.ty-mark[data-state="ok"] { color: var(--ok); background: var(--ok-tint); border-color: rgba(107,216,138,0.32); }
+.ty-mark[data-state="fail"] { color: var(--accent); background: rgba(255,77,68,0.12); border-color: rgba(255,77,68,0.3); }
+.ty-mark[data-state="fail"] svg { opacity: 1; transform: rotate(45deg) scale(0.92); }
+
+#successItems { display: flex; flex-direction: column; gap: 14px; margin-top: 24px; }
+#successItems:empty { display: none; }
+
+.ty-next, .ty-links { margin-top: 34px; }
+.ty-next h2, .ty-links h2 { font-size: 17px; font-weight: 700; margin-bottom: 14px; }
+.ty-steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 14px; counter-reset: ty; }
+.ty-steps li { counter-increment: ty; position: relative; padding-left: 38px;
+  font-size: 14px; line-height: 1.6; color: var(--fg-2); }
+.ty-steps li::before { content: counter(ty); position: absolute; left: 0; top: 1px;
+  display: grid; place-items: center; width: 24px; height: 24px; border-radius: var(--r-pill);
+  font-size: 12px; font-weight: 700; color: var(--fg-1);
+  background: rgba(255,255,255,0.06); border: 1px solid var(--hairline); }
+.ty-steps strong { color: var(--fg); font-weight: 700; display: block; }
+.ty-steps a { color: var(--accent); text-decoration: none; font-weight: 600; }
+.ty-steps a:hover { text-decoration: underline; }
+.ty-steps code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12.5px; padding: 1px 5px; border-radius: var(--r-xs);
+  background: rgba(255,255,255,0.07); color: var(--fg-1); }
+
+.ty-link-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.ty-link { display: flex; flex-direction: column; gap: 4px; padding: 16px 18px;
+  border-radius: var(--r-sm); border: 1px solid var(--hairline);
+  background: rgba(255,255,255,0.035); text-decoration: none;
+  transition: background .18s var(--ease-out), border-color .18s var(--ease-out); }
+.ty-link:hover { background: rgba(255,255,255,0.06); border-color: var(--hairline-strong); }
+.ty-link-t { font-size: 14px; font-weight: 700; color: var(--fg); }
+.ty-link-d { font-size: 12.5px; color: var(--fg-3); line-height: 1.5; }
+.ty-support { margin-top: 30px; line-height: 1.6; }
+
+@media (max-width: 620px) {
+  .ty-link-grid { grid-template-columns: 1fr; }
+}
+
 .co-sec { padding: 22px 24px; margin-bottom: 16px;
   background: rgba(17,18,24,0.74); backdrop-filter: blur(13px) saturate(130%); -webkit-backdrop-filter: blur(13px) saturate(130%); }
 .co-sec-head { display: flex; align-items: center; justify-content: space-between; }
@@ -2220,6 +2288,28 @@ a.adm-sub[href] { color: var(--fg-1); cursor: pointer; text-decoration: underlin
 .legal-card .legal-sig { color: var(--fg-3); font-size: 14px; font-style: italic; margin: 26px 0 16px; }
 .legal-card h3 { font-size: 16px; font-weight: 700; letter-spacing: -0.01em; margin: 22px 0 12px; color: var(--fg); }
 .legal-card h2:first-child, .legal-card h2:first-of-type { margin-top: 0; }
+/* Related-document cluster ------------------------------------------------
+   Closes the legal pages and the FAQ. These documents constantly refer to one
+   another, so the trail between them should not run through the footer. */
+.legal-more { margin-top: 38px; padding-top: 28px; border-top: 1px solid var(--hairline); }
+.legal-more h2 { font-size: 16px; font-weight: 700; letter-spacing: -0.01em; margin: 0 0 14px; color: var(--fg); }
+.rel-link-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.rel-link { display: flex; flex-direction: column; gap: 4px; padding: 15px 17px;
+  border-radius: var(--r-sm); border: 1px solid var(--hairline);
+  background: rgba(255,255,255,0.03); text-decoration: none;
+  transition: background .18s var(--ease-out), border-color .18s var(--ease-out); }
+.rel-link:hover { background: rgba(255,255,255,0.06); border-color: var(--hairline-strong); }
+.rel-link-t { font-size: 14px; font-weight: 700; color: var(--fg); line-height: 1.35; }
+.rel-link-d { font-size: 12.5px; color: var(--fg-3); line-height: 1.5; }
+/* .legal-card paints every descendant link accent-red and underlines it on
+   hover. These are cards, not inline references, so opt them out. */
+.legal-card .rel-link, .legal-card .rel-link:hover { color: inherit; text-decoration: none; }
+.legal-card .legal-more h2 { margin-top: 0; }
+
+@media (max-width: 620px) {
+  .rel-link-grid { grid-template-columns: 1fr; }
+}
+
 .legal-badge { display: inline-block; padding: 3px 9px; border-radius: 4px; background: var(--bg-3);
   border: 1px solid var(--hairline); font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; color: var(--fg); }
 .legal-sub { border: 1px solid var(--hairline); border-radius: var(--r-sm); padding: 6px 22px 18px; margin: 0 0 22px; background: rgba(255,255,255,0.015); }

@@ -10,6 +10,109 @@
     return '/' + p;
   };
 
+  // ---- SEO for the query-driven detail pages -------------------------------
+  // /product, /post and /tutorial are single shells that render whichever
+  // record the query string names. The static <head> therefore describes the
+  // shell, not the record, so whoever renders the record has to correct the
+  // title, canonical, Open Graph tags and structured data afterwards. Without
+  // this every product would share one canonical and one link preview.
+  (function () {
+    var ORIGIN = 'https://coldd.dev';
+
+    function meta(sel, attr, value) {
+      var el = document.head.querySelector(sel);
+      if (!el) {
+        el = document.createElement('meta');
+        el.setAttribute(attr, sel.replace(/^meta\[[^=]+="|"\]$/g, ''));
+        document.head.appendChild(el);
+      }
+      el.setAttribute('content', value);
+    }
+
+    function absolute(url) {
+      if (!url) return ORIGIN + '/banner.jpg';
+      if (/^https?:\/\//.test(url)) return url;
+      return ORIGIN + (url.charAt(0) === '/' ? '' : '/') + url;
+    }
+
+    /* Truncate at a word boundary so descriptions don't end mid-word. */
+    function clamp(text, max) {
+      var t = String(text || '').replace(/\s+/g, ' ').trim();
+      if (t.length <= max) return t;
+      var cut = t.slice(0, max);
+      var sp = cut.lastIndexOf(' ');
+      return (sp > max * 0.6 ? cut.slice(0, sp) : cut).replace(/[,;:.\s]+$/, '') + '…';
+    }
+
+    window.coldSeo = {
+      clamp: clamp,
+      abs: absolute,
+
+      /* opts: title, description, path (with query), image, type */
+      apply: function (opts) {
+        var url = ORIGIN + opts.path;
+        var img = absolute(opts.image);
+        var desc = clamp(opts.description, 300);
+
+        document.title = opts.title;
+
+        var canon = document.head.querySelector('link[rel="canonical"]');
+        if (!canon) {
+          canon = document.createElement('link');
+          canon.setAttribute('rel', 'canonical');
+          document.head.appendChild(canon);
+        }
+        canon.setAttribute('href', url);
+
+        meta('meta[name="description"]', 'name', desc);
+        meta('meta[property="og:type"]', 'property', opts.type || 'website');
+        meta('meta[property="og:url"]', 'property', url);
+        meta('meta[property="og:title"]', 'property', opts.title);
+        meta('meta[property="og:description"]', 'property', desc);
+        meta('meta[property="og:image"]', 'property', img);
+        meta('meta[property="og:image:alt"]', 'property', opts.title);
+        meta('meta[name="twitter:title"]', 'name', opts.title);
+        meta('meta[name="twitter:description"]', 'name', desc);
+        meta('meta[name="twitter:image"]', 'name', img);
+
+        // The static tags describe banner.jpg. A product shot is a different
+        // shape, so stale dimensions would letterbox the preview card.
+        ['og:image:width', 'og:image:height'].forEach(function (p) {
+          var el = document.head.querySelector('meta[property="' + p + '"]');
+          if (el && img !== ORIGIN + '/banner.jpg') el.remove();
+        });
+      },
+
+      /* Replaces any block this helper wrote earlier, so re-rendering the
+         same shell (client-side nav) never stacks duplicates. */
+      jsonLd: function (id, data) {
+        var prev = document.getElementById(id);
+        if (prev) prev.remove();
+        if (!data) return;
+        var s = document.createElement('script');
+        s.type = 'application/ld+json';
+        s.id = id;
+        s.textContent = JSON.stringify(data);
+        document.head.appendChild(s);
+      },
+
+      breadcrumbs: function (items) {
+        return {
+          '@context': 'https://schema.org',
+          '@type': 'BreadcrumbList',
+          itemListElement: items.map(function (it, i) {
+            return {
+              '@type': 'ListItem',
+              position: i + 1,
+              name: it.name,
+              item: ORIGIN + it.path
+            };
+          })
+        };
+      }
+    };
+  })();
+
   // Fire-and-forget pageview beacon for the admin Analytics panel - no PII,
   // just a random id that resets every browser session. Doesn't block
   // rendering or the catalog fetch below.

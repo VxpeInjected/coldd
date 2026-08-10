@@ -1,0 +1,22 @@
+User-agent: *
+Allow: /
+
+# Private and transactional areas. Nothing here is useful in a search result.
+Disallow: /admin
+Disallow: /checkout
+Disallow: /dashboard
+Disallow: /success
+
+# Auth flows. These carry a noindex tag too, so they stay crawlable enough to
+# read it, but there is no reason to spend crawl budget on them.
+Disallow: /callback.html
+Disallow: /roblox-callback.html
+Disallow: /lock.html
+
+# Source, build artefacts, and deliverables that static hosts sometimes serve.
+Disallow: /supabase/
+Disallow: /scripts/
+Disallow: /download/
+Disallow: /*.zip$
+
+Sitemap: https://coldd.dev/sitemap.xml

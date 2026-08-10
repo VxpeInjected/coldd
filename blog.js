@@ -420,7 +420,40 @@
     var p = all.filter(function (x) { return x.slug === slug; })[0];
     if (!p) { root.innerHTML = '<div class="wrap"><p class="pd-empty">This post could not be found.</p></div>'; return; }
 
-    document.title = 'coldd Blog — ' + p.title;
+    // /post is one shell serving every post, so its static <head> has to be
+    // restated for whichever post the slug names.
+    if (window.coldSeo) {
+      var pPath = '/post?slug=' + encodeURIComponent(p.slug);
+      window.coldSeo.apply({
+        title: 'coldd Blog — ' + p.title,
+        description: p.dek || p.title,
+        path: pPath, image: p.cover, type: 'article'
+      });
+      window.coldSeo.jsonLd('ld-article', {
+        '@context': 'https://schema.org',
+        '@type': 'BlogPosting',
+        headline: p.title,
+        description: window.coldSeo.clamp(p.dek || p.title, 300),
+        image: [window.coldSeo.abs(p.cover)],
+        datePublished: p.date || undefined,
+        dateModified: p.date || undefined,
+        author: { '@type': p.author ? 'Person' : 'Organization', name: p.author || 'coldd Development' },
+        publisher: {
+          '@type': 'Organization', name: 'coldd Development',
+          logo: { '@type': 'ImageObject', url: 'https://coldd.dev/logo.png' }
+        },
+        articleSection: p.category || 'Devlog',
+        keywords: (p.tags || []).join(', ') || undefined,
+        mainEntityOfPage: { '@type': 'WebPage', '@id': 'https://coldd.dev' + pPath }
+      });
+      window.coldSeo.jsonLd('ld-crumbs', window.coldSeo.breadcrumbs([
+        { name: 'Home', path: '/' },
+        { name: 'Blog', path: '/blog' },
+        { name: p.title, path: pPath }
+      ]));
+    } else {
+      document.title = 'coldd Blog — ' + p.title;
+    }
     var related = all.filter(function (x) { return x.slug !== p.slug && x.category === p.category; }).slice(0, 3);
     if (related.length < 3) {
       all.slice().sort(byDateDesc).forEach(function (x) {
@@ -429,7 +462,9 @@
     }
     root.innerHTML =
       '<div class="post-wrap">' +
-        '<nav class="pd-crumb"><a href="/blog">Blog</a> <span>/</span> <span class="pd-crumb-cur">' + esc(p.category) + '</span></nav>' +
+        // Trail matches the BreadcrumbList emitted above; the category is
+        // already shown as a chip in the header directly below this.
+        '<nav class="pd-crumb" aria-label="Breadcrumb"><a href="/">Home</a> <span>›</span> <a href="/blog">Blog</a> <span>›</span> <span class="pd-crumb-cur">' + esc(p.title) + '</span></nav>' +
         '<header class="post-head">' +
           '<span class="post-cat">' + esc(p.category) + '</span>' +
           '<h1 class="post-title">' + esc(p.title) + '</h1>' +
@@ -513,7 +548,38 @@
     var t = all.filter(function (x) { return x.slug === slug; })[0];
     if (!t) { root.innerHTML = '<div class="wrap"><p class="pd-empty">This tutorial could not be found.</p></div>'; return; }
 
-    document.title = 'coldd Tutorials — ' + t.title;
+    if (window.coldSeo) {
+      var tPath = '/tutorial?slug=' + encodeURIComponent(t.slug);
+      window.coldSeo.apply({
+        title: 'coldd Tutorials — ' + t.title,
+        description: t.summary || t.title,
+        path: tPath, image: t.cover, type: 'article'
+      });
+      window.coldSeo.jsonLd('ld-article', {
+        '@context': 'https://schema.org',
+        '@type': 'TechArticle',
+        headline: t.title,
+        description: window.coldSeo.clamp(t.summary || t.title, 300),
+        image: [window.coldSeo.abs(t.cover)],
+        proficiencyLevel: t.difficulty || undefined,
+        timeRequired: t.estMins ? 'PT' + t.estMins + 'M' : undefined,
+        articleSection: t.track || undefined,
+        keywords: [t.platform, t.track, t.difficulty].filter(Boolean).join(', ') || undefined,
+        author: { '@type': 'Organization', name: 'coldd Development' },
+        publisher: {
+          '@type': 'Organization', name: 'coldd Development',
+          logo: { '@type': 'ImageObject', url: 'https://coldd.dev/logo.png' }
+        },
+        mainEntityOfPage: { '@type': 'WebPage', '@id': 'https://coldd.dev' + tPath }
+      });
+      window.coldSeo.jsonLd('ld-crumbs', window.coldSeo.breadcrumbs([
+        { name: 'Home', path: '/' },
+        { name: 'Tutorials', path: '/blog?view=tutorials' },
+        { name: t.title, path: tPath }
+      ]));
+    } else {
+      document.title = 'coldd Tutorials — ' + t.title;
+    }
     var bodyHtml = mdLite(t.body);
     // Build TOC from h2 headings in the rendered body.
     var toc = [];
@@ -526,7 +592,8 @@
 
     root.innerHTML =
       '<div class="tut-detail">' +
-        '<nav class="pd-crumb"><a href="/blog?view=tutorials">Tutorials</a> <span>/</span> <span>' + esc(t.track) + '</span> <span>/</span> <span class="pd-crumb-cur">' + esc(t.title) + '</span></nav>' +
+        // Matches the BreadcrumbList above; the track is in the badge row.
+        '<nav class="pd-crumb" aria-label="Breadcrumb"><a href="/">Home</a> <span>›</span> <a href="/blog?view=tutorials">Tutorials</a> <span>›</span> <span class="pd-crumb-cur">' + esc(t.title) + '</span></nav>' +
         '<header class="tut-detail-head">' +
           '<div class="tut-detail-badges"><span class="tut-diff ' + diffLv + '">' + esc(t.difficulty) + '</span><span class="tut-detail-plat">' + esc(t.platform) + '</span><span class="tut-detail-mins">' + t.estMins + ' min</span></div>' +
           '<h1 class="tut-detail-title">' + esc(t.title) + '</h1>' +

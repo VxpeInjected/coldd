@@ -1809,6 +1809,22 @@
           if (pdUpgrade) pdUpgrade.hidden = !(owned && cur.resell);
         }
 
+        /* The category filter matches on the catalog's own slug, which is not
+           always what you get by slugifying the label: "Finished Games &
+           Templates" is `game-templates`, "Scripts & UI" is `scripts-ui`. Four
+           of the twelve Roblox categories differ, so deriving the slug from the
+           label produced breadcrumb links that silently fell back to "all" —
+           and now feeds those URLs to crawlers via BreadcrumbList. Look the
+           real slug up, and only slugify as a last resort. */
+        function catSlugFor(p) {
+          var cats = window.__CATEGORIES || [];
+          for (var i = 0; i < cats.length; i++) {
+            if (cats[i].label === p.cat && cats[i].platform === p.platform) return cats[i].slug;
+          }
+          return (p.cat || '').toLowerCase().replace(/&/g, 'and')
+            .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+        }
+
         function render(id) {
           var cat = window.__CATALOG || [], p = null, i;
           for (i = 0; i < cat.length; i++) if (cat[i].id === id) { p = cat[i]; break; }
@@ -1821,8 +1837,9 @@
                   robuxPrice: p.robuxPrice != null ? p.robuxPrice : null,
                   resellPrice: p.resellPrice != null ? p.resellPrice : null };
 
-          var catSlug = (p.cat || '').toLowerCase().replace(/&/g, 'and').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-          var crumb = '<a href="' + (p.page || '/assets') + '">' + esc(p.platform) + '</a><span>›</span>' +
+          var catSlug = catSlugFor(p);
+          var crumb = '<a href="/">Home</a><span>›</span>' +
+            '<a href="' + (p.page || '/assets') + '">' + esc(p.platform) + '</a><span>›</span>' +
             '<a href="' + (p.page || '/assets') + '?cat=' + catSlug + '">' + esc(p.cat) + '</a>';
           if (p.subcat) crumb += '<span>›</span><span class="pd-crumb-cur">' + esc(humanize(p.subcat)) + '</span>';
           else crumb = crumb.replace('<a href="' + (p.page || '/assets') + '?cat=' + catSlug + '">' + esc(p.cat) + '</a>', '<span class="pd-crumb-cur">' + esc(p.cat) + '</span>');
@@ -1908,7 +1925,62 @@
           }
 
           syncWish(); syncOwned();
-          document.title = p.title + ' — coldd';
+          applySeo(p, ups);
+        }
+
+        /* The <head> shipped with /product describes the shell. Once we know
+           which product this is, restate the title, canonical, link preview
+           and structured data for that specific product. */
+        function applySeo(p, ups) {
+          var seo = window.coldSeo;
+          if (!seo) { document.title = p.title + ' — coldd'; return; }
+
+          var title = p.title + ' — coldd';
+          var path = '/product?id=' + encodeURIComponent(p.id);
+          var desc = p.desc || (p.longDesc || '').replace(/<[^>]+>/g, '') ||
+            (p.title + ', a ' + (p.cat || 'game') + ' asset for ' + (p.platform || 'Roblox') + ' from coldd.');
+
+          seo.apply({ title: title, description: desc, path: path, image: p.image, type: 'product' });
+
+          var offer = {
+            '@type': 'Offer',
+            url: 'https://coldd.dev' + path,
+            price: String(p.priceNum || 0),
+            priceCurrency: 'USD',
+            availability: 'https://schema.org/InStock',
+            itemCondition: 'https://schema.org/NewCondition',
+            seller: { '@type': 'Organization', name: 'coldd Development' }
+          };
+          var product = {
+            '@context': 'https://schema.org',
+            '@type': 'Product',
+            name: p.title,
+            description: seo.clamp(desc, 300),
+            image: [seo.abs(p.image)],
+            sku: p.id,
+            category: p.cat || '',
+            brand: { '@type': 'Brand', name: 'coldd Development' },
+            offers: offer
+          };
+          if (ups && ups.length && ups[0].version) product.releaseNotes = ups[0].version;
+          // Only claim a rating when real approved reviews back it. An invented
+          // aggregateRating is a manual-action risk, not just bad manners.
+          if (p.reviews > 0 && p.rating > 0) {
+            product.aggregateRating = {
+              '@type': 'AggregateRating',
+              ratingValue: String(p.rating),
+              reviewCount: String(p.reviews),
+              bestRating: '5', worstRating: '1'
+            };
+          }
+          seo.jsonLd('ld-product', product);
+
+          var catSlug = catSlugFor(p);
+          var trail = [{ name: 'Home', path: '/' },
+                       { name: p.platform || 'Shop', path: p.page || '/assets' }];
+          if (p.cat) trail.push({ name: p.cat, path: (p.page || '/assets') + '?cat=' + catSlug });
+          trail.push({ name: p.title, path: path });
+          seo.jsonLd('ld-crumbs', seo.breadcrumbs(trail));
         }
 
         if ($('pdAddBtn')) $('pdAddBtn').addEventListener('click', function () { if (cur) { add(cur); openCart(); } });
@@ -3366,6 +3438,12 @@
       var itemsEl = document.getElementById('successItems');
       var titleEl = document.getElementById('successTitle');
       var subEl = document.getElementById('successSub');
+      var markEl = document.getElementById('successMark');
+      // The tick only turns green once the order actually reads as paid.
+      // Showing it on arrival would claim success while a PayPal capture or a
+      // crypto confirmation is still outstanding, which is exactly the state
+      // where the buyer most needs the truth.
+      function mark(state) { if (markEl) markEl.setAttribute('data-state', state); }
       var sessionId = new URLSearchParams(location.search).get('session_id');
       var robuxOrderIdParam = new URLSearchParams(location.search).get('order_id');
       // PayPal returns here after approval. Approval is NOT payment - the
@@ -3429,10 +3507,12 @@
             var data = res && res.data;
             if (!data || !data.ok) {
               if (triesLeft > 0) { setTimeout(function () { poll(triesLeft - 1); }, 1500); return; }
+              mark('fail');
               if (subEl) subEl.textContent = "We couldn't find that order.";
               return;
             }
             if (data.status === 'paid') {
+              mark('ok');
               if (titleEl) titleEl.textContent = 'Payment confirmed!';
               if (subEl) subEl.textContent = 'Your files are ready below.';
               renderItems(data.items || []);
@@ -3468,6 +3548,7 @@
             if (data && data.ok === false && subEl) {
               // A hard failure here means money did not move. Say so plainly
               // rather than letting the poll time out into a vague message.
+              mark('fail');
               subEl.textContent = data.error || 'PayPal could not complete this payment.';
             }
           })

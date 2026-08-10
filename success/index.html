@@ -4,15 +4,19 @@
   <script>document.documentElement.classList.add('js');</script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>coldd Development Order Complete</title>
+  <title>Thank You for Your Order — coldd Development</title>
   <link rel="icon" type="image/png" href="/logo.png" />
-  <meta name="description" content="coldd is a Roblox development studio. Scripting, environments, modeling, and VFX, building and shipping polished experiences." />
+  <!-- meta:start -->
+  <meta name="description" content="Your coldd order is confirmed. Download your files and find out what happens next." />
+  <meta name="robots" content="noindex, follow" />
+  <meta name="theme-color" content="#15161b" />
+  <!-- meta:end -->
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
 
-  <link rel="stylesheet" href="/styles.css?v=20260809e" />
+  <link rel="stylesheet" href="/styles.css?v=20260810a" />
 </head>
 <body>
   <div class="backdrop"></div>
@@ -99,14 +103,75 @@
 
   <main class="page checkout-page success-page">
     <div class="wrap checkout">
-      <div class="co-main" style="max-width:640px;">
+      <div class="co-main ty">
         <a class="co-back" href="/assets">Continue shopping</a>
+
+        <!-- app.js swaps the icon's state class once the order is confirmed
+             paid, so the mark must not claim success before the poll says so. -->
+        <div class="ty-mark" id="successMark" data-state="pending" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20 6 9 17l-5-5"/>
+          </svg>
+        </div>
+
         <h1 id="successTitle">Confirming your payment…</h1>
         <p class="co-hint" id="successSub">Hang tight, this only takes a moment.</p>
 
-        <div id="successItems" style="margin-top:24px;display:flex;flex-direction:column;gap:14px;"></div>
+        <div id="successItems"></div>
 
-        <p class="co-hint" style="margin-top:28px;">You can manage all your products anytime in the <a href="/dashboard?panel=owned">customer dashboard</a>.</p>
+        <section class="ty-next" aria-labelledby="tyNextTitle">
+          <h2 id="tyNextTitle">What happens next</h2>
+          <ol class="ty-steps">
+            <li>
+              <strong>Download your files.</strong>
+              Use the buttons above. Every link is generated fresh, so grab them
+              whenever you need — they don't expire from your account.
+            </li>
+            <li>
+              <strong>Install them.</strong>
+              Roblox <code>.rbxl</code> files open in Studio via File → Open;
+              <code>.rbxm</code> files drag straight into your Workspace.
+              Minecraft downloads include their own setup notes.
+              The <a href="/faq">FAQ</a> walks through both.
+            </li>
+            <li>
+              <strong>Updates are free, forever.</strong>
+              When we publish a new version, it appears in your
+              <a href="/dashboard?panel=owned">dashboard</a> at no extra cost.
+              Past changes are listed on the <a href="/releases">releases page</a>.
+            </li>
+          </ol>
+        </section>
+
+        <section class="ty-links" aria-labelledby="tyLinksTitle">
+          <h2 id="tyLinksTitle">Where to go from here</h2>
+          <div class="ty-link-grid">
+            <a class="ty-link" href="/dashboard?panel=owned">
+              <span class="ty-link-t">Your purchases</span>
+              <span class="ty-link-d">Re-download anything you own, any time.</span>
+            </a>
+            <a class="ty-link" href="/assets">
+              <span class="ty-link-t">More Roblox assets</span>
+              <span class="ty-link-d">Templates, maps, scripts, UI and VFX.</span>
+            </a>
+            <a class="ty-link" href="/minecraft">
+              <span class="ty-link-t">Minecraft catalog</span>
+              <span class="ty-link-d">Hubs, lobbies, plugins and full setups.</span>
+            </a>
+            <a class="ty-link" href="/blog?view=tutorials">
+              <span class="ty-link-t">Tutorials</span>
+              <span class="ty-link-d">Get more out of what you just bought.</span>
+            </a>
+          </div>
+        </section>
+
+        <p class="co-hint ty-support">
+          Something wrong with your order? Support is free and always will be —
+          open a ticket in <a href="https://discord.gg/coldd" target="_blank" rel="noopener">our Discord</a>
+          or email <a href="mailto:support@coldd.dev">support@coldd.dev</a>.
+          Before you ask about a refund, note that
+          <a href="/refund-policy">all sales are final</a>.
+        </p>
       </div>
     </div>
   </main>
@@ -269,6 +334,6 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.2/dist/umd/supabase.min.js" integrity="sha384-B2duOBIryCXbX4eDE4BdJwtNkQMRQde3o6IsjfPW28E6aH1CYE96hHeZRG3zY56O" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script src="/supabase-init.js?v=20260809b"></script>
   <script src="/site-gate.js?v=20260729b"></script>
-  <script src="/catalog.js?v=20260807b" data-then="/app.js?v=20260809d"></script>
+  <script src="/catalog.js?v=20260810a" data-then="/app.js?v=20260810a"></script>
 </body>
 </html>

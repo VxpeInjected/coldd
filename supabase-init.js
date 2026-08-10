@@ -170,6 +170,23 @@
         options: { redirectTo: redirectTo, scopes: 'identify email guilds guilds.members.read' }
       });
     },
+    // Google is a Supabase-native provider, so this is the same one-call shape
+    // as Discord - no hand-rolled exchange like Roblox needs. Requires the
+    // Google provider to be enabled in Supabase Auth with a client ID/secret
+    // from Google Cloud; until then Supabase returns a clear provider error
+    // rather than failing silently.
+    signInGoogle: function () {
+      var redirectTo = location.origin + '/callback.html';
+      return client.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: redirectTo,
+          // Forces the account chooser instead of silently reusing whichever
+          // Google account the browser last used - people share machines.
+          queryParams: { prompt: 'select_account' }
+        }
+      });
+    },
     // Roblox isn't a Supabase-native OAuth provider, so this is a hand-
     // rolled OAuth2 redirect (unlike signInDiscord above) - the code
     // exchange happens server-side in roblox-oauth-callback, invoked from

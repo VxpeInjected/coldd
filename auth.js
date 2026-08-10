@@ -59,8 +59,16 @@
         if (window.coldAuth) window.coldAuth.signInRoblox();
         return;
       }
-      try { localStorage.setItem('coldd_auth', 'in'); } catch (e) {}
-      location.href = '/dashboard';
+      if (p === 'Google') {
+        if (window.coldAuth) window.coldAuth.signInGoogle();
+        return;
+      }
+      // No silent fallback. This previously set coldd_auth and redirected to
+      // the dashboard for any unrecognised provider - a FAKE sign-in with no
+      // authentication behind it, which only looked harmless because the
+      // buttons that hit it were disabled. An unknown provider is a bug, so
+      // say so rather than pretending it worked.
+      console.error('[auth] no handler for provider:', p);
     });
   });
 

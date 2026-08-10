@@ -2130,14 +2130,37 @@ html.js .nr-frame .nr-slide.is-active .nr-cap > :nth-child(3) { animation-delay:
 .adm-gate-card h1 { font-size: 24px; font-weight: 800; }
 .adm-gate-card p { color: var(--fg-2); font-size: 14px; line-height: 1.6; margin-bottom: 10px; }
 
-.adm-topbar { position: sticky; top: 0; z-index: 40; display: flex; align-items: center; gap: 14px;
-  padding: 14px 24px; border-bottom: 1px solid var(--hairline); background: rgba(16,17,22,0.9); backdrop-filter: blur(14px); }
-.adm-topbar .logo { height: 22px; }
-.adm-tag { font-size: 11px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--accent);
-  padding: 4px 9px; border-radius: 999px; background: rgba(255,77,68,0.12); border: 1px solid rgba(255,77,68,0.28); }
-.adm-mode-flag { font-size: 12px; }
-.adm-topbar-right { margin-left: auto; display: flex; align-items: center; gap: 12px; }
-.adm-role-label { font-size: 12px; color: var(--fg-3); display: flex; align-items: center; gap: 8px; }
+/* Admin top bar -----------------------------------------------------------
+   Was a row of four unrelated fragments at one weight: a tiny orphaned logo,
+   a loud red ADMIN pill, a role badge and a "Name - role" label, with the
+   role therefore stated three times. Now two groups - brand on the left,
+   identity and exit on the right - with the accent spent on neither, since
+   nothing up here is an action worth the ember. */
+.adm-topbar { position: sticky; top: 0; z-index: 40; display: flex; align-items: center; gap: 16px;
+  padding: 12px 24px; border-bottom: 1px solid var(--hairline);
+  background: rgba(16,17,22,0.9); backdrop-filter: blur(14px) saturate(130%); -webkit-backdrop-filter: blur(14px) saturate(130%); }
+.adm-brand { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+.adm-topbar .logo { height: 26px; width: auto; }
+/* Neutral, not ember: this is a label, not something you click. */
+.adm-tag { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--fg-2); padding: 4px 9px; border-radius: var(--r-pill);
+  background: rgba(255,255,255,0.06); border: 1px solid var(--hairline); }
+
+.adm-topbar-right { margin-left: auto; display: flex; align-items: center; gap: 14px; }
+.adm-who { display: flex; align-items: center; gap: 10px; padding-right: 14px;
+  border-right: 1px solid var(--hairline); }
+.adm-who .dash-av { width: 32px; height: 32px; font-size: 13px; }
+.adm-who-text { display: flex; flex-direction: column; line-height: 1.25; min-width: 0; }
+.adm-who-name { font-size: 13px; font-weight: 600; color: var(--fg); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 22ch; }
+.adm-who-role { font-size: 11px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--fg-3); }
+
+@media (max-width: 720px) {
+  .adm-topbar { padding: 10px 16px; gap: 10px; }
+  /* The name is the least load-bearing thing here once space is tight - the
+     avatar already identifies who is signed in. */
+  .adm-who-text { display: none; }
+  .adm-who { padding-right: 10px; }
+}
 .adm-select { font-family: inherit; font-size: 13px; color: var(--fg); background: var(--bg-3); border: 1px solid var(--hairline);
   border-radius: 10px; padding: 7px 10px; transition: border-color .15s; }
 .adm-select:focus { outline: none; border-color: rgba(255,77,68,0.5); }
@@ -2331,7 +2354,6 @@ a.adm-sub[href] { color: var(--fg-1); cursor: pointer; text-decoration: underlin
   .adm-page .dash { grid-template-columns: 1fr; }
   .adm-two-col { grid-template-columns: 1fr; }
   .adm-stats-3 { grid-template-columns: repeat(2, 1fr); }
-  .adm-topbar { flex-wrap: wrap; }
 }
 
 .legal-wrap { max-width: 820px; margin: 0 auto; }

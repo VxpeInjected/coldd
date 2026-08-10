@@ -33,13 +33,23 @@
 
   <div id="admShell" hidden>
     <header class="adm-topbar">
-      <a class="brand" href="/" aria-label="coldd home"><img class="logo" src="/logo.png" alt="coldd" /></a>
-      <span class="adm-tag">Admin</span>
-      <span class="adm-mode-flag" id="admModeBanner"></span>
+      <a class="adm-brand" href="/" aria-label="coldd home">
+        <img class="logo" src="/logo.png" alt="coldd" />
+        <span class="adm-tag">Admin</span>
+      </a>
       <div class="adm-topbar-right">
-        <span class="adm-role-label" id="admViewerLabel">Signed in</span>
-        <span class="dash-av" id="admAvatar">A</span>
-        <a class="btn btn-ghost adm-btn-sm" href="/">Exit to site</a>
+        <!-- One identity cluster. The role used to be printed three times up
+             here - a red "ADMIN" pill, a "<role> access" badge, and again
+             inside "Name - role" - and the badge was only ever filled in by
+             renderHome(), so it was blank on every other panel. -->
+        <div class="adm-who">
+          <span class="dash-av" id="admAvatar">A</span>
+          <span class="adm-who-text">
+            <span class="adm-who-name" id="admViewerLabel">Signed in</span>
+            <span class="adm-who-role" id="admModeBanner"></span>
+          </span>
+        </div>
+        <a class="btn btn-ghost adm-btn-sm adm-exit" href="/">Exit to site</a>
       </div>
     </header>
 

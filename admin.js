@@ -872,7 +872,10 @@
      ================================================================ */
   function renderTopbar() {
     var r = currentRole();
-    var label = $('admViewerLabel'); if (label) label.textContent = r.name + ' — ' + r.role;
+    var label = $('admViewerLabel'); if (label) label.textContent = r.name || 'Signed in';
+    // Set here rather than in renderHome(), which left this blank on every
+    // panel except the dashboard.
+    var role = $('admModeBanner'); if (role) role.textContent = r.role || '';
     var av = $('admAvatar'); if (av) av.textContent = (r.name || 'A').charAt(0).toUpperCase();
   }
 
@@ -932,7 +935,6 @@
     var recent = ORDERS.filter(function (o) { return o.status === 'completed'; }).slice().sort(function (a, b) { return new Date(b.date) - new Date(a.date); }).slice(0, 6);
     $('admHomeRecent').innerHTML = recent.map(orderRowHTML).join('') || '<p class="adm-empty">No completed orders yet.</p>';
 
-    var banner = $('admModeBanner'); if (banner) banner.innerHTML = '<span class="dt-badge ok">' + esc(currentRole().role) + ' access</span>';
   }
   function orderRowHTML(o) {
     return '<div class="dash-row"><span class="dr-thumb" style="background-image:url(\'' + o.image + '\')"></span>' +

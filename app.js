@@ -2830,11 +2830,24 @@
           var discordIdentity = identities.filter(function (i) { return i.provider === 'discord'; })[0];
           document.getElementById('linkedEmailStatus').textContent = hasEmail ? 'Set - used to sign in' : 'Not set';
 
-          var baseCount = (hasEmail ? 1 : 0) + (discordIdentity ? 1 : 0);
+          var googleIdentity = identities.filter(function (i) { return i.provider === 'google'; })[0];
+          var baseCount = (hasEmail ? 1 : 0) + (discordIdentity ? 1 : 0) + (googleIdentity ? 1 : 0);
           window.coldAuth.robloxLinkStatus().then(function (rres) {
             var robloxLinked = !!(rres && rres.linked);
             var totalMethods = baseCount + (robloxLinked ? 1 : 0);
             var errEl = document.getElementById('linkedErr');
+
+            // linkIdentity() needs "Manual linking" enabled on the Supabase
+            // project (Authentication -> Providers). With it off, every Link
+            // button fails with a raw API string that reads like a site bug
+            // rather than a setting the operator has to flip.
+            function linkErr(err, provider) {
+              var raw = (err && (err.message || err.msg)) || '';
+              if (/manual linking is disabled/i.test(raw)) {
+                return 'Linking accounts is currently turned off. Please contact support.';
+              }
+              return raw || ('Could not link ' + provider + '.');
+            }
 
             var dBtn = document.getElementById('linkedDiscordBtn');
             document.getElementById('linkedDiscordStatus').textContent = discordIdentity ? 'Linked' : 'Not linked';
@@ -2858,13 +2871,45 @@
                 dBtn.disabled = true;
                 window.coldSupabase.auth.linkIdentity({ provider: 'discord', options: { redirectTo: location.origin + '/dashboard?panel=account' } }).then(function (lres) {
                   dBtn.disabled = false;
-                  if (lres && lres.error && errEl) errEl.textContent = lres.error.message || 'Could not link Discord.';
+                  if (lres && lres.error && errEl) errEl.textContent = linkErr(lres.error, 'Discord');
                 }).catch(function (err) {
                   dBtn.disabled = false;
-                  if (errEl) errEl.textContent = (err && err.message) || 'Could not link Discord.';
+                  if (errEl) errEl.textContent = linkErr(err, 'Discord');
                 });
               }
             };
+
+            var gBtn = document.getElementById('linkedGoogleBtn');
+            if (gBtn) {
+              document.getElementById('linkedGoogleStatus').textContent = googleIdentity ? 'Linked' : 'Not linked';
+              gBtn.textContent = googleIdentity ? 'Unlink' : 'Link';
+              gBtn.disabled = !!(googleIdentity && totalMethods <= 1);
+              gBtn.title = (googleIdentity && totalMethods <= 1) ? 'This is your only sign-in method' : '';
+              gBtn.onclick = function () {
+                if (errEl) errEl.textContent = '';
+                if (googleIdentity) {
+                  if (totalMethods <= 1) return;
+                  if (!confirm('Unlink your Google account?')) return;
+                  gBtn.disabled = true;
+                  window.coldSupabase.auth.unlinkIdentity(googleIdentity).then(function (ures) {
+                    if (errEl) errEl.textContent = ures.error ? (ures.error.message || 'Could not unlink.') : '';
+                    renderLinkedAccounts();
+                  }).catch(function (err) {
+                    gBtn.disabled = false;
+                    if (errEl) errEl.textContent = (err && err.message) || 'Could not unlink Google.';
+                  });
+                } else {
+                  gBtn.disabled = true;
+                  window.coldSupabase.auth.linkIdentity({ provider: 'google', options: { redirectTo: location.origin + '/dashboard?panel=account' } }).then(function (lres) {
+                    gBtn.disabled = false;
+                    if (lres && lres.error && errEl) errEl.textContent = linkErr(lres.error, 'Google');
+                  }).catch(function (err) {
+                    gBtn.disabled = false;
+                    if (errEl) errEl.textContent = linkErr(err, 'Google');
+                  });
+                }
+              };
+            }
 
             var rBtn = document.getElementById('linkedRobloxBtn');
             document.getElementById('linkedRobloxStatus').textContent = robloxLinked ? ('Linked as ' + (rres.robloxUsername || '')) : 'Not linked';
@@ -2886,7 +2931,7 @@
                   if (errEl) errEl.textContent = (err && err.message) || 'Could not unlink Roblox.';
                 });
               } else {
-                window.coldAuth.signInRoblox();
+                window.coldAuth.signInRoblox('/dashboard?panel=account');
               }
             };
           });

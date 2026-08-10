@@ -238,6 +238,7 @@
           };
         });
         if (curPanel === 'analytics') renderAnalytics();
+    if (curPanel === 'marketing') renderMarketing();
       });
     });
   }
@@ -435,6 +436,7 @@
       }
       TRAFFIC = out;
       if (curPanel === 'analytics') renderAnalytics();
+    if (curPanel === 'marketing') renderMarketing();
       if (curPanel === 'home') renderHome();
     });
   }
@@ -449,6 +451,7 @@
       LIVE_SESSIONS = Object.keys(set).length;
       if (curPanel === 'home') renderHome();
       if (curPanel === 'analytics') renderAnalytics();
+    if (curPanel === 'marketing') renderMarketing();
     });
   }
 
@@ -458,6 +461,7 @@
       DISCORD_STATS = { memberCount: data.memberCount, onlineCount: data.onlineCount };
       if (curPanel === 'home') renderHome();
       if (curPanel === 'analytics') renderAnalytics();
+    if (curPanel === 'marketing') renderMarketing();
     }).catch(function (err) { console.error('[admin] discord stats:', err.message); });
   }
 
@@ -477,6 +481,7 @@
         return { id: row.session_id, date: row.updated_at, title: title, image: first.image || '', value: Number(row.value_usd) || 0, email: row.email || null };
       });
       if (curPanel === 'analytics') renderAnalytics();
+    if (curPanel === 'marketing') renderMarketing();
     });
   }
 
@@ -662,6 +667,7 @@
     RANGE_DAYS = n; lsSet('coldd_admin_range_v1', n);
     document.querySelectorAll('.adm-range button').forEach(function (b) { b.classList.toggle('active', +b.getAttribute('data-range') === n); });
     if (curPanel === 'analytics') renderAnalytics();
+    if (curPanel === 'marketing') renderMarketing();
     if (curPanel === 'home') renderHome();
   }
 
@@ -827,7 +833,7 @@
   /* ================================================================
      NAV / PANEL SWITCHING
      ================================================================ */
-  var PANELS = ['home', 'analytics', 'products', 'product-edit', 'product-update', 'orders', 'refunds', 'reviews', 'users', 'sales', 'sitemgmt', 'content', 'audit'];
+  var PANELS = ['home', 'analytics', 'marketing', 'products', 'product-edit', 'product-update', 'orders', 'refunds', 'reviews', 'users', 'sales', 'sitemgmt', 'content', 'audit'];
   var curPanel = 'home';
   function showPanel(name) {
     if (PANELS.indexOf(name) < 0) name = 'home';
@@ -843,6 +849,7 @@
   function renderPanel(name) {
     if (name === 'home') renderHome();
     else if (name === 'analytics') renderAnalytics();
+    else if (name === 'marketing') renderMarketing();
     else if (name === 'products') renderProducts();
     else if (name === 'orders') renderOrders();
     else if (name === 'refunds') renderRefunds();
@@ -893,22 +900,20 @@
     var curVisits = RANGE_DAYS ? pageviewsInWindow(daysAgoStart(RANGE_DAYS), new Date()) : TRAFFIC.reduce(function (s, r) { return s + r.pageviews; }, 0);
     var prevVisits = win ? pageviewsInWindow(win.start, win.end) : 0;
 
-    var overallRobux = curRev.robux;
-    var overallDevexAud = aud(overallRobux * DEVEX_USD_PER_ROBUX);
-    var websiteDevexAud = aud(curRev.robux * DEVEX_USD_PER_ROBUX);
-
+    // "Overall" and "Website" were both computed from the same websiteRevenue()
+    // call, so the dashboard showed each figure twice under two names and
+    // implied an off-site revenue stream that is not tracked anywhere. One
+    // set of numbers, named for what they are.
     $('admHomeStatsTop').innerHTML = [
-      statTile('Overall revenue', aud(curRev.usd), usd(curRev.usd) + ' USD', pctDelta(curRev.usd, prevRev.usd)),
-      statTile('Overall Robux revenue', robuxRaw(overallRobux), overallDevexAud + ' via DevEx', ''),
-      statTile('Live sessions', LIVE_SESSIONS, 'active in the last 5 min', ''),
-      statTile('Order count', curOrders.length, null, pctDelta(curOrders.length, prevOrders.length))
+      statTile('Revenue', aud(curRev.usd), usd(curRev.usd) + ' USD', pctDelta(curRev.usd, prevRev.usd)),
+      statTile('Robux revenue', robuxRaw(curRev.robux), null, pctDelta(curRev.robux, prevRev.robux)),
+      statTile('Order count', curOrders.length, null, pctDelta(curOrders.length, prevOrders.length)),
+      statTile('Site visits', curVisits.toLocaleString('en-US'), null, pctDelta(curVisits, prevVisits))
     ].join('');
 
     $('admHomeStatsSecondary').innerHTML = [
-      statTile('Website revenue', aud(curRev.usd), usd(curRev.usd) + ' USD', pctDelta(curRev.usd, prevRev.usd)),
-      statTile('Website Robux revenue', robuxRaw(curRev.robux), websiteDevexAud + ' via DevEx', pctDelta(curRev.robux, prevRev.robux)),
-      statTile('Discord members', DISCORD_STATS.memberCount != null ? DISCORD_STATS.memberCount.toLocaleString('en-US') : '—', DISCORD_STATS.onlineCount != null ? (DISCORD_STATS.onlineCount.toLocaleString('en-US') + ' online') : '', ''),
-      statTile('Site visits', curVisits.toLocaleString('en-US'), null, pctDelta(curVisits, prevVisits))
+      statTile('Live sessions', LIVE_SESSIONS, 'active in the last 5 min', ''),
+      statTile('Discord members', DISCORD_STATS.memberCount != null ? DISCORD_STATS.memberCount.toLocaleString('en-US') : '—', DISCORD_STATS.onlineCount != null ? (DISCORD_STATS.onlineCount.toLocaleString('en-US') + ' online') : '', '')
     ].join('');
 
     var todo = [];
@@ -929,15 +934,10 @@
 
     var banner = $('admModeBanner'); if (banner) banner.innerHTML = '<span class="dt-badge ok">' + esc(currentRole().role) + ' access</span>';
   }
-  function sourceBadge(source) {
-    if (!source || source === 'website') return '';
-    var label = source.charAt(0).toUpperCase() + source.slice(1) + ' platform order';
-    return '<span class="dt-badge" style="margin-right:8px;">' + esc(label) + '</span>';
-  }
   function orderRowHTML(o) {
     return '<div class="dash-row"><span class="dr-thumb" style="background-image:url(\'' + o.image + '\')"></span>' +
       '<div class="dr-main"><div class="dr-title">' + esc(o.title) + '</div><div class="dr-sub">' + fmtDateTime(new Date(o.date)) + ' · ' + esc(o.id) + ' · ' + esc(o.userName) + '</div></div>' +
-      sourceBadge(o.source) + statusBadge(o.status) + '<span class="p-price" style="margin-left:12px;">' + orderAmount(o) + '</span></div>';
+      statusBadge(o.status) + '<span class="p-price" style="margin-left:12px;">' + orderAmount(o) + '</span></div>';
   }
   function statusBadge(status) {
     var cls = status === 'completed' ? 'ok' : (status === 'refunded' ? 'err' : 'warn');
@@ -946,10 +946,82 @@
   }
 
   /* ================================================================
+     MARKETING PANEL
+
+     Split out of Analytics, which had grown to hold two unrelated jobs:
+     how the store is performing, and how the audience is reached. The
+     channel and email blocks state plainly that nothing is connected yet
+     rather than rendering invented numbers.
+     ================================================================ */
+  var MKT_CHANNELS = [
+    { key: 'discord', name: 'Discord', note: 'Member and presence counts.' },
+    { key: 'x', name: 'X (Twitter)', note: 'Followers, impressions, post reach.' },
+    { key: 'youtube', name: 'YouTube', note: 'Subscribers, views, watch time.' },
+    { key: 'tiktok', name: 'TikTok', note: 'Followers and video views.' }
+  ];
+
+  function channelRow(c) {
+    var connected = false, value = '', sub = c.note;
+    if (c.key === 'discord' && DISCORD_STATS.memberCount != null) {
+      connected = true;
+      value = DISCORD_STATS.memberCount.toLocaleString('en-US') + ' members';
+      sub = (DISCORD_STATS.onlineCount != null ? DISCORD_STATS.onlineCount.toLocaleString('en-US') + ' online' : c.note);
+    }
+    return '<div class="adm-channel-row">' +
+      '<div class="adm-channel-main"><span class="adm-channel-name">' + esc(c.name) + '</span>' +
+      '<span class="adm-sub">' + esc(sub) + '</span></div>' +
+      (connected
+        ? '<span class="adm-channel-val">' + esc(value) + '</span><span class="dt-badge ok">Connected</span>'
+        : '<span class="dt-badge">Not connected</span>') +
+      '</div>';
+  }
+
+  function renderMarketing() {
+    var signups = REFERRALS.reduce(function (s, r) { return s + r.signups; }, 0);
+    var clicks = REFERRALS.reduce(function (s, r) { return s + r.clicks; }, 0);
+    var conversions = REFERRALS.reduce(function (s, r) { return s + r.conversions; }, 0);
+    var owed = REFERRALS.reduce(function (s, r) { return s + (r.earnedUSD - r.paidUSD); }, 0);
+
+    if ($('admMktStats')) {
+      $('admMktStats').innerHTML = [
+        statTile('Discord members', DISCORD_STATS.memberCount != null ? DISCORD_STATS.memberCount.toLocaleString('en-US') : '—', DISCORD_STATS.onlineCount != null ? (DISCORD_STATS.onlineCount.toLocaleString('en-US') + ' online') : '', ''),
+        statTile('Referral clicks', clicks.toLocaleString('en-US'), null, ''),
+        statTile('Referral signups', signups.toLocaleString('en-US'), null, ''),
+        statTile('Owed to affiliates', usd(owed), null, '')
+      ].join('');
+    }
+
+    if ($('admMktChannels')) {
+      $('admMktChannels').innerHTML = MKT_CHANNELS.map(channelRow).join('');
+    }
+
+    if ($('admMktEmail')) {
+      // No sending backend exists. Saying so beats a dead "Send campaign"
+      // button that silently does nothing.
+      $('admMktEmail').innerHTML =
+        '<p class="adm-note">No email provider is connected, so campaigns cannot be sent from here yet. ' +
+        'Transactional mail (order receipts, password resets) goes out through Supabase Auth and is unaffected.</p>' +
+        '<div class="adm-channel-row"><div class="adm-channel-main"><span class="adm-channel-name">Marketing consent</span>' +
+        '<span class="adm-sub">Nothing records a marketing opt-in yet, so there is no list to send to. ' +
+        'Checkout would need a consent field before this means anything.</span></div>' +
+        '<span class="dt-badge">Not collected</span></div>';
+    }
+
+    if ($('admReferralBody')) {
+      $('admReferralBody').innerHTML = REFERRALS.map(function (r) {
+        var rate = r.clicks ? (r.conversions / r.clicks * 100) : 0;
+        return '<tr><td class="dt-mono">' + esc(r.code) + '</td><td>' + esc(r.owner) + '</td><td>' + r.clicks + '</td><td>' + r.signups + '</td><td>' + r.conversions + '</td><td>' + pct(rate) + '</td><td>' + usd(r.earnedUSD) + '</td></tr>';
+      }).join('') || '<tr><td colspan="7" class="adm-empty">No referral codes yet.</td></tr>';
+      if ($('admAffiliateOwed')) $('admAffiliateOwed').textContent = usd(owed);
+      renderPayouts();
+    }
+    void conversions;
+  }
+
+  /* ================================================================
      ANALYTICS PANEL
      ================================================================ */
   function renderAnalytics() {
-    var rev = revenueTotals();
     var aov = avgOrderValue();
     var conv = conversionRate();
 
@@ -960,49 +1032,21 @@
     var prevRev = websiteRevenue(prevOrders);
     var curVisits = RANGE_DAYS ? pageviewsInWindow(daysAgoStart(RANGE_DAYS), new Date()) : TRAFFIC.reduce(function (s, r) { return s + r.pageviews; }, 0);
     var prevVisits = win ? pageviewsInWindow(win.start, win.end) : 0;
-    var overallRobux = curRev.robux;
 
+    // Store performance only. Audience and channel numbers live in Marketing.
     $('admAnStats').innerHTML = [
-      statTile('Overall revenue', aud(curRev.usd), usd(curRev.usd) + ' USD', pctDelta(curRev.usd, prevRev.usd)),
-      statTile('Overall Robux revenue', robuxRaw(overallRobux), aud(overallRobux * DEVEX_USD_PER_ROBUX) + ' via DevEx', ''),
-      statTile('Website revenue', aud(curRev.usd), usd(curRev.usd) + ' USD', pctDelta(curRev.usd, prevRev.usd)),
-      statTile('Website Robux revenue', robuxRaw(curRev.robux), aud(curRev.robux * DEVEX_USD_PER_ROBUX) + ' via DevEx', pctDelta(curRev.robux, prevRev.robux)),
+      statTile('Revenue', aud(curRev.usd), usd(curRev.usd) + ' USD', pctDelta(curRev.usd, prevRev.usd)),
+      statTile('Robux revenue', robuxRaw(curRev.robux), null, pctDelta(curRev.robux, prevRev.robux)),
       statTile('Order count', curOrders.length, null, pctDelta(curOrders.length, prevOrders.length)),
       statTile('Avg order value', usd(aov), null, ''),
       statTile('Conversion rate', pct(conv), null, ''),
-      statTile('Live sessions', LIVE_SESSIONS, 'active in the last 5 min', ''),
-      statTile('Discord members', DISCORD_STATS.memberCount != null ? DISCORD_STATS.memberCount.toLocaleString('en-US') : '—', DISCORD_STATS.onlineCount != null ? (DISCORD_STATS.onlineCount.toLocaleString('en-US') + ' online') : '', ''),
-      statTile('Site visits', curVisits.toLocaleString('en-US'), null, pctDelta(curVisits, prevVisits)),
-      statTile('Referral signups', REFERRALS.reduce(function (s, r) { return s + r.signups; }, 0), null, ''),
-      statTile('X (Twitter)', 'Not connected', 'awaiting API access', ''),
-      statTile('YouTube', 'Not connected', 'awaiting API access', '')
+      statTile('Site visits', curVisits.toLocaleString('en-US'), null, pctDelta(curVisits, prevVisits))
     ].join('');
 
     $('admRevChart').innerHTML = svgBars(dailyRevenueSeries());
     attachChartTooltip($('admRevChart'));
 
-    $('admPlatformRevenue').innerHTML =
-      '<div class="adm-platform-row"><span class="adm-platform-name">Website (coldd.dev)</span><span>' + aud(curRev.usd) + '</span></div>' +
-      '<div class="adm-platform-row"><span class="adm-platform-name">Parcel (Roblox group)</span><span class="adm-platform-pending">Not tracked yet</span></div>' +
-      '<div class="adm-platform-row"><span class="adm-platform-name">BuiltByBit</span><span class="adm-platform-pending">Not tracked yet</span></div>' +
-      '<div class="adm-platform-row"><span class="adm-platform-name">ClearlyDev</span><span class="adm-platform-pending">Not tracked yet</span></div>' +
-      '<div class="adm-platform-row"><span class="adm-platform-name">Creator Store</span><span class="adm-platform-pending">Not tracked yet</span></div>';
 
-    // Currency breakdown: USD / AUD / Robux
-    $('admCurrencyCards').innerHTML =
-      '<div class="dash-stat glass"><span class="ds-label">USD revenue</span><span class="ds-num">' + usd(rev.byCurrency.usd || 0) + '</span></div>' +
-      '<div class="dash-stat glass"><span class="ds-label">AUD revenue</span><span class="ds-num">' + aud(rev.byCurrency.aud || 0) + '</span><span class="adm-sub">' + usd(rev.byCurrency.aud || 0) + ' equiv.</span></div>' +
-      '<div class="dash-stat glass"><span class="ds-label">Robux revenue</span><span class="ds-num">' + robux(rev.byCurrency.robux || 0) + '</span><span class="adm-sub">' + usd(rev.byCurrency.robux || 0) + ' equiv.</span></div>';
-
-    var robuxRevUSD = rev.byCurrency.robux || 0;
-    var robuxAmount = Math.round(robuxRevUSD * ROBUX_PER_USD);
-    var devexPayout = robuxAmount * DEVEX_USD_PER_ROBUX;
-    $('admDevex').innerHTML =
-      '<div class="adm-devex-row"><span>Storefront rate (what buyers pay)</span><strong>1 USD = ' + ROBUX_PER_USD + ' Robux</strong></div>' +
-      '<div class="adm-devex-row"><span>Robux taken in, this range</span><strong>' + robux(robuxRevUSD) + '</strong></div>' +
-      '<div class="adm-devex-row"><span>Roblox DevEx payout rate</span><strong>$' + DEVEX_USD_PER_ROBUX.toFixed(4) + ' / Robux</strong></div>' +
-      '<div class="adm-devex-row"><span>Est. USD if cashed out via DevEx</span><strong>' + usd(devexPayout) + '</strong></div>' +
-      '<p class="adm-note">Robux is priced ~' + Math.round((ROBUX_PER_USD * DEVEX_USD_PER_ROBUX) * 100) + '% of face USD value after Roblox\'s DevEx conversion — this is why Robux checkout is marked up relative to card/PayPal.</p>';
 
     var best = bestSellers(6);
     $('admBestSellers').innerHTML = best.length ? best.map(function (p, i) {
@@ -1026,14 +1070,6 @@
     $('admTrafficStats').innerHTML =
       '<div class="dash-stat glass"><span class="ds-label">Pageviews</span><span class="ds-num">' + totalViews.toLocaleString('en-US') + '</span></div>' +
       '<div class="dash-stat glass"><span class="ds-label">Sessions</span><span class="ds-num">' + totalSessions.toLocaleString('en-US') + '</span></div>';
-
-    $('admReferralBody').innerHTML = REFERRALS.map(function (r) {
-      var rate = r.clicks ? (r.conversions / r.clicks * 100) : 0;
-      return '<tr><td class="dt-mono">' + esc(r.code) + '</td><td>' + esc(r.owner) + '</td><td>' + r.clicks + '</td><td>' + r.signups + '</td><td>' + r.conversions + '</td><td>' + pct(rate) + '</td><td>' + usd(r.earnedUSD) + '</td></tr>';
-    }).join('');
-    var owed = REFERRALS.reduce(function (s, r) { return s + (r.earnedUSD - r.paidUSD); }, 0);
-    $('admAffiliateOwed').textContent = usd(owed);
-    renderPayouts();
 
     $('admAbandonedBody').innerHTML = ABANDONED.slice(0, 12).map(function (a) {
       return '<tr><td>' + fmtDate(new Date(a.date)) + '</td><td>' + esc(a.title) + '</td><td>' + usd(a.value) + '</td><td>' + (a.email ? esc(a.email) : '<span class="adm-sub">unknown</span>') + '</td></tr>';
@@ -1853,7 +1889,7 @@
         '<td>' + esc(o.userName) + '</td>' +
         '<td>' + o.currency.toUpperCase() + '</td>' +
         '<td>' + orderAmount(o) + '</td>' +
-        '<td>' + sourceBadge(o.source) + statusBadge(o.status) + '</td>' +
+        '<td>' + statusBadge(o.status) + '</td>' +
         '<td class="adm-row-actions">' + actions + '</td></tr>';
     }).join('') || '<tr><td colspan="8" class="adm-empty">No orders match.</td></tr>';
   }

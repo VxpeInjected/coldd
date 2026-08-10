@@ -2192,18 +2192,18 @@ html.js .nr-frame .nr-slide.is-active .nr-cap > :nth-child(3) { animation-delay:
 .adm-chart-bar { transition: opacity .1s ease; }
 .adm-chart-bar.hover { opacity: 1 !important; stroke: #fff; stroke-width: 0.6; }
 .adm-chart-tip { position: fixed; z-index: 9999; background: #0a0a0a; border: 1px solid var(--hairline); color: var(--fg-1); font-size: 12px; padding: 6px 10px; border-radius: 4px; pointer-events: none; white-space: nowrap; box-shadow: 0 6px 20px var(--ink-40); }
-.adm-platform-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-top: 1px solid var(--hairline); font-size: 13px; }
-.adm-platform-row:first-child { border-top: 0; }
-.adm-platform-row .adm-platform-name { color: var(--fg-1); font-weight: 600; }
-.adm-platform-row .adm-platform-pending { color: var(--fg-3); font-size: 12px; }
+/* Marketing channel rows. Replaced .adm-platform-row, whose "Revenue by
+   platform" table listed four marketplaces that were all "Not tracked yet". */
+.adm-channel-row { display: flex; justify-content: space-between; align-items: center; gap: 16px;
+  padding: 13px 0; border-top: 1px solid var(--hairline); font-size: 13px; }
+.adm-channel-row:first-child { border-top: 0; }
+.adm-channel-main { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.adm-channel-name { color: var(--fg-1); font-weight: 600; }
+.adm-channel-val { color: var(--fg); font-weight: 700; margin-left: auto; }
 .adm-catlist { margin-top: 12px; display: flex; flex-direction: column; gap: 8px; }
 .adm-catrow { display: flex; justify-content: space-between; font-size: 13px; padding: 6px 0; border-top: 1px solid var(--hairline); }
 .adm-catrow:first-child { border-top: 0; }
 
-.adm-devex-row { display: flex; justify-content: space-between; align-items: baseline; padding: 9px 0; border-top: 1px solid var(--hairline); font-size: 13px; }
-.adm-devex-row:first-child { border-top: 0; }
-.adm-devex-row span { color: var(--fg-2); }
-.adm-devex-row strong { color: var(--fg); }
 
 .adm-sub { color: var(--fg-3); font-size: 12px; text-decoration: none; }
 /* "No file attached" is a state that costs a customer a real download, so it

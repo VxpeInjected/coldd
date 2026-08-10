@@ -49,6 +49,7 @@
           <nav class="dash-nav">
             <a href="#" data-panel="home" class="active"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg><span>Dashboard</span></a>
             <a href="#" data-panel="analytics"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-6 4 3 5-8"/></svg><span>Analytics</span></a>
+            <a href="#" data-panel="marketing"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11v2a1 1 0 0 0 1 1h3l4 4V6L7 10H4a1 1 0 0 0-1 1Z"/><path d="M16 9a4 4 0 0 1 0 6"/><path d="M19 6.5a8 8 0 0 1 0 11"/></svg><span>Marketing</span></a>
             <a href="#" data-panel="products"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="M3.3 7 12 12l8.7-5M12 22V12"/></svg><span>Products</span></a>
             <a href="#" data-panel="orders"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg><span>Orders</span></a>
             <a href="#" data-panel="refunds"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg><span>Refunds</span></a>
@@ -106,17 +107,6 @@
 
             <div class="adm-two-col">
               <div class="dash-card glass">
-                <div class="dash-card-head"><h2>Revenue by currency</h2></div>
-                <div class="dash-stats adm-stats-3" id="admCurrencyCards"></div>
-              </div>
-              <div class="dash-card glass">
-                <div class="dash-card-head"><h2>Robux &amp; DevEx conversion</h2></div>
-                <div id="admDevex"></div>
-              </div>
-            </div>
-
-            <div class="adm-two-col">
-              <div class="dash-card glass">
                 <div class="dash-card-head"><h2>Best sellers</h2></div>
                 <div class="dash-rows" id="admBestSellers"></div>
               </div>
@@ -128,14 +118,37 @@
             </div>
 
             <div class="dash-card glass">
-              <div class="dash-card-head"><h2>Revenue by platform</h2><span class="adm-sub">Marketplace integrations beyond Website/Parcel aren't built yet.</span></div>
-              <div id="admPlatformRevenue"></div>
-            </div>
-
-            <div class="dash-card glass">
               <div class="dash-card-head"><h2>Traffic analytics</h2></div>
               <div class="dash-stats adm-stats-2" id="admTrafficStats"></div>
               <div id="admTrafficChart"></div>
+            </div>
+
+            <div class="adm-two-col">
+              <div class="dash-card glass dash-tablewrap">
+                <div class="dash-card-head"><h2>Abandoned carts</h2><span class="adm-sub">Value at risk: <strong id="admAbandonedTotal"></strong></span></div>
+                <table class="dash-table">
+                  <thead><tr><th>Date</th><th>Item</th><th>Value</th><th>Email</th></tr></thead>
+                  <tbody id="admAbandonedBody"></tbody>
+                </table>
+              </div>
+              <div class="dash-card glass dash-tablewrap">
+                <div class="dash-card-head"><h2>Coupon usage &amp; redemption</h2></div>
+                <table class="dash-table">
+                  <thead><tr><th>Code</th><th>Status</th><th>Uses</th><th>Discount given</th><th>Revenue influenced</th></tr></thead>
+                  <tbody id="admCouponAnBody"></tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+
+          <section class="dash-panel" id="adm-panel-marketing" hidden>
+            <div class="dash-head"><h1>Marketing</h1><p>Audience, channels, referrals and email. Store performance lives in Analytics.</p></div>
+
+            <div class="dash-stats" id="admMktStats"></div>
+
+            <div class="dash-card glass">
+              <div class="dash-card-head"><h2>Channels</h2><span class="adm-sub">Connect a channel to pull its numbers in automatically.</span></div>
+              <div id="admMktChannels"></div>
             </div>
 
             <div class="dash-card glass dash-tablewrap">
@@ -154,21 +167,9 @@
               </table>
             </div>
 
-            <div class="adm-two-col">
-              <div class="dash-card glass dash-tablewrap">
-                <div class="dash-card-head"><h2>Abandoned carts</h2><span class="adm-sub">Value at risk: <strong id="admAbandonedTotal"></strong></span></div>
-                <table class="dash-table">
-                  <thead><tr><th>Date</th><th>Item</th><th>Value</th><th>Email</th></tr></thead>
-                  <tbody id="admAbandonedBody"></tbody>
-                </table>
-              </div>
-              <div class="dash-card glass dash-tablewrap">
-                <div class="dash-card-head"><h2>Coupon usage &amp; redemption</h2></div>
-                <table class="dash-table">
-                  <thead><tr><th>Code</th><th>Status</th><th>Uses</th><th>Discount given</th><th>Revenue influenced</th></tr></thead>
-                  <tbody id="admCouponAnBody"></tbody>
-                </table>
-              </div>
+            <div class="dash-card glass">
+              <div class="dash-card-head"><h2>Email marketing</h2></div>
+              <div id="admMktEmail"></div>
             </div>
           </section>
 

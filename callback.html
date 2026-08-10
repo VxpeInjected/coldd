@@ -9,35 +9,28 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
-<!-- This screen had its own hardcoded palette - #0a0a0a ground, a MONOSPACE
+<!-- This screen had its own hardcoded palette - a #0a0a0a ground, a monospace
      face, a #b23a3a spinner - so the moment right after signing in looked like
-     a terminal rather than coldd. It costs nothing to load the real stylesheet
-     here: the visitor arrived from /signin, so it is already cached. -->
+     a terminal rather than coldd. The .cb-* rules are in styles.css, shared
+     with /roblox-callback.html so the two cannot drift apart. -->
+<link rel="icon" type="image/png" href="/logo.png" />
+<meta name="theme-color" content="#15161b" />
 <link rel="stylesheet" href="/styles.css?v=20260810a" />
-<style>
-  .cb-wrap { min-height: 100vh; min-height: 100dvh; display: flex; align-items: center; justify-content: center; padding: 24px; }
-  .cb-card { display: flex; flex-direction: column; align-items: center; gap: 18px;
-    padding: 40px 44px; border-radius: var(--r); min-width: 280px; text-align: center; }
-  .cb-logo { height: 30px; width: auto; display: block; opacity: 0.92; }
-  /* Ember, matching every other loading state on the site. */
-  .cb-spin { width: 26px; height: 26px; border: 2px solid var(--hairline);
-    border-top-color: var(--accent); border-radius: 50%; animation: cbspin .8s linear infinite; }
-  @keyframes cbspin { to { transform: rotate(360deg); } }
-  .cb-card p { margin: 0; font-size: 14.5px; line-height: 1.5; color: var(--fg-2); max-width: 34ch; }
-  /* The spinner is the only motion here and it signals work in progress, so
-     under reduced motion it holds still rather than vanishing - a static ring
-     still reads as "waiting". */
-  @media (prefers-reduced-motion: reduce) { .cb-spin { animation: none; } }
-</style>
 </head>
 <body>
   <div class="backdrop"></div>
   <div class="scrim"></div>
   <div class="cb-wrap">
-    <div class="cb-card glass">
+    <div class="cb-card glass" id="cbCard" data-state="working">
       <img class="cb-logo" src="/logo.png" alt="coldd" />
       <div class="cb-spin" aria-hidden="true"></div>
+      <div class="cb-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="9"/><path d="M12 7.5v5M12 16.2h.01"/>
+        </svg>
+      </div>
       <p id="cbMsg" role="status">Finishing sign-in…</p>
+      <a class="cb-out lnk-back" href="/signin">Back to sign in</a>
     </div>
   </div>
 
@@ -48,20 +41,12 @@
     (async function () {
       var msg = document.getElementById('cbMsg');
       function fail(text) {
+        document.getElementById('cbCard').setAttribute('data-state', 'error');
         msg.textContent = text;
         setTimeout(function () { location.href = '/signin'; }, 1800);
       }
-      // If this Discord sign-in was triggered as a re-auth (Security tab
-      // or Linked Accounts asking the user to re-verify via their
-      // original sign-up method), send them back to the panel that asked
-      // instead of the normal post-login redirect.
-      function postLoginRedirect() {
-        var target = null;
-        try { target = sessionStorage.getItem('coldd_reauth_target'); sessionStorage.removeItem('coldd_reauth_target'); } catch (e) {}
-        return target ? ('/dashboard?panel=' + target + '&verified=1') : '/dashboard';
-      }
       try {
-        if (!window.coldSupabase) throw new Error('Supabase client unavailable.');
+        if (!window.coldSupabase) throw new Error('Could not reach coldd. Please try again.');
 
         var session = null;
         for (var i = 0; i < 5 && !session; i++) {
@@ -96,7 +81,7 @@
           window.coldAuth.attributeReferral();
 
           msg.textContent = 'Signed in as ' + finalBasicName + '. Redirecting…';
-          setTimeout(function () { location.href = postLoginRedirect(); }, 500);
+          setTimeout(function () { location.href = '/dashboard'; }, 500);
           return;
         }
 
@@ -156,7 +141,7 @@
         window.coldAuth.attributeReferral();
 
         msg.textContent = 'Signed in as ' + finalName + '. Redirecting…';
-        setTimeout(function () { location.href = postLoginRedirect(); }, 500);
+        setTimeout(function () { location.href = '/dashboard'; }, 500);
       } catch (err) {
         console.error('[coldd] callback error:', err);
         fail('Sign-in failed. Redirecting…');

@@ -1723,6 +1723,38 @@ button.dt-badge:disabled { cursor: default; opacity: 0.6; }
 .co-back { display: inline-block; color: var(--fg-2); text-decoration: none; font-size: 13px; font-weight: 600; margin-bottom: 12px; }
 .co-back:hover { color: var(--fg); }
 .co-main > h1 { font-size: var(--t-h3); letter-spacing: -0.03em; margin-bottom: 18px; }
+/* OAuth interstitials ------------------------------------------------------
+   /callback.html and /roblox-callback.html. Both had their own hardcoded
+   palette and a monospace face, so the moment right after signing in looked
+   like a terminal rather than coldd. Shared here rather than duplicated in two
+   <style> blocks, since the two screens must not drift apart. */
+.cb-wrap { min-height: 100vh; min-height: 100dvh; display: flex; align-items: center; justify-content: center; padding: 24px; }
+.cb-card { display: flex; flex-direction: column; align-items: center; gap: 18px;
+  padding: 40px 44px; border-radius: var(--r); min-width: 280px; max-width: 420px; text-align: center; }
+.cb-logo { height: 30px; width: auto; display: block; opacity: 0.92; }
+/* Ember, matching every other loading state on the site. */
+.cb-spin { width: 26px; height: 26px; border: 2px solid var(--hairline);
+  border-top-color: var(--accent); border-radius: var(--r-pill); animation: cbspin .8s linear infinite; }
+@keyframes cbspin { to { transform: rotate(360deg); } }
+.cb-card p { margin: 0; font-size: 14.5px; line-height: 1.5; color: var(--fg-2); max-width: 34ch; }
+/* The spinner is the only motion here and it signals work in progress, so
+   under reduced motion it holds still rather than vanishing - a static ring
+   still reads as "waiting". */
+@media (prefers-reduced-motion: reduce) { .cb-spin { animation: none; } }
+
+/* Failure state. The redirect that follows can itself fail (popup blockers,
+   a stalled history entry), so the card grows a real link rather than leaving
+   the visitor staring at an error with no way out. */
+.cb-card[data-state="error"] .cb-spin { display: none; }
+.cb-icon { display: none; width: 40px; height: 40px; border-radius: var(--r-pill);
+  place-items: center; color: var(--accent); background: rgba(255,77,68,0.12);
+  border: 1px solid rgba(255,77,68,0.3); }
+.cb-icon svg { width: 21px; height: 21px; }
+.cb-card[data-state="error"] .cb-icon { display: grid; }
+.cb-out { display: none; font-size: 13px; font-weight: 600; color: var(--fg-2); text-decoration: none; }
+.cb-out:hover { color: var(--fg); }
+.cb-card[data-state="error"] .cb-out { display: inline-flex; }
+
 /* Thank-you page ----------------------------------------------------------
    Reuses the checkout shell, but there is no order summary rail here, so the
    single column centres instead of leaving a 388px hole. */

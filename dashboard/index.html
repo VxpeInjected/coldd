@@ -234,11 +234,7 @@
             <div class="auth-msg"></div>
           </form>
         </div>
-        <div class="dash-card glass" id="secLocked">
-          <p>Verify it's you before making security or linked-account changes.</p>
-          <button class="btn btn-primary" id="secVerifyBtn" type="button">Verify identity</button>
-        </div>
-        <div id="secUnlocked" hidden>
+        <div id="secUnlocked">
           <div class="dash-card glass">
             <div class="dash-card-head"><h2>Email</h2></div>
             <form class="auth-form" id="secEmailForm" novalidate style="max-width:420px;">
@@ -276,28 +272,6 @@
     </div>
   </main>
 
-  <div class="confirm-overlay" id="reauthOverlay" hidden>
-    <div class="confirm-modal" style="max-width:380px;text-align:left;">
-      <h3 style="margin:0 0 6px;font-size:17px;">Verify it's you</h3>
-      <p style="margin:0 0 16px;font-size:13px;color:var(--fg-3);">Re-verify using the same method you signed up with.</p>
-      <div id="reauthChooseView">
-        <div id="reauthMethods"></div>
-      </div>
-      <div id="reauthPwView" hidden>
-        <div class="auth-field"><label for="reauthPw">Password</label><input id="reauthPw" type="password" autocomplete="current-password" /><span class="auth-err"></span></div>
-        <button class="btn btn-primary" id="reauthPwBtn" type="button" style="width:100%;margin-top:10px;"><span class="btn-label">Verify</span><span class="btn-spinner" hidden></span></button>
-        <button class="btn btn-ghost" id="reauthPwBack" type="button" style="width:100%;margin-top:8px;">Back</button>
-      </div>
-      <div id="reauthOtpView" hidden>
-        <p style="margin:0 0 10px;font-size:13px;color:var(--fg-3);">We've emailed a code to your account email.</p>
-        <div class="auth-field"><label for="reauthOtp">Verification code</label><input id="reauthOtp" type="text" autocomplete="one-time-code" /><span class="auth-err"></span></div>
-        <button class="btn btn-primary" id="reauthOtpBtn" type="button" style="width:100%;margin-top:10px;"><span class="btn-label">Verify</span><span class="btn-spinner" hidden></span></button>
-        <button class="btn btn-ghost" id="reauthOtpBack" type="button" style="width:100%;margin-top:8px;">Back</button>
-      </div>
-      <p class="auth-err" id="reauthErr" style="margin-top:10px;"></p>
-      <button class="btn btn-ghost" id="reauthCancel" type="button" style="width:100%;margin-top:8px;">Cancel</button>
-    </div>
-  </div>
 
   <div class="confirm-overlay" id="pwModalOverlay" hidden>
     <div class="confirm-modal" style="max-width:380px;text-align:left;">

@@ -146,6 +146,12 @@
 
       function applyStatic() {
         document.querySelectorAll('.p-price, .p-was').forEach(function (el) {
+          // A settled amount is a historical fact, not a live price. Without
+          // this, flipping the currency toggle rewrote what a completed order
+          // said the customer paid - a $89 receipt became R$ 7,120, and a
+          // USD receipt restated itself in EUR. Opting out here rather than
+          // dropping the class keeps the price styling.
+          if (el.hasAttribute('data-fixed')) return;
           if (el.getAttribute('data-usd') == null) {
             el.setAttribute('data-usd', parseFloat(el.textContent.replace(/[^0-9.]/g, '')) || 0);
           }
@@ -1788,6 +1794,60 @@
         }
         pv.querySelectorAll('.pd-tab').forEach(function (b) { b.addEventListener('click', function () { showTab(b.getAttribute('data-tab')); }); });
 
+        /* Switching the tab alone leaves the reader at the top of the product
+           page with the reviews a scroll away, so "Review" from the dashboard
+           and "Leave a review" here both appeared to do nothing. Scroll the
+           panel into view under the sticky header, and when the intent is to
+           write, focus the textarea.
+
+           The compose form only exists once ownership resolves, which is
+           async, so a deep link has to wait for it rather than assume it is
+           already in the DOM. */
+        function goToReviews(compose) {
+          showTab('reviews');
+          var reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+          /* Switching the tab alone left the reader at the top of the page
+             with the reviews a full screen below, so "Review" from the
+             dashboard and "Leave a review" here both looked like they did
+             nothing. Scrolling stops the moment the reader takes over. */
+          var stop = false;
+          function release() { stop = true; }
+          window.addEventListener('wheel', release, { passive: true, once: true });
+          window.addEventListener('touchmove', release, { passive: true, once: true });
+          window.addEventListener('keydown', function (e) {
+            if (/^(Page|Arrow|Home|End| )/.test(e.key)) release();
+          }, { once: true });
+
+          // scrollIntoView rather than computing an offset against window:
+          // it finds whichever ancestor actually scrolls, and the sticky
+          // header is handled by scroll-margin-top on .pd-panelbox instead of
+          // arithmetic here. Re-run for a short window because gallery images
+          // land after this and push the panel down.
+          var deadline = Date.now() + 2000, first = true;
+          (function settle() {
+            if (stop) return;
+            var box = pv.querySelector('.pd-panelbox') || $('pdPaneReviews');
+            if (box) {
+              box.scrollIntoView({ block: 'start', behavior: (first && !reduce) ? 'smooth' : 'auto' });
+              first = false;
+            }
+            if (Date.now() < deadline) setTimeout(settle, 150);
+          })();
+
+          if (!compose) return;
+          var tries = 0;
+          (function awaitForm() {
+            var ta = document.getElementById('pdRevText');
+            if (ta) {
+              // Don't yank the page back up; the scroll above already framed it.
+              ta.focus({ preventScroll: true });
+              return;
+            }
+            if (tries++ < 40) setTimeout(awaitForm, 50);
+          })();
+        }
+
         function syncWish() {
           if (!cur || !pdWish) return;
           var on = lsGet(WISH).indexOf(cur.id) >= 0;
@@ -1995,7 +2055,7 @@
         });
         if (pdUpgrade) pdUpgrade.addEventListener('click', function () { if (cur) { setLic('resell'); add(cur); openCart(); } });
         if ($('pdDownload')) $('pdDownload').addEventListener('click', function () { showTab('updates'); });
-        if ($('pdReview')) $('pdReview').addEventListener('click', function () { showTab('reviews'); });
+        if ($('pdReview')) $('pdReview').addEventListener('click', function () { goToReviews(true); });
         if (pdReferCopy) pdReferCopy.addEventListener('click', function () {
           if (!cur) return;
           var link = location.origin + location.pathname + '?id=' + encodeURIComponent(cur.id) + '&ref=you';
@@ -2048,7 +2108,7 @@
           pv.hidden = false;
           var q = (location.search.match(/[?&]id=([^&]+)/) || [])[1];
           render(q ? decodeURIComponent(q) : '');
-          if (/[?&]tab=reviews\b/.test(location.search)) showTab('reviews');
+          if (/[?&]tab=reviews\b/.test(location.search)) goToReviews(true);
         }
       })();
 
@@ -2236,10 +2296,16 @@
       // price - Robux orders show the real R$ total, never routed through
       // the flat window.__robux() conversion (matches the same fix applied
       // to cart/checkout/admin this session).
+      // Robux orders already showed their real R$ total. USD orders did not:
+      // they went through window.__money(), so the amount tracked whatever
+      // currency the header toggle happened to be set to. Both now report
+      // what was charged.
       function orderMoney(o) {
-        return o.currency === 'robux'
-          ? 'R$ ' + Math.round(Number(o.total_robux) || 0).toLocaleString('en-US')
-          : (window.__money ? window.__money(o.total_usd) : ('$' + o.total_usd));
+        if (o.currency === 'robux') {
+          return 'R$ ' + Math.round(Number(o.total_robux) || 0).toLocaleString('en-US');
+        }
+        var usd = Number(o.total_usd) || 0;
+        return '$' + usd.toFixed(2).replace(/\.00$/, '');
       }
 
       function renderPurchases(orders) {
@@ -2251,9 +2317,7 @@
           var titles = esc(items.map(function (i) { return i.title; }).join(', ') || '—');
           var badge = o.status === 'paid' ? 'ok' : 'warn';
           var label = o.status.charAt(0).toUpperCase() + o.status.slice(1);
-          var isRobux = o.currency === 'robux';
-          var money = orderMoney(o);
-          var priceCell = isRobux ? money : ('<span class="p-price" data-usd="' + o.total_usd + '">' + money + '</span>');
+          var priceCell = '<span class="p-price" data-fixed>' + orderMoney(o) + '</span>';
           return '<tr><td>' + fmtDate(o.created_at) + '</td><td>' + titles + '</td><td class="dt-mono">' + shortOrderId(o.id) + '</td>' +
             '<td>' + priceCell + '</td>' +
             '<td><span class="dt-badge ' + badge + '">' + label + '</span></td></tr>';
@@ -2277,7 +2341,7 @@
             }
             return '<div class="dash-row"><span class="dr-thumb" style="background-image:url(\'' + img + '\')"></span>' +
               '<div class="dr-main"><div class="dr-title">' + titles + '</div><div class="dr-sub">' + fmtDate(o.created_at) + ' · ' + shortOrderId(o.id) + '</div></div>' +
-              '<span class="p-price">' + orderMoney(o) + '</span>' +
+              '<span class="p-price" data-fixed>' + orderMoney(o) + '</span>' +
               '<div class="dr-actions">' + actions + '</div></div>';
           }).join('') : '<p class="dash-empty-note">No purchases yet.</p>';
         }

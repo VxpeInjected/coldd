@@ -1198,7 +1198,10 @@ body.no-scroll { overflow: hidden; }
 .pd-tab.active { color: var(--fg); }
 .pd-tab.active::after { content: ""; position: absolute; left: 10px; right: 10px; bottom: -1px; height: 2px; background: var(--accent); border-radius: 4px; }
 .pd-tab-n { color: var(--fg-3); font-weight: 600; }
-.pd-panelbox { padding-top: 22px; }
+/* scroll-margin-top keeps the sticky header from covering the panel when
+   "Review" deep-links here (app.js goToReviews). Doing it in CSS means the
+   scroll code does not have to measure the header. */
+.pd-panelbox { padding-top: 22px; scroll-margin-top: 88px; }
 .pd-hi { display: flex; gap: 14px; align-items: center; padding: 16px 20px; border-radius: 16px;
   border: 1px solid var(--hairline); background: rgba(16,17,22,0.94); }
 .pd-hi-ic { flex: 0 0 auto; width: 40px; height: 40px; display: inline-flex; align-items: center; justify-content: center;

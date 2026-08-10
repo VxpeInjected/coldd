@@ -571,6 +571,7 @@
         canBeFree: legalRaw.can_be_free, disallowSales: legalRaw.disallow_sales
       }),
       versions: row.versions || [],
+      storagePath: row.storage_path || '',
       visible: !!row.is_active,
       robloxGamepassId: row.roblox_gamepass_id || null,
       robloxUniverseId: row.roblox_universe_id || null,
@@ -1192,6 +1193,29 @@
     });
   }
 
+  // The placeholder is the products table's column default, so a product that
+  // has never had a real upload still reads as having a file. Say so plainly
+  // rather than leaving the admin to guess.
+  var PLACEHOLDER_PATH = '_shared/placeholder.zip';
+  function setFileNote(el, storagePath, pendingName) {
+    if (!el) return;
+    el.removeAttribute('href');
+    if (pendingName) {
+      el.textContent = 'Selected: ' + pendingName + ' (uploaded, saves with the product)';
+      el.classList.remove('adm-note-warn');
+      return;
+    }
+    if (!storagePath || storagePath === PLACEHOLDER_PATH) {
+      el.textContent = 'No file attached - buyers would download the placeholder.';
+      el.classList.add('adm-note-warn');
+      return;
+    }
+    // Strip the 8-char storage prefix so this matches the filename the buyer
+    // actually receives (see _shared/download.ts downloadName).
+    el.textContent = 'Attached: ' + storagePath.split('/').pop().replace(/^[0-9a-f]{8}-/i, '');
+    el.classList.remove('adm-note-warn');
+  }
+
   /* ---- Reusable custom dropdown (replaces native <select> everywhere in admin) ----
      root must contain .adm-dd-btn (with .adm-dd-val + chevron) and .adm-dd-menu,
      matching the markup already used for the product category picker. */
@@ -1383,8 +1407,11 @@
     $('admEditTechFileName').value = tech.fileName || '';
     $('admEditFileInput').value = '';
     var fileNote = $('admEditFileNote');
-    fileNote.textContent = tech.fileName ? ('Selected: ' + tech.fileName) : 'No file uploaded yet';
-    fileNote.removeAttribute('href');
+    // This used to read tech.fileName - a free-text field the admin types for
+    // display on the product page - so it happily said "Selected: kit.zip"
+    // while storage_path was still the column default and buyers were
+    // downloading the placeholder. Report the actual attached object.
+    setFileNote(fileNote, p.storagePath);
     $('admEditTechParts').value = tech.parts || '';
     $('admEditTechMeshParts').value = tech.meshParts || '';
     $('admEditTechUnions').value = tech.unions || '';
@@ -1437,10 +1464,11 @@
     fileNote.removeAttribute('href');
     uploadToStorage('productFile', f).then(function (r) {
       pendingStoragePath = r.path;
-      fileNote.textContent = 'Selected: ' + f.name + ' (uploaded, saved with the product)';
+      setFileNote(fileNote, null, f.name);
     }).catch(function (err) {
       pendingStoragePath = null;
       fileNote.textContent = 'Upload failed: ' + (err.message || 'try again') + '.';
+      fileNote.classList.add('adm-note-warn');
     });
   });
 
@@ -1550,8 +1578,7 @@
 
     ['admEditTechFormat', 'admEditTechSize', 'admEditTechFileName', 'admEditTechParts', 'admEditTechMeshParts', 'admEditTechUnions', 'admEditTechScripts'].forEach(function (id) { $(id).value = ''; });
     $('admEditFileInput').value = '';
-    $('admEditFileNote').textContent = 'No file uploaded yet';
-    $('admEditFileNote').removeAttribute('href');
+    setFileNote($('admEditFileNote'), null);
 
     $('admEditThumbUrl').value = '';
     updateThumbPreview();
@@ -1629,6 +1656,12 @@
       if (!title) { if (msg) msg.textContent = 'Enter a title.'; return; }
       var fields = Object.assign({ title: title, platform: platform }, collectEditFields());
       if (!fields.image) fields.image = '/banner.jpg';
+      // Create used to omit this, so a file uploaded while filling in a new
+      // product was written to Storage and then thrown away: the row kept the
+      // column default, _shared/placeholder.zip, and buyers downloaded the
+      // placeholder. openProductEdit() runs straight after this and clears
+      // pendingStoragePath, so there was no second chance to save it either.
+      if (pendingStoragePath) fields.storagePath = pendingStoragePath;
       if (saveBtn) saveBtn.disabled = true;
       if (msg) msg.textContent = 'Creating…';
       callUpsertProduct(fields).then(function (res) {

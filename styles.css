@@ -2203,6 +2203,9 @@ html.js .nr-frame .nr-slide.is-active .nr-cap > :nth-child(3) { animation-delay:
 .adm-devex-row strong { color: var(--fg); }
 
 .adm-sub { color: var(--fg-3); font-size: 12px; text-decoration: none; }
+/* "No file attached" is a state that costs a customer a real download, so it
+   is not allowed to look like ordinary help text. */
+.adm-note-warn { color: var(--warn); font-weight: 600; }
 a.adm-sub[href] { color: var(--fg-1); cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
 .adm-note { color: var(--fg-3); font-size: 12px; line-height: 1.55; margin-top: 12px; }
 .adm-empty { color: var(--fg-3); font-size: 13px; padding: 18px 0; text-align: center; }

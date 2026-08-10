@@ -19,6 +19,7 @@
 // lookup (e.g. redownloading later from the dashboard).
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { downloadName, publicSignedUrl } from "../_shared/download.ts";
 
 const ALLOWED_ORIGIN = "https://coldd.dev";
 const SIGNED_URL_TTL_SECONDS = 120;
@@ -88,17 +89,19 @@ Deno.serve(async (req: Request) => {
 
     const { data: product, error: productErr } = await admin
       .from("products")
-      .select("storage_path")
+      .select("storage_path, title")
       .eq("slug", slug)
       .single();
     if (productErr || !product) return json({ ok: false, error: "Product not found." }, 404);
 
     const { data: signed, error: signErr } = await admin.storage
       .from("product-files")
-      .createSignedUrl(product.storage_path, SIGNED_URL_TTL_SECONDS);
+      .createSignedUrl(product.storage_path, SIGNED_URL_TTL_SECONDS, {
+        download: downloadName(product.storage_path, product.title),
+      });
     if (signErr || !signed) return json({ ok: false, error: "Could not generate download link." }, 500);
 
-    return json({ ok: true, url: signed.signedUrl });
+    return json({ ok: true, url: publicSignedUrl(signed.signedUrl) });
   } catch (err) {
     console.error("[get-download-url] error:", err);
     return json({ ok: false, error: "Server error." }, 500);

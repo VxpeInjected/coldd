@@ -18,7 +18,18 @@
     console.error('[coldd] Supabase SDK failed to load.');
     return;
   }
-  var client = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  // Session (access + refresh token) storage. supabase-js defaults to
+  // localStorage, which persists indefinitely and is shared across every
+  // tab - a stolen token (XSS, shared/public machine) stays valid forever.
+  // sessionStorage still survives page-to-page navigation within this tab
+  // (this is a multi-page site, not an SPA, so that's required for staying
+  // signed in while browsing), but it's cleared the moment the tab closes
+  // and never leaks to other tabs. Not a substitute for XSS prevention -
+  // any JS-readable storage is readable by injected JS - but it shrinks the
+  // window an exfiltrated token stays useful.
+  var client = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    auth: { storage: window.sessionStorage }
+  });
   window.coldSupabase = client;
 
   // supabase-js's functions.invoke() does NOT parse the JSON body into

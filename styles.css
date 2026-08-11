@@ -162,7 +162,13 @@
       font-size: var(--t-sm); font-weight: 600; letter-spacing: -0.004em; text-decoration: none;
       padding: 12px 22px; border-radius: 999px;
       border: 1px solid transparent; min-height: 46px;
-      transition: background .18s ease, border-color .18s ease, color .18s ease, box-shadow .18s ease; }
+      transition: background .18s ease, border-color .18s ease, color .18s ease, box-shadow .18s ease, transform .16s var(--ease-out); }
+    /* Press feedback on every button in the site - the product-card buy/add
+       buttons already had this (.p-buy:active, .p-add:active below); the
+       shared .btn base never did, so every primary CTA, nav action, and
+       form submit sat there unconfirmed on tap/click. */
+    .btn:active { transform: scale(0.97); }
+    .btn[disabled]:active, .btn:disabled:active { transform: none; }
     /* Flat ember, no gradient, no coloured halo. Depth comes from a real border
        and a neutral shadow; state comes from the fill stepping up. */
     .btn-primary { color: #fff; background: var(--accent-deep);
@@ -1023,7 +1029,8 @@ html[data-ann="on"] .tc { top: 56px; }
 .cart-fab-count { position: absolute; top: -6px; right: -8px; min-width: 15px; height: 15px; padding: 0 4px;
   border-radius: 10px; background: var(--accent); color: #fff; font-size: 11px; font-weight: 700;
   display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 2px 5px var(--ink-40);
-  transform: scale(0); opacity: 0; transition: transform .22s var(--ease), opacity .18s var(--ease); }
+  /* scale(0.5), not scale(0) - nothing in the real world pops from nothing. */
+  transform: scale(0.5); opacity: 0; transition: transform .22s var(--ease), opacity .18s var(--ease); }
 .cart-fab.has-items .cart-fab-count { transform: scale(1); opacity: 1; }
 .cart-fab-total { flex: 0 0 auto; margin-left: 11px; font-size: 13px; font-weight: 700; letter-spacing: -0.01em;
   color: var(--fg-3); white-space: nowrap; transition: color .25s var(--ease); }
@@ -1054,6 +1061,10 @@ body.no-scroll { overflow: hidden; }
   border-radius: 10px; border: 1px solid var(--hairline); background: rgba(255,255,255,0.02); color: var(--fg-2);
   cursor: pointer; transition: color .2s, background .2s, border-color .2s; }
 .cart-x:hover, .pm-x:hover { color: var(--fg); background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.16); }
+/* 44px touch target on the close controls for the cart drawer and every
+   modal (payment picker, product quick view) - both are reachable on any
+   viewport, not just behind the mobile nav menu. */
+@media (max-width: 640px) { .cart-x, .pm-x { width: 44px; height: 44px; } }
 
 .cart-body { flex: 1; overflow-y: auto; padding: 14px 18px; display: flex; flex-direction: column; gap: 10px; }
 .cart-empty { padding: 56px 22px; text-align: center; color: var(--fg-3); font-size: 14px; }
@@ -1456,7 +1467,10 @@ html[data-ann="on"] header.nav { top: 52px; }
   display: grid; place-items: center; border: none; border-radius: 10px; background: transparent; color: var(--fg-3);
   cursor: pointer; transition: color .16s var(--ease), background .16s var(--ease); }
 .announce-x:hover { color: var(--fg); background: rgba(255,255,255,0.08); }
-@media (max-width: 620px) { .announce-link { display: none; } .announce-msg { font-size: 12px; } .announce-inner { padding: 0 44px; } }
+@media (max-width: 620px) { .announce-link { display: none; } .announce-msg { font-size: 12px; } .announce-inner { padding: 0 44px; }
+  /* 44px touch target (was 26px) - this bar sits at the very top of every page on a phone. */
+  .announce-x { width: 44px; height: 44px; right: 2px; }
+}
 
 .deal-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
 .deal-off { position: absolute; top: 12px; left: 12px; font-size: 12px; font-weight: 700; letter-spacing: 0.02em;

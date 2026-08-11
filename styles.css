@@ -1505,10 +1505,13 @@ html[data-ann="on"] header.nav { top: 52px; }
 @media (max-width: 700px) { .free-grid { grid-template-columns: repeat(2, 1fr); } }
 @media (max-width: 440px) { .free-grid { grid-template-columns: 1fr; } }
 
-body.auth-page { min-height: 100vh; }
+body.auth-page { min-height: 100vh; min-height: 100dvh; }
 .auth-home { position: fixed; top: 22px; left: 26px; z-index: 5; display: inline-flex; }
 .auth-home .logo { height: 34px; width: auto; }
-.auth-wrap { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 96px 20px 56px; }
+/* 100dvh over the static 100vh fallback - iOS Safari's address bar makes
+   100vh taller than what's actually visible, so a vh-only center leaves
+   this card looking too low until the chrome collapses on scroll. */
+.auth-wrap { min-height: 100vh; min-height: 100dvh; display: flex; align-items: center; justify-content: center; padding: 96px 20px 56px; }
 .auth-card { width: 100%; max-width: 426px; padding: 38px 36px;
   background: linear-gradient(180deg, rgba(28,29,37,0.99), rgba(20,21,27,0.99));
   box-shadow: 0 40px 90px -28px var(--ink-85), 0 0 0 1px rgba(255,255,255,0.05); }
@@ -2136,7 +2139,7 @@ html.js .nr-frame .nr-slide.is-active .nr-cap > :nth-child(3) { animation-delay:
 .pm-note { margin: 9px 0 0; text-align: center; font-size: 12px; color: var(--fg-3); }
 
 /* ==================== Admin dashboard ==================== */
-.adm-body { min-height: 100vh; }
+.adm-body { min-height: 100vh; min-height: 100dvh; }
 .adm-gate { position: fixed; inset: 0; z-index: 500; display: flex; align-items: center; justify-content: center; padding: 24px; }
 .adm-gate[hidden] { display: none; }
 .adm-gate-card { max-width: 380px; padding: 40px 32px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 12px; }
@@ -2622,7 +2625,7 @@ a.adm-sub[href] { color: var(--fg-1); cursor: pointer; text-decoration: underlin
    site is the graphite --bg. Side by side they read as two different
    products; the sign-in screen is now the same ground as everything else. */
 body.auth-page { background: var(--bg); }
-.auth-split { display: flex; min-height: 100vh; }
+.auth-split { display: flex; min-height: 100vh; min-height: 100dvh; }
 .auth-split-left { flex: 0 0 46%; max-width: 560px; display: flex; flex-direction: column; justify-content: center;
   padding: 118px 56px 56px; background: var(--bg); position: relative; z-index: 1; }
 .auth-split-right { flex: 1; position: relative; overflow: hidden; background-image: url('builds.jpg'); background-size: cover; background-position: center; }

@@ -13,11 +13,19 @@
 // Uses the same pricing/scope-matching logic as create-checkout-session
 // (via _shared/coupon.ts) so the number shown here always matches what
 // actually gets charged.
+//
+// Rate limited per caller IP (supabase/rate_limits.sql) - this is the one
+// guest-callable function that confirms whether a guessed code is valid,
+// so without a limit it's a free oracle for brute-forcing discount codes.
+// A shopper trying a code or two never notices; a script trying thousands
+// gets 429s.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { priceItems, resolveCoupon } from "../_shared/coupon.ts";
 
 const ALLOWED_ORIGIN = "https://coldd.dev";
+const RATE_LIMIT_MAX = 20;
+const RATE_LIMIT_WINDOW_SECONDS = 60;
 
 function corsHeaders() {
   return {
@@ -41,6 +49,21 @@ Deno.serve(async (req: Request) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const admin = createClient(supabaseUrl, serviceKey);
+
+    // Supabase's edge gateway sets x-forwarded-for; take the first (client)
+    // hop. No IP at all (shouldn't happen in practice) shares one bucket
+    // rather than skipping the check.
+    const ip = (req.headers.get("x-forwarded-for") || "unknown").split(",")[0].trim();
+    const { data: allowed, error: rlErr } = await admin.rpc("check_rate_limit", {
+      p_key: `coupon:${ip}`,
+      p_max: RATE_LIMIT_MAX,
+      p_window_seconds: RATE_LIMIT_WINDOW_SECONDS,
+    });
+    // Fail open on the limiter itself erroring - a broken rate-limit table
+    // must never take down checkout's discount-code field.
+    if (!rlErr && allowed === false) {
+      return json({ ok: false, error: "Too many attempts. Please wait a minute and try again." }, 429);
+    }
 
     const body = await req.json().catch(() => ({}));
     const items = Array.isArray(body.items) ? body.items : [];

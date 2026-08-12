@@ -1125,17 +1125,7 @@
       if (loadMoreBtn) loadMoreBtn.hidden = !ADBLOX_NEXT_CURSOR;
     }
 
-    if ($('admMktEmail')) {
-      // No sending backend exists. Saying so beats a dead "Send campaign"
-      // button that silently does nothing.
-      $('admMktEmail').innerHTML =
-        '<p class="adm-note">No email provider is connected, so campaigns cannot be sent from here yet. ' +
-        'Transactional mail (order receipts, password resets) goes out through Supabase Auth and is unaffected.</p>' +
-        '<div class="adm-channel-row"><div class="adm-channel-main"><span class="adm-channel-name">Marketing consent</span>' +
-        '<span class="adm-sub">Nothing records a marketing opt-in yet, so there is no list to send to. ' +
-        'Checkout would need a consent field before this means anything.</span></div>' +
-        '<span class="dt-badge">Not collected</span></div>';
-    }
+    renderEmailMarketing();
 
     if ($('admReferralBody')) {
       $('admReferralBody').innerHTML = REFERRALS.map(function (r) {
@@ -1147,6 +1137,119 @@
     }
     void conversions;
   }
+
+  /* ================================================================
+     EMAIL MARKETING (part of the Marketing panel)
+     ================================================================ */
+  var EMAIL_STATS = { total: 0, subscribed: 0, unsubscribed: 0 };
+  var EMAIL_CAMPAIGNS = [];
+  var EMAIL_CONFIGURED = null; // null = not checked yet
+
+  function refreshEmailStats() {
+    if (!window.coldSupabase) return Promise.resolve();
+    return window.coldSupabase.from('profiles').select('marketing_unsubscribed').limit(20000).then(function (res) {
+      if (res.error) { console.error('[admin] failed to load subscriber stats:', res.error.message); return; }
+      var rows = res.data || [];
+      var unsub = rows.filter(function (r) { return r.marketing_unsubscribed; }).length;
+      EMAIL_STATS = { total: rows.length, subscribed: rows.length - unsub, unsubscribed: unsub };
+      if (curPanel === 'marketing') renderEmailMarketing();
+    });
+  }
+  function refreshEmailCampaigns() {
+    if (!window.coldSupabase) return Promise.resolve();
+    return window.coldSupabase.from('email_campaigns').select('*').order('created_at', { ascending: false }).limit(200).then(function (res) {
+      if (res.error) { console.error('[admin] failed to load campaigns:', res.error.message); return; }
+      EMAIL_CAMPAIGNS = res.data || [];
+      if (curPanel === 'marketing') renderEmailMarketing();
+    });
+  }
+  function refreshEmailConfigStatus() {
+    return invokeAdminFn('admin-send-campaign', { action: 'status' }, '').then(function (data) {
+      EMAIL_CONFIGURED = !!data.configured;
+      if (curPanel === 'marketing') renderEmailMarketing();
+    }).catch(function () { EMAIL_CONFIGURED = null; });
+  }
+
+  // Minimal formatting for campaign bodies: blank line = new paragraph,
+  // **bold**. Anything richer would need a real editor, which this doesn't
+  // have yet - this covers the actual shape of a newsletter/announcement.
+  function simpleMarkdownToHtml(text) {
+    var paras = String(text || '').replace(/\r\n/g, '\n').split(/\n{2,}/);
+    return paras.map(function (p) {
+      var line = esc(p.trim()).replace(/\n/g, '<br>').replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+      return line ? '<p style="margin:0 0 16px;">' + line + '</p>' : '';
+    }).join('');
+  }
+
+  function renderEmailMarketing() {
+    var warnEl = $('admEmailConfigWarning');
+    if (warnEl) {
+      warnEl.innerHTML = EMAIL_CONFIGURED === false
+        ? '<div class="dt-badge err" style="display:inline-block;margin-bottom:14px;">Email sending is not configured - set the RESEND_API_KEY secret to enable sends.</div>'
+        : '';
+    }
+
+    if ($('admEmailStats')) {
+      $('admEmailStats').innerHTML = [
+        statTile('Total accounts', EMAIL_STATS.total.toLocaleString('en-US'), null, ''),
+        statTile('Subscribed', EMAIL_STATS.subscribed.toLocaleString('en-US'), 'opted in by default', ''),
+        statTile('Unsubscribed', EMAIL_STATS.unsubscribed.toLocaleString('en-US'), null, '')
+      ].join('');
+    }
+
+    var body = $('admCampaignsBody');
+    if (body) {
+      body.innerHTML = EMAIL_CAMPAIGNS.map(function (c) {
+        var status = c.status === 'sent' ? '<span class="dt-badge ok">Sent</span>' : c.status === 'failed' ? '<span class="dt-badge err">Failed</span>' : c.status === 'sending' ? '<span class="dt-badge warn">Sending</span>' : '<span class="dt-badge">Draft</span>';
+        return '<tr><td>' + fmtDateTime(new Date(c.created_at)) + '</td><td>' + esc(c.subject) + '</td><td>' + status + '</td><td>' + (c.sent_count || 0) + ' / ' + (c.recipient_count || 0) + '</td><td>' + (c.failed_count || 0) + '</td></tr>';
+      }).join('') || '<tr><td colspan="5" class="adm-empty">No campaigns sent yet.</td></tr>';
+    }
+  }
+
+  var campaignForm = $('admCampaignForm');
+  if (campaignForm) {
+    campaignForm.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var subject = $('admCampaignSubject').value.trim();
+      var bodyText = $('admCampaignBody').value;
+      var msg = $('admCampaignMsg');
+      if (!subject || !bodyText.trim()) { if (msg) msg.textContent = 'Write a subject and body first.'; return; }
+      var count = EMAIL_STATS.subscribed || 0;
+      if (!confirm('Send "' + subject + '" to ' + count + ' subscribed account' + (count === 1 ? '' : 's') + '? This cannot be undone.')) return;
+
+      var sendBtn = $('admCampaignSendBtn');
+      sendBtn.disabled = true;
+      if (msg) msg.textContent = 'Sending…';
+      invokeAdminFn('admin-send-campaign', { action: 'send', subject: subject, bodyHtml: simpleMarkdownToHtml(bodyText) }, 'Could not send campaign.').then(function (data) {
+        if (msg) msg.textContent = 'Sent to ' + data.sentCount + ' of ' + data.recipientCount + (data.failedCount ? ' (' + data.failedCount + ' failed)' : '') + '.';
+        logAudit('Sent email campaign "' + subject + '" to ' + data.sentCount + ' recipients');
+        campaignForm.reset();
+        return refreshEmailCampaigns();
+      }).catch(function (err) {
+        if (msg) msg.textContent = err.message;
+      }).then(function () {
+        sendBtn.disabled = false;
+      });
+    });
+  }
+  var campaignTestBtn = $('admCampaignTestBtn');
+  if (campaignTestBtn) campaignTestBtn.addEventListener('click', function () {
+    var subject = $('admCampaignSubject').value.trim();
+    var bodyText = $('admCampaignBody').value;
+    var testEmail = $('admCampaignTestEmail').value.trim();
+    var msg = $('admCampaignMsg');
+    if (!subject || !bodyText.trim()) { if (msg) msg.textContent = 'Write a subject and body first.'; return; }
+    if (!testEmail) { if (msg) msg.textContent = 'Enter a test email address.'; return; }
+    campaignTestBtn.disabled = true;
+    if (msg) msg.textContent = 'Sending test…';
+    invokeAdminFn('admin-send-campaign', { action: 'test', subject: subject, bodyHtml: simpleMarkdownToHtml(bodyText), testEmail: testEmail }, 'Could not send test.').then(function () {
+      if (msg) msg.textContent = 'Test sent to ' + testEmail + '.';
+    }).catch(function (err) {
+      if (msg) msg.textContent = err.message;
+    }).then(function () {
+      campaignTestBtn.disabled = false;
+    });
+  });
 
   /* ================================================================
      ANALYTICS PANEL
@@ -3270,6 +3373,9 @@
   refreshLiveSessions();
   refreshDiscordStats();
   refreshAdbloxStats();
+  refreshEmailStats();
+  refreshEmailCampaigns();
+  refreshEmailConfigStatus();
   var admAdbloxLoadMoreBtn = $('admAdbloxLoadMore');
   if (admAdbloxLoadMoreBtn) admAdbloxLoadMoreBtn.addEventListener('click', function () {
     admAdbloxLoadMoreBtn.disabled = true;

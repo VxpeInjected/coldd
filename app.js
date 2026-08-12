@@ -809,6 +809,9 @@
         const clearBtn = shop.querySelector('.fc-clear');
         const countEl = shop.querySelector('.shop-count');
         const base = shop.getAttribute('data-page') || (location.pathname.split('/').pop() || '/assets');
+        // Matches product.html/checkout's fallback when a product has no
+        // admin-set resell_price_usd.
+        const RESELL_MULT = 3;
 
         // The grid below ships as static markup (built once from the source
         // HTML), so it doesn't know about products created after the last
@@ -834,6 +837,10 @@
             if (existing) {
               existing.setAttribute('data-id', p.id);
               if (p.createdAt) existing.setAttribute('data-created', p.createdAt);
+              if (p.resell) {
+                existing.setAttribute('data-resell', 'yes');
+                existing.setAttribute('data-resell-price', p.resellPrice != null ? p.resellPrice : Math.round(p.priceNum * RESELL_MULT));
+              }
               applyRating(existing, p);
               return;
             }
@@ -849,7 +856,11 @@
             art.setAttribute('data-rating', p.rating || 0);
             art.setAttribute('data-catlabel', p.cat || '');
             if (p.createdAt) art.setAttribute('data-created', p.createdAt);
-            if (p.resell) art.setAttribute('data-resell', 'yes');
+            if (p.resell) {
+              art.setAttribute('data-resell', 'yes');
+              var resellUsd = p.resellPrice != null ? p.resellPrice : Math.round(p.priceNum * RESELL_MULT);
+              art.setAttribute('data-resell-price', resellUsd);
+            }
             if (p.subcat) art.setAttribute('data-subcat', p.subcat);
             if (onSale) art.setAttribute('data-was', p.was);
             art.innerHTML =
@@ -863,6 +874,15 @@
                 '<button class="p-add" type="button">Add to cart</button></div>' +
               '</div>';
             grid.appendChild(art);
+          });
+
+          // Catches static cards marked data-resell="yes" in the source HTML
+          // with no matching live catalog entry (so the loop above never
+          // touched them) - falls back to the same 3x multiplier every other
+          // resell price defaults to.
+          grid.querySelectorAll('.product[data-resell="yes"]:not([data-resell-price])').forEach(function (el) {
+            var base = parseFloat(el.getAttribute('data-price')) || 0;
+            el.setAttribute('data-resell-price', Math.round(base * RESELL_MULT));
           });
         })();
 
@@ -1065,6 +1085,32 @@
           for (let i = 1; i <= pages; i++) pager.appendChild(btn(String(i), i, { active: i === page }));
           pager.appendChild(btn('›', page + 1, { disabled: page === pages }));
         }
+        // The Resell filter shows the same cards as their real category
+        // (resell is cross-cutting, not its own set of products - see
+        // matches() above), so left alone they'd keep showing the Personal
+        // Use price while the shopper is specifically browsing for a resell
+        // licence. Swap the visible price for the resell price while that
+        // filter is active, and back to normal the moment it isn't.
+        function syncCardPricing(card) {
+          var priceRow = card.querySelector('.p-price-row');
+          if (!priceRow) return;
+          var resell = card.getAttribute('data-resell') === 'yes';
+          if (curCat === 'resell' && resell) {
+            var resellUsd = Number(card.getAttribute('data-resell-price'));
+            var robuxMode = window.__currencyMode ? window.__currencyMode() === 'robux' : false;
+            var text = robuxMode
+              ? (window.__usd ? window.__usd(resellUsd) : ('$' + resellUsd))
+              : (window.__money ? window.__money(resellUsd) : ('$' + resellUsd));
+            // No "was" price for resell - it isn't a sale off a base price,
+            // it's a different licence with its own price.
+            priceRow.innerHTML = '<span class="p-price">' + text + '</span>';
+          } else {
+            var was = card.getAttribute('data-was');
+            var baseUsd = Number(card.getAttribute('data-price'));
+            var baseText = window.__money ? window.__money(baseUsd) : ('$' + baseUsd);
+            priceRow.innerHTML = (was ? '<span class="p-was">' + (window.__money ? window.__money(Number(was)) : ('$' + was)) + '</span>' : '') + '<span class="p-price">' + baseText + '</span>';
+          }
+        }
         function refilter(resetPage) {
           if (resetPage) page = 1;
           const matched = sortMatches(products.filter(matches));
@@ -1073,7 +1119,7 @@
           const start = (page - 1) * PER_PAGE;
           const visible = matched.slice(start, start + PER_PAGE);
           products.forEach(function (p) { p.style.display = 'none'; });
-          visible.forEach(function (p) { p.style.display = ''; grid.appendChild(p); });
+          visible.forEach(function (p) { p.style.display = ''; grid.appendChild(p); syncCardPricing(p); });
           if (empty) empty.hidden = matched.length > 0;
           renderPager(pages);
           if (countEl) {
@@ -1143,7 +1189,16 @@
             el.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); el.blur(); } });
           });
         }
-        window.addEventListener('currencychange', paintRange);
+        // The global currency toggle's own handler (apply(), in the
+        // currency-switch module) runs its generic .p-price rewrite THEN
+        // dispatches this event, in that order - so this always runs after
+        // it and fully rebuilds the price row from data-resell-price/
+        // data-price, discarding whatever the generic pass did to a card
+        // currently showing the resell price. Without this, switching
+        // currency while browsing the Resell filter would go stale (or
+        // worse, get robux-converted, which resell licences never are)
+        // until the next category click.
+        window.addEventListener('currencychange', function () { products.forEach(syncCardPricing); });
 
         if (saleBox) saleBox.addEventListener('change', function () { onSale = saleBox.checked; refilter(true); });
         if (freeBox) freeBox.addEventListener('change', function () { onFree = freeBox.checked; refilter(true); });

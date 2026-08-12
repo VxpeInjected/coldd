@@ -1281,15 +1281,15 @@
     el.innerHTML = AUTOMATION_META.map(function (meta) {
       var a = AUTOMATIONS[meta.key] || { enabled: false, delay_hours: 24, subject: '', body_md: '' };
       var statusBadge = a.enabled ? '<span class="dt-badge ok">On</span>' : '<span class="dt-badge">Off</span>';
-      return '<div class="dash-card" style="background:rgba(255,255,255,0.02);margin-top:14px;padding:16px 18px;">' +
-        '<div class="dash-card-head" style="margin-bottom:10px;"><h2 style="font-size:14px;">' + esc(meta.label) + '</h2>' + statusBadge + '</div>' +
-        '<div class="adm-form" style="flex-direction:column;align-items:stretch;gap:10px;" data-automation-key="' + meta.key + '">' +
+      return '<details class="adm-collapse" style="background:rgba(255,255,255,0.02);margin-top:14px;padding:16px 18px;border-radius:10px;">' +
+        '<summary class="dash-card-head" style="margin-bottom:0;"><div><h2 style="font-size:14px;">' + esc(meta.label) + '</h2></div><span style="display:flex;align-items:center;gap:10px;">' + statusBadge + '<svg class="adm-collapse-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></span></summary>' +
+        '<div class="adm-form adm-collapse-body" style="flex-direction:column;align-items:stretch;gap:10px;max-height:none;margin-top:14px;" data-automation-key="' + meta.key + '">' +
         '<label class="adm-field-check"><input type="checkbox" class="am-enabled"' + (a.enabled ? ' checked' : '') + ' /><span>Enabled</span></label>' +
         '<label class="adm-field"><span>Delay (hours) - ' + esc(meta.hint) + '</span><input type="number" class="adm-input am-delay" min="1" value="' + esc(a.delay_hours) + '" style="max-width:140px;" /></label>' +
         '<label class="adm-field"><span>Subject</span><input type="text" class="adm-input am-subject" value="' + esc(a.subject) + '" /></label>' +
         '<label class="adm-field"><span>Body</span><textarea class="adm-input adm-textarea am-body" rows="4">' + esc(a.body_md) + '</textarea></label>' +
         '<div style="display:flex;gap:8px;align-items:center;"><button class="btn btn-primary adm-btn-sm am-save" type="button">Save</button><span class="adm-edit-msg am-msg"></span></div>' +
-        '</div></div>';
+        '</div></details>';
     }).join('');
 
     el.querySelectorAll('.am-save').forEach(function (btn) {

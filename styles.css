@@ -561,7 +561,14 @@
     @media (max-width: 1100px) {
       .nav-links { display: none; } .menu-btn { display: grid; place-items: center; }
       .nav-cta .btn span.txt { display: none; }
-      .nav-cta .btn { padding: 12px 14px; }
+      /* With the label hidden, this is an icon-only button sitting next to
+         two other icon-only controls (.nav-account, .menu-btn) that are
+         38px - but .nav-cta .btn's own 44px min-height (set for the
+         labelled desktop pill, where the extra height reads as normal
+         padding) still applies. Unmatched, it renders visibly taller than
+         its neighbours - the "compressed/uneven" look on tablet. Matching
+         it to 38px here brings all three controls to one height. */
+      .nav-cta .btn { padding: 12px 14px; height: 38px; min-height: 38px; }
 
       /* Left-anchored rather than centred, so the pill grows away from .tc.
          brand+account+Join+burger (~208px) and currency+cart (~211px) still do
@@ -2610,7 +2617,7 @@ a.adm-sub[href] { color: var(--fg-1); cursor: pointer; text-decoration: underlin
 
 /* auth full-page: submit spinner + verify-step controls */
 .auth-submit { position: relative; }
-.auth-submit .btn-spinner { width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; display: inline-block; animation: authbtnspin 0.7s linear infinite; }
+.auth-submit .btn-spinner { width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; display: inline-block; animation: authbtnspin 1.1s linear infinite; }
 .auth-submit .btn-spinner[hidden] { display: none; }
 .auth-submit.is-loading { opacity: 0.55; cursor: default; }
 .auth-submit.is-loading .btn-label { visibility: hidden; }
@@ -2619,7 +2626,7 @@ a.adm-sub[href] { color: var(--fg-1); cursor: pointer; text-decoration: underlin
 /* Generic version of the same pattern for any .btn (dashboard save
    actions, modals) - .auth-submit above is the form-page-specific one. */
 .btn.is-loading { position: relative; opacity: 0.55; cursor: default; }
-.btn .btn-spinner { width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; display: inline-block; animation: authbtnspin 0.7s linear infinite; }
+.btn .btn-spinner { width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; display: inline-block; animation: authbtnspin 1.1s linear infinite; }
 .btn .btn-spinner[hidden] { display: none; }
 .btn.is-loading .btn-label { visibility: hidden; }
 .btn.is-loading .btn-spinner { position: absolute; top: 50%; left: 50%; margin-top: -8px; margin-left: -8px; }
@@ -2634,6 +2641,13 @@ a.adm-sub[href] { color: var(--fg-1); cursor: pointer; text-decoration: underlin
    site is the graphite --bg. Side by side they read as two different
    products; the sign-in screen is now the same ground as everything else. */
 body.auth-page { background: var(--bg); }
+/* .backdrop/.scrim's shared 940px floor is sized for the homepage's tall
+   hero + scrolling page beneath it - correct there, but this is a single-
+   viewport form with nothing to scroll to. On a short landscape viewport
+   (an iPad at 1024x768, for instance) that floor forces the whole document
+   past the visible height, so the page scrolls to reveal nothing but more
+   background. Auth pages only need the backdrop to cover what's on screen. */
+body.auth-page .backdrop, body.auth-page .scrim { height: 100dvh; }
 .auth-split { display: flex; min-height: 100vh; min-height: 100dvh; }
 .auth-split-left { flex: 0 0 46%; max-width: 560px; display: flex; flex-direction: column; justify-content: center;
   padding: 118px 56px 56px; background: var(--bg); position: relative; z-index: 1; }
@@ -2642,6 +2656,14 @@ body.auth-page { background: var(--bg); }
 .auth-split-logo { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
 .auth-split-logo img { width: 260px; max-width: 60%; opacity: 0.92; filter: drop-shadow(0 10px 34px var(--ink-60)); }
 .auth-split-left .auth-card { max-width: 100%; padding: 0; background: none; border: none; box-shadow: none; }
+/* 118px of top padding exists to clear the fixed pill nav (12px offset +
+   50px tall + breathing room) - comfortable on a normal-height screen, but
+   on a short landscape viewport (iPad at 1024x768) it's the difference
+   between the form fitting and needing a few pixels of scroll for content
+   that's otherwise fully visible. The nav only needs ~70px cleared. */
+@media (max-height: 820px) {
+  .auth-split-left { padding-top: 88px; }
+}
 @media (max-width: 900px) {
   .auth-split { flex-direction: column; }
   .auth-split-right { display: none; }

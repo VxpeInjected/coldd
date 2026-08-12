@@ -503,12 +503,29 @@
 
   var ADBLOX_STATS = null;
   var ADBLOX_ERROR = null;
+  var ADBLOX_SERVERS = [];
+  var ADBLOX_LOGS = [];
+  var ADBLOX_NEXT_CURSOR = null;
   function refreshAdbloxStats() {
     return invokeAdminFn('admin-adblox-stats', {}, 'Could not load AdBlox stats.').then(function (data) {
       ADBLOX_STATS = data; ADBLOX_ERROR = null;
+      ADBLOX_SERVERS = data.servers || [];
+      ADBLOX_LOGS = data.logs || [];
+      ADBLOX_NEXT_CURSOR = data.nextLogCursor || null;
       if (curPanel === 'marketing') renderMarketing();
     }).catch(function (err) {
       ADBLOX_STATS = null; ADBLOX_ERROR = err.message;
+      ADBLOX_SERVERS = []; ADBLOX_LOGS = []; ADBLOX_NEXT_CURSOR = null;
+      if (curPanel === 'marketing') renderMarketing();
+    });
+  }
+  // Appends the next page of the audit log rather than replacing it, so
+  // "Load more" grows the table instead of resetting scroll position.
+  function loadMoreAdbloxLogs() {
+    if (!ADBLOX_NEXT_CURSOR) return Promise.resolve();
+    return invokeAdminFn('admin-adblox-stats', { logCursor: ADBLOX_NEXT_CURSOR }, 'Could not load more activity.').then(function (data) {
+      ADBLOX_LOGS = ADBLOX_LOGS.concat(data.logs || []);
+      ADBLOX_NEXT_CURSOR = data.nextLogCursor || null;
       if (curPanel === 'marketing') renderMarketing();
     });
   }
@@ -1081,6 +1098,31 @@
         $('admAdbloxStats').innerHTML = '';
         if (adMsg) adMsg.textContent = ADBLOX_ERROR || 'Loading…';
       }
+    }
+
+    if ($('admAdbloxServersBody')) {
+      var serversSorted = ADBLOX_SERVERS.slice().sort(function (a, b) { return (b.sent || 0) - (a.sent || 0); });
+      $('admAdbloxServersBody').innerHTML = serversSorted.map(function (sv) {
+        return '<tr><td>' +
+          (sv.guild_icon_url ? '<span style="background-image:url(\'' + esc(sv.guild_icon_url) + '\');background-size:cover;width:20px;height:20px;border-radius:50%;display:inline-block;vertical-align:middle;margin-right:8px;"></span>' : '') +
+          esc(sv.guild_name || sv.guild_id) + '</td>' +
+          '<td>' + (sv.sent || 0).toLocaleString('en-US') + '</td>' +
+          '<td>' + (sv.failed ? esc(sv.failed) : '0') + '</td>' +
+          '<td>' + (sv.last_sent_at ? fmtDateTime(new Date(sv.last_sent_at)) : '—') + '</td></tr>';
+      }).join('') || '<tr><td colspan="4" class="adm-empty">No server activity yet.</td></tr>';
+    }
+
+    if ($('admAdbloxLogsBody')) {
+      $('admAdbloxLogsBody').innerHTML = ADBLOX_LOGS.map(function (lg) {
+        var status = lg.status === 'sent' ? '<span class="dt-badge ok">Sent</span>' : lg.status === 'failed' ? '<span class="dt-badge err">Failed</span>' : '<span class="dt-badge warn">' + esc(lg.status) + '</span>';
+        return '<tr><td>' + (lg.sent_at ? fmtDateTime(new Date(lg.sent_at)) : '—') + '</td>' +
+          '<td>' + esc(lg.ad_title || '') + '</td>' +
+          '<td>' + esc(lg.guild_name || lg.guild_id || '') + '</td>' +
+          '<td>' + esc(lg.channel_name || lg.channel_id || '') + '</td>' +
+          '<td>' + status + (lg.error_message ? ' <span class="adm-sub" title="' + esc(lg.error_message) + '">⚠</span>' : '') + '</td></tr>';
+      }).join('') || '<tr><td colspan="5" class="adm-empty">No activity yet.</td></tr>';
+      var loadMoreBtn = $('admAdbloxLoadMore');
+      if (loadMoreBtn) loadMoreBtn.hidden = !ADBLOX_NEXT_CURSOR;
     }
 
     if ($('admMktEmail')) {
@@ -3228,6 +3270,13 @@
   refreshLiveSessions();
   refreshDiscordStats();
   refreshAdbloxStats();
+  var admAdbloxLoadMoreBtn = $('admAdbloxLoadMore');
+  if (admAdbloxLoadMoreBtn) admAdbloxLoadMoreBtn.addEventListener('click', function () {
+    admAdbloxLoadMoreBtn.disabled = true;
+    loadMoreAdbloxLogs().then(function () {
+      admAdbloxLoadMoreBtn.disabled = false;
+    });
+  });
   setInterval(refreshLiveSessions, 30000);
   } // end boot()
 })();

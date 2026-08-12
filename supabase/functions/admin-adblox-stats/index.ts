@@ -20,11 +20,18 @@
 // later and the response gains a "joins" object, this will need updating
 // then, not now.
 //
+// Also pulls the top-servers breakdown (/api/v1/servers) and a page of the
+// send-by-send audit log (/api/v1/logs) - both verified directly against the
+// live API the same way, not from docs.
+//
 // Fails soft (ok:false with a clear message) rather than throwing on a
 // non-2xx or unexpected shape, same pattern as every other third-party stat
 // source in this codebase (Discord invite lookup, Roblox fallback cookie).
+// The three calls are independent of each other - a failure on one (e.g. an
+// empty logs page) doesn't block the other two from returning.
 //
-// Body: {} (auth only - is_admin gated like the other admin-* functions)
+// Body: { logCursor?: string } - logCursor pages the audit log forward
+// (pass back the previous response's nextLogCursor); omit for the first page.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -71,17 +78,44 @@ Deno.serve(async (req: Request) => {
     const apiKey = Deno.env.get("ADBLOX_API_KEY");
     if (!apiKey) return json({ ok: false, error: "ADBLOX_API_KEY is not set." }, 500);
 
-    const res = await fetch("https://adblox.xyz/api/v1/stats", {
-      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-    });
-    if (!res.ok) {
-      const bodyText = await res.text().catch(() => "");
-      console.error("[admin-adblox-stats] AdBlox returned", res.status, bodyText.slice(0, 300));
-      return json({ ok: false, error: `AdBlox returned HTTP ${res.status}.` }, 502);
+    const body = await req.json().catch(() => ({}));
+    const logCursor = typeof body.logCursor === "string" ? body.logCursor : "";
+
+    const authHeaders = { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" };
+    const [statsRes, serversRes, logsRes] = await Promise.all([
+      fetch("https://adblox.xyz/api/v1/stats", { headers: authHeaders }),
+      fetch("https://adblox.xyz/api/v1/servers?days=30&limit=50", { headers: authHeaders }),
+      fetch(`https://adblox.xyz/api/v1/logs?status=sent&limit=50&cursor=${encodeURIComponent(logCursor)}`, { headers: authHeaders }),
+    ]);
+
+    if (!statsRes.ok) {
+      const bodyText = await statsRes.text().catch(() => "");
+      console.error("[admin-adblox-stats] /stats returned", statsRes.status, bodyText.slice(0, 300));
+      return json({ ok: false, error: `AdBlox returned HTTP ${statsRes.status}.` }, 502);
     }
-    const data = await res.json().catch(() => null);
+    const data = await statsRes.json().catch(() => null);
     if (!data || !data.sent) {
       return json({ ok: false, error: "AdBlox response was not in the expected shape." }, 502);
+    }
+
+    // Servers/logs are supplementary - a hiccup on either still returns the
+    // headline stats rather than failing the whole request.
+    let servers: unknown[] = [];
+    if (serversRes.ok) {
+      const serversData = await serversRes.json().catch(() => null);
+      servers = Array.isArray(serversData?.servers) ? serversData.servers : [];
+    } else {
+      console.error("[admin-adblox-stats] /servers returned", serversRes.status);
+    }
+
+    let logs: unknown[] = [];
+    let nextLogCursor: string | null = null;
+    if (logsRes.ok) {
+      const logsData = await logsRes.json().catch(() => null);
+      logs = Array.isArray(logsData?.logs) ? logsData.logs : [];
+      nextLogCursor = logsData?.next_cursor ?? null;
+    } else {
+      console.error("[admin-adblox-stats] /logs returned", logsRes.status);
     }
 
     return json({
@@ -91,6 +125,9 @@ Deno.serve(async (req: Request) => {
       skipped: data.skipped ?? null,
       totals: data.totals ?? null,
       generatedAt: data.generated_at ?? null,
+      servers: servers,
+      logs: logs,
+      nextLogCursor: nextLogCursor,
     });
   } catch (err) {
     console.error("[admin-adblox-stats] error:", err);

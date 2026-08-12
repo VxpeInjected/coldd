@@ -2181,6 +2181,27 @@
 
       function isLoggedIn() { try { return localStorage.getItem('coldd_auth') === 'in'; } catch (e) { return false; } }
 
+      // coldd_auth is a client-only "was I signed in" flag, cached in
+      // localStorage so the nav can render instantly without waiting on a
+      // network round trip. It can go stale: the real session lives in
+      // sessionStorage (cleared when the tab/browser closes, by design -
+      // see supabase-init.js), so returning to the site after closing it
+      // leaves the flag still saying "in" while there's no session left to
+      // back it up. Without this, the nav shows a signed-in account menu
+      // that dead-ends at /signin the moment its "Your Account" link is
+      // followed. Reconciling the flag against the real session on every
+      // load - not just gating dashboard-style pages - fixes it where the
+      // stale state actually starts.
+      if (window.coldSupabase) {
+        window.coldSupabase.auth.getSession().then(function (res) {
+          var hasSession = !!(res && res.data && res.data.session);
+          var flaggedIn = isLoggedIn();
+          if (hasSession === flaggedIn) return;
+          try { localStorage.setItem('coldd_auth', hasSession ? 'in' : 'out'); } catch (e) {}
+          if (!hasSession) { try { localStorage.removeItem('coldd_profile'); } catch (e) {} }
+        }).catch(function () {});
+      }
+
       var menu = null, overlay = null;
 
       function buildMenu() {

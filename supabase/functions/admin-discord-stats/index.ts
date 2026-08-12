@@ -8,6 +8,12 @@
 // works for any invite as long as the server has "Enable widget" or just
 // a standing invite link, which coldd already has (discord.gg/coldd).
 //
+// Also upserts today's count into discord_member_snapshots (one row per UTC
+// day) and returns recent history, so the admin dashboard can show net
+// members gained/lost over a selected period. That endpoint has no history
+// of its own - only ever the current count - so this is the only way to
+// build a trend, and it can only start from whenever this first ran.
+//
 // Body: {} (auth only - is_admin gated like the other admin-* functions)
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -56,11 +62,32 @@ Deno.serve(async (req: Request) => {
     const res = await fetch(`https://discord.com/api/v10/invites/${INVITE_CODE}?with_counts=true`);
     if (!res.ok) return json({ ok: false, error: "Could not reach Discord." }, 502);
     const data = await res.json();
+    const memberCount = data.approximate_member_count ?? null;
+    const onlineCount = data.approximate_presence_count ?? null;
+
+    if (memberCount != null) {
+      const today = new Date().toISOString().slice(0, 10);
+      // Upsert, not insert - repeated loads on the same day must not create
+      // duplicate rows or overwrite an earlier, more representative reading
+      // with a random later one; last write wins, which is fine for a daily
+      // granularity trend.
+      await admin.from("discord_member_snapshots").upsert(
+        { snapshot_date: today, member_count: memberCount, online_count: onlineCount },
+        { onConflict: "snapshot_date" },
+      );
+    }
+
+    const { data: history } = await admin
+      .from("discord_member_snapshots")
+      .select("snapshot_date, member_count")
+      .order("snapshot_date", { ascending: true })
+      .limit(400);
 
     return json({
       ok: true,
-      memberCount: data.approximate_member_count ?? null,
-      onlineCount: data.approximate_presence_count ?? null,
+      memberCount,
+      onlineCount,
+      history: history ?? [],
     });
   } catch (err) {
     console.error("[admin-discord-stats] error:", err);

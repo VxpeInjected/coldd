@@ -266,6 +266,20 @@
       });
     });
   }
+  // Total earned-but-unpaid commission across every 'requested' payout,
+  // converted to a single USD figure (robux via the real DevEx rate, same
+  // as everywhere else money gets compared across currencies) so it can be
+  // shown as one AUD number. store_credit counts too - it's commission
+  // already earned and awaiting fulfillment, not yet a null cost just
+  // because it isn't a bank transfer.
+  function referralsOwedInfo() {
+    var requested = PAYOUTS.filter(function (p) { return p.status === 'requested'; });
+    var usdTotal = requested.reduce(function (sum, p) {
+      return sum + (p.method === 'robux' ? (p.amount_robux || 0) * DEVEX_USD_PER_ROBUX : (p.amount_usd || 0));
+    }, 0);
+    var names = requested.map(function (p) { return p.owner; }).filter(function (v, i, arr) { return arr.indexOf(v) === i; });
+    return { usdTotal: usdTotal, count: requested.length, names: names };
+  }
   function renderPayouts() {
     var el = $('admPayoutsBody'); if (!el) return;
     el.innerHTML = PAYOUTS.map(function (p) {
@@ -455,14 +469,31 @@
     });
   }
 
-  var DISCORD_STATS = { memberCount: null, onlineCount: null };
+  var DISCORD_STATS = { memberCount: null, onlineCount: null, history: [] };
   function refreshDiscordStats() {
     return invokeAdminFn('admin-discord-stats', {}, 'Could not load Discord stats.').then(function (data) {
-      DISCORD_STATS = { memberCount: data.memberCount, onlineCount: data.onlineCount };
+      DISCORD_STATS = { memberCount: data.memberCount, onlineCount: data.onlineCount, history: data.history || [] };
       if (curPanel === 'home') renderHome();
       if (curPanel === 'analytics') renderAnalytics();
     if (curPanel === 'marketing') renderMarketing();
     }).catch(function (err) { console.error('[admin] discord stats:', err.message); });
+  }
+  // Net members gained/lost since the start of the selected range. Discord's
+  // API has no history of its own - only ever the current total - so this
+  // diffs against our own daily snapshots (discord_member_snapshots,
+  // populated by admin-discord-stats itself). Returns null (not 0) when
+  // there's no snapshot at or before the range start, since that means
+  // "we don't know yet", not "no change".
+  function discordJoinsInRange() {
+    if (DISCORD_STATS.memberCount == null || !DISCORD_STATS.history.length) return null;
+    var startKey = (RANGE_DAYS ? daysAgoStart(RANGE_DAYS) : new Date(DISCORD_STATS.history[0].snapshot_date)).toISOString().slice(0, 10);
+    var baseline = null;
+    for (var i = 0; i < DISCORD_STATS.history.length; i++) {
+      if (DISCORD_STATS.history[i].snapshot_date <= startKey) baseline = DISCORD_STATS.history[i].member_count;
+      else break;
+    }
+    if (baseline == null) return null;
+    return DISCORD_STATS.memberCount - baseline;
   }
 
   // Real data from public.cart_snapshots - a row per checkout-page visit
@@ -903,8 +934,11 @@
   function pageviewsInWindow(start, end) {
     return TRAFFIC.filter(function (r) { var d = new Date(r.date); return d >= start && d < end; }).reduce(function (s, r) { return s + r.pageviews; }, 0);
   }
-  function statTile(label, main, sub, deltaHtml) {
-    return '<div class="dash-stat glass"><span class="ds-label">' + esc(label) + '</span><span class="ds-num">' + main + '</span>' +
+  function statTile(label, main, sub, deltaHtml, opts) {
+    opts = opts || {};
+    var attrs = opts.panel ? ' data-panel="' + esc(opts.panel) + '" style="cursor:pointer;"' : '';
+    var title = opts.title ? ' title="' + esc(opts.title) + '"' : '';
+    return '<div class="dash-stat glass"' + attrs + title + '><span class="ds-label">' + esc(label) + '</span><span class="ds-num">' + main + '</span>' +
       (sub ? '<span class="ds-sub">' + sub + '</span>' : '') + (deltaHtml || '') + '</div>';
   }
   function renderHome() {
@@ -928,9 +962,13 @@
       statTile('Site visits', curVisits.toLocaleString('en-US'), null, pctDelta(curVisits, prevVisits))
     ].join('');
 
+    var joins = discordJoinsInRange();
+    var owed = referralsOwedInfo();
     $('admHomeStatsSecondary').innerHTML = [
       statTile('Live sessions', LIVE_SESSIONS, 'active in the last 5 min', ''),
-      statTile('Discord members', DISCORD_STATS.memberCount != null ? DISCORD_STATS.memberCount.toLocaleString('en-US') : '—', DISCORD_STATS.onlineCount != null ? (DISCORD_STATS.onlineCount.toLocaleString('en-US') + ' online') : '', '')
+      statTile('Discord members', DISCORD_STATS.memberCount != null ? DISCORD_STATS.memberCount.toLocaleString('en-US') : '—', DISCORD_STATS.onlineCount != null ? (DISCORD_STATS.onlineCount.toLocaleString('en-US') + ' online') : '', ''),
+      statTile('Discord joins', joins == null ? '—' : (joins > 0 ? '+' : '') + joins.toLocaleString('en-US'), joins == null ? 'Gathering history' : (RANGE_DAYS ? 'net over selected range' : 'net since tracking began'), ''),
+      statTile('Referrals owed', aud(owed.usdTotal), owed.count ? (owed.count + ' request' + (owed.count === 1 ? '' : 's') + ' pending') : 'Nothing pending', '', { panel: 'analytics', title: owed.names.length ? 'Requested by: ' + owed.names.join(', ') : '' })
     ].join('');
 
     var todo = [];

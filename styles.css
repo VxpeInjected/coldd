@@ -1757,10 +1757,9 @@ button.dt-badge:disabled { cursor: default; opacity: 0.6; }
   border-top-color: var(--accent); border-radius: var(--r-pill); animation: cbspin .8s linear infinite; }
 @keyframes cbspin { to { transform: rotate(360deg); } }
 .cb-card p { margin: 0; font-size: 14.5px; line-height: 1.5; color: var(--fg-2); max-width: 34ch; }
-/* The spinner is the only motion here and it signals work in progress, so
-   under reduced motion it holds still rather than vanishing - a static ring
-   still reads as "waiting". */
-@media (prefers-reduced-motion: reduce) { .cb-spin { animation: none; } }
+/* No reduced-motion guard here, matching every other loading spinner on the
+   site (.btn-spinner etc.) - it's the only thing on this screen conveying
+   "work in progress", not decorative motion. */
 
 /* Failure state. The redirect that follows can itself fail (popup blockers,
    a stalled history entry), so the card grows a real link rather than leaving

@@ -111,26 +111,52 @@ Need help? Contact <a href="mailto:support@coldd.dev" style="color:#ff3344;text-
 </body></html>`;
 }
 
-export type AbandonedCartItem = { title: string; qty: number };
-
-/** Recovery email for a cart left at checkout - see cron-abandoned-cart-emails. */
-export function abandonedCartEmail(items: AbandonedCartItem[], cartUrl: string, unsubscribeUrl: string): { subject: string; html: string } {
-  const itemsHtml = items
-    .map((i) => `<tr><td style="padding:8px 0;border-top:1px solid #1a1a1a;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#d7d7d7;">${escapeHtml(i.title)}${i.qty > 1 ? ` &times; ${i.qty}` : ""}</td></tr>`)
-    .join("");
-
-  const bodyHtml = `<p style="margin:0 0 16px;font-size:22px;color:#ffffff;font-weight:700;">You left something behind</p>
-<p style="margin:0 0 20px;color:#9a9a9a;">Your cart is still saved - pick up where you left off before it's gone.</p>
-<table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#111111;border-radius:6px;border:1px solid #1a1a1a;padding:6px 18px;margin-bottom:24px;">
-${itemsHtml}
-</table>
-<table cellpadding="0" cellspacing="0" border="0"><tr><td style="background:linear-gradient(135deg,#cc0011 0%,#ff3344 100%);border-radius:6px;">
-<a href="${cartUrl}" style="display:inline-block;padding:13px 26px;color:#ffffff;font-weight:700;font-size:14px;text-decoration:none;font-family:Arial,Helvetica,sans-serif;">Finish checkout</a>
-</td></tr></table>`;
-
-  return { subject: "You left something in your cart", html: wrapCampaignEmail(bodyHtml, unsubscribeUrl) };
+export function escapeHtml(s: string): string {
+  return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c] as string));
 }
 
-function escapeHtml(s: string): string {
-  return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c] as string));
+// Same rules as admin.js's simpleMarkdownToHtml (blank line = paragraph,
+// **bold**) - kept in sync deliberately so an admin previews and gets
+// exactly what a lifecycle automation (rendered here, server-side, at send
+// time) will actually look like.
+export function renderBodyMd(text: string): string {
+  const paras = String(text || "").replace(/\r\n/g, "\n").split(/\n{2,}/);
+  return paras
+    .map((p) => {
+      const line = escapeHtml(p.trim()).replace(/\n/g, "<br>").replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+      return line ? `<p style="margin:0 0 16px;">${line}</p>` : "";
+    })
+    .join("");
+}
+
+export function ctaButtonHtml(url: string, label: string): string {
+  return `<table cellpadding="0" cellspacing="0" border="0"><tr><td style="background:linear-gradient(135deg,#cc0011 0%,#ff3344 100%);border-radius:6px;">
+<a href="${url}" style="display:inline-block;padding:13px 26px;color:#ffffff;font-weight:700;font-size:14px;text-decoration:none;font-family:Arial,Helvetica,sans-serif;">${escapeHtml(label)}</a>
+</td></tr></table>`;
+}
+
+export type LineItem = { title: string; qty?: number; linkUrl?: string; linkLabel?: string };
+
+export function itemsTableHtml(items: LineItem[]): string {
+  const rows = items
+    .map((i) => {
+      const qty = i.qty && i.qty > 1 ? ` &times; ${i.qty}` : "";
+      const link = i.linkUrl ? ` &nbsp;<a href="${i.linkUrl}" style="color:#ff3344;text-decoration:none;font-size:12px;">${escapeHtml(i.linkLabel || "View")}</a>` : "";
+      return `<tr><td style="padding:8px 0;border-top:1px solid #1a1a1a;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#d7d7d7;">${escapeHtml(i.title)}${qty}${link}</td></tr>`;
+    })
+    .join("");
+  return `<table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#111111;border-radius:6px;border:1px solid #1a1a1a;padding:6px 18px;margin-bottom:24px;">${rows}</table>`;
+}
+
+/**
+ * Builds a lifecycle automation email from an admin-authored config row
+ * (subject + body_md) plus optional extra HTML (an item list, a CTA
+ * button) appended after the body text. Used by cron-lifecycle-emails for
+ * all three automation types - the only thing that differs between an
+ * abandoned-cart nudge, a review request, and a re-engagement email is
+ * which config row and which extra blocks get passed in.
+ */
+export function renderAutomationEmail(bodyMd: string, extraHtmlBlocks: string[], unsubscribeUrl: string): string {
+  const html = renderBodyMd(bodyMd) + extraHtmlBlocks.join("\n");
+  return wrapCampaignEmail(html, unsubscribeUrl);
 }

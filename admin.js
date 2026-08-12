@@ -1126,6 +1126,7 @@
     }
 
     renderEmailMarketing();
+    renderAutomations();
 
     if ($('admReferralBody')) {
       $('admReferralBody').innerHTML = REFERRALS.map(function (r) {
@@ -1250,6 +1251,73 @@
       campaignTestBtn.disabled = false;
     });
   });
+
+  /* ================================================================
+     LIFECYCLE AUTOMATIONS (abandoned cart steps, review request,
+     re-engagement) - admin-editable rows in email_automations, all
+     evaluated by the same cron-lifecycle-emails run every 30 min.
+     ================================================================ */
+  var AUTOMATIONS = {};
+  var AUTOMATION_META = [
+    { key: 'abandoned_cart_1', label: 'Abandoned cart · step 1', hint: 'Hours after a cart goes stale.' },
+    { key: 'abandoned_cart_2', label: 'Abandoned cart · step 2', hint: 'Hours after step 1 would have sent.' },
+    { key: 'abandoned_cart_3', label: 'Abandoned cart · step 3', hint: 'Hours after step 2 would have sent.' },
+    { key: 'post_purchase_review', label: 'Post-purchase review request', hint: 'Hours after an order is marked paid.' },
+    { key: 'reengagement', label: 'Re-engagement', hint: 'Hours since last purchase (or signup, if they never bought) before we call the account lapsed. Sent once.' }
+  ];
+
+  function refreshAutomations() {
+    if (!window.coldSupabase) return Promise.resolve();
+    return window.coldSupabase.from('email_automations').select('*').then(function (res) {
+      if (res.error) { console.error('[admin] failed to load automations:', res.error.message); return; }
+      AUTOMATIONS = {};
+      (res.data || []).forEach(function (row) { AUTOMATIONS[row.key] = row; });
+      if (curPanel === 'marketing') renderAutomations();
+    });
+  }
+
+  function renderAutomations() {
+    var el = $('admAutomationsBody'); if (!el) return;
+    el.innerHTML = AUTOMATION_META.map(function (meta) {
+      var a = AUTOMATIONS[meta.key] || { enabled: false, delay_hours: 24, subject: '', body_md: '' };
+      var statusBadge = a.enabled ? '<span class="dt-badge ok">On</span>' : '<span class="dt-badge">Off</span>';
+      return '<div class="dash-card" style="background:rgba(255,255,255,0.02);margin-top:14px;padding:16px 18px;">' +
+        '<div class="dash-card-head" style="margin-bottom:10px;"><h2 style="font-size:14px;">' + esc(meta.label) + '</h2>' + statusBadge + '</div>' +
+        '<div class="adm-form" style="flex-direction:column;align-items:stretch;gap:10px;" data-automation-key="' + meta.key + '">' +
+        '<label class="adm-field-check"><input type="checkbox" class="am-enabled"' + (a.enabled ? ' checked' : '') + ' /><span>Enabled</span></label>' +
+        '<label class="adm-field"><span>Delay (hours) - ' + esc(meta.hint) + '</span><input type="number" class="adm-input am-delay" min="1" value="' + esc(a.delay_hours) + '" style="max-width:140px;" /></label>' +
+        '<label class="adm-field"><span>Subject</span><input type="text" class="adm-input am-subject" value="' + esc(a.subject) + '" /></label>' +
+        '<label class="adm-field"><span>Body</span><textarea class="adm-input adm-textarea am-body" rows="4">' + esc(a.body_md) + '</textarea></label>' +
+        '<div style="display:flex;gap:8px;align-items:center;"><button class="btn btn-primary adm-btn-sm am-save" type="button">Save</button><span class="adm-edit-msg am-msg"></span></div>' +
+        '</div></div>';
+    }).join('');
+
+    el.querySelectorAll('.am-save').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var wrap = btn.closest('[data-automation-key]');
+        var key = wrap.getAttribute('data-automation-key');
+        var msg = wrap.querySelector('.am-msg');
+        var payload = {
+          key: key,
+          enabled: wrap.querySelector('.am-enabled').checked,
+          delayHours: parseInt(wrap.querySelector('.am-delay').value, 10) || 1,
+          subject: wrap.querySelector('.am-subject').value.trim(),
+          bodyMd: wrap.querySelector('.am-body').value.trim()
+        };
+        btn.disabled = true;
+        if (msg) msg.textContent = 'Saving…';
+        invokeAdminFn('admin-update-automation', payload, 'Could not save.').then(function () {
+          if (msg) msg.textContent = 'Saved.';
+          logAudit((payload.enabled ? 'Enabled' : 'Updated') + ' automation "' + key + '"');
+          return refreshAutomations();
+        }).catch(function (err) {
+          if (msg) msg.textContent = err.message;
+        }).then(function () {
+          btn.disabled = false;
+        });
+      });
+    });
+  }
 
   /* ================================================================
      ANALYTICS PANEL
@@ -3376,6 +3444,7 @@
   refreshEmailStats();
   refreshEmailCampaigns();
   refreshEmailConfigStatus();
+  refreshAutomations();
   var admAdbloxLoadMoreBtn = $('admAdbloxLoadMore');
   if (admAdbloxLoadMoreBtn) admAdbloxLoadMoreBtn.addEventListener('click', function () {
     admAdbloxLoadMoreBtn.disabled = true;

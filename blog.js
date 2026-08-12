@@ -425,7 +425,7 @@
     if (window.coldSeo) {
       var pPath = '/post?slug=' + encodeURIComponent(p.slug);
       window.coldSeo.apply({
-        title: 'coldd Blog — ' + p.title,
+        title: 'coldd Blog - ' + p.title,
         description: p.dek || p.title,
         path: pPath, image: p.cover, type: 'article'
       });
@@ -452,7 +452,7 @@
         { name: p.title, path: pPath }
       ]));
     } else {
-      document.title = 'coldd Blog — ' + p.title;
+      document.title = 'coldd Blog - ' + p.title;
     }
     var related = all.filter(function (x) { return x.slug !== p.slug && x.category === p.category; }).slice(0, 3);
     if (related.length < 3) {
@@ -551,7 +551,7 @@
     if (window.coldSeo) {
       var tPath = '/tutorial?slug=' + encodeURIComponent(t.slug);
       window.coldSeo.apply({
-        title: 'coldd Tutorials — ' + t.title,
+        title: 'coldd Tutorials - ' + t.title,
         description: t.summary || t.title,
         path: tPath, image: t.cover, type: 'article'
       });
@@ -578,7 +578,7 @@
         { name: t.title, path: tPath }
       ]));
     } else {
-      document.title = 'coldd Tutorials — ' + t.title;
+      document.title = 'coldd Tutorials - ' + t.title;
     }
     var bodyHtml = mdLite(t.body);
     // Build TOC from h2 headings in the rendered body.

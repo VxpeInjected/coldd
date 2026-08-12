@@ -1993,9 +1993,9 @@
            and structured data for that specific product. */
         function applySeo(p, ups) {
           var seo = window.coldSeo;
-          if (!seo) { document.title = p.title + ' — coldd'; return; }
+          if (!seo) { document.title = p.title + ' - coldd'; return; }
 
-          var title = p.title + ' — coldd';
+          var title = p.title + ' - coldd';
           var path = '/product?id=' + encodeURIComponent(p.id);
           var desc = p.desc || (p.longDesc || '').replace(/<[^>]+>/g, '') ||
             (p.title + ', a ' + (p.cat || 'game') + ' asset for ' + (p.platform || 'Roblox') + ' from coldd.');

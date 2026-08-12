@@ -1515,7 +1515,7 @@ body.auth-page { min-height: 100vh; min-height: 100dvh; }
 .auth-card { width: 100%; max-width: 426px; padding: 38px 36px;
   background: linear-gradient(180deg, rgba(28,29,37,0.99), rgba(20,21,27,0.99));
   box-shadow: 0 40px 90px -28px var(--ink-85), 0 0 0 1px rgba(255,255,255,0.05); }
-.auth-card h1 { font-size: 24px; font-weight: 700; letter-spacing: -0.03em; }
+.auth-card h2 { font-size: 24px; font-weight: 700; letter-spacing: -0.03em; }
 .auth-sub { color: var(--fg-2); font-size: 14px; line-height: 1.5; margin: 8px 0 26px; }
 .auth-social { display: flex; flex-direction: column; gap: 10px; }
 .auth-oauth { display: inline-flex; align-items: center; justify-content: center; gap: 10px; width: 100%; min-height: 46px;

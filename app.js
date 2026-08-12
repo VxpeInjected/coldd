@@ -2275,7 +2275,11 @@
       };
       window.__demoLogin = function () { setState(true); window.__goDashboard(); };
 
-      var dash = document.querySelector('.dash');
+      // .dash is a generic two-column layout class reused by other pages
+      // (the admin panel included) - .dash-page is what's actually unique
+      // to the customer dashboard, and this block's redirect-to-/signin
+      // logic further down must never fire anywhere else.
+      var dash = document.querySelector('.dash-page');
       if (!dash) return;
 
       var adminLink = document.getElementById('dashAdminLink');

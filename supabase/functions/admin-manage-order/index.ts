@@ -3,7 +3,7 @@
 // Deploy with:
 //   supabase functions deploy admin-manage-order
 //
-// Same auth/is_admin gate as the other admin-* functions. Two actions:
+// Same auth/is_admin gate as the other admin-* functions. Three actions:
 //
 //   complete - manually flips a 'pending' order to 'paid'. Real orders
 //   normally reach 'paid' automatically via stripe-webhook the moment
@@ -14,6 +14,12 @@
 //   payment_intent (not just flipping a status flag - a refund that
 //   doesn't touch Stripe wouldn't actually return the customer's money).
 //   Only allowed on 'paid' orders with a real stripe_payment_intent_id.
+//
+//   revoke - cuts off download access (get-download-url's ownership check
+//   requires status = 'paid') WITHOUT touching payment - for a policy
+//   violation or a chargeback dispute where access should stop immediately
+//   but the money isn't being returned through this order record. Distinct
+//   from refund on purpose; see supabase/orders_revoked_status.sql.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import Stripe from "https://esm.sh/stripe@17?target=deno";
@@ -61,7 +67,7 @@ Deno.serve(async (req: Request) => {
 
     const body = await req.json().catch(() => ({}));
     const orderId = String(body.orderId || "");
-    const action = body.action === "refund" ? "refund" : body.action === "complete" ? "complete" : null;
+    const action = body.action === "refund" ? "refund" : body.action === "complete" ? "complete" : body.action === "revoke" ? "revoke" : null;
     if (!orderId || !action) return json({ ok: false, error: "Missing orderId or action." }, 400);
 
     const { data: order, error: orderErr } = await admin.from("orders").select("*").eq("id", orderId).single();
@@ -74,6 +80,21 @@ Deno.serve(async (req: Request) => {
         .update({ status: "paid", paid_at: order.paid_at ?? new Date().toISOString() })
         .eq("id", orderId);
       if (updErr) return json({ ok: false, error: "Could not update the order." }, 500);
+      return json({ ok: true });
+    }
+
+    if (action === "revoke") {
+      if (order.status !== "paid") return json({ ok: false, error: "Only paid orders can have their license revoked." }, 400);
+      // Reusing refund_reason rather than adding a revoked_reason column -
+      // the two are mutually exclusive states (an order is refunded XOR
+      // revoked, never both), so one "why this order lost access" field
+      // covers both without ambiguity.
+      const reason = body.reason ? String(body.reason).slice(0, 500) : "Revoked by staff";
+      const { error: updErr } = await admin
+        .from("orders")
+        .update({ status: "revoked", refund_reason: reason })
+        .eq("id", orderId);
+      if (updErr) return json({ ok: false, error: "Could not revoke the license." }, 500);
       return json({ ok: true });
     }
 

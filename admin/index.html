@@ -16,7 +16,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
 
-  <link rel="stylesheet" href="/styles.css?v=20260813a" />
+  <link rel="stylesheet" href="/styles.css?v=20260813b" />
 </head>
 <body class="adm-body">
   <div class="backdrop"></div>
@@ -32,26 +32,77 @@
   </div>
 
   <div id="admShell" hidden>
-    <header class="adm-topbar">
-      <a class="adm-brand" href="/" aria-label="coldd home">
-        <img class="logo" src="/logo.png" alt="coldd" />
-        <span class="adm-tag">Admin</span>
-      </a>
-      <div class="adm-topbar-right">
-        <!-- One identity cluster. The role used to be printed three times up
-             here - a red "ADMIN" pill, a "<role> access" badge, and again
-             inside "Name - role" - and the badge was only ever filled in by
-             renderHome(), so it was blank on every other panel. -->
-        <div class="adm-who">
-          <span class="dash-av" id="admAvatar">A</span>
-          <span class="adm-who-text">
-            <span class="adm-who-name" id="admViewerLabel">Signed in</span>
-            <span class="adm-who-role" id="admModeBanner"></span>
+    <header class="nav" id="nav">
+      <div class="nav-inner">
+        <a class="brand" href="/" aria-label="coldd home">
+          <img class="logo" src="/logo.png" alt="coldd" />
+        </a>
+        <nav class="nav-links" aria-label="Primary">
+          <span class="nav-set">
+            <a href="/">Home</a><a href="/assets" id="shopLink">Shop</a><a href="/blog" id="blogLink">Blog &amp; Tutorials</a><a href="/about" id="aboutLink">About Us</a>
           </span>
+          <span class="nav-search-wrap">
+            <button class="nav-search" id="searchBtn" type="button" aria-label="Search"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg></button>
+            <input class="nav-search-input" id="searchInput" type="text" placeholder="Start your search" aria-label="Search" />
+          </span>
+        </nav>
+        <div class="nav-cta">
+          <button class="nav-account" id="accountBtn" type="button" aria-label="Account / sign in">
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>
+          </button>
+
+          <a class="btn btn-primary" href="https://discord.gg/coldd" target="_blank" rel="noopener">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M20.317 4.3698a19.7913 19.7913 0 0 0-4.8851-1.5152.0741.0741 0 0 0-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 0 0-.0785-.037 19.7363 19.7363 0 0 0-4.8852 1.515.0699.0699 0 0 0-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 0 0 .0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 0 0 .0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 0 0-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 0 1-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 0 1 .0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 0 1 .0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 0 1-.0066.1276 12.2986 12.2986 0 0 1-1.873.8914.0766.0766 0 0 0-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 0 0 .0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 0 0 .0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 0 0-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.4189-2.1568 2.4189Z"/></svg>
+            <span class="txt">Join</span>
+          </a>
+          <button class="menu-btn" aria-label="Menu"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 12h18M3 6h18M3 18h18"/></svg></button>
         </div>
-        <a class="btn btn-ghost adm-btn-sm adm-exit" href="/">Exit to site</a>
       </div>
     </header>
+
+    <div class="nav-mega" id="navMega" aria-hidden="true">
+      <div class="nav-mega-inner glass">
+        <div class="nav-mega-main">
+          <div class="nav-mega-tabs" role="tablist" aria-label="Shop platform">
+            <button class="nmt-tab active" type="button" data-platform="roblox" role="tab" aria-selected="true">Roblox</button>
+            <button class="nmt-tab" type="button" data-platform="minecraft" role="tab" aria-selected="false">Minecraft</button>
+          </div>
+          <div class="nav-mega-cats" data-platform-panel="roblox">
+            <a href="/assets?cat=game-templates">Finished Games &amp; Templates</a>
+            <a href="/assets?cat=maps">Maps</a>
+            <a href="/assets?cat=scripts-ui">Scripts &amp; UI</a>
+            <a href="/assets?cat=graphics">Graphics</a>
+            <a href="/assets?cat=buildings">Buildings</a>
+            <a href="/assets?cat=assets">Assets</a>
+            <a href="/assets?cat=uniforms-gear">Uniforms &amp; Gear</a>
+            <a href="/assets?cat=boats">Boats</a>
+            <a href="/assets?cat=weapons">Weapons</a>
+            <a href="/assets?cat=vehicles">Vehicles</a>
+            <a href="/assets?cat=animations-vfx">Animations &amp; VFX</a>
+          </div>
+          <div class="nav-mega-cats" data-platform-panel="minecraft" hidden>
+            <a href="/minecraft?cat=hubs">Hubs</a>
+            <a href="/minecraft?cat=lobbies">Lobbies</a>
+            <a href="/minecraft?cat=maps">Maps</a>
+            <a href="/minecraft?cat=builds">Builds</a>
+            <a href="/minecraft?cat=plugins">Plugins</a>
+            <a href="/minecraft?cat=setups">Full Setups</a>
+          </div>
+        </div>
+        <a class="nav-mega-feature" href="/assets" id="navMegaFeature" data-href-roblox="/assets" data-href-minecraft="/minecraft" data-img-roblox="/new-release.jpg" data-img-minecraft="/minecraft.jpg">
+          <span class="nmf-img" style="background-image:url('/new-release.jpg')"></span>
+          <span class="nmf-tag">New</span>
+          <span class="nmf-title">New Releases</span>
+          <span class="nmf-go has-arrow">Browse all</span>
+        </a>
+      </div>
+    </div>
+
+    <div class="search-panel" id="searchPanel" aria-hidden="true">
+      <div class="search-panel-inner glass">
+        <div class="search-list" id="searchList"></div>
+      </div>
+    </div>
 
     <main class="page adm-page">
       <div class="wrap dash">
@@ -62,7 +113,6 @@
             <a href="#" data-panel="marketing"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11v2a1 1 0 0 0 1 1h3l4 4V6L7 10H4a1 1 0 0 0-1 1Z"/><path d="M16 9a4 4 0 0 1 0 6"/><path d="M19 6.5a8 8 0 0 1 0 11"/></svg><span>Marketing</span></a>
             <a href="#" data-panel="products"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="M3.3 7 12 12l8.7-5M12 22V12"/></svg><span>Products</span></a>
             <a href="#" data-panel="orders"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg><span>Orders</span></a>
-            <a href="#" data-panel="refunds"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg><span>Refunds</span></a>
             <a href="#" data-panel="reviews"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m12 2 3 6 6.5 1-4.7 4.6 1.1 6.4L12 17l-5.9 3 1.1-6.4L2.5 9 9 8z"/></svg><span>Reviews</span></a>
             <a href="#" data-panel="users"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="4"/><path d="M2 21c0-4 3.5-6 7-6s7 2 7 6"/><path d="M16 3.5a4 4 0 0 1 0 7.8"/><path d="M18 14.5c2.5.6 4 2.2 4 5.5"/></svg><span>Users</span></a>
             <a href="#" data-panel="sales"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5H4a1 1 0 0 0-1 1v4a2.5 2.5 0 0 1 0 5v4a1 1 0 0 0 1 1h5"/><path d="M15 19h5a1 1 0 0 0 1-1v-4a2.5 2.5 0 0 1 0-5V5a1 1 0 0 0-1-1h-5"/><path d="M9 5v14M9 8h.01M9 12h.01M9 16h.01"/></svg><span>Sales &amp; Discounts</span></a>
@@ -518,23 +568,9 @@
             </div>
           </section>
 
-          <section class="dash-panel" id="adm-panel-refunds" hidden>
-            <div class="dash-head"><h1>Refund management</h1><p>Issue refunds and review refund history.</p></div>
-            <div class="dash-stats adm-stats-2" id="admRefundStats"></div>
-            <div class="dash-card glass dash-tablewrap">
-              <div class="dash-card-head"><h2>Eligible orders</h2></div>
-              <table class="dash-table">
-                <thead><tr><th>Date</th><th>Order</th><th>Product</th><th>Buyer</th><th>Total</th><th>Actions</th></tr></thead>
-                <tbody id="admRefundEligible"></tbody>
-              </table>
-            </div>
-            <div class="dash-card glass dash-tablewrap">
-              <div class="dash-card-head"><h2>Refund history</h2></div>
-              <table class="dash-table">
-                <thead><tr><th>Date</th><th>Order</th><th>Product</th><th>Buyer</th><th>Amount</th><th>Reason</th></tr></thead>
-                <tbody id="admRefundsBody"></tbody>
-              </table>
-            </div>
+          <section class="dash-panel" id="adm-panel-order-detail" hidden>
+            <div class="dash-head"><a href="#" data-panel="orders" class="lnk-back">Back to orders</a></div>
+            <div id="admOrderDetailBody"></div>
           </section>
 
           <section class="dash-panel" id="adm-panel-reviews" hidden>
@@ -926,6 +962,6 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.2/dist/umd/supabase.min.js" integrity="sha384-B2duOBIryCXbX4eDE4BdJwtNkQMRQde3o6IsjfPW28E6aH1CYE96hHeZRG3zY56O" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script src="/supabase-init.js?v=20260812a"></script>
   <script src="/site-gate.js?v=20260729b"></script>
-  <script src="/catalog.js?v=20260810a" data-then="/blog.js?v=20260812a,/reviews.js?v=20260729a,/admin.js?v=20260813a"></script>
+  <script src="/catalog.js?v=20260810a" data-then="/app.js?v=20260813a,/blog.js?v=20260812a,/reviews.js?v=20260729a,/admin.js?v=20260813b"></script>
 </body>
 </html>

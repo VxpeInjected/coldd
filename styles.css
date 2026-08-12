@@ -2163,37 +2163,6 @@ html.js .nr-frame .nr-slide.is-active .nr-cap > :nth-child(3) { animation-delay:
 .adm-gate-card h1 { font-size: 24px; font-weight: 800; }
 .adm-gate-card p { color: var(--fg-2); font-size: 14px; line-height: 1.6; margin-bottom: 10px; }
 
-/* Admin top bar -----------------------------------------------------------
-   Was a row of four unrelated fragments at one weight: a tiny orphaned logo,
-   a loud red ADMIN pill, a role badge and a "Name - role" label, with the
-   role therefore stated three times. Now two groups - brand on the left,
-   identity and exit on the right - with the accent spent on neither, since
-   nothing up here is an action worth the ember. */
-.adm-topbar { position: sticky; top: 0; z-index: 40; display: flex; align-items: center; gap: 16px;
-  padding: 12px 24px; border-bottom: 1px solid var(--hairline);
-  background: rgba(16,17,22,0.9); backdrop-filter: blur(14px) saturate(130%); -webkit-backdrop-filter: blur(14px) saturate(130%); }
-.adm-brand { display: flex; align-items: center; gap: 10px; text-decoration: none; }
-.adm-topbar .logo { height: 26px; width: auto; }
-/* Neutral, not ember: this is a label, not something you click. */
-.adm-tag { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
-  color: var(--fg-2); padding: 4px 9px; border-radius: var(--r-pill);
-  background: rgba(255,255,255,0.06); border: 1px solid var(--hairline); }
-
-.adm-topbar-right { margin-left: auto; display: flex; align-items: center; gap: 14px; }
-.adm-who { display: flex; align-items: center; gap: 10px; padding-right: 14px;
-  border-right: 1px solid var(--hairline); }
-.adm-who .dash-av { width: 32px; height: 32px; font-size: 13px; }
-.adm-who-text { display: flex; flex-direction: column; line-height: 1.25; min-width: 0; }
-.adm-who-name { font-size: 13px; font-weight: 600; color: var(--fg); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 22ch; }
-.adm-who-role { font-size: 11px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--fg-3); }
-
-@media (max-width: 720px) {
-  .adm-topbar { padding: 10px 16px; gap: 10px; }
-  /* The name is the least load-bearing thing here once space is tight - the
-     avatar already identifies who is signed in. */
-  .adm-who-text { display: none; }
-  .adm-who { padding-right: 10px; }
-}
 .adm-select { font-family: inherit; font-size: 13px; color: var(--fg); background: var(--bg-3); border: 1px solid var(--hairline);
   border-radius: 10px; padding: 7px 10px; transition: border-color .15s; }
 .adm-select:focus { outline: none; border-color: rgba(255,77,68,0.5); }
@@ -2229,7 +2198,29 @@ html.js .nr-frame .nr-slide.is-active .nr-cap > :nth-child(3) { animation-delay:
 .adm-dd-radio { width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--hairline); flex: 0 0 auto; position: relative; }
 .adm-dd-opt.active .adm-dd-radio { border-color: var(--accent); }
 .adm-dd-opt.active .adm-dd-radio::after { content: ""; position: absolute; inset: 3px; border-radius: 50%; background: var(--accent); }
-.adm-page { padding-top: 26px; padding-bottom: 80px; }
+/* Per-row kebab action menu (order rows: view details / refund / revoke
+   license / mark completed) - same open/close-on-outside-click pattern as
+   .adm-staff-role-dd, just lighter since each row needs its own instance
+   rather than one shared component. */
+.adm-row-menu { position: relative; display: inline-block; }
+.adm-row-menu-btn { width: 30px; height: 30px; border-radius: 8px; background: transparent; border: 1px solid transparent;
+  color: var(--fg-2); cursor: pointer; display: inline-flex; align-items: center; justify-content: center;
+  transition: background .15s, border-color .15s, color .15s; }
+.adm-row-menu-btn:hover, .adm-row-menu.open .adm-row-menu-btn { background: rgba(255,255,255,0.06); border-color: var(--hairline); color: var(--fg); }
+.adm-row-menu-list { position: absolute; top: calc(100% + 6px); right: 0; z-index: 45; min-width: 180px;
+  padding: 6px; border-radius: 12px; background: rgba(19,20,26,0.98); border: 1px solid var(--hairline);
+  box-shadow: 0 20px 46px -18px var(--ink-75); }
+.adm-row-menu-list[hidden] { display: none; }
+.adm-row-menu-item { display: flex; align-items: center; width: 100%; padding: 9px 10px; border-radius: 8px;
+  background: transparent; border: none; color: var(--fg-1); font-family: inherit; font-size: 13px; font-weight: 600;
+  text-align: left; cursor: pointer; transition: background .15s, color .15s; }
+.adm-row-menu-item:hover { background: rgba(255,255,255,0.06); color: var(--fg); }
+.adm-row-menu-item.danger { color: #ff6b6b; }
+.adm-row-menu-item.danger:hover { background: rgba(255,77,68,0.12); }
+.adm-row-menu-item:disabled { opacity: 0.4; cursor: default; }
+.adm-row-menu-item:disabled:hover { background: transparent; color: var(--fg-1); }
+
+.adm-page { padding-top: 110px; padding-bottom: 80px; }
 .adm-page .dash { grid-template-columns: 220px 1fr; }
 
 .adm-head-row { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
@@ -2267,6 +2258,12 @@ html.js .nr-frame .nr-slide.is-active .nr-cap > :nth-child(3) { animation-delay:
 .adm-note-warn { color: var(--warn); font-weight: 600; }
 a.adm-sub[href] { color: var(--fg-1); cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
 .adm-note { color: var(--fg-3); font-size: 12px; line-height: 1.55; margin-top: 12px; }
+
+/* Order detail page - label/value rows (Overview, Payment reference). */
+.adm-detail-row { display: flex; align-items: baseline; gap: 14px; padding: 10px 0; border-top: 1px solid var(--hairline); font-size: 13px; }
+.adm-detail-row:first-child { border-top: 0; }
+.adm-detail-label { flex: 0 0 170px; color: var(--fg-3); }
+.adm-detail-val { color: var(--fg); word-break: break-word; }
 
 /* Audit log persistence warning. A log that quietly stops saving is worse
    than no log, so this is warn-weight, not a footnote. */

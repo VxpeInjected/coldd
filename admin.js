@@ -332,8 +332,10 @@
       id: row.id,
       dbId: row.id,
       date: row.created_at,
+      paidAt: row.paid_at || null,
       userId: row.user_id,
       userName: profile ? (profile.username || profile.email || 'user') : 'guest',
+      userEmail: profile ? (profile.email || null) : null,
       productId: first.product_slug || null,
       title: items.length > 1 ? (first.title + ' +' + (items.length - 1) + ' more') : (first.title || 'Unknown item'),
       image: product ? product.image : '',
@@ -352,6 +354,17 @@
       refCode: null,
       refundReason: row.refund_reason || null,
       stripePaymentIntentId: row.stripe_payment_intent_id,
+      stripeCheckoutSessionId: row.stripe_checkout_session_id,
+      paymentProvider: row.payment_provider || null,
+      paypalOrderId: row.paypal_order_id || null,
+      paypalCaptureId: row.paypal_capture_id || null,
+      cryptoProvider: row.crypto_provider || null,
+      cryptoChargeId: row.crypto_charge_id || null,
+      cryptoPaymentId: row.crypto_payment_id || null,
+      externalTransactionId: row.external_transaction_id || null,
+      robloxGamepassId: row.roblox_gamepass_id || null,
+      robloxBuyerId: row.roblox_buyer_id || null,
+      robloxVerificationMethod: row.roblox_verification_method || null,
       source: row.source || 'website',
       items: items
     };
@@ -912,7 +925,7 @@
   /* ================================================================
      NAV / PANEL SWITCHING
      ================================================================ */
-  var PANELS = ['home', 'analytics', 'marketing', 'products', 'product-edit', 'product-update', 'orders', 'refunds', 'reviews', 'users', 'sales', 'sitemgmt', 'content', 'audit'];
+  var PANELS = ['home', 'analytics', 'marketing', 'products', 'product-edit', 'product-update', 'orders', 'order-detail', 'reviews', 'users', 'sales', 'sitemgmt', 'content', 'audit'];
   var curPanel = 'home';
   function showPanel(name) {
     if (PANELS.indexOf(name) < 0) name = 'home';
@@ -931,7 +944,7 @@
     else if (name === 'marketing') renderMarketing();
     else if (name === 'products') renderProducts();
     else if (name === 'orders') renderOrders();
-    else if (name === 'refunds') renderRefunds();
+    else if (name === 'order-detail') renderOrderDetail();
     else if (name === 'reviews') renderReviews();
     else if (name === 'users') renderUsers();
     else if (name === 'sales') { renderEvents(); renderCoupons(); }
@@ -945,18 +958,6 @@
     var a = e.target.closest('[data-panel]');
     if (a) { e.preventDefault(); showPanel(a.getAttribute('data-panel')); }
   });
-
-  /* ================================================================
-     TOPBAR
-     ================================================================ */
-  function renderTopbar() {
-    var r = currentRole();
-    var label = $('admViewerLabel'); if (label) label.textContent = r.name || 'Signed in';
-    // Set here rather than in renderHome(), which left this blank on every
-    // panel except the dashboard.
-    var role = $('admModeBanner'); if (role) role.textContent = r.role || '';
-    var av = $('admAvatar'); if (av) av.textContent = (r.name || 'A').charAt(0).toUpperCase();
-  }
 
   document.querySelectorAll('.adm-range button').forEach(function (b) {
     b.addEventListener('click', function () { setRange(+b.getAttribute('data-range')); });
@@ -1028,7 +1029,7 @@
       statusBadge(o.status) + '<span class="p-price" style="margin-left:12px;">' + orderAmount(o) + '</span></div>';
   }
   function statusBadge(status) {
-    var cls = status === 'completed' ? 'ok' : (status === 'refunded' ? 'err' : 'warn');
+    var cls = status === 'completed' ? 'ok' : (status === 'refunded' || status === 'revoked') ? 'err' : 'warn';
     var label = status.charAt(0).toUpperCase() + status.slice(1);
     return '<span class="dt-badge ' + cls + '">' + label + '</span>';
   }
@@ -2168,21 +2169,33 @@
   });
   orderStatusDropdown.setOptions([
     { value: 'all', label: 'All statuses' },
+    { value: 'pending', label: 'Pending' },
     { value: 'completed', label: 'Completed' },
-    { value: 'refunded', label: 'Refunded' }
+    { value: 'refunded', label: 'Refunded' },
+    { value: 'revoked', label: 'Revoked' }
   ], 'all');
+  function orderRowMenuHtml(o) {
+    var items = ['<button type="button" class="adm-row-menu-item" data-action="view">View details</button>'];
+    if (o.status === 'pending' && can('support')) items.push('<button type="button" class="adm-row-menu-item" data-action="complete">Mark completed</button>');
+    if (o.status === 'completed' && can('support')) {
+      items.push('<button type="button" class="adm-row-menu-item" data-action="refund">Refund</button>');
+      items.push('<button type="button" class="adm-row-menu-item danger" data-action="revoke">Revoke license</button>');
+    }
+    return '<div class="adm-row-menu" data-id="' + esc(o.id) + '">' +
+      '<button type="button" class="adm-row-menu-btn" aria-haspopup="true" aria-expanded="false" aria-label="Order actions">' +
+      '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="12" cy="19" r="1.7"/></svg></button>' +
+      '<div class="adm-row-menu-list" hidden>' + items.join('') + '</div></div>';
+  }
   function renderOrders() {
     var statusF = orderStatusDropdown.getValue() || 'all';
     var q = (($('admOrderSearch') || {}).value || '').trim().toLowerCase();
     var rows = ORDERS.filter(function (o) {
-      if (o.status === 'pending' || o.status === 'failed') return false;
+      if (o.status === 'failed') return false;
       var okStatus = statusF === 'all' || o.status === statusF;
       var okQ = !q || o.id.toLowerCase().indexOf(q) >= 0 || o.title.toLowerCase().indexOf(q) >= 0 || o.userName.toLowerCase().indexOf(q) >= 0;
       return okStatus && okQ;
     }).sort(function (a, b) { return new Date(b.date) - new Date(a.date); }).slice(0, 200);
     $('admOrdersBody').innerHTML = rows.map(function (o) {
-      var actions = '';
-      if (o.status === 'completed' && can('support')) actions += '<button class="btn btn-ghost adm-btn-sm adm-order-refund" type="button">Refund</button>';
       return '<tr data-id="' + esc(o.id) + '">' +
         '<td>' + fmtDate(new Date(o.date)) + '</td>' +
         '<td class="dt-mono">' + esc(o.id) + '</td>' +
@@ -2191,73 +2204,169 @@
         '<td>' + o.currency.toUpperCase() + '</td>' +
         '<td>' + orderAmount(o) + '</td>' +
         '<td>' + statusBadge(o.status) + '</td>' +
-        '<td class="adm-row-actions">' + actions + '</td></tr>';
+        '<td class="adm-row-actions">' + orderRowMenuHtml(o) + '</td></tr>';
     }).join('') || '<tr><td colspan="8" class="adm-empty">No orders match.</td></tr>';
   }
   var ordersBody = $('admOrdersBody');
   if (ordersBody) ordersBody.addEventListener('click', function (e) {
-    var tr = e.target.closest('tr'); if (!tr) return;
-    var id = tr.getAttribute('data-id');
+    var menuBtn = e.target.closest('.adm-row-menu-btn');
+    if (menuBtn) {
+      var menu = menuBtn.closest('.adm-row-menu');
+      var wasOpen = menu.classList.contains('open');
+      document.querySelectorAll('.adm-row-menu.open').forEach(function (m) { m.classList.remove('open'); m.querySelector('.adm-row-menu-list').hidden = true; });
+      if (!wasOpen) { menu.classList.add('open'); menu.querySelector('.adm-row-menu-list').hidden = false; }
+      return;
+    }
+    var actionBtn = e.target.closest('.adm-row-menu-item');
+    if (!actionBtn) return;
+    var menuEl = actionBtn.closest('.adm-row-menu');
+    var id = menuEl.getAttribute('data-id');
     var o = ORDERS.filter(function (x) { return x.id === id; })[0]; if (!o) return;
-    if (e.target.classList.contains('adm-order-complete')) {
+    menuEl.classList.remove('open'); menuEl.querySelector('.adm-row-menu-list').hidden = true;
+    var action = actionBtn.getAttribute('data-action');
+
+    if (action === 'view') {
+      viewOrderId = id;
+      showPanel('order-detail');
+      return;
+    }
+    if (action === 'complete') {
       if (!can('support')) return;
-      e.target.disabled = true;
       callManageOrder(o.dbId, 'complete').then(function () {
         logAudit('Marked order ' + id + ' completed');
         return refreshOrders();
-      }).catch(function (err) {
-        e.target.disabled = false;
-        alert(err.message || 'Could not update the order.');
-      });
-    } else if (e.target.classList.contains('adm-order-refund')) {
+      }).catch(function (err) { alert(err.message || 'Could not update the order.'); });
+    } else if (action === 'refund') {
       if (!can('support')) return;
-      e.target.disabled = true;
-      callManageOrder(o.dbId, 'refund', 'Manual refund by staff').then(function () {
+      var reason = prompt('Refund reason for ' + id + ':', 'Requested by customer'); if (reason === null) return;
+      callManageOrder(o.dbId, 'refund', reason || 'Requested by customer').then(function () {
         logAudit('Refunded order ' + id + ' (' + orderAmount(o) + ')');
         return refreshOrders();
-      }).catch(function (err) {
-        e.target.disabled = false;
-        alert(err.message || 'Could not process the refund.');
-      });
+      }).catch(function (err) { alert(err.message || 'Could not process the refund.'); });
+    } else if (action === 'revoke') {
+      if (!can('support')) return;
+      if (!confirm('Revoke the license for order ' + id + '? The buyer will immediately lose download access. This does not refund their payment.')) return;
+      var revReason = prompt('Reason for revoking (visible in admin only):', 'Policy violation'); if (revReason === null) return;
+      callManageOrder(o.dbId, 'revoke', revReason || 'Policy violation').then(function () {
+        logAudit('Revoked license for order ' + id + ' — ' + (revReason || 'Policy violation'));
+        return refreshOrders();
+      }).catch(function (err) { alert(err.message || 'Could not revoke the license.'); });
     }
+  });
+  document.addEventListener('click', function (e) {
+    if (e.target.closest('.adm-row-menu')) return;
+    document.querySelectorAll('.adm-row-menu.open').forEach(function (m) { m.classList.remove('open'); m.querySelector('.adm-row-menu-list').hidden = true; });
   });
   var orderSearchInput = $('admOrderSearch');
   if (orderSearchInput) orderSearchInput.addEventListener('input', renderOrders);
 
   /* ================================================================
-     REFUNDS PANEL
+     ORDER DETAIL (drill-down from the orders table's row menu)
      ================================================================ */
-  function renderRefunds() {
-    var refunded = ORDERS.filter(function (o) { return o.status === 'refunded'; }).sort(function (a, b) { return new Date(b.date) - new Date(a.date); });
-    $('admRefundStats').innerHTML =
-      '<div class="dash-stat glass"><span class="ds-label">Refunded orders</span><span class="ds-num">' + refunded.length + '</span></div>' +
-      '<div class="dash-stat glass"><span class="ds-label">Total refunded</span><span class="ds-num">' + usd(refunded.reduce(function (s, o) { return s + o.total; }, 0)) + '</span></div>';
-    $('admRefundsBody').innerHTML = refunded.map(function (o) {
-      return '<tr><td>' + fmtDate(new Date(o.date)) + '</td><td class="dt-mono">' + esc(o.id) + '</td><td>' + esc(o.title) + '</td><td>' + esc(o.userName) + '</td><td>' + orderAmount(o) + '</td><td>' + esc(o.refundReason || '') + '</td></tr>';
-    }).join('') || '<tr><td colspan="6" class="adm-empty">No refunds yet.</td></tr>';
-
-    var pending = ORDERS.filter(function (o) { return o.status === 'completed'; }).sort(function (a, b) { return new Date(b.date) - new Date(a.date); }).slice(0, 30);
-    $('admRefundEligible').innerHTML = pending.map(function (o) {
-      return '<tr data-id="' + esc(o.id) + '"><td>' + fmtDate(new Date(o.date)) + '</td><td class="dt-mono">' + esc(o.id) + '</td><td>' + esc(o.title) + '</td><td>' + esc(o.userName) + '</td><td>' + orderAmount(o) + '</td>' +
-        '<td class="adm-row-actions">' + (can('support') ? '<button class="btn btn-ghost adm-btn-sm adm-refund-issue" type="button">Issue refund</button>' : '<span class="adm-sub">No permission</span>') + '</td></tr>';
-    }).join('');
+  var viewOrderId = null;
+  function paymentInfoRows(o) {
+    var rows = [];
+    if (o.paymentProvider) rows.push(['Payment provider', esc(o.paymentProvider)]);
+    if (o.stripePaymentIntentId) rows.push(['Stripe payment intent', '<span class="dt-mono">' + esc(o.stripePaymentIntentId) + '</span>']);
+    if (o.stripeCheckoutSessionId) rows.push(['Stripe checkout session', '<span class="dt-mono">' + esc(o.stripeCheckoutSessionId) + '</span>']);
+    if (o.paypalOrderId) rows.push(['PayPal order ID', '<span class="dt-mono">' + esc(o.paypalOrderId) + '</span>']);
+    if (o.paypalCaptureId) rows.push(['PayPal capture ID', '<span class="dt-mono">' + esc(o.paypalCaptureId) + '</span>']);
+    if (o.cryptoProvider) rows.push(['Crypto provider', esc(o.cryptoProvider)]);
+    if (o.cryptoChargeId) rows.push(['Crypto charge ID', '<span class="dt-mono">' + esc(o.cryptoChargeId) + '</span>']);
+    if (o.cryptoPaymentId) rows.push(['Crypto payment ID', '<span class="dt-mono">' + esc(o.cryptoPaymentId) + '</span>']);
+    if (o.externalTransactionId) rows.push(['External transaction ID', '<span class="dt-mono">' + esc(o.externalTransactionId) + '</span>']);
+    if (o.robloxGamepassId) rows.push(['Roblox gamepass ID', '<span class="dt-mono">' + esc(o.robloxGamepassId) + '</span>']);
+    if (o.robloxBuyerId) rows.push(['Roblox buyer ID', '<span class="dt-mono">' + esc(o.robloxBuyerId) + '</span>']);
+    if (o.robloxVerificationMethod) rows.push(['Roblox verification', esc(o.robloxVerificationMethod)]);
+    return rows;
   }
-  var refundEligible = $('admRefundEligible');
-  if (refundEligible) refundEligible.addEventListener('click', function (e) {
-    if (!e.target.classList.contains('adm-refund-issue')) return;
-    if (!can('support')) return;
-    var tr = e.target.closest('tr'); var id = tr.getAttribute('data-id');
-    var o = ORDERS.filter(function (x) { return x.id === id; })[0]; if (!o) return;
-    var reason = prompt('Refund reason for ' + id + ':', 'Requested by customer') || 'Requested by customer';
-    e.target.disabled = true;
-    callManageOrder(o.dbId, 'refund', reason).then(function () {
-      logAudit('Issued refund for ' + id + ' — ' + reason);
-      return refreshOrders();
-    }).catch(function (err) {
-      e.target.disabled = false;
-      alert(err.message || 'Could not process the refund.');
+  function detailRow(label, valueHtml) {
+    return '<div class="adm-detail-row"><span class="adm-detail-label">' + esc(label) + '</span><span class="adm-detail-val">' + valueHtml + '</span></div>';
+  }
+  function renderOrderDetail() {
+    var el = $('admOrderDetailBody'); if (!el) return;
+    var o = ORDERS.filter(function (x) { return x.id === viewOrderId; })[0];
+    if (!o) { el.innerHTML = '<p class="adm-empty">Order not found.</p>'; return; }
+
+    var itemsRows = (o.items || []).map(function (it) {
+      return '<tr><td>' + esc(it.title || '') + '</td><td>' + (it.licence === 'resell' ? 'Resell' : 'Standard') + '</td><td>' + (it.qty || 1) + '</td><td>' + usd(it.unit_price_usd || 0) + '</td></tr>';
+    }).join('') || '<tr><td colspan="4" class="adm-empty">No line items.</td></tr>';
+
+    var payRows = paymentInfoRows(o);
+    var payHtml = payRows.length
+      ? payRows.map(function (r) { return detailRow(r[0], r[1]); }).join('')
+      : '<p class="adm-note">No payment reference on file for this order.</p>';
+
+    var canAct = can('support');
+    var actions = '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:18px;">';
+    if (o.status === 'pending' && canAct) actions += '<button class="btn btn-ghost adm-btn-sm" type="button" id="admOdComplete">Mark completed</button>';
+    if (o.status === 'completed' && canAct) {
+      actions += '<button class="btn btn-ghost adm-btn-sm" type="button" id="admOdRefund">Refund</button>';
+      actions += '<button class="btn btn-ghost adm-btn-sm" type="button" id="admOdRevoke" style="color:#ff6b6b;">Revoke license</button>';
+    }
+    actions += '</div>';
+
+    el.innerHTML =
+      '<div class="dash-head"><h1>Order ' + esc(o.id) + '</h1><p>' + statusBadge(o.status) + '</p></div>' +
+      '<div class="dash-card glass">' +
+        '<div class="dash-card-head"><h2>Overview</h2></div>' +
+        detailRow('Placed', fmtDateTime(new Date(o.date))) +
+        (o.paidAt ? detailRow('Paid', fmtDateTime(new Date(o.paidAt))) : '') +
+        detailRow('Buyer', esc(o.userName) + (o.userEmail ? ' &nbsp;<span class="adm-sub">' + esc(o.userEmail) + '</span>' : '')) +
+        detailRow('Source', esc(o.source)) +
+        detailRow('Currency', o.currency.toUpperCase()) +
+        detailRow('Subtotal', usd(o.subtotal)) +
+        (o.couponCode ? detailRow('Coupon', esc(o.couponCode) + ' (&minus;' + usd(o.discount) + ')') : '') +
+        detailRow('Total', o.currency === 'robux' ? robuxRaw(o.totalRobux) : usd(o.total)) +
+        (o.refundReason ? detailRow(o.status === 'revoked' ? 'Revoke reason' : 'Refund reason', esc(o.refundReason)) : '') +
+        actions +
+      '</div>' +
+      '<div class="dash-card glass dash-tablewrap">' +
+        '<div class="dash-card-head"><h2>Items</h2></div>' +
+        '<table class="dash-table"><thead><tr><th>Product</th><th>Licence</th><th>Qty</th><th>Unit price</th></tr></thead><tbody>' + itemsRows + '</tbody></table>' +
+      '</div>' +
+      '<div class="dash-card glass">' +
+        '<div class="dash-card-head"><h2>Payment reference</h2></div>' +
+        payHtml +
+      '</div>';
+
+    var completeBtn = $('admOdComplete');
+    if (completeBtn) completeBtn.addEventListener('click', function () {
+      completeBtn.disabled = true;
+      callManageOrder(o.dbId, 'complete').then(function () {
+        logAudit('Marked order ' + o.id + ' completed');
+        return refreshOrders();
+      }).then(renderOrderDetail).catch(function (err) {
+        completeBtn.disabled = false;
+        alert(err.message || 'Could not update the order.');
+      });
     });
-  });
+    var refundBtn = $('admOdRefund');
+    if (refundBtn) refundBtn.addEventListener('click', function () {
+      var reason = prompt('Refund reason for ' + o.id + ':', 'Requested by customer'); if (reason === null) return;
+      refundBtn.disabled = true;
+      callManageOrder(o.dbId, 'refund', reason || 'Requested by customer').then(function () {
+        logAudit('Refunded order ' + o.id + ' (' + orderAmount(o) + ')');
+        return refreshOrders();
+      }).then(renderOrderDetail).catch(function (err) {
+        refundBtn.disabled = false;
+        alert(err.message || 'Could not process the refund.');
+      });
+    });
+    var revokeBtn = $('admOdRevoke');
+    if (revokeBtn) revokeBtn.addEventListener('click', function () {
+      if (!confirm('Revoke the license for order ' + o.id + '? The buyer will immediately lose download access. This does not refund their payment.')) return;
+      var revReason = prompt('Reason for revoking (visible in admin only):', 'Policy violation'); if (revReason === null) return;
+      revokeBtn.disabled = true;
+      callManageOrder(o.dbId, 'revoke', revReason || 'Policy violation').then(function () {
+        logAudit('Revoked license for order ' + o.id + ' — ' + (revReason || 'Policy violation'));
+        return refreshOrders();
+      }).then(renderOrderDetail).catch(function (err) {
+        revokeBtn.disabled = false;
+        alert(err.message || 'Could not revoke the license.');
+      });
+    });
+  }
 
   /* ================================================================
      REVIEWS PANEL
@@ -3421,7 +3530,6 @@
   /* ================================================================
      INIT
      ================================================================ */
-  renderTopbar();
   showPanel('home');
   refreshProducts().then(function () {
     return refreshOrders().then(function () { refreshAdminReferrals(); refreshPayouts(); });

@@ -10,7 +10,7 @@
     // once supabase-init.js loads, further down the page.
     (function () {
       try {
-        var raw = localStorage.getItem('sb-ekinmytmudjwfaqaqswp-auth-token');
+        var raw = sessionStorage.getItem('sb-ekinmytmudjwfaqaqswp-auth-token');
         var parsed = raw && JSON.parse(raw);
         if (!parsed || !parsed.expires_at || parsed.expires_at * 1000 < Date.now()) {
           location.href = '/signin';

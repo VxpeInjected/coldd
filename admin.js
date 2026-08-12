@@ -66,6 +66,17 @@
   function orderAmount(o) { return o.currency === 'robux' ? ('R$ ' + Math.round(o.totalRobux).toLocaleString('en-US')) : usd(o.total); }
   function fmtDate(d) { return d.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' }); }
   function fmtDateTime(d) { return d.toLocaleDateString('en-US', { day: 'numeric', month: 'short' }) + ' ' + d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }); }
+  // AdBlox's /servers and /logs endpoints return timestamps with no
+  // timezone designator (e.g. "2026-08-12T14:25:15.268322"), even though
+  // the account itself is UTC (confirmed via /stats, which does include an
+  // explicit +00:00 on the same kind of field). Per the JS Date spec, a
+  // date-time string with no offset parses as LOCAL time, not UTC - so
+  // without this, every AdBlox time shown here was off by the browser's
+  // UTC offset. Appending Z (only if nothing's there already) fixes the
+  // parse without touching fields that already carry a real offset.
+  function parseAdbloxUtc(s) {
+    return new Date(/[zZ]|[+-]\d\d:\d\d$/.test(s) ? s : s + 'Z');
+  }
   function daysAgo(n) { var d = new Date(); d.setHours(12, 0, 0, 0); d.setDate(d.getDate() - n); return d; }
   function $(id) { return document.getElementById(id); }
   function el(html) { var d = document.createElement('div'); d.innerHTML = html.trim(); return d.firstChild; }
@@ -1109,14 +1120,14 @@
           esc(sv.guild_name || sv.guild_id) + '</td>' +
           '<td>' + (sv.sent || 0).toLocaleString('en-US') + '</td>' +
           '<td>' + (sv.failed ? esc(sv.failed) : '0') + '</td>' +
-          '<td>' + (sv.last_sent_at ? fmtDateTime(new Date(sv.last_sent_at)) : '—') + '</td></tr>';
+          '<td>' + (sv.last_sent_at ? fmtDateTime(parseAdbloxUtc(sv.last_sent_at)) : '—') + '</td></tr>';
       }).join('') || '<tr><td colspan="4" class="adm-empty">No server activity yet.</td></tr>';
     }
 
     if ($('admAdbloxLogsBody')) {
       $('admAdbloxLogsBody').innerHTML = ADBLOX_LOGS.map(function (lg) {
         var status = lg.status === 'sent' ? '<span class="dt-badge ok">Sent</span>' : lg.status === 'failed' ? '<span class="dt-badge err">Failed</span>' : '<span class="dt-badge warn">' + esc(lg.status) + '</span>';
-        return '<tr><td>' + (lg.sent_at ? fmtDateTime(new Date(lg.sent_at)) : '—') + '</td>' +
+        return '<tr><td>' + (lg.sent_at ? fmtDateTime(parseAdbloxUtc(lg.sent_at)) : '—') + '</td>' +
           '<td>' + esc(lg.ad_title || '') + '</td>' +
           '<td>' + esc(lg.guild_name || lg.guild_id || '') + '</td>' +
           '<td>' + esc(lg.channel_name || lg.channel_id || '') + '</td>' +

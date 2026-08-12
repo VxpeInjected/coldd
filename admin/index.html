@@ -16,7 +16,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
 
-  <link rel="stylesheet" href="/styles.css?v=20260812a" />
+  <link rel="stylesheet" href="/styles.css?v=20260812b" />
 </head>
 <body class="adm-body">
   <div class="backdrop"></div>
@@ -167,21 +167,29 @@
               <div class="adm-edit-msg" id="admAdbloxMsg"></div>
             </div>
 
-            <div class="dash-card glass dash-tablewrap">
-              <div class="dash-card-head"><h2>Top servers</h2><span class="adm-sub">Last 30 days, by ads sent.</span></div>
-              <table class="dash-table">
-                <thead><tr><th>Server</th><th>Sent</th><th>Failed</th><th>Last sent</th></tr></thead>
-                <tbody id="admAdbloxServersBody"></tbody>
-              </table>
+            <div class="dash-card glass">
+              <details class="adm-collapse">
+                <summary class="dash-card-head"><div><h2>Top servers</h2><span class="adm-sub">Last 30 days, by ads sent.</span></div><svg class="adm-collapse-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></summary>
+                <div class="dash-tablewrap adm-collapse-body">
+                  <table class="dash-table">
+                    <thead><tr><th>Server</th><th>Sent</th><th>Failed</th><th>Last sent</th></tr></thead>
+                    <tbody id="admAdbloxServersBody"></tbody>
+                  </table>
+                </div>
+              </details>
             </div>
 
-            <div class="dash-card glass dash-tablewrap">
-              <div class="dash-card-head"><h2>Ad activity log</h2><span class="adm-sub">Most recent sends.</span></div>
-              <table class="dash-table">
-                <thead><tr><th>Time</th><th>Ad</th><th>Server</th><th>Channel</th><th>Status</th></tr></thead>
-                <tbody id="admAdbloxLogsBody"></tbody>
-              </table>
-              <button class="btn btn-ghost adm-btn-sm" id="admAdbloxLoadMore" type="button" hidden style="margin-top:12px;">Load more</button>
+            <div class="dash-card glass">
+              <details class="adm-collapse">
+                <summary class="dash-card-head"><div><h2>Ad activity log</h2><span class="adm-sub">Most recent sends.</span></div><svg class="adm-collapse-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></summary>
+                <div class="dash-tablewrap adm-collapse-body">
+                  <table class="dash-table">
+                    <thead><tr><th>Time</th><th>Ad</th><th>Server</th><th>Channel</th><th>Status</th></tr></thead>
+                    <tbody id="admAdbloxLogsBody"></tbody>
+                  </table>
+                  <button class="btn btn-ghost adm-btn-sm" id="admAdbloxLoadMore" type="button" hidden style="margin-top:12px;">Load more</button>
+                </div>
+              </details>
             </div>
 
             <div class="dash-card glass dash-tablewrap">

@@ -1633,6 +1633,16 @@ body.auth-page { min-height: 100vh; min-height: 100dvh; }
 .wl-remove { width: 30px; height: 30px; border: none; background: transparent; color: var(--fg-3); font-size: 20px; line-height: 1; border-radius: 10px; cursor: pointer; }
 .wl-remove:hover { color: var(--accent); background: rgba(255,77,68,0.1); }
 
+/* Collapsible dash-card sections (AdBlox top-servers / activity log) -
+   native <details>/<summary> so open/closed state needs no JS, capped at a
+   fixed height with internal scroll even when open so a long table never
+   pushes the rest of the page down. */
+.adm-collapse > summary { cursor: pointer; list-style: none; margin-bottom: 0; }
+.adm-collapse > summary::-webkit-details-marker { display: none; }
+.adm-collapse-chevron { flex-shrink: 0; color: var(--fg-3); transition: transform 0.2s ease; }
+.adm-collapse[open] > summary .adm-collapse-chevron { transform: rotate(180deg); }
+.adm-collapse-body { max-height: 280px; overflow-y: auto; margin-top: 14px; }
+
 .dash-tablewrap { overflow-x: auto; }
 .dash-table { width: 100%; border-collapse: collapse; font-size: 14px; }
 .dash-table th { text-align: left; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--fg-3); font-weight: 600; padding: 0 14px 12px 0; }

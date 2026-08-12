@@ -2636,7 +2636,7 @@ a.adm-sub[href] { color: var(--fg-1); cursor: pointer; text-decoration: underlin
 
 /* auth full-page: submit spinner + verify-step controls */
 .auth-submit { position: relative; }
-.auth-submit .btn-spinner { width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; display: inline-block; animation: authbtnspin 1.1s linear infinite; }
+.auth-submit .btn-spinner { width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; display: inline-block; animation: authbtnspin 1.6s linear infinite; }
 .auth-submit .btn-spinner[hidden] { display: none; }
 .auth-submit.is-loading { opacity: 0.55; cursor: default; }
 .auth-submit.is-loading .btn-label { visibility: hidden; }
@@ -2645,7 +2645,7 @@ a.adm-sub[href] { color: var(--fg-1); cursor: pointer; text-decoration: underlin
 /* Generic version of the same pattern for any .btn (dashboard save
    actions, modals) - .auth-submit above is the form-page-specific one. */
 .btn.is-loading { position: relative; opacity: 0.55; cursor: default; }
-.btn .btn-spinner { width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; display: inline-block; animation: authbtnspin 1.1s linear infinite; }
+.btn .btn-spinner { width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; display: inline-block; animation: authbtnspin 1.6s linear infinite; }
 .btn .btn-spinner[hidden] { display: none; }
 .btn.is-loading .btn-label { visibility: hidden; }
 .btn.is-loading .btn-spinner { position: absolute; top: 50%; left: 50%; margin-top: -8px; margin-left: -8px; }
@@ -2662,11 +2662,16 @@ a.adm-sub[href] { color: var(--fg-1); cursor: pointer; text-decoration: underlin
 body.auth-page { background: var(--bg); }
 /* .backdrop/.scrim's shared 940px floor is sized for the homepage's tall
    hero + scrolling page beneath it - correct there, but this is a single-
-   viewport form with nothing to scroll to. On a short landscape viewport
-   (an iPad at 1024x768, for instance) that floor forces the whole document
-   past the visible height, so the page scrolls to reveal nothing but more
-   background. Auth pages only need the backdrop to cover what's on screen. */
-body.auth-page .backdrop, body.auth-page .scrim { height: 100dvh; }
+   viewport form with nothing to scroll to. On a short viewport that floor
+   forces the whole document past the visible height, so the page scrolls
+   to reveal nothing but more background.
+   position:fixed rather than a computed height (100dvh alone did not fully
+   fix this on real mobile Safari, where dvh/vh can disagree with the
+   layout viewport during/after the URL bar's show-hide animation) - a
+   fixed, inset:0 element is pinned to the viewport by definition and can
+   never itself add to the document's scrollable area, regardless of which
+   viewport unit a given engine resolves at a given moment. */
+body.auth-page .backdrop, body.auth-page .scrim { position: fixed; inset: 0; height: auto; }
 .auth-split { display: flex; min-height: 100vh; min-height: 100dvh; }
 .auth-split-left { flex: 0 0 46%; max-width: 560px; display: flex; flex-direction: column; justify-content: center;
   padding: 118px 56px 56px; background: var(--bg); position: relative; z-index: 1; }

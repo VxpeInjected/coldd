@@ -234,6 +234,13 @@
       const x = document.getElementById('announceX');
       if (x) x.addEventListener('click', hide);
 
+      // Starts hidden (see the <html> tag - data-ann has no "on" baked in
+      // by default anymore) so there's nothing to flash. This branch is the
+      // only thing that ever turns it on, and only once a real active sale
+      // is confirmed - previously the static markup shipped a hardcoded
+      // "on" state plus placeholder promo copy, which meant every visitor
+      // saw stale/wrong text for one frame before this code caught up and
+      // hid it again.
       const sale = window.__ACTIVE_SALE;
       if (!sale) { hide(); return; }
       const msg = bar.querySelector('.announce-msg');
@@ -245,6 +252,8 @@
         });
         msg.innerHTML = escText + ' ' + linkHtml;
       }
+      document.documentElement.setAttribute('data-ann', 'on');
+      window.dispatchEvent(new Event('resize'));
     })();
 
     const nav = document.getElementById('nav');

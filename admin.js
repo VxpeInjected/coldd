@@ -2502,15 +2502,22 @@
   function userOrderCount(userId) { return ORDERS.filter(function (o) { return o.userId === userId; }).length; }
   var grantUserDropdown = makeDropdown($('admGrantUserDD'), { valueInput: $('admGrantUser'), placeholder: 'Select user' });
   var grantProductDropdown = makeDropdown($('admGrantProductDD'), { valueInput: $('admGrantProduct'), placeholder: 'Select product' });
+  function userRowMenuHtml(u) {
+    if (!can('admin') || u.isAdmin) return '';
+    var items = ['<button type="button" class="adm-row-menu-item" data-action="' + (u.status === 'active' ? 'ban' : 'unban') + '">' + (u.status === 'active' ? 'Ban' : 'Unban') + '</button>'];
+    items.push('<button type="button" class="adm-row-menu-item danger" data-action="remove">Remove account</button>');
+    return '<div class="adm-row-menu" data-id="' + esc(u.id) + '">' +
+      '<button type="button" class="adm-row-menu-btn" aria-haspopup="true" aria-expanded="false" aria-label="User actions">' +
+      '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="12" cy="19" r="1.7"/></svg></button>' +
+      '<div class="adm-row-menu-list" hidden>' + items.join('') + '</div></div>';
+  }
   function renderUsers() {
     var q = (($('admUserSearch') || {}).value || '').trim().toLowerCase();
     var rows = USERS.filter(function (u) { return !q || u.name.toLowerCase().indexOf(q) >= 0 || u.email.toLowerCase().indexOf(q) >= 0; });
     $('admUsersBody').innerHTML = rows.map(function (u) {
       return '<tr data-id="' + u.id + '"><td>' + esc(u.name) + (u.isAdmin ? ' <span class="adm-sub">· admin</span>' : '') + '</td><td>' + esc(u.email) + '</td><td>' + fmtDate(new Date(u.joined)) + '</td><td>' + userOrderCount(u.id) + '</td><td>' + usd(userSpend(u.id)) + '</td>' +
         '<td>' + (u.status === 'active' ? '<span class="dt-badge ok">Active</span>' : '<span class="dt-badge err">Banned' + (u.banReason ? ' — ' + esc(u.banReason) : '') + '</span>') + '</td>' +
-        '<td class="adm-row-actions">' +
-          (can('admin') && !u.isAdmin ? '<button class="btn btn-ghost adm-btn-sm adm-user-ban" type="button">' + (u.status === 'active' ? 'Ban' : 'Unban') + '</button>' : '') +
-        '</td></tr>';
+        '<td class="adm-row-actions">' + userRowMenuHtml(u) + '</td></tr>';
     }).join('') || '<tr><td colspan="7" class="adm-empty">No users match.</td></tr>';
 
     grantUserDropdown.setOptions(USERS.map(function (u) { return { value: u.id, label: u.name }; }), grantUserDropdown.getValue());
@@ -2518,25 +2525,42 @@
   }
   var usersBody = $('admUsersBody');
   if (usersBody) usersBody.addEventListener('click', function (e) {
-    if (!e.target.classList.contains('adm-user-ban')) return;
-    if (!can('admin')) return;
-    var tr = e.target.closest('tr'); var id = tr.getAttribute('data-id');
+    var menuBtn = e.target.closest('.adm-row-menu-btn');
+    if (menuBtn) {
+      var menu = menuBtn.closest('.adm-row-menu');
+      var wasOpen = menu.classList.contains('open');
+      document.querySelectorAll('.adm-row-menu.open').forEach(function (m) { m.classList.remove('open'); m.querySelector('.adm-row-menu-list').hidden = true; });
+      if (!wasOpen) { menu.classList.add('open'); menu.querySelector('.adm-row-menu-list').hidden = false; }
+      return;
+    }
+    var actionBtn = e.target.closest('.adm-row-menu-item');
+    if (!actionBtn) return;
+    var menuEl = actionBtn.closest('.adm-row-menu');
+    var id = menuEl.getAttribute('data-id');
     var u = USERS.filter(function (x) { return x.id === id; })[0]; if (!u) return;
-    var willBan = u.status === 'active';
-    var reason = null;
-    if (willBan) {
-      reason = prompt('Reason for banning ' + u.name + ':', 'Violated terms of service');
-      if (reason === null) return;
-    } else if (!confirm('Unban ' + u.name + '?')) return;
-    var btn = e.target;
-    btn.disabled = true;
-    invokeAdminFn('admin-set-user-banned', { userId: u.id, banned: willBan, reason: reason }, 'Could not update user.').then(function () {
-      logAudit((willBan ? 'Banned' : 'Unbanned') + ' user ' + u.name);
-      return refreshUsers();
-    }).catch(function (err) {
-      btn.disabled = false;
-      alert(err.message || 'Could not update user.');
-    });
+    menuEl.classList.remove('open'); menuEl.querySelector('.adm-row-menu-list').hidden = true;
+    var action = actionBtn.getAttribute('data-action');
+
+    if (!can('admin')) return;
+    if (action === 'ban' || action === 'unban') {
+      var willBan = action === 'ban';
+      var reason = null;
+      if (willBan) {
+        reason = prompt('Reason for banning ' + u.name + ':', 'Violated terms of service');
+        if (reason === null) return;
+      } else if (!confirm('Unban ' + u.name + '?')) return;
+      invokeAdminFn('admin-set-user-banned', { userId: u.id, banned: willBan, reason: reason }, 'Could not update user.').then(function () {
+        logAudit((willBan ? 'Banned' : 'Unbanned') + ' user ' + u.name);
+        return refreshUsers();
+      }).catch(function (err) { alert(err.message || 'Could not update user.'); });
+    } else if (action === 'remove') {
+      if (!confirm('Permanently remove ' + u.name + '\'s account? This deletes their login, profile, and everything tied to it - it cannot be undone. Their past orders stay on record.')) return;
+      if (prompt('Type REMOVE to confirm:') !== 'REMOVE') return;
+      invokeAdminFn('admin-delete-user', { userId: u.id }, 'Could not remove the account.').then(function () {
+        logAudit('Removed account for ' + u.name + ' (' + u.email + ')');
+        return refreshUsers();
+      }).catch(function (err) { alert(err.message || 'Could not remove the account.'); });
+    }
   });
   var userSearch = $('admUserSearch');
   if (userSearch) userSearch.addEventListener('input', renderUsers);

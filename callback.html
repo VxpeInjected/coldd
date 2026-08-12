@@ -35,7 +35,7 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.2/dist/umd/supabase.min.js" integrity="sha384-B2duOBIryCXbX4eDE4BdJwtNkQMRQde3o6IsjfPW28E6aH1CYE96hHeZRG3zY56O" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-  <script src="/supabase-init.js?v=20260809b"></script>
+  <script src="/supabase-init.js?v=20260812a"></script>
   <script src="/site-gate.js?v=20260729b"></script>
   <script>
     (async function () {
@@ -66,15 +66,21 @@
           // Email/password account confirming for the first time (or any
           // other non-Discord provider) - simple profile, no guild lookups.
           var basicName = meta.full_name || meta.name || (email ? email.split('@')[0] : 'Member');
-          // Only set username if the profile doesn't already have one - a
-          // user who customized their display name via Account Settings
-          // must not have it silently reverted on every future sign-in.
-          var existingBasic = await window.coldSupabase.from('profiles').select('username').eq('id', user.id).maybeSingle();
-          var basicPayload = { id: user.id, email: email, updated_at: new Date().toISOString() };
-          var finalBasicName = (existingBasic.data && existingBasic.data.username) || basicName;
-          if (!existingBasic.data || !existingBasic.data.username) basicPayload.username = basicName;
-          var upsertBasic = await window.coldSupabase.from('profiles').upsert(basicPayload);
-          if (upsertBasic.error) console.warn('[coldd] profile upsert failed:', upsertBasic.error.message);
+          var finalBasicName = basicName;
+          // Profile enrichment is best-effort - the auth session is already
+          // valid at this point, so a network/DB hiccup here must not bounce
+          // an authenticated user back to /signin.
+          try {
+            // Only set username if the profile doesn't already have one - a
+            // user who customized their display name via Account Settings
+            // must not have it silently reverted on every future sign-in.
+            var existingBasic = await window.coldSupabase.from('profiles').select('username').eq('id', user.id).maybeSingle();
+            var basicPayload = { id: user.id, email: email, updated_at: new Date().toISOString() };
+            finalBasicName = (existingBasic.data && existingBasic.data.username) || basicName;
+            if (!existingBasic.data || !existingBasic.data.username) basicPayload.username = basicName;
+            var upsertBasic = await window.coldSupabase.from('profiles').upsert(basicPayload);
+            if (upsertBasic.error) console.warn('[coldd] profile upsert failed:', upsertBasic.error.message);
+          } catch (e) { console.warn('[coldd] profile enrichment failed, continuing signed in:', e); }
 
           window.coldAuth.saveProfile({ id: user.id, provider: provider, name: finalBasicName, email: email, avatar: '' });
           try { localStorage.setItem('coldd_auth', 'in'); } catch (e) {}
@@ -117,24 +123,30 @@
           }
         }
 
-        // Only set username if the profile doesn't already have one - a
-        // user who customized their display name via Account Settings
-        // must not have it silently reverted to their Discord name on
-        // every future sign-in.
-        var existingDiscord = await window.coldSupabase.from('profiles').select('username').eq('id', user.id).maybeSingle();
-        var finalName = (existingDiscord.data && existingDiscord.data.username) || name;
-        var discordPayload = {
-          id: user.id,
-          discord_id: discordId,
-          email: email,
-          avatar_url: avatar,
-          guilds: guilds,
-          member_info: memberInfo,
-          updated_at: new Date().toISOString()
-        };
-        if (!existingDiscord.data || !existingDiscord.data.username) discordPayload.username = name;
-        var upsertRes = await window.coldSupabase.from('profiles').upsert(discordPayload);
-        if (upsertRes.error) console.warn('[coldd] profile upsert failed:', upsertRes.error.message);
+        var finalName = name;
+        // Profile enrichment is best-effort - the auth session is already
+        // valid at this point, so a network/DB hiccup here must not bounce
+        // an authenticated user back to /signin.
+        try {
+          // Only set username if the profile doesn't already have one - a
+          // user who customized their display name via Account Settings
+          // must not have it silently reverted to their Discord name on
+          // every future sign-in.
+          var existingDiscord = await window.coldSupabase.from('profiles').select('username').eq('id', user.id).maybeSingle();
+          finalName = (existingDiscord.data && existingDiscord.data.username) || name;
+          var discordPayload = {
+            id: user.id,
+            discord_id: discordId,
+            email: email,
+            avatar_url: avatar,
+            guilds: guilds,
+            member_info: memberInfo,
+            updated_at: new Date().toISOString()
+          };
+          if (!existingDiscord.data || !existingDiscord.data.username) discordPayload.username = name;
+          var upsertRes = await window.coldSupabase.from('profiles').upsert(discordPayload);
+          if (upsertRes.error) console.warn('[coldd] profile upsert failed:', upsertRes.error.message);
+        } catch (e) { console.warn('[coldd] profile enrichment failed, continuing signed in:', e); }
 
         window.coldAuth.saveProfile({ id: user.id, provider: 'discord', discordId: discordId, name: finalName, email: email, avatar: avatar, guilds: guilds, memberInfo: memberInfo });
         try { localStorage.setItem('coldd_auth', 'in'); } catch (e) {}

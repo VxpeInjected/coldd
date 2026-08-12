@@ -250,8 +250,9 @@
     verifyEmailOtp: function (code) {
       return client.functions.invoke('email-otp', { body: { action: 'verify', code: code } }).then(function (res) {
         if (!res.error && res.data && res.data.ok) {
-          client.auth.getUser().then(function (r) {
+          return client.auth.getUser().then(function (r) {
             if (r.data && r.data.user) upsertBasicProfile(r.data.user);
+            return res;
           });
         }
         return res;

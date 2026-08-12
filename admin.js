@@ -870,7 +870,7 @@
     else if (name === 'reviews') renderReviews();
     else if (name === 'users') renderUsers();
     else if (name === 'sales') { renderEvents(); renderCoupons(); }
-    else if (name === 'sitemgmt') { refreshSiteStatus(); renderRobloxContainers(); refreshRobloxCookieHealth(); renderStaff(); }
+    else if (name === 'sitemgmt') { refreshSiteStatus(); renderRobloxContainers(); refreshRobloxCookieHealth(); refreshRobloxPool(); renderStaff(); }
     else if (name === 'content') { renderPosts(); renderTutorials(); renderReleases(); }
     else if (name === 'audit') { renderAudit(); refreshAuditLog(); }
   }
@@ -2468,6 +2468,55 @@
       if (curPanel === 'home') renderHome();
     });
   }
+  /* ================================================================
+     ROBUX POOL PANEL (shared leased-gamepass pool checkout draws from)
+     ================================================================ */
+  function refreshRobloxPool() {
+    var body = $('admRobloxPoolBody'); if (!body) return Promise.resolve();
+    return invokeAdminFn('admin-robux-pool', { action: 'stats' }, 'Could not load the pool.').then(function (data) {
+      renderRobloxPool(data.stats, data.passes || []);
+    }).catch(function (err) {
+      var msg = $('admRobloxPoolMsg'); if (msg) msg.textContent = err.message;
+    });
+  }
+  function renderRobloxPool(stats, passes) {
+    stats = stats || { total: 0, free_now: 0, leased_now: 0 };
+    var t = $('admRoboxPoolTotal'), f = $('admRoboxPoolFree'), l = $('admRoboxPoolLeased');
+    if (t) t.textContent = stats.total;
+    if (f) f.textContent = stats.free_now;
+    if (l) l.textContent = stats.leased_now;
+    var body = $('admRobloxPoolBody'); if (!body) return;
+    if (!passes.length) { body.innerHTML = '<tr><td colspan="5" class="adm-empty">No pool passes yet - seed some to start.</td></tr>'; return; }
+    body.innerHTML = passes.map(function (p) {
+      var leased = p.leased_order_id && p.lease_expires_at && new Date(p.lease_expires_at).getTime() > Date.now();
+      var state = !p.active ? 'Disabled' : (leased ? 'Leased' : 'Free');
+      return '<tr>' +
+        '<td>' + esc(p.gamepass_id) + '</td>' +
+        '<td>' + esc(p.universe_id) + '</td>' +
+        '<td><span class="dt-badge ' + (state === 'Free' ? 'ok' : (state === 'Leased' ? 'warn' : 'err')) + '">' + state + '</span></td>' +
+        '<td>' + (leased && p.lease_price_robux != null ? esc(p.lease_price_robux) + ' R$' : '–') + '</td>' +
+        '<td>' + (leased ? new Date(p.lease_expires_at).toLocaleString() : '–') + '</td>' +
+        '</tr>';
+    }).join('');
+  }
+  var robloxPoolSeedForm = $('admRobloxPoolSeedForm');
+  if (robloxPoolSeedForm) robloxPoolSeedForm.addEventListener('submit', function (e) {
+    e.preventDefault();
+    var count = Math.max(1, Math.min(10, parseInt($('admRobloxPoolSeedCount').value, 10) || 5));
+    var btn = $('admRobloxPoolSeedBtn'), msg = $('admRobloxPoolMsg');
+    btn.disabled = true;
+    if (msg) msg.textContent = 'Creating gamepasses on Roblox…';
+    invokeAdminFn('admin-robux-pool', { action: 'seed', count: count }, 'Could not seed the pool.').then(function (data) {
+      if (msg) msg.textContent = 'Created ' + data.created + ' of ' + count + ' requested pass' + (count === 1 ? '' : 'es') + (data.errors && data.errors.length ? ' - ' + data.errors[0] : '.');
+      logAudit('Seeded ' + data.created + ' Robux pool pass(es)');
+      return refreshRobloxPool();
+    }).catch(function (err) {
+      if (msg) msg.textContent = err.message;
+    }).then(function () {
+      btn.disabled = false;
+    });
+  });
+
   /* ================================================================
      SITE ACCESS PANEL (open / maintenance / locked)
      ================================================================ */

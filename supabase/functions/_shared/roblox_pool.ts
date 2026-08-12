@@ -53,7 +53,7 @@ async function tryLease(admin: any, orderId: string) {
  * fail the checkout rather than silently serve a wrong pass.
  */
 // deno-lint-ignore no-explicit-any
-async function provisionPass(admin: any): Promise<boolean> {
+export async function provisionPass(admin: any): Promise<boolean> {
   const container = await pickContainer(admin);
   if (!container) return false;
 

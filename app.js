@@ -2124,7 +2124,7 @@
       var btn = document.getElementById('accountBtn');
       if (!btn) return;
 
-      function isLoggedIn() { try { return localStorage.getItem('coldd_auth') === 'in'; } catch (e) { return false; } }
+      function isLoggedIn() { try { return localStorage.getItem('coldd_auth') !== 'out'; } catch (e) { return true; } }
 
       var menu = null, overlay = null;
 

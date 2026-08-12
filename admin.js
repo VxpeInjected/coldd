@@ -358,7 +358,12 @@
   }
   function refreshOrders() {
     if (!window.coldSupabase) return Promise.resolve();
-    return window.coldSupabase.from('orders').select('*, order_items(*)').order('created_at', { ascending: false }).limit(20000).then(function (res) {
+    // Excludes 'parcel'/'robux' source rows - synthetic order records the
+    // reverted Roblox group-revenue-sync feature wrote during testing (see
+    // supabase/roblox_group_sync_teardown.sql, which deleted the ones that
+    // had already accumulated). Belt-and-suspenders: keeps this list real
+    // even if that function is ever re-invoked without being re-enabled here.
+    return window.coldSupabase.from('orders').select('*, order_items(*)').not('source', 'in', '("parcel","robux")').order('created_at', { ascending: false }).limit(20000).then(function (res) {
       if (res.error) { console.error('[admin] failed to load orders:', res.error.message); return; }
       var rows = res.data || [];
       var userIds = rows.map(function (o) { return o.user_id; }).filter(function (v, i, arr) { return v && arr.indexOf(v) === i; });
@@ -494,6 +499,18 @@
     }
     if (baseline == null) return null;
     return DISCORD_STATS.memberCount - baseline;
+  }
+
+  var ADBLOX_STATS = null;
+  var ADBLOX_ERROR = null;
+  function refreshAdbloxStats() {
+    return invokeAdminFn('admin-adblox-stats', {}, 'Could not load AdBlox stats.').then(function (data) {
+      ADBLOX_STATS = data; ADBLOX_ERROR = null;
+      if (curPanel === 'marketing') renderMarketing();
+    }).catch(function (err) {
+      ADBLOX_STATS = null; ADBLOX_ERROR = err.message;
+      if (curPanel === 'marketing') renderMarketing();
+    });
   }
 
   // Real data from public.cart_snapshots - a row per checkout-page visit
@@ -1047,6 +1064,25 @@
 
     if ($('admMktChannels')) {
       $('admMktChannels').innerHTML = MKT_CHANNELS.map(channelRow).join('');
+    }
+
+    if ($('admAdbloxStats')) {
+      var adMsg = $('admAdbloxMsg');
+      if (ADBLOX_STATS) {
+        if (adMsg) adMsg.textContent = '';
+        var s = ADBLOX_STATS.sent, f = ADBLOX_STATS.failed, sk = ADBLOX_STATS.skipped, tot = ADBLOX_STATS.totals;
+        $('admAdbloxStats').innerHTML = [
+          statTile('Ads sent today', (s ? s.today : 0).toLocaleString('en-US'), s ? (s.yesterday.toLocaleString('en-US') + ' yesterday') : null, ''),
+          statTile('Ads sent (7d)', (s ? s.last_7d : 0).toLocaleString('en-US'), null, ''),
+          statTile('Ads sent (30d)', (s ? s.last_30d : 0).toLocaleString('en-US'), null, ''),
+          statTile('Ads sent (all-time)', (s ? s.all_time : 0).toLocaleString('en-US'), null, ''),
+          statTile('Failed (30d)', f ? f.last_30d.toLocaleString('en-US') : '—', null, ''),
+          statTile('Active ads', tot ? tot.active_ads : '—', tot ? (tot.active_channels + ' channels · ' + tot.active_accounts + ' accounts') : null, '')
+        ].join('');
+      } else {
+        $('admAdbloxStats').innerHTML = '';
+        if (adMsg) adMsg.textContent = ADBLOX_ERROR || 'Loading…';
+      }
     }
 
     if ($('admMktEmail')) {
@@ -3193,6 +3229,7 @@
   refreshRobloxCookieHealth();
   refreshLiveSessions();
   refreshDiscordStats();
+  refreshAdbloxStats();
   setInterval(refreshLiveSessions, 30000);
   } // end boot()
 })();

@@ -1070,14 +1070,12 @@
       var adMsg = $('admAdbloxMsg');
       if (ADBLOX_STATS) {
         if (adMsg) adMsg.textContent = '';
-        var s = ADBLOX_STATS.sent, f = ADBLOX_STATS.failed, sk = ADBLOX_STATS.skipped, tot = ADBLOX_STATS.totals;
+        var s = ADBLOX_STATS.sent;
         $('admAdbloxStats').innerHTML = [
           statTile('Ads sent today', (s ? s.today : 0).toLocaleString('en-US'), s ? (s.yesterday.toLocaleString('en-US') + ' yesterday') : null, ''),
           statTile('Ads sent (7d)', (s ? s.last_7d : 0).toLocaleString('en-US'), null, ''),
           statTile('Ads sent (30d)', (s ? s.last_30d : 0).toLocaleString('en-US'), null, ''),
-          statTile('Ads sent (all-time)', (s ? s.all_time : 0).toLocaleString('en-US'), null, ''),
-          statTile('Failed (30d)', f ? f.last_30d.toLocaleString('en-US') : '—', null, ''),
-          statTile('Active ads', tot ? tot.active_ads : '—', tot ? (tot.active_channels + ' channels · ' + tot.active_accounts + ' accounts') : null, '')
+          statTile('Ads sent (all-time)', (s ? s.all_time : 0).toLocaleString('en-US'), null, '')
         ].join('');
       } else {
         $('admAdbloxStats').innerHTML = '';

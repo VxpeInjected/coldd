@@ -2155,7 +2155,12 @@ html.js .nr-frame .nr-slide.is-active .nr-cap > :nth-child(3) { animation-delay:
 .pm-note { margin: 9px 0 0; text-align: center; font-size: 12px; color: var(--fg-3); }
 
 /* ==================== Admin dashboard ==================== */
-.adm-body { min-height: 100vh; min-height: 100dvh; }
+/* Flat neutral grey, not the storefront's red banner glow - this is a
+   staff tool, not a landing page, and the backdrop/scrim's red-tinted hero
+   treatment (built for the homepage) reads as an odd, distracting choice
+   on every dashboard table and form here. */
+.adm-body { min-height: 100vh; min-height: 100dvh; background: var(--bg-2); }
+.adm-body .backdrop, .adm-body .scrim { display: none; }
 .adm-gate { position: fixed; inset: 0; z-index: 500; display: flex; align-items: center; justify-content: center; padding: 24px; }
 .adm-gate[hidden] { display: none; }
 .adm-gate-card { max-width: 380px; padding: 40px 32px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 12px; }
@@ -2229,6 +2234,23 @@ html.js .nr-frame .nr-slide.is-active .nr-cap > :nth-child(3) { animation-delay:
   padding: 7px 12px; border-radius: 10px; cursor: pointer; transition: background .15s, color .15s; }
 .adm-range button:hover { color: var(--fg); }
 .adm-range button.active { background: var(--accent); color: #fff; }
+
+/* Segmented tab control - same visual language as .adm-range, generalized.
+   Replaces the old pattern of reusing storefront CTA colors (.btn-primary /
+   .btn-minecraft, a red button next to a green "Minecraft brand" button) as
+   a view switcher for things that have nothing to do with platform choice
+   or checkout urgency - Site Access/Roblox/Staff, Sale Events/Discount
+   Codes, Blog Posts/Tutorials/Releases, All/Released/Unreleased, Open/
+   Maintenance/Locked. .btn-minecraft stays exactly as it was for the one
+   place it's a real brand choice (product edit's Roblox/Minecraft platform
+   picker) - this only replaces its use as a tab. */
+.adm-tabs { display: inline-flex; gap: 4px; padding: 4px; border-radius: 12px;
+  background: var(--bg-3); border: 1px solid var(--hairline); flex-wrap: wrap; }
+.adm-tab { display: inline-flex; align-items: center; gap: 7px; font-family: inherit; font-size: 13px;
+  font-weight: 600; color: var(--fg-2); background: none; border: none;
+  padding: 9px 16px; border-radius: 9px; cursor: pointer; transition: background .15s, color .15s; }
+.adm-tab:hover { color: var(--fg); background: rgba(255,255,255,0.05); }
+.adm-tab.active { background: var(--accent); color: #fff; }
 
 .adm-two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
 .adm-two-col .dash-card { margin-bottom: 0; }

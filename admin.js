@@ -149,7 +149,7 @@
     return window.coldSupabase.from('profiles').select('*').order('created_at', { ascending: false }).limit(20000).then(function (res) {
       if (res.error) { console.error('[admin] failed to load users:', res.error.message); return; }
       USERS = (res.data || []).map(mapProfileRow);
-      if (curPanel === 'users') renderUsers();
+      if (curPanel === 'sitemgmt') renderUsers();
     });
   }
 
@@ -583,7 +583,7 @@
     var entry = { ts: new Date().toISOString(), actor: currentRole().name, action: action };
     AUDIT.unshift(entry);
     if (AUDIT.length > 300) AUDIT.length = 300;
-    if (curPanel === 'audit') renderAudit();
+    if (curPanel === 'sitemgmt') renderAudit();
     window.coldSupabase.from('admin_audit_log').insert({
       actor_id: ADMIN.id, actor_name: entry.actor, action: action
     }).then(function (res) {
@@ -593,7 +593,7 @@
         // looking like a session-only log: the entries are right there on
         // screen, they just evaporate on reload. Say so instead.
         AUDIT_PERSIST_ERROR = res.error.message || 'unknown error';
-        if (curPanel === 'audit') renderAudit();
+        if (curPanel === 'sitemgmt') renderAudit();
       }
     });
   }
@@ -607,14 +607,14 @@
         if (res.error) {
           console.error('[refreshAuditLog] failed:', res.error.message);
           AUDIT_PERSIST_ERROR = res.error.message || 'unknown error';
-          if (curPanel === 'audit') renderAudit();
+          if (curPanel === 'sitemgmt') renderAudit();
           return;
         }
         AUDIT_PERSIST_ERROR = null;
         AUDIT = (res.data || []).map(function (row) {
           return { ts: row.created_at, actor: row.actor_name, action: row.action };
         });
-        if (curPanel === 'audit') renderAudit();
+        if (curPanel === 'sitemgmt') renderAudit();
       });
   }
 
@@ -936,7 +936,7 @@
   /* ================================================================
      NAV / PANEL SWITCHING
      ================================================================ */
-  var PANELS = ['home', 'analytics', 'marketing', 'products', 'product-edit', 'product-update', 'orders', 'order-detail', 'reviews', 'users', 'sales', 'sitemgmt', 'content', 'audit'];
+  var PANELS = ['home', 'analytics', 'marketing', 'products', 'product-edit', 'product-update', 'orders', 'order-detail', 'reviews', 'sales', 'sitemgmt', 'content'];
   var curPanel = 'home';
   function showPanel(name) {
     if (PANELS.indexOf(name) < 0) name = 'home';
@@ -957,11 +957,12 @@
     else if (name === 'orders') renderOrders();
     else if (name === 'order-detail') renderOrderDetail();
     else if (name === 'reviews') renderReviews();
-    else if (name === 'users') renderUsers();
     else if (name === 'sales') { renderEvents(); renderCoupons(); }
-    else if (name === 'sitemgmt') { refreshSiteStatus(); renderRobloxContainers(); refreshRobloxCookieHealth(); refreshRobloxPool(); renderStaff(); }
+    else if (name === 'sitemgmt') {
+      refreshSiteStatus(); renderRobloxContainers(); refreshRobloxCookieHealth(); refreshRobloxPool();
+      renderStaff(); renderUsers(); renderAudit(); refreshAuditLog();
+    }
     else if (name === 'content') { renderPosts(); renderTutorials(); renderReleases(); }
-    else if (name === 'audit') { renderAudit(); refreshAuditLog(); }
   }
   function renderAll() { renderPanel(curPanel); }
 
@@ -2648,6 +2649,8 @@
     $('admSiteMgmtAccessView').hidden = view !== 'access';
     $('admSiteMgmtRobloxView').hidden = view !== 'roblox';
     $('admSiteMgmtStaffView').hidden = view !== 'staff';
+    $('admSiteMgmtUsersView').hidden = view !== 'users';
+    $('admSiteMgmtAuditView').hidden = view !== 'audit';
   });
 
   /* ---- Sale Events ---- */

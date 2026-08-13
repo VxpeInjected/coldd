@@ -460,6 +460,7 @@
     .review-by { display: flex; align-items: center; gap: 12px; }
     .review-by .ra { flex: 0 0 auto; width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center;
       font-weight: 700; font-size: 14px; color: var(--fg); background: linear-gradient(160deg, var(--bg-3), var(--bg-2)); border: 1px solid var(--hairline); }
+    .review-by img.ra { object-fit: cover; }
     .review-by .rn { display: flex; flex-direction: column; font-size: 14px; font-weight: 600; }
     .review-by .rn small { font-weight: 500; font-size: 12px; color: var(--fg-3); }
     @media (max-width: 860px) {

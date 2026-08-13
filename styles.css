@@ -1840,7 +1840,7 @@ button.dt-badge:disabled { cursor: default; opacity: 0.6; }
    only thing telling the buyer the page is still working rather than stuck. */
 .ty-ring { position: absolute; inset: -1px; border-radius: var(--r-pill);
   border: 2px solid transparent; border-top-color: var(--accent);
-  animation: tyspin .9s linear infinite; }
+  animation: tyspin 1.6s linear infinite; }
 @keyframes tyspin { to { transform: rotate(360deg); } }
 .ty-mark:not([data-state="pending"]) .ty-ring { display: none; }
 

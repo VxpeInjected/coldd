@@ -2159,7 +2159,7 @@ html.js .nr-frame .nr-slide.is-active .nr-cap > :nth-child(3) { animation-delay:
    staff tool, not a landing page, and the backdrop/scrim's red-tinted hero
    treatment (built for the homepage) reads as an odd, distracting choice
    on every dashboard table and form here. */
-.adm-body { min-height: 100vh; min-height: 100dvh; background: var(--bg-2); }
+.adm-body { min-height: 100vh; min-height: 100dvh; background: var(--bg); }
 .adm-body .backdrop, .adm-body .scrim { display: none; }
 .adm-gate { position: fixed; inset: 0; z-index: 500; display: flex; align-items: center; justify-content: center; padding: 24px; }
 .adm-gate[hidden] { display: none; }
@@ -2299,7 +2299,11 @@ a.adm-sub[href] { color: var(--fg-1); cursor: pointer; text-decoration: underlin
 .adm-empty { color: var(--fg-3); font-size: 13px; padding: 18px 0; text-align: center; }
 .adm-rank { flex: 0 0 auto; width: 26px; color: var(--fg-3); font-weight: 700; font-size: 13px; }
 
-.adm-toolbar { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+/* align-items defaults to stretch on a flex row - .adm-tabs (a padded pill
+   wrapping its own flex children) and plain .adm-input/.adm-dd-btn/.btn
+   siblings don't share a height without it, which is what made the filter
+   tabs look vertically misaligned next to the search box. */
+.adm-toolbar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 14px; }
 .adm-input { font-family: inherit; font-size: 13px; color: var(--fg); background: var(--bg-3); border: 1px solid var(--hairline);
   border-radius: 10px; padding: 9px 13px; min-width: 200px; transition: border-color .15s; }
 .adm-input-sm { min-width: 120px; }

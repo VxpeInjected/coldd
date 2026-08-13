@@ -16,7 +16,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
 
-  <link rel="stylesheet" href="/styles.css?v=20260813e" />
+  <link rel="stylesheet" href="/styles.css?v=20260813f" />
 </head>
 <body>
   <div class="backdrop"></div>
@@ -356,9 +356,27 @@
     </div>
   </div>
 
+  <div class="pay-overlay" id="resellerOverlay" hidden>
+    <div class="pay-modal glass" role="dialog" aria-modal="true" aria-labelledby="resellerTitle">
+      <button class="pm-x" id="resellerClose" type="button" aria-label="Close"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+      <h3 class="pay-title" id="resellerTitle">Quick reseller setup</h3>
+      <p class="pay-sub">You just picked up a resell licence - tell us where you'll be selling so we can keep you in the loop.</p>
+      <form id="resellerForm">
+        <div class="auth-field" style="margin-bottom:14px;"><label for="resellerEmail">Contact email</label>
+          <input id="resellerEmail" type="email" required placeholder="you@example.com" /></div>
+        <div class="auth-field" style="margin-bottom:14px;"><label for="resellerWhere">Where are you selling these?</label>
+          <input id="resellerWhere" type="text" required placeholder="e.g. your Discord server, a storefront URL" /></div>
+        <div class="auth-field" style="margin-bottom:16px;"><label for="resellerNotes">Anything else we should know? (optional)</label>
+          <textarea id="resellerNotes" placeholder="Storefront name, expected volume, anything relevant"></textarea></div>
+        <button class="btn btn-primary" type="submit" id="resellerSubmit" style="width:100%;">Submit</button>
+        <p class="pay-sub" id="resellerMsg" style="margin:10px 0 0;min-height:1em;"></p>
+      </form>
+    </div>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.2/dist/umd/supabase.min.js" integrity="sha384-B2duOBIryCXbX4eDE4BdJwtNkQMRQde3o6IsjfPW28E6aH1CYE96hHeZRG3zY56O" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script src="/supabase-init.js?v=20260812a"></script>
   <script src="/site-gate.js?v=20260729b"></script>
-  <script src="/catalog.js?v=20260810a" data-then="/app.js?v=20260813c"></script>
+  <script src="/catalog.js?v=20260810a" data-then="/app.js?v=20260813d"></script>
 </body>
 </html>

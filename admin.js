@@ -936,7 +936,7 @@
   /* ================================================================
      NAV / PANEL SWITCHING
      ================================================================ */
-  var PANELS = ['home', 'analytics', 'marketing', 'products', 'unreleased', 'product-edit', 'product-update', 'orders', 'order-detail', 'reviews', 'sales', 'sitemgmt', 'content'];
+  var PANELS = ['home', 'analytics', 'marketing', 'products', 'unreleased', 'product-edit', 'product-update', 'orders', 'order-detail', 'resellers', 'reseller-edit', 'reviews', 'sales', 'sitemgmt', 'content'];
   var curPanel = 'home';
   function showPanel(name) {
     if (PANELS.indexOf(name) < 0) name = 'home';
@@ -957,6 +957,7 @@
     else if (name === 'unreleased') renderUnreleasedFiles();
     else if (name === 'orders') renderOrders();
     else if (name === 'order-detail') renderOrderDetail();
+    else if (name === 'resellers') renderResellers();
     else if (name === 'reviews') renderReviews();
     else if (name === 'sales') { renderEvents(); renderCoupons(); }
     else if (name === 'sitemgmt') {
@@ -2442,6 +2443,114 @@
   }
 
   /* ================================================================
+     RESELLERS PANEL
+     ================================================================ */
+  var RESELLERS = [];
+  function refreshResellers() {
+    return invokeAdminFn('admin-resellers', { action: 'list' }).then(function (d) {
+      RESELLERS = (d.resellers || []).map(function (r) {
+        return {
+          id: r.id,
+          email: r.email,
+          displayName: r.display_name,
+          accountName: r.profiles ? (r.profiles.username || r.profiles.email) : null,
+          productTitle: r.products ? r.products.title : null,
+          productId: r.product_id,
+          sellingWhere: r.selling_where,
+          sellingNotes: r.selling_notes,
+          status: r.status,
+          source: r.source,
+          createdAt: r.created_at
+        };
+      });
+      if (curPanel === 'resellers') renderResellers();
+    }).catch(function (err) { console.error('[admin] failed to load resellers:', err.message); });
+  }
+  function renderResellers() {
+    var body = $('admResellersBody'); if (!body) return;
+    var q = (($('admResellerSearch') || {}).value || '').trim().toLowerCase();
+    var rows = RESELLERS.filter(function (r) {
+      if (!q) return true;
+      return [r.email, r.displayName, r.accountName, r.productTitle].some(function (v) { return v && v.toLowerCase().indexOf(q) >= 0; });
+    });
+    body.innerHTML = rows.map(function (r) {
+      return '<tr data-id="' + esc(r.id) + '">' +
+        '<td>' + esc(r.displayName || r.accountName || r.email) + '<div class="adm-sub">' + esc(r.email) + '</div></td>' +
+        '<td>' + esc(r.productTitle || '—') + '</td>' +
+        '<td>' + esc(r.sellingWhere) + '</td>' +
+        '<td><span class="adm-cat-tag">' + (r.source === 'manual' ? 'Manual' : 'Purchase') + '</span></td>' +
+        '<td>' + statusBadge(r.status === 'active' ? 'completed' : 'refunded') + '</td>' +
+        '<td>' + fmtDate(new Date(r.createdAt)) + '</td>' +
+        '<td class="adm-row-actions"><button class="adm-icon-btn adm-reseller-edit" type="button" title="Edit" aria-label="Edit">' + ADM_ICON_KEBAB + '</button></td>' +
+        '</tr>';
+    }).join('') || '<tr><td colspan="7" class="adm-empty">No resellers yet.</td></tr>';
+  }
+  var resellerSearchEl = $('admResellerSearch');
+  if (resellerSearchEl) resellerSearchEl.addEventListener('input', renderResellers);
+
+  var resellerProductDropdown = makeDropdown($('admResellerProductDD'), { valueInput: $('admResellerProductId'), placeholder: 'None' });
+  var resellerStatusDropdown = makeDropdown($('admResellerStatusDD'), { valueInput: $('admResellerStatus') });
+  resellerStatusDropdown.setOptions([{ value: 'active', label: 'Active' }, { value: 'inactive', label: 'Inactive' }], 'active');
+
+  function openResellerEditor(reseller) {
+    resellerProductDropdown.setOptions([{ value: '', label: 'None' }].concat(
+      allProducts().filter(function (p) { return p.resell; }).map(function (p) { return { value: p.id, label: p.title }; })
+    ), (reseller && reseller.productId) || '');
+    resellerStatusDropdown.setValue((reseller && reseller.status) || 'active', true);
+    $('admResellerId').value = (reseller && reseller.id) || '';
+    $('admResellerEmail').value = (reseller && reseller.email) || '';
+    $('admResellerName').value = (reseller && reseller.displayName) || '';
+    $('admResellerWhere').value = (reseller && reseller.sellingWhere) || '';
+    $('admResellerNotes').value = (reseller && reseller.sellingNotes) || '';
+    $('admResellerEditHeading').textContent = reseller ? 'Edit reseller' : 'Add reseller';
+    $('admResellerMsg').textContent = '';
+    showPanel('reseller-edit');
+  }
+  var openResellerCreateBtn = $('admOpenResellerCreate');
+  if (openResellerCreateBtn) openResellerCreateBtn.addEventListener('click', function () { openResellerEditor(null); });
+
+  var resellersBody = $('admResellersBody');
+  if (resellersBody) resellersBody.addEventListener('click', function (e) {
+    if (!e.target.closest('.adm-reseller-edit')) return;
+    var tr = e.target.closest('tr'); if (!tr) return;
+    var r = RESELLERS.filter(function (x) { return x.id === tr.getAttribute('data-id'); })[0];
+    if (r) openResellerEditor(r);
+  });
+
+  var resellerForm = $('admResellerForm');
+  if (resellerForm) resellerForm.addEventListener('submit', function (e) {
+    e.preventDefault();
+    var id = $('admResellerId').value;
+    var saveBtn = $('admResellerSaveBtn');
+    var msgEl = $('admResellerMsg');
+    var label = saveBtn.querySelector('.btn-label'), spinner = saveBtn.querySelector('.btn-spinner');
+    saveBtn.disabled = true; if (label) label.hidden = true; if (spinner) spinner.hidden = false;
+
+    var payload = {
+      email: $('admResellerEmail').value.trim(),
+      displayName: $('admResellerName').value.trim(),
+      productId: $('admResellerProductId').value || null,
+      sellingWhere: $('admResellerWhere').value.trim(),
+      sellingNotes: $('admResellerNotes').value.trim()
+    };
+
+    var req = id
+      ? invokeAdminFn('admin-resellers', { action: 'update', id: id, patch: payload }, 'Could not update reseller.')
+      : invokeAdminFn('admin-resellers', { action: 'create', email: payload.email, displayName: payload.displayName, productId: payload.productId, sellingWhere: payload.sellingWhere, sellingNotes: payload.sellingNotes }, 'Could not add reseller.');
+
+    req.then(function () {
+      logAudit((id ? 'Updated' : 'Added') + ' reseller ' + payload.email);
+      return refreshResellers();
+    }).then(function () {
+      showPanel('resellers');
+    }).catch(function (err) {
+      msgEl.textContent = err.message || 'Something went wrong.';
+    }).then(function () {
+      saveBtn.disabled = false; if (label) label.hidden = false; if (spinner) spinner.hidden = true;
+    });
+  });
+
+  /* ================================================================
      REVIEWS PANEL
      ================================================================ */
   var reviewFilterDropdown = makeDropdown($('admReviewFilterDD'), {
@@ -3651,6 +3760,7 @@
   refreshEmailStats();
   refreshEmailCampaigns();
   loadUnreleasedFiles();
+  refreshResellers();
   refreshEmailConfigStatus();
   refreshAutomations();
   var admAdbloxLoadMoreBtn = $('admAdbloxLoadMore');

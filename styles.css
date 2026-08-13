@@ -1547,9 +1547,12 @@ body.auth-page { min-height: 100vh; min-height: 100dvh; }
      floor explicitly and the auth pages were the last place still breaking it. */
   background: rgba(255,255,255,0.04); color: var(--fg); font-family: inherit; font-size: 16px; outline: none;
   transition: border-color .2s, background .2s; }
-.auth-field input::placeholder { color: var(--fg-3); }
-.auth-field input:focus { border-color: rgba(255,77,68,0.5); background: rgba(255,255,255,0.06); }
+.auth-field input::placeholder, .auth-field textarea::placeholder { color: var(--fg-3); }
+.auth-field input:focus, .auth-field textarea:focus { border-color: rgba(255,77,68,0.5); background: rgba(255,255,255,0.06); }
 .auth-field.invalid input { border-color: var(--accent); }
+.auth-field textarea { width: 100%; min-height: 90px; padding: 12px 14px; border-radius: 16px; border: 1px solid var(--hairline);
+  background: rgba(255,255,255,0.04); color: var(--fg); font-family: inherit; font-size: 16px; outline: none; resize: vertical;
+  transition: border-color .2s, background .2s; box-sizing: border-box; }
 .auth-pw-toggle { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: transparent; border: none;
   color: var(--fg-3); cursor: pointer; padding: 7px; border-radius: 10px; display: inline-flex; }
 .auth-pw-toggle:hover { color: var(--fg); }

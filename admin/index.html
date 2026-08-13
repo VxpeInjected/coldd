@@ -16,7 +16,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
 
-  <link rel="stylesheet" href="/styles.css?v=20260813e" />
+  <link rel="stylesheet" href="/styles.css?v=20260813f" />
 </head>
 <body class="adm-body">
   <div class="backdrop"></div>
@@ -123,6 +123,7 @@
             <a href="#" data-panel="marketing"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11v2a1 1 0 0 0 1 1h3l4 4V6L7 10H4a1 1 0 0 0-1 1Z"/><path d="M16 9a4 4 0 0 1 0 6"/><path d="M19 6.5a8 8 0 0 1 0 11"/></svg><span>Marketing</span></a>
             <a href="#" data-panel="products"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="M3.3 7 12 12l8.7-5M12 22V12"/></svg><span>Products</span></a>
             <a href="#" data-panel="orders"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg><span>Orders</span></a>
+            <a href="#" data-panel="resellers"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span>Resellers</span></a>
             <a href="#" data-panel="reviews"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m12 2 3 6 6.5 1-4.7 4.6 1.1 6.4L12 17l-5.9 3 1.1-6.4L2.5 9 9 8z"/></svg><span>Reviews</span></a>
             <a href="#" data-panel="sales"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5H4a1 1 0 0 0-1 1v4a2.5 2.5 0 0 1 0 5v4a1 1 0 0 0 1 1h5"/><path d="M15 19h5a1 1 0 0 0 1-1v-4a2.5 2.5 0 0 1 0-5V5a1 1 0 0 0-1-1h-5"/><path d="M9 5v14M9 8h.01M9 12h.01M9 16h.01"/></svg><span>Sales &amp; Discounts</span></a>
             <a href="#" data-panel="content"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4Z"/></svg><span>Blog &amp; Tutorials</span></a>
@@ -598,6 +599,63 @@
             <div id="admOrderDetailBody"></div>
           </section>
 
+          <section class="dash-panel" id="adm-panel-resellers" hidden>
+            <div class="dash-head"><h1>Resellers</h1><p>Everyone with an active resell licence, and where they sell.</p></div>
+            <div class="adm-toolbar">
+              <input type="text" id="admResellerSearch" class="adm-input" placeholder="Search by email, name, or product…" />
+              <button class="btn btn-primary adm-btn-sm" type="button" id="admOpenResellerCreate">+ Add reseller</button>
+            </div>
+            <div class="dash-card glass dash-tablewrap">
+              <table class="dash-table">
+                <thead><tr><th>Reseller</th><th>Product</th><th>Selling where</th><th>Source</th><th>Status</th><th>Since</th><th></th></tr></thead>
+                <tbody id="admResellersBody"></tbody>
+              </table>
+            </div>
+          </section>
+
+          <section class="dash-panel" id="adm-panel-reseller-edit" hidden>
+            <div class="dash-head">
+              <a href="#" class="dt-link lnk-back" data-panel="resellers">Back to Resellers</a>
+              <h1 id="admResellerEditHeading">Add reseller</h1>
+              <p>Onboard an existing reseller, or edit one's details.</p>
+            </div>
+            <form id="admResellerForm">
+              <input type="hidden" id="admResellerId" />
+              <div class="dash-card glass">
+                <div class="adm-edit-grid">
+                  <label class="adm-field"><span>Email</span><input type="email" id="admResellerEmail" class="adm-input" required /></label>
+                  <label class="adm-field"><span>Display name (optional)</span><input type="text" id="admResellerName" class="adm-input" /></label>
+                  <label class="adm-field"><span>Product</span>
+                    <div class="adm-dd" id="admResellerProductDD">
+                      <button type="button" class="adm-dd-btn" aria-haspopup="listbox" aria-expanded="false">
+                        <span class="adm-dd-val">None</span>
+                        <svg class="adm-dd-chev" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                      </button>
+                      <div class="adm-dd-menu" role="listbox" aria-label="Product" hidden></div>
+                    </div>
+                    <input type="hidden" id="admResellerProductId" />
+                  </label>
+                  <label class="adm-field"><span>Status</span>
+                    <div class="adm-dd" id="admResellerStatusDD">
+                      <button type="button" class="adm-dd-btn" aria-haspopup="listbox" aria-expanded="false">
+                        <span class="adm-dd-val">Active</span>
+                        <svg class="adm-dd-chev" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                      </button>
+                      <div class="adm-dd-menu" role="listbox" aria-label="Status" hidden></div>
+                    </div>
+                    <input type="hidden" id="admResellerStatus" value="active" />
+                  </label>
+                  <label class="adm-field adm-field-wide"><span>Where are they selling?</span><input type="text" id="admResellerWhere" class="adm-input" required /></label>
+                  <label class="adm-field adm-field-wide"><span>Notes</span><textarea id="admResellerNotes" class="adm-input adm-textarea" rows="3"></textarea></label>
+                </div>
+                <div class="adm-edit-actions">
+                  <button class="btn btn-primary" type="submit" id="admResellerSaveBtn"><span class="btn-label">Save</span><span class="btn-spinner" hidden></span></button>
+                </div>
+                <div class="adm-edit-msg" id="admResellerMsg"></div>
+              </div>
+            </form>
+          </section>
+
           <section class="dash-panel" id="adm-panel-reviews" hidden>
             <div class="dash-head"><h1>Review moderation</h1><p>Approve or hide product reviews before they go public.</p></div>
             <div class="adm-toolbar">
@@ -987,6 +1045,6 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.2/dist/umd/supabase.min.js" integrity="sha384-B2duOBIryCXbX4eDE4BdJwtNkQMRQde3o6IsjfPW28E6aH1CYE96hHeZRG3zY56O" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script src="/supabase-init.js?v=20260812a"></script>
   <script src="/site-gate.js?v=20260729b"></script>
-  <script src="/catalog.js?v=20260810a" data-then="/app.js?v=20260813c,/blog.js?v=20260812a,/reviews.js?v=20260729a,/admin.js?v=20260813f"></script>
+  <script src="/catalog.js?v=20260810a" data-then="/app.js?v=20260813d,/blog.js?v=20260812a,/reviews.js?v=20260729a,/admin.js?v=20260813g"></script>
 </body>
 </html>

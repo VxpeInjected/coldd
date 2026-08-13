@@ -3696,6 +3696,7 @@
               if (titleEl) titleEl.textContent = 'Payment confirmed!';
               if (subEl) subEl.textContent = 'Your files are ready below.';
               renderItems(data.items || []);
+              maybeShowResellerPopup(data.items || []);
             } else if (triesLeft > 0) {
               // Crypto sits in "pending" for real minutes while the network
               // confirms, so say that rather than leaving a blank wait.
@@ -3712,6 +3713,51 @@
           .catch(function () {
             if (triesLeft > 0) setTimeout(function () { poll(triesLeft - 1); }, 1500);
           });
+      }
+
+      var resellerOverlay = document.getElementById('resellerOverlay');
+      var resellerForm = document.getElementById('resellerForm');
+      function resellerShownKey() { return 'coldd_reseller_popup_' + (sessionId || robuxOrderIdParam); }
+      function maybeShowResellerPopup(items) {
+        if (!resellerOverlay || !resellerForm) return;
+        var hasResell = items.some(function (it) { return it.licence === 'resell'; });
+        if (!hasResell) return;
+        try { if (localStorage.getItem(resellerShownKey())) return; } catch (e) {}
+        resellerOverlay.hidden = false;
+      }
+      function dismissResellerPopup() {
+        resellerOverlay.hidden = true;
+        try { localStorage.setItem(resellerShownKey(), '1'); } catch (e) {}
+      }
+      if (resellerOverlay) {
+        var resellerCloseBtn = document.getElementById('resellerClose');
+        if (resellerCloseBtn) resellerCloseBtn.addEventListener('click', dismissResellerPopup);
+        if (resellerForm) resellerForm.addEventListener('submit', function (e) {
+          e.preventDefault();
+          var submitBtn = document.getElementById('resellerSubmit');
+          var msgEl = document.getElementById('resellerMsg');
+          var payload = {
+            email: document.getElementById('resellerEmail').value.trim(),
+            sellingWhere: document.getElementById('resellerWhere').value.trim(),
+            sellingNotes: document.getElementById('resellerNotes').value.trim() || null
+          };
+          if (sessionId) payload.sessionId = sessionId; else payload.orderId = robuxOrderIdParam;
+          submitBtn.disabled = true; submitBtn.textContent = 'Submitting…';
+          window.coldSupabase.functions.invoke('submit-reseller-info', { body: payload })
+            .then(function (res) {
+              var data = res && res.data;
+              if (!data || !data.ok) {
+                submitBtn.disabled = false; submitBtn.textContent = 'Submit';
+                if (msgEl) msgEl.textContent = (data && data.error) || 'Could not save, please try again.';
+                return;
+              }
+              dismissResellerPopup();
+            })
+            .catch(function () {
+              submitBtn.disabled = false; submitBtn.textContent = 'Submit';
+              if (msgEl) msgEl.textContent = 'Could not save, please try again.';
+            });
+        });
       }
 
       // Capture first, then poll. If the capture call itself fails we still

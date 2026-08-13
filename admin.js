@@ -543,6 +543,14 @@
       if (curPanel === 'marketing') renderMarketing();
     });
   }
+  var adbloxRefreshBtn = $('admAdbloxRefresh');
+  if (adbloxRefreshBtn) adbloxRefreshBtn.addEventListener('click', function () {
+    var label = adbloxRefreshBtn.querySelector('.btn-label'), spinner = adbloxRefreshBtn.querySelector('.btn-spinner');
+    adbloxRefreshBtn.disabled = true; if (label) label.hidden = true; if (spinner) spinner.hidden = false;
+    refreshAdbloxStats().then(function () {
+      adbloxRefreshBtn.disabled = false; if (label) label.hidden = false; if (spinner) spinner.hidden = true;
+    });
+  });
   // Appends the next page of the audit log rather than replacing it, so
   // "Load more" grows the table instead of resetting scroll position.
   function loadMoreAdbloxLogs() {
@@ -1429,27 +1437,17 @@
     });
     return withMeta.map(function (m) { return m.p; });
   }
-  var PROD_STATUS_FILTER = 'all';
-  var prodStatusFilterEl = $('admProdStatusFilter');
-  if (prodStatusFilterEl) prodStatusFilterEl.addEventListener('click', function (e) {
-    var btn = e.target.closest('.adm-prod-status-btn'); if (!btn) return;
-    PROD_STATUS_FILTER = btn.getAttribute('data-status');
-    prodStatusFilterEl.querySelectorAll('.adm-prod-status-btn').forEach(function (b) { b.classList.toggle('active', b === btn); });
-    renderProducts();
-  });
   function renderProducts() {
     var q = ($('admProdSearch') || {}).value || '';
     q = q.trim().toLowerCase();
     var rows = sortProducts(allProducts().filter(function (p) {
-      if (!(!q || p.title.toLowerCase().indexOf(q) >= 0)) return false;
-      if (PROD_STATUS_FILTER === 'released') return p.visible;
-      return true;
+      return !q || p.title.toLowerCase().indexOf(q) >= 0;
     }));
     $('admProdBody').innerHTML = rows.map(function (p) {
       var rating = (p.rating || 0).toFixed(1);
       return '<tr data-id="' + esc(p.id) + '">' +
         '<td><span class="dr-thumb" style="background-image:url(\'' + p.image + '\');width:52px;height:38px;display:inline-block;vertical-align:middle;border-radius:7px;"></span></td>' +
-        '<td><a class="dt-link" href="/product?id=' + esc(p.id) + '" target="_blank" rel="noopener">' + esc(p.title) + '</a></td>' +
+        '<td><a class="adm-prod-name" href="/product?id=' + esc(p.id) + '" target="_blank" rel="noopener">' + esc(p.title) + '</a></td>' +
         '<td><span class="adm-cat-tag">' + esc(p.cat || 'Uncategorized') + '</span></td>' +
         '<td>' + (p.visible
           ? '<button type="button" class="dt-badge ok adm-prod-toggle"' + (can('admin') ? '' : ' disabled') + '>Released</button>'
@@ -1832,7 +1830,7 @@
     return invokeAdminFn('admin-unreleased-files', { action: 'list' }).then(function (d) {
       UNRELEASED_FILES = d.files || [];
       var badge = $('admUnreleasedCount');
-      if (badge) badge.textContent = UNRELEASED_FILES.length ? '(' + UNRELEASED_FILES.length + ')' : '';
+      if (badge) { badge.hidden = !UNRELEASED_FILES.length; badge.textContent = UNRELEASED_FILES.length ? '(' + UNRELEASED_FILES.length + ')' : ''; }
       renderAll();
     }).catch(function (err) { console.error('[admin] failed to load unreleased files:', err.message); });
   }

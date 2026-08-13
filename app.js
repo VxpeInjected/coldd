@@ -2560,6 +2560,7 @@
           .catch(function (err) { labelEl.textContent = (err && err.message) || 'Unavailable'; });
       }
       var DOWNLOAD_ICON_SVG = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>';
+      var RESELL_ICON_SVG = '<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m17 2 4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="m7 22-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>';
       function downloadBtn(item, cls) {
         var btn = document.createElement('button');
         btn.type = 'button'; btn.className = cls;
@@ -2579,13 +2580,12 @@
         }
         else owned.forEach(function (item) {
           var img = item.products && item.products.image ? window.imgUrl(item.products.image) : '/banner.jpg';
+          var isResell = item.licence === 'resell';
           var card = document.createElement('div'); card.className = 'dash-prod';
-          card.innerHTML = '<div class="dp-thumb" style="background-image:url(\'' + img + '\')"></div>' +
-            '<div class="dp-body"><div class="dp-name"></div><span class="dp-lic"></span></div>';
+          card.innerHTML = '<div class="dp-thumb" style="background-image:url(\'' + img + '\')">' +
+            (isResell ? '<span class="dp-lic-badge" aria-label="Resell licence">' + RESELL_ICON_SVG + '<span aria-hidden="true">Resell</span></span>' : '<span class="sr-only">Standard licence</span>') +
+            '</div><div class="dp-body"><div class="dp-name"></div></div>';
           card.querySelector('.dp-name').textContent = item.title;
-          var licEl = card.querySelector('.dp-lic');
-          licEl.textContent = item.licence === 'resell' ? 'Resell licence' : 'Standard licence';
-          licEl.classList.toggle('resell', item.licence === 'resell');
           card.querySelector('.dp-body').appendChild(downloadBtn(item, 'btn btn-tinted dp-btn'));
           grid.appendChild(card);
         });

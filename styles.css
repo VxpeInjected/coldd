@@ -1693,15 +1693,19 @@ button.dt-badge:disabled { cursor: default; opacity: 0.6; }
 @media (hover: hover) and (pointer: fine) {
   .dash-prod:hover { transform: translateY(-2px); border-color: var(--hairline-strong); box-shadow: var(--e-3); }
 }
-.dp-thumb { width: 100%; aspect-ratio: 16 / 9; flex: none; background: #0f1014 center / cover no-repeat; }
+.dp-thumb { width: 100%; aspect-ratio: 16 / 9; flex: none; position: relative; background: #0f1014 center / cover no-repeat; }
+/* Standard licence is the default, expected state - it gets no badge at
+   all. Resell is the exception worth flagging, so it earns the one
+   corner-ribbon treatment, matching .p-off/.p-owned-badge's exact idiom
+   (solid chip, own drop shadow, top corner) rather than inventing a new
+   inline-pill vocabulary that has to fight the button below it for
+   attention. A generic rounded tag under every title was the tell. */
+.dp-lic-badge { position: absolute; top: 10px; right: 10px; z-index: 1; display: inline-flex; align-items: center; gap: 4px;
+  font-size: 12px; font-weight: 800; letter-spacing: 0.02em; color: #fff; padding: 5px 9px; border-radius: 10px;
+  background: #3568c4; box-shadow: 0 6px 16px -6px var(--ink-75); }
+.dp-lic-badge svg { width: 12px; height: 12px; flex: 0 0 auto; }
 .dp-body { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 12px; padding: 16px; }
 .dp-name { font-size: 15px; font-weight: 600; letter-spacing: -0.01em; line-height: 1.35; }
-/* Neutral tag, matching .adm-cat-tag's idiom - a status/type marker, not a
-   fourth ember accent competing with the button below it. Resell steps to
-   --info rather than the brand red: it's a distinction, not a call to act. */
-.dp-lic { display: inline-flex; align-items: center; font-size: 12px; font-weight: 600; padding: 4px 10px;
-  border-radius: var(--r-pill); color: var(--fg-2); background: rgba(255,255,255,0.06); border: 1px solid var(--hairline); }
-.dp-lic.resell { color: var(--info); background: var(--info-tint); border-color: rgba(70,140,255,0.28); }
 .dp-btn { margin-top: auto; width: 100%; min-height: 40px; padding: 9px 16px; font-size: 13px;
   display: inline-flex; align-items: center; justify-content: center; gap: 7px; }
 .dp-btn svg { flex: 0 0 auto; }
@@ -1799,7 +1803,7 @@ button.dt-badge:disabled { cursor: default; opacity: 0.6; }
 .cb-logo { height: 30px; width: auto; display: block; opacity: 0.92; }
 /* Ember, matching every other loading state on the site. */
 .cb-spin { width: 26px; height: 26px; border: 2px solid var(--hairline);
-  border-top-color: var(--accent); border-radius: var(--r-pill); animation: cbspin .8s linear infinite; }
+  border-top-color: var(--accent); border-radius: var(--r-pill); animation: cbspin 1.6s linear infinite; }
 @keyframes cbspin { to { transform: rotate(360deg); } }
 .cb-card p { margin: 0; font-size: 14.5px; line-height: 1.5; color: var(--fg-2); max-width: 34ch; }
 /* No reduced-motion guard here, matching every other loading spinner on the
@@ -2361,6 +2365,10 @@ a.adm-sub[href] { color: var(--fg-1); cursor: pointer; text-decoration: underlin
 .adm-cat-tag { display: inline-block; font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 999px;
   color: var(--info); background: var(--info-tint); border: 1px solid rgba(70,140,255,0.28); white-space: nowrap; }
 .adm-star { color: var(--warn); margin-left: 2px; font-size: 12px; }
+/* Row title link - plain foreground text, not the shared .dt-link's ember.
+   Ember is for primary actions/back-nav, not every row title in a table. */
+.adm-prod-name { color: var(--fg); text-decoration: none; font-weight: 600; }
+.adm-prod-name:hover { color: var(--fg); text-decoration: underline; text-underline-offset: 2px; }
 
 .adm-edit-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 .adm-field { display: flex; flex-direction: column; gap: 7px; font-size: 13px; color: var(--fg-2); }

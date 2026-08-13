@@ -16,7 +16,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
 
-  <link rel="stylesheet" href="/styles.css?v=20260813i" />
+  <link rel="stylesheet" href="/styles.css?v=20260813j" />
 </head>
 <body class="adm-body">
   <div class="backdrop"></div>
@@ -221,7 +221,7 @@
             </div>
 
             <div class="dash-card glass">
-              <div class="dash-card-head"><div><h2>Advertisements</h2><span class="adm-sub">Discord ad delivery via AdBlox.</span></div><a class="btn btn-ghost adm-btn-sm" href="https://adblox.xyz/dashboard/ads" target="_blank" rel="noopener">Edit Advertisements</a></div>
+              <div class="dash-card-head"><div><h2>Advertisements</h2><span class="adm-sub">Discord ad delivery via AdBlox.</span></div><div style="display:flex;gap:8px;"><button class="btn btn-ghost adm-btn-sm" id="admAdbloxRefresh" type="button"><span class="btn-label">Refresh</span><span class="btn-spinner" hidden></span></button><a class="btn btn-ghost adm-btn-sm" href="https://adblox.xyz/dashboard/ads" target="_blank" rel="noopener">Edit Advertisements</a></div></div>
               <div class="dash-stats" id="admAdbloxStats"></div>
               <div class="adm-edit-msg" id="admAdbloxMsg"></div>
 
@@ -301,10 +301,6 @@
             <div class="dash-head"><h1>Product management</h1><p>Edit pricing and visibility, or add admin-only listings.</p></div>
             <div class="adm-toolbar">
               <input type="text" id="admProdSearch" class="adm-input" placeholder="Search by product name…" />
-              <div class="adm-tabs" id="admProdStatusFilter">
-                <button type="button" class="adm-tab adm-prod-status-btn active" data-status="all">All</button>
-                <button type="button" class="adm-tab adm-prod-status-btn" data-status="released">Released</button>
-              </div>
               <div class="adm-dd adm-dd-inline" id="admProdSortDD">
                 <button type="button" class="adm-dd-btn" aria-haspopup="listbox" aria-expanded="false">
                   <span class="adm-dd-val"></span>
@@ -312,7 +308,8 @@
                 </button>
                 <div class="adm-dd-menu" role="listbox" aria-label="Sort products" hidden></div>
               </div>
-              <button class="btn btn-ghost adm-btn-sm" type="button" id="admOpenUnreleasedPanel">Unreleased files <span id="admUnreleasedCount" class="adm-sub"></span></button>
+              <span style="flex:1;"></span>
+              <button class="btn btn-ghost adm-btn-sm" type="button" id="admOpenUnreleasedPanel"><span>Unreleased files</span><span id="admUnreleasedCount" class="adm-sub" hidden></span></button>
               <button class="btn btn-ghost adm-btn-sm" type="button" id="admOpenUpdatePanel">Push Update</button>
               <button class="btn btn-primary adm-btn-sm" type="button" id="admOpenCreatePanel">+ Create Product</button>
             </div>
@@ -1045,6 +1042,6 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.2/dist/umd/supabase.min.js" integrity="sha384-B2duOBIryCXbX4eDE4BdJwtNkQMRQde3o6IsjfPW28E6aH1CYE96hHeZRG3zY56O" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script src="/supabase-init.js?v=20260812a"></script>
   <script src="/site-gate.js?v=20260729b"></script>
-  <script src="/catalog.js?v=20260810a" data-then="/app.js?v=20260813f,/blog.js?v=20260812a,/reviews.js?v=20260729a,/admin.js?v=20260813g"></script>
+  <script src="/catalog.js?v=20260810a" data-then="/app.js?v=20260813g,/blog.js?v=20260812a,/reviews.js?v=20260729a,/admin.js?v=20260813h"></script>
 </body>
 </html>

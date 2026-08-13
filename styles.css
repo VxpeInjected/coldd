@@ -1679,17 +1679,32 @@ button.dt-badge:disabled { cursor: default; opacity: 0.6; }
 
 .dash-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 18px; }
 .dash-empty-note { color: var(--fg-2); font-size: 14px; grid-column: 1 / -1; }
-.dash-prod { display: flex; flex-direction: column; padding: 0; overflow: hidden; border-radius: 16px;
-  border: 1px solid var(--hairline); background: var(--bg-3);
-  transition: transform .25s var(--ease), border-color .25s, box-shadow .25s; }
-.dash-prod:hover { transform: translateY(-2px); border-color: var(--hairline-strong); box-shadow: var(--e-3); }
+.dash-empty-cta { grid-column: 1 / -1; display: flex; flex-direction: column; align-items: flex-start; gap: 12px;
+  padding: 26px 24px; border-radius: var(--r-sm); border: 1px solid var(--hairline); background: rgba(17,18,24,0.74);
+  backdrop-filter: blur(13px) saturate(130%); -webkit-backdrop-filter: blur(13px) saturate(130%); }
+.dash-empty-cta p { color: var(--fg-2); font-size: 14px; margin: 0; }
+/* Same frosted surface as .dash-card/.dash-stat, not the shop's flat --bg-3 -
+   these sit inside the dashboard alongside those panels and need to read as
+   the same material, not a product-grid card that wandered in. */
+.dash-prod { display: flex; flex-direction: column; padding: 0; overflow: hidden; border-radius: var(--r-sm);
+  border: 1px solid var(--hairline); background: rgba(17,18,24,0.74);
+  backdrop-filter: blur(13px) saturate(130%); -webkit-backdrop-filter: blur(13px) saturate(130%);
+  transition: transform .22s var(--ease), border-color .22s, box-shadow .22s; }
+@media (hover: hover) and (pointer: fine) {
+  .dash-prod:hover { transform: translateY(-2px); border-color: var(--hairline-strong); box-shadow: var(--e-3); }
+}
 .dp-thumb { width: 100%; aspect-ratio: 16 / 9; flex: none; background: #0f1014 center / cover no-repeat; }
-.dp-body { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 10px; padding: 14px 16px 16px; }
-.dp-name { font-size: 15px; font-weight: 600; letter-spacing: -0.01em; line-height: 1.3; }
-.dp-lic { font-size: 11px; font-weight: 700; letter-spacing: 0.02em; text-transform: uppercase; padding: 4px 10px;
-  border-radius: 999px; color: var(--fg-2); background: rgba(255,255,255,0.05); border: 1px solid var(--hairline); }
-.dp-lic.resell { color: var(--accent-ink); background: rgba(255,77,68,0.12); border-color: rgba(255,77,68,0.28); }
-.dp-btn { margin-top: auto; width: 100%; min-height: 40px; padding: 9px 16px; font-size: 13px; }
+.dp-body { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 12px; padding: 16px; }
+.dp-name { font-size: 15px; font-weight: 600; letter-spacing: -0.01em; line-height: 1.35; }
+/* Neutral tag, matching .adm-cat-tag's idiom - a status/type marker, not a
+   fourth ember accent competing with the button below it. Resell steps to
+   --info rather than the brand red: it's a distinction, not a call to act. */
+.dp-lic { display: inline-flex; align-items: center; font-size: 12px; font-weight: 600; padding: 4px 10px;
+  border-radius: var(--r-pill); color: var(--fg-2); background: rgba(255,255,255,0.06); border: 1px solid var(--hairline); }
+.dp-lic.resell { color: var(--info); background: var(--info-tint); border-color: rgba(70,140,255,0.28); }
+.dp-btn { margin-top: auto; width: 100%; min-height: 40px; padding: 9px 16px; font-size: 13px;
+  display: inline-flex; align-items: center; justify-content: center; gap: 7px; }
+.dp-btn svg { flex: 0 0 auto; }
 
 .dl-item { padding: 18px 22px; }
 .dl-top { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }

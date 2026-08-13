@@ -2545,19 +2545,25 @@
       }
 
       function requestDownload(slug, btn) {
-        var prev = btn.textContent;
-        btn.disabled = true; btn.textContent = 'Preparing…';
+        // Swap only the label span's text when present (icon buttons like
+        // .dp-btn), so a loading/error state doesn't wipe out the icon by
+        // overwriting the whole button with textContent.
+        var labelEl = btn.querySelector('span') || btn;
+        var prev = labelEl.textContent;
+        btn.disabled = true; labelEl.textContent = 'Preparing…';
         (window.coldAuth ? window.coldAuth.invokeFn('get-download-url', { slug: slug }) :
           window.coldSupabase.functions.invoke('get-download-url', { body: { slug: slug } }).then(function (res) {
             if (res.error || !res.data || !res.data.ok) throw new Error((res.data && res.data.error) || 'Unavailable');
             return res.data;
           }))
-          .then(function (data) { window.open(data.url, '_blank', 'noopener'); btn.disabled = false; btn.textContent = prev; })
-          .catch(function (err) { btn.textContent = (err && err.message) || 'Unavailable'; });
+          .then(function (data) { window.open(data.url, '_blank', 'noopener'); btn.disabled = false; labelEl.textContent = prev; })
+          .catch(function (err) { labelEl.textContent = (err && err.message) || 'Unavailable'; });
       }
+      var DOWNLOAD_ICON_SVG = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>';
       function downloadBtn(item, cls) {
         var btn = document.createElement('button');
-        btn.type = 'button'; btn.className = cls; btn.textContent = 'Download';
+        btn.type = 'button'; btn.className = cls;
+        btn.innerHTML = DOWNLOAD_ICON_SVG + '<span>Download</span>';
         btn.addEventListener('click', function () { requestDownload(item.product_slug, btn); });
         return btn;
       }
@@ -2567,17 +2573,20 @@
         var grid = document.getElementById('dashOwnedGrid');
         if (!grid) return;
         grid.innerHTML = '';
-        if (!owned.length) grid.innerHTML = '<p class="dash-empty-note">You don\'t own any products yet.</p>';
+        if (!owned.length) {
+          grid.innerHTML = '<div class="dash-empty-cta"><p>You don\'t own any products yet.</p>' +
+            '<a class="btn btn-primary" href="/assets">Browse products</a></div>';
+        }
         else owned.forEach(function (item) {
           var img = item.products && item.products.image ? window.imgUrl(item.products.image) : '/banner.jpg';
-          var card = document.createElement('div'); card.className = 'dash-prod glass';
+          var card = document.createElement('div'); card.className = 'dash-prod';
           card.innerHTML = '<div class="dp-thumb" style="background-image:url(\'' + img + '\')"></div>' +
             '<div class="dp-body"><div class="dp-name"></div><span class="dp-lic"></span></div>';
           card.querySelector('.dp-name').textContent = item.title;
           var licEl = card.querySelector('.dp-lic');
           licEl.textContent = item.licence === 'resell' ? 'Resell licence' : 'Standard licence';
           licEl.classList.toggle('resell', item.licence === 'resell');
-          card.querySelector('.dp-body').appendChild(downloadBtn(item, 'btn btn-primary dp-btn'));
+          card.querySelector('.dp-body').appendChild(downloadBtn(item, 'btn btn-tinted dp-btn'));
           grid.appendChild(card);
         });
       }

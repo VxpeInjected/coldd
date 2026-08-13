@@ -2574,8 +2574,10 @@
           card.innerHTML = '<div class="dp-thumb" style="background-image:url(\'' + img + '\')"></div>' +
             '<div class="dp-body"><div class="dp-name"></div><span class="dp-lic"></span></div>';
           card.querySelector('.dp-name').textContent = item.title;
-          card.querySelector('.dp-lic').textContent = item.licence === 'resell' ? 'Resell licence' : 'Standard licence';
-          card.querySelector('.dp-body').appendChild(downloadBtn(item, 'btn btn-ghost dp-btn'));
+          var licEl = card.querySelector('.dp-lic');
+          licEl.textContent = item.licence === 'resell' ? 'Resell licence' : 'Standard licence';
+          licEl.classList.toggle('resell', item.licence === 'resell');
+          card.querySelector('.dp-body').appendChild(downloadBtn(item, 'btn btn-primary dp-btn'));
           grid.appendChild(card);
         });
       }

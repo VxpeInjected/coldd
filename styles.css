@@ -463,6 +463,10 @@
     .review-by img.ra { object-fit: cover; }
     .review-by .rn { display: flex; flex-direction: column; font-size: 14px; font-weight: 600; }
     .review-by .rn small { font-weight: 500; font-size: 12px; color: var(--fg-3); }
+    .reviews-more-wrap { text-align: center; margin-top: 30px; }
+    .reviews-more { font-size: 15px; font-weight: 600; color: var(--fg); text-decoration: none;
+      padding: 8px 4px; border-bottom: 1px solid var(--hairline-strong); transition: color .2s, border-color .2s; }
+    .reviews-more:hover { color: var(--accent-ink); border-color: var(--accent); }
     @media (max-width: 860px) {
       .resell { grid-template-columns: 1fr; }
       .resell-body { padding: 34px 28px; }

@@ -1067,10 +1067,25 @@
      ================================================================ */
   var MKT_CHANNELS = [
     { key: 'discord', name: 'Discord', note: 'Member and presence counts.' },
-    { key: 'x', name: 'X (Twitter)', note: 'Followers, impressions, post reach.' },
-    { key: 'youtube', name: 'YouTube', note: 'Subscribers, views, watch time.' },
-    { key: 'tiktok', name: 'TikTok', note: 'Followers and video views.' }
+    { key: 'x', name: 'X (Twitter)', note: 'Followers, impressions, post reach.', needs: 'Needs TWITTER_BEARER_TOKEN + TWITTER_USERNAME secrets' },
+    { key: 'youtube', name: 'YouTube', note: 'Subscribers, views, watch time.', needs: 'Needs YOUTUBE_API_KEY + YOUTUBE_CHANNEL_ID secrets' },
+    { key: 'tiktok', name: 'TikTok', note: 'Followers and video views.', needs: 'Needs a TIKTOK_ACCESS_TOKEN secret (OAuth, not a plain key)' }
   ];
+
+  // Populated by refreshSocialStats(); each admin-*-stats function returns
+  // { configured: false } when its secrets aren't set yet, rather than an
+  // error, so the channel row can show a real "what's missing" hint
+  // instead of a bare "Not connected" badge with no next step.
+  var YOUTUBE_STATS = null, X_STATS = null, TIKTOK_STATS = null;
+  function refreshSocialStats() {
+    return Promise.all([
+      invokeAdminFn('admin-youtube-stats', {}).then(function (d) { YOUTUBE_STATS = d; }).catch(function () { YOUTUBE_STATS = null; }),
+      invokeAdminFn('admin-x-stats', {}).then(function (d) { X_STATS = d; }).catch(function () { X_STATS = null; }),
+      invokeAdminFn('admin-tiktok-stats', {}).then(function (d) { TIKTOK_STATS = d; }).catch(function () { TIKTOK_STATS = null; })
+    ]).then(function () {
+      if (curPanel === 'marketing') renderMarketing();
+    });
+  }
 
   function channelRow(c) {
     var connected = false, value = '', sub = c.note;
@@ -1078,6 +1093,20 @@
       connected = true;
       value = DISCORD_STATS.memberCount.toLocaleString('en-US') + ' members';
       sub = (DISCORD_STATS.onlineCount != null ? DISCORD_STATS.onlineCount.toLocaleString('en-US') + ' online' : c.note);
+    } else if (c.key === 'youtube' && YOUTUBE_STATS && YOUTUBE_STATS.configured && YOUTUBE_STATS.subscriberCount != null) {
+      connected = true;
+      value = YOUTUBE_STATS.subscriberCount.toLocaleString('en-US') + ' subscribers';
+      sub = YOUTUBE_STATS.viewCount.toLocaleString('en-US') + ' total views';
+    } else if (c.key === 'x' && X_STATS && X_STATS.configured) {
+      connected = true;
+      value = X_STATS.followersCount.toLocaleString('en-US') + ' followers';
+      sub = X_STATS.tweetCount.toLocaleString('en-US') + ' posts';
+    } else if (c.key === 'tiktok' && TIKTOK_STATS && TIKTOK_STATS.configured) {
+      connected = true;
+      value = TIKTOK_STATS.followerCount.toLocaleString('en-US') + ' followers';
+      sub = TIKTOK_STATS.videoCount.toLocaleString('en-US') + ' videos';
+    } else if (c.needs) {
+      sub = c.needs;
     }
     return '<div class="adm-channel-row">' +
       '<div class="adm-channel-main"><span class="adm-channel-name">' + esc(c.name) + '</span>' +
@@ -3754,6 +3783,7 @@
   refreshRobloxCookieHealth();
   refreshLiveSessions();
   refreshDiscordStats();
+  refreshSocialStats();
   refreshAdbloxStats();
   refreshEmailStats();
   refreshEmailCampaigns();

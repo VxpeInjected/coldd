@@ -936,7 +936,7 @@
   /* ================================================================
      NAV / PANEL SWITCHING
      ================================================================ */
-  var PANELS = ['home', 'analytics', 'marketing', 'products', 'product-edit', 'product-update', 'orders', 'order-detail', 'reviews', 'sales', 'sitemgmt', 'content'];
+  var PANELS = ['home', 'analytics', 'marketing', 'products', 'unreleased', 'product-edit', 'product-update', 'orders', 'order-detail', 'reviews', 'sales', 'sitemgmt', 'content'];
   var curPanel = 'home';
   function showPanel(name) {
     if (PANELS.indexOf(name) < 0) name = 'home';
@@ -954,6 +954,7 @@
     else if (name === 'analytics') renderAnalytics();
     else if (name === 'marketing') renderMarketing();
     else if (name === 'products') renderProducts();
+    else if (name === 'unreleased') renderUnreleasedFiles();
     else if (name === 'orders') renderOrders();
     else if (name === 'order-detail') renderOrderDetail();
     else if (name === 'reviews') renderReviews();
@@ -1023,6 +1024,7 @@
     if (pendingReviews) todo.push({ text: pendingReviews + ' review' + (pendingReviews > 1 ? 's' : '') + ' awaiting moderation', panel: 'reviews', badge: 'warn' });
     var pendingPayouts = PAYOUTS.filter(function (p) { return p.status === 'requested'; }).length;
     if (pendingPayouts) todo.push({ text: pendingPayouts + ' referral payout request' + (pendingPayouts > 1 ? 's' : '') + ' pending', panel: 'analytics', badge: 'warn' });
+    if (UNRELEASED_FILES.length) todo.push({ text: 'You have ' + UNRELEASED_FILES.length + ' product' + (UNRELEASED_FILES.length > 1 ? 's' : '') + ' to release', panel: 'unreleased', badge: 'warn' });
     if (ROBLOX_COOKIE_BROKEN) todo.push({ text: 'Robux fallback cookie is broken - group-transaction verification won\'t work until it\'s refreshed', panel: 'sitemgmt', badge: 'err' });
     if (ROBLOX_CONTAINERS.length && ROBLOX_CONTAINERS.every(function (c) { return !c.active || c.gamepass_count >= 50; })) {
       todo.push({ text: 'All Roblox container games are full - add a new one before creating more Robux products', panel: 'sitemgmt', badge: 'err' });
@@ -1437,12 +1439,9 @@
   function renderProducts() {
     var q = ($('admProdSearch') || {}).value || '';
     q = q.trim().toLowerCase();
-    var unreleasedCount = allProducts().filter(function (p) { return !p.visible; }).length;
-    var countEl = $('admProdUnreleasedCount'); if (countEl) countEl.textContent = unreleasedCount ? '(' + unreleasedCount + ')' : '';
     var rows = sortProducts(allProducts().filter(function (p) {
       if (!(!q || p.title.toLowerCase().indexOf(q) >= 0)) return false;
       if (PROD_STATUS_FILTER === 'released') return p.visible;
-      if (PROD_STATUS_FILTER === 'unreleased') return !p.visible;
       return true;
     }));
     $('admProdBody').innerHTML = rows.map(function (p) {
@@ -1821,6 +1820,68 @@
       fileNote.classList.add('adm-note-warn');
     });
   });
+
+  /* ================================================================
+     UNRELEASED FILES — staging area for files that aren't real
+     products yet. Not part of the products list/filter at all; each
+     row is just a Storage upload + a renamable display name.
+     ================================================================ */
+  var UNRELEASED_FILES = [];
+  function loadUnreleasedFiles() {
+    return invokeAdminFn('admin-unreleased-files', { action: 'list' }).then(function (d) {
+      UNRELEASED_FILES = d.files || [];
+      var badge = $('admUnreleasedCount');
+      if (badge) badge.textContent = UNRELEASED_FILES.length ? '(' + UNRELEASED_FILES.length + ')' : '';
+      renderAll();
+    }).catch(function (err) { console.error('[admin] failed to load unreleased files:', err.message); });
+  }
+  function renderUnreleasedFiles() {
+    var list = $('admUnreleasedList'); if (!list) return;
+    list.innerHTML = UNRELEASED_FILES.map(function (f) {
+      return '<div class="adm-file-item" data-id="' + esc(f.id) + '">' +
+        '<input type="text" class="adm-file-rename" value="' + esc(f.display_name) + '" />' +
+        (f.size_bytes ? '<span class="adm-file-meta">' + formatFileSize(f.size_bytes) + '</span>' : '') +
+        '<button type="button" class="adm-icon-btn adm-unreleased-remove" title="Delete" aria-label="Delete">' + ADM_ICON_TRASH + '</button>' +
+        '</div>';
+    }).join('') || '<p class="adm-empty" style="padding:8px 0;">Nothing staged right now — drop a file above to keep track of it.</p>';
+  }
+  wireDropzone($('admUnreleasedDrop'), $('admUnreleasedInput'), function (files) {
+    Array.prototype.slice.call(files).forEach(function (f) {
+      uploadToStorage('unreleasedFile', f).then(function (r) {
+        return invokeAdminFn('admin-unreleased-files', { action: 'create', storagePath: r.path, displayName: f.name, sizeBytes: f.size });
+      }).then(function () {
+        return loadUnreleasedFiles();
+      }).catch(function (err) { alert(err.message || 'Upload failed.'); });
+    });
+  });
+  var unreleasedList = $('admUnreleasedList');
+  if (unreleasedList) {
+    unreleasedList.addEventListener('click', function (e) {
+      var btn = e.target.closest('.adm-unreleased-remove'); if (!btn) return;
+      var row = e.target.closest('.adm-file-item'); if (!row) return;
+      var id = row.getAttribute('data-id');
+      btn.disabled = true;
+      invokeAdminFn('admin-unreleased-files', { action: 'delete', id: id }).then(function () {
+        return loadUnreleasedFiles();
+      }).catch(function (err) { btn.disabled = false; alert(err.message || 'Could not delete file.'); });
+    });
+    unreleasedList.addEventListener('blur', function (e) {
+      var input = e.target.closest('.adm-file-rename'); if (!input) return;
+      var row = e.target.closest('.adm-file-item'); if (!row) return;
+      var id = row.getAttribute('data-id');
+      var name = input.value.trim();
+      var current = (UNRELEASED_FILES.filter(function (f) { return f.id === id; })[0] || {}).display_name || '';
+      if (!name || name === current) { input.value = current; return; }
+      invokeAdminFn('admin-unreleased-files', { action: 'rename', id: id, displayName: name }).then(function () {
+        return loadUnreleasedFiles();
+      }).catch(function (err) { input.value = current; alert(err.message || 'Could not rename file.'); });
+    }, true);
+    unreleasedList.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' && e.target.closest('.adm-file-rename')) { e.preventDefault(); e.target.blur(); }
+    });
+  }
+  var openUnreleasedBtn = $('admOpenUnreleasedPanel');
+  if (openUnreleasedBtn) openUnreleasedBtn.addEventListener('click', function () { showPanel('unreleased'); });
 
   wireDropzone($('admEditThumbDrop'), $('admEditThumbInput'), function (files) { addThumbFile(files[0]); });
   var thumbRemoveBtn = $('admEditThumbRemove');
@@ -3589,6 +3650,7 @@
   refreshAdbloxStats();
   refreshEmailStats();
   refreshEmailCampaigns();
+  loadUnreleasedFiles();
   refreshEmailConfigStatus();
   refreshAutomations();
   var admAdbloxLoadMoreBtn = $('admAdbloxLoadMore');

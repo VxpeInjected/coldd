@@ -65,14 +65,18 @@ Deno.serve(async (req: Request) => {
     if (profileErr || !profile?.is_admin) return json({ ok: false, error: "Admin access required." }, 403);
 
     const body = await req.json().catch(() => ({}));
-    const kind = body.kind === "gallery" || body.kind === "productFile" ? body.kind : "thumbnail";
-    const productSlug = safeName(String(body.productSlug || "untitled"));
+    const kind = body.kind === "gallery" || body.kind === "productFile" || body.kind === "unreleasedFile" ? body.kind : "thumbnail";
     const filename = safeName(String(body.filename || "file"));
     const unique = crypto.randomUUID().slice(0, 8);
 
-    const bucket = kind === "productFile" ? FILES_BUCKET : MEDIA_BUCKET;
-    const subdir = kind === "productFile" ? "files" : kind === "gallery" ? "gallery" : "thumbnails";
-    const path = `${productSlug}/${subdir}/${unique}-${filename}`;
+    const bucket = kind === "unreleasedFile" ? FILES_BUCKET : kind === "productFile" ? FILES_BUCKET : MEDIA_BUCKET;
+    const path = kind === "unreleasedFile"
+      ? `unreleased/${unique}-${filename}`
+      : (() => {
+        const productSlug = safeName(String(body.productSlug || "untitled"));
+        const subdir = kind === "productFile" ? "files" : kind === "gallery" ? "gallery" : "thumbnails";
+        return `${productSlug}/${subdir}/${unique}-${filename}`;
+      })();
 
     const { data: signed, error: signErr } = await admin.storage
       .from(bucket)

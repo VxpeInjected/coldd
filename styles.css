@@ -2358,6 +2358,11 @@ a.adm-sub[href] { color: var(--fg-1); cursor: pointer; text-decoration: underlin
 .adm-file-item a { color: var(--fg-1); text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
 .adm-file-item a:hover { color: var(--fg); }
 .adm-file-item button { flex: 0 0 auto; }
+.adm-file-item .adm-file-meta { flex: 0 0 auto; color: var(--fg-3); font-size: 12px; }
+.adm-file-rename { flex: 1; min-width: 0; background: transparent; border: 1px solid transparent; border-radius: 6px;
+  color: var(--fg-1); font: inherit; font-size: 13px; padding: 3px 6px; margin: -3px -6px; transition: border-color .15s, background .15s; }
+.adm-file-rename:hover { border-color: var(--hairline); }
+.adm-file-rename:focus { outline: none; border-color: var(--accent); background: rgba(255,255,255,0.04); }
 
 .adm-contact-list { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
 .adm-contact-row { display: flex; gap: 8px; align-items: center; }

@@ -16,7 +16,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
 
-  <link rel="stylesheet" href="/styles.css?v=20260813b" />
+  <link rel="stylesheet" href="/styles.css?v=20260813c" />
 </head>
 <body class="adm-body">
   <div class="backdrop"></div>
@@ -293,7 +293,6 @@
               <div class="adm-tabs" id="admProdStatusFilter">
                 <button type="button" class="adm-tab adm-prod-status-btn active" data-status="all">All</button>
                 <button type="button" class="adm-tab adm-prod-status-btn" data-status="released">Released</button>
-                <button type="button" class="adm-tab adm-prod-status-btn" data-status="unreleased">Unreleased <span id="admProdUnreleasedCount" class="adm-sub"></span></button>
               </div>
               <div class="adm-dd adm-dd-inline" id="admProdSortDD">
                 <button type="button" class="adm-dd-btn" aria-haspopup="listbox" aria-expanded="false">
@@ -302,6 +301,7 @@
                 </button>
                 <div class="adm-dd-menu" role="listbox" aria-label="Sort products" hidden></div>
               </div>
+              <button class="btn btn-ghost adm-btn-sm" type="button" id="admOpenUnreleasedPanel">Unreleased files <span id="admUnreleasedCount" class="adm-sub"></span></button>
               <button class="btn btn-ghost adm-btn-sm" type="button" id="admOpenUpdatePanel">Push Update</button>
               <button class="btn btn-primary adm-btn-sm" type="button" id="admOpenCreatePanel">+ Create Product</button>
             </div>
@@ -310,6 +310,23 @@
                 <thead><tr><th>Thumbnail</th><th>Product Name</th><th>Category</th><th>Status</th><th>Rating</th><th>Purchases</th><th></th></tr></thead>
                 <tbody id="admProdBody"></tbody>
               </table>
+            </div>
+          </section>
+
+          <section class="dash-panel" id="adm-panel-unreleased" hidden>
+            <div class="dash-head">
+              <a href="#" class="dt-link lnk-back" data-panel="products">Back to Products</a>
+              <h1>Unreleased files</h1>
+              <p>A place to drop files you don't want to lose, until they're ready to become real products.</p>
+            </div>
+            <div class="dash-card glass">
+              <div class="adm-dropzone" id="admUnreleasedDrop">
+                <input type="file" id="admUnreleasedInput" multiple hidden />
+                <svg class="adm-dropzone-ic" viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M12 4 7 9M12 4l5 5"/><path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
+                <p><strong>Click to upload</strong> or drag and drop</p>
+                <p class="adm-dropzone-hint">Any file type — multiple allowed</p>
+              </div>
+              <div class="adm-file-list" id="admUnreleasedList"></div>
             </div>
           </section>
 
@@ -960,6 +977,6 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.2/dist/umd/supabase.min.js" integrity="sha384-B2duOBIryCXbX4eDE4BdJwtNkQMRQde3o6IsjfPW28E6aH1CYE96hHeZRG3zY56O" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script src="/supabase-init.js?v=20260812a"></script>
   <script src="/site-gate.js?v=20260729b"></script>
-  <script src="/catalog.js?v=20260810a" data-then="/app.js?v=20260813b,/blog.js?v=20260812a,/reviews.js?v=20260729a,/admin.js?v=20260813e"></script>
+  <script src="/catalog.js?v=20260810a" data-then="/app.js?v=20260813b,/blog.js?v=20260812a,/reviews.js?v=20260729a,/admin.js?v=20260813f"></script>
 </body>
 </html>

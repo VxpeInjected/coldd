@@ -1181,18 +1181,22 @@
       if (curPanel === 'marketing') renderMarketing();
     }).catch(function (err) { console.error('[admin] failed to load campaigns:', err.message); });
   }
+  function campaignUrl(c) {
+    return location.origin + c.destination + (c.destination.indexOf('?') >= 0 ? '&' : '?') + 'cmp=' + encodeURIComponent(c.code);
+  }
   function renderCampaigns() {
     var body = $('admCampaignsBody'); if (!body) return;
     body.innerHTML = CAMPAIGNS.map(function (c) {
       var rate = c.conversionRate == null ? '—' : (c.conversionRate * 100).toFixed(1) + '%';
       return '<tr data-id="' + esc(c.id) + '" data-code="' + esc(c.code) + '">' +
-        '<td><strong>' + esc(c.label) + '</strong><div class="adm-sub">?cmp=' + esc(c.code) + '</div></td>' +
+        '<td><strong>' + esc(c.label) + '</strong><div class="adm-sub adm-campaign-url">' + esc(campaignUrl(c)) + '</div></td>' +
         '<td>' + c.clicks.toLocaleString('en-US') + '</td>' +
         '<td>' + c.conversions.toLocaleString('en-US') + '</td>' +
         '<td>' + rate + '</td>' +
         '<td>' + usd(c.revenue) + '</td>' +
         '<td>' + (c.active ? statusBadge('completed') : statusBadge('refunded')) + '</td>' +
         '<td class="adm-row-actions">' +
+          '<button class="adm-icon-btn adm-campaign-copy" type="button" title="Copy link" aria-label="Copy link">' + ADM_ICON_COPY + '</button>' +
           '<button class="adm-icon-btn adm-campaign-info" type="button" title="Details" aria-label="Details">' + ADM_ICON_INFO + '</button>' +
           '<button class="adm-icon-btn adm-campaign-toggle" type="button" title="' + (c.active ? 'Deactivate' : 'Activate') + '">' + (c.active ? ADM_ICON_PAUSE : ADM_ICON_PLAY) + '</button>' +
           '<button class="adm-icon-btn adm-campaign-rename" type="button" title="Rename">' + ADM_ICON_EDIT + '</button>' +
@@ -1204,10 +1208,11 @@
   var campaignCreateForm = $('admCampaignCreateForm');
   if (campaignCreateForm) campaignCreateForm.addEventListener('submit', function (e) {
     e.preventDefault();
-    var codeEl = $('admCampaignCode'), labelEl = $('admCampaignLabel'), msgEl = $('admCampaignCreateMsg');
-    invokeAdminFn('admin-campaign-links', { action: 'create', code: codeEl.value, label: labelEl.value }, 'Could not create campaign.').then(function () {
-      codeEl.value = ''; labelEl.value = ''; if (msgEl) msgEl.textContent = '';
-      logAudit('Created campaign link "' + labelEl.value + '"');
+    var codeEl = $('admCampaignCode'), labelEl = $('admCampaignLabel'), destEl = $('admCampaignDestination'), msgEl = $('admCampaignCreateMsg');
+    var label = labelEl.value;
+    invokeAdminFn('admin-campaign-links', { action: 'create', code: codeEl.value, label: label, destination: destEl.value || '/' }, 'Could not create campaign.').then(function () {
+      codeEl.value = ''; labelEl.value = ''; destEl.value = ''; if (msgEl) msgEl.textContent = '';
+      logAudit('Created campaign link "' + label + '"');
       return refreshCampaigns();
     }).catch(function (err) { if (msgEl) msgEl.textContent = err.message || 'Could not create campaign.'; });
   });
@@ -1218,7 +1223,9 @@
     var id = tr.getAttribute('data-id'), code = tr.getAttribute('data-code');
     var c = CAMPAIGNS.filter(function (x) { return x.id === id; })[0]; if (!c) return;
 
-    if (e.target.closest('.adm-campaign-info')) {
+    if (e.target.closest('.adm-campaign-copy')) {
+      copyCampaignLink(campaignUrl(c), e.target.closest('.adm-campaign-copy'));
+    } else if (e.target.closest('.adm-campaign-info')) {
       openCampaignDetail(c);
     } else if (e.target.closest('.adm-campaign-toggle')) {
       invokeAdminFn('admin-campaign-links', { action: 'update', id: id, patch: { active: !c.active } }, 'Could not update campaign.').then(function () {
@@ -1241,10 +1248,24 @@
     }
   });
 
+  function copyCampaignLink(url, btn) {
+    var done = function () {
+      if (!btn) return;
+      var prev = btn.innerHTML;
+      btn.innerHTML = ADM_ICON_CHECK;
+      setTimeout(function () { btn.innerHTML = prev; }, 1200);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(url).then(done).catch(function () { prompt('Copy this link:', url); });
+    } else {
+      prompt('Copy this link:', url);
+    }
+  }
+
   function openCampaignDetail(c) {
     var overlay = $('admCampaignDetailOverlay'); if (!overlay) return;
     $('admCampaignDetailTitle').textContent = c.label;
-    $('admCampaignDetailSub').textContent = '?cmp=' + c.code + ' · added ' + fmtDate(new Date(c.createdAt));
+    $('admCampaignDetailSub').innerHTML = '<span class="adm-campaign-url">' + esc(campaignUrl(c)) + '</span> · added ' + fmtDate(new Date(c.createdAt));
     var rate = c.conversionRate == null ? '—' : (c.conversionRate * 100).toFixed(1) + '%';
     $('admCampaignDetailStats').innerHTML = [
       statTile('Clicks', c.clicks.toLocaleString('en-US'), null, ''),
@@ -1602,6 +1623,8 @@
   var ADM_ICON_INFO = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>';
   var ADM_ICON_PAUSE = '<svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>';
   var ADM_ICON_PLAY = '<svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><path d="M7 4v16l14-8Z"/></svg>';
+  var ADM_ICON_COPY = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+  var ADM_ICON_CHECK = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
 
   function purchaseCount(id) {
     return ORDERS.filter(function (o) {

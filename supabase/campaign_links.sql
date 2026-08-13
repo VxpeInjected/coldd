@@ -15,11 +15,18 @@ create table if not exists public.campaign_links (
   id uuid primary key default gen_random_uuid(),
   code text not null unique,
   label text not null,
+  -- Site-relative path the link points to (e.g. "/", "/assets",
+  -- "/product?id=all-brawl-full-game") - ?cmp=CODE gets appended to this
+  -- when the admin panel builds the copyable link. Purely a convenience
+  -- for generating the URL; the click capture itself (supabase-init.js)
+  -- watches for ?cmp= on any page, not just this one.
+  destination text not null default '/',
   clicks integer not null default 0,
   active boolean not null default true,
   created_at timestamptz not null default now(),
   created_by uuid references public.profiles(id) on delete set null
 );
+alter table public.campaign_links add column if not exists destination text not null default '/';
 
 alter table public.campaign_links enable row level security;
 

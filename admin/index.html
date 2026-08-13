@@ -16,7 +16,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
 
-  <link rel="stylesheet" href="/styles.css?v=20260814a" />
+  <link rel="stylesheet" href="/styles.css?v=20260814b" />
 </head>
 <body class="adm-body">
   <div class="backdrop"></div>
@@ -225,8 +225,10 @@
               <form class="adm-form" id="admCampaignCreateForm" style="flex-wrap:wrap;">
                 <input type="text" id="admCampaignCode" class="adm-input adm-input-sm" placeholder="Code, e.g. partner" required maxlength="60" />
                 <input type="text" id="admCampaignLabel" class="adm-input" placeholder="Label, e.g. Partner program" required style="flex:1;min-width:180px;" />
+                <input type="text" id="admCampaignDestination" class="adm-input adm-input-sm" placeholder="Page (default /)" style="min-width:140px;" />
                 <button class="btn btn-primary adm-btn-sm" type="submit">+ Add campaign</button>
               </form>
+              <p class="adm-note" style="margin-top:6px;">Page is where the link should send people, e.g. <code>/</code>, <code>/assets</code>, or <code>/product?id=all-brawl-full-game</code>. Leave blank for the homepage.</p>
               <div class="adm-edit-msg" id="admCampaignCreateMsg"></div>
               <div class="dash-tablewrap" style="margin-top:14px;">
                 <table class="dash-table">
@@ -1073,6 +1075,6 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.2/dist/umd/supabase.min.js" integrity="sha384-B2duOBIryCXbX4eDE4BdJwtNkQMRQde3o6IsjfPW28E6aH1CYE96hHeZRG3zY56O" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script src="/supabase-init.js?v=20260814a"></script>
   <script src="/site-gate.js?v=20260729b"></script>
-  <script src="/catalog.js?v=20260810a" data-then="/app.js?v=20260814a,/blog.js?v=20260812a,/reviews.js?v=20260729a,/admin.js?v=20260814a"></script>
+  <script src="/catalog.js?v=20260810a" data-then="/app.js?v=20260814a,/blog.js?v=20260812a,/reviews.js?v=20260729a,/admin.js?v=20260814b"></script>
 </body>
 </html>

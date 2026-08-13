@@ -2305,6 +2305,7 @@ html.js .nr-frame .nr-slide.is-active .nr-cap > :nth-child(3) { animation-delay:
 .adm-channel-collapse > summary.adm-channel-row { padding-bottom: 13px; }
 .adm-channel-collapse .adm-collapse-body { margin-top: 0; padding-bottom: 13px; }
 .adm-channel-collapse .adm-collapse-body .dash-stats { grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); }
+.adm-campaign-url { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 11px; word-break: break-all; }
 .adm-catlist { margin-top: 12px; display: flex; flex-direction: column; gap: 8px; }
 .adm-catrow { display: flex; justify-content: space-between; font-size: 13px; padding: 6px 0; border-top: 1px solid var(--hairline); }
 .adm-catrow:first-child { border-top: 0; }

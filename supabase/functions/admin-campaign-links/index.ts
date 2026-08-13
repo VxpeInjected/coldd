@@ -39,6 +39,16 @@ function slugify(raw: string) {
   return raw.trim().toLowerCase().replace(/[^a-z0-9-]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 60);
 }
 
+// Must be a site-relative path (starts with "/", never "//" - that's
+// protocol-relative and would point off-site) so the generated link can
+// never send a click somewhere other than coldd.dev.
+function sanitizeDestination(raw: string) {
+  let path = String(raw || "/").trim();
+  if (!path) path = "/";
+  if (!path.startsWith("/") || path.startsWith("//")) path = "/";
+  return path.slice(0, 200);
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders() });
 
@@ -90,6 +100,7 @@ Deno.serve(async (req: Request) => {
           id: l.id,
           code: l.code,
           label: l.label,
+          destination: l.destination || "/",
           active: l.active,
           clicks: l.clicks,
           createdAt: l.created_at,
@@ -131,10 +142,11 @@ Deno.serve(async (req: Request) => {
     if (action === "create") {
       const code = slugify(String(body.code || ""));
       const label = String(body.label || "").trim().slice(0, 200);
+      const destination = sanitizeDestination(String(body.destination || "/"));
       if (!code || !label) return json({ ok: false, error: "Code and label are required." }, 400);
 
       const { data, error } = await admin.from("campaign_links").insert({
-        code, label, created_by: userData.user.id,
+        code, label, destination, created_by: userData.user.id,
       }).select().single();
       if (error) {
         if (error.code === "23505") return json({ ok: false, error: "That code is already in use." }, 400);
@@ -149,6 +161,7 @@ Deno.serve(async (req: Request) => {
       const patchIn = body.patch || {};
       const patch: Record<string, unknown> = {};
       if (typeof patchIn.label === "string") patch.label = patchIn.label.trim().slice(0, 200);
+      if (typeof patchIn.destination === "string") patch.destination = sanitizeDestination(patchIn.destination);
       if (typeof patchIn.active === "boolean") patch.active = patchIn.active;
       if (!Object.keys(patch).length) return json({ ok: false, error: "Nothing to update." }, 400);
 

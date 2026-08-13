@@ -12,6 +12,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { priceItems, resolveCoupon } from "../_shared/coupon.ts";
+import { resolveCampaignCode } from "../_shared/campaign.ts";
 import { activeProvider } from "../_shared/crypto.ts";
 
 const ALLOWED_ORIGIN = "https://coldd.dev";
@@ -71,6 +72,7 @@ Deno.serve(async (req: Request) => {
     if (total <= 0) return json({ ok: false, error: "Order total must be greater than zero." }, 400);
 
     const provider = activeProvider();
+    const campaignCode = await resolveCampaignCode(admin, body.campaignCode);
 
     const { data: order, error: orderErr } = await admin
       .from("orders")
@@ -83,6 +85,7 @@ Deno.serve(async (req: Request) => {
         coupon_code: appliedCouponCode,
         payment_provider: "crypto",
         crypto_provider: provider.name,
+        campaign_code: campaignCode,
       })
       .select()
       .single();

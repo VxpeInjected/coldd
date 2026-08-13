@@ -19,6 +19,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { priceRobuxItems } from "../_shared/roblox.ts";
 import { leasePassForOrder } from "../_shared/roblox_pool.ts";
+import { resolveCampaignCode } from "../_shared/campaign.ts";
 
 const ALLOWED_ORIGIN = "https://coldd.dev";
 
@@ -70,6 +71,7 @@ Deno.serve(async (req: Request) => {
     if (totalRobux <= 0) return json({ ok: false, error: "Order total must be greater than zero." }, 400);
 
     const subtotalUsd = lines.reduce((sum, li) => sum + li.unitPriceUsd * li.qty, 0);
+    const campaignCode = await resolveCampaignCode(admin, body.campaignCode);
 
     const { data: order, error: orderErr } = await admin
       .from("orders")
@@ -82,6 +84,7 @@ Deno.serve(async (req: Request) => {
         total_usd: subtotalUsd,
         total_robux: totalRobux,
         roblox_buyer_id: robloxAcct.roblox_id,
+        campaign_code: campaignCode,
       })
       .select()
       .single();

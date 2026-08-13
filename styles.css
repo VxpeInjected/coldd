@@ -2301,6 +2301,10 @@ html.js .nr-frame .nr-slide.is-active .nr-cap > :nth-child(3) { animation-delay:
 .adm-channel-main { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
 .adm-channel-name { color: var(--fg-1); font-weight: 600; }
 .adm-channel-val { color: var(--fg); font-weight: 700; margin-left: auto; }
+.adm-channel-trail { display: flex; align-items: center; gap: 10px; flex: 0 0 auto; }
+.adm-channel-collapse > summary.adm-channel-row { padding-bottom: 13px; }
+.adm-channel-collapse .adm-collapse-body { margin-top: 0; padding-bottom: 13px; }
+.adm-channel-collapse .adm-collapse-body .dash-stats { grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); }
 .adm-catlist { margin-top: 12px; display: flex; flex-direction: column; gap: 8px; }
 .adm-catrow { display: flex; justify-content: space-between; font-size: 13px; padding: 6px 0; border-top: 1px solid var(--hairline); }
 .adm-catrow:first-child { border-top: 0; }

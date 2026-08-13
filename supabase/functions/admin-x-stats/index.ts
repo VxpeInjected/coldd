@@ -76,11 +76,14 @@ Deno.serve(async (req: Request) => {
 
     const followersCount = Number(metrics.followers_count ?? 0);
     const tweetCount = Number(metrics.tweet_count ?? 0);
+    const followingCount = Number(metrics.following_count ?? 0);
+    const likeCount = Number(metrics.like_count ?? 0);
+    const listedCount = Number(metrics.listed_count ?? 0);
 
-    await upsertSocialSnapshot(admin, "x", followersCount, { tweetCount });
+    await upsertSocialSnapshot(admin, "x", followersCount, { tweetCount, followingCount, likeCount, listedCount });
     const history = await getSocialHistory(admin, "x");
 
-    return json({ ok: true, configured: true, followersCount, tweetCount, history });
+    return json({ ok: true, configured: true, followersCount, tweetCount, followingCount, likeCount, listedCount, history });
   } catch (err) {
     console.error("[admin-x-stats] error:", err);
     return json({ ok: false, error: "Server error." }, 500);

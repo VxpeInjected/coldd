@@ -1087,6 +1087,45 @@
     });
   }
 
+  // One line per platform was never going to hold more than a follower
+  // count - each connected channel now expands into its own stat grid
+  // (same statTile()/dash-stats pattern as every other panel), collapsed
+  // by default so four platforms don't turn "Channels" into the tallest
+  // card on the page.
+  function socialStatTiles(key) {
+    if (key === 'discord') {
+      var joins = discordJoinsInRange();
+      return [
+        statTile('Members', DISCORD_STATS.memberCount.toLocaleString('en-US'), null, ''),
+        statTile('Online now', DISCORD_STATS.onlineCount != null ? DISCORD_STATS.onlineCount.toLocaleString('en-US') : '—', null, ''),
+        statTile('Net joins', joins == null ? '—' : (joins > 0 ? '+' : '') + joins.toLocaleString('en-US'), joins == null ? 'Gathering history' : (RANGE_DAYS ? 'over selected range' : 'since tracking began'), '')
+      ];
+    }
+    if (key === 'youtube') {
+      return [
+        statTile('Subscribers', YOUTUBE_STATS.subscriberCount != null ? YOUTUBE_STATS.subscriberCount.toLocaleString('en-US') : '—', null, ''),
+        statTile('Total views', YOUTUBE_STATS.viewCount.toLocaleString('en-US'), null, ''),
+        statTile('Videos', YOUTUBE_STATS.videoCount.toLocaleString('en-US'), null, '')
+      ];
+    }
+    if (key === 'x') {
+      return [
+        statTile('Followers', X_STATS.followersCount.toLocaleString('en-US'), null, ''),
+        statTile('Posts', X_STATS.tweetCount.toLocaleString('en-US'), null, ''),
+        statTile('Likes given', X_STATS.likeCount.toLocaleString('en-US'), null, ''),
+        statTile('Following', X_STATS.followingCount.toLocaleString('en-US'), null, '')
+      ];
+    }
+    if (key === 'tiktok') {
+      return [
+        statTile('Followers', TIKTOK_STATS.followerCount.toLocaleString('en-US'), null, ''),
+        statTile('Likes', TIKTOK_STATS.likesCount.toLocaleString('en-US'), null, ''),
+        statTile('Videos', TIKTOK_STATS.videoCount.toLocaleString('en-US'), null, '')
+      ];
+    }
+    return [];
+  }
+
   function channelRow(c) {
     var connected = false, value = '', sub = c.note;
     if (c.key === 'discord' && DISCORD_STATS.memberCount != null) {
@@ -1108,14 +1147,128 @@
     } else if (c.needs) {
       sub = c.needs;
     }
-    return '<div class="adm-channel-row">' +
-      '<div class="adm-channel-main"><span class="adm-channel-name">' + esc(c.name) + '</span>' +
+
+    var summaryInner = '<div class="adm-channel-main"><span class="adm-channel-name">' + esc(c.name) + '</span>' +
       '<span class="adm-sub">' + esc(sub) + '</span></div>' +
+      '<span class="adm-channel-trail">' +
       (connected
         ? '<span class="adm-channel-val">' + esc(value) + '</span><span class="dt-badge ok">Connected</span>'
         : '<span class="dt-badge">Not connected</span>') +
-      '</div>';
+      (connected ? '<svg class="adm-collapse-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>' : '') +
+      '</span>';
+
+    if (!connected) return '<div class="adm-channel-row">' + summaryInner + '</div>';
+
+    return '<details class="adm-collapse adm-channel-collapse">' +
+      '<summary class="adm-channel-row">' + summaryInner + '</summary>' +
+      '<div class="adm-collapse-body"><div class="dash-stats">' + socialStatTiles(c.key).join('') + '</div></div>' +
+      '</details>';
   }
+
+  /* ================================================================
+     CAMPAIGN LINKS
+
+     Admin-managed trackable links (?cmp=CODE), separate from the
+     user-to-user referral program. A click is counted the moment the
+     link is visited (track-campaign-click); a conversion is any paid
+     order whose campaign_code matches, which works for guest checkouts
+     too since it isn't tied to a signed-in profile the way referrals are.
+     ================================================================ */
+  var CAMPAIGNS = [];
+  function refreshCampaigns() {
+    return invokeAdminFn('admin-campaign-links', { action: 'list' }).then(function (d) {
+      CAMPAIGNS = d.links || [];
+      if (curPanel === 'marketing') renderMarketing();
+    }).catch(function (err) { console.error('[admin] failed to load campaigns:', err.message); });
+  }
+  function renderCampaigns() {
+    var body = $('admCampaignsBody'); if (!body) return;
+    body.innerHTML = CAMPAIGNS.map(function (c) {
+      var rate = c.conversionRate == null ? '—' : (c.conversionRate * 100).toFixed(1) + '%';
+      return '<tr data-id="' + esc(c.id) + '" data-code="' + esc(c.code) + '">' +
+        '<td><strong>' + esc(c.label) + '</strong><div class="adm-sub">?cmp=' + esc(c.code) + '</div></td>' +
+        '<td>' + c.clicks.toLocaleString('en-US') + '</td>' +
+        '<td>' + c.conversions.toLocaleString('en-US') + '</td>' +
+        '<td>' + rate + '</td>' +
+        '<td>' + usd(c.revenue) + '</td>' +
+        '<td>' + (c.active ? statusBadge('completed') : statusBadge('refunded')) + '</td>' +
+        '<td class="adm-row-actions">' +
+          '<button class="adm-icon-btn adm-campaign-info" type="button" title="Details" aria-label="Details">' + ADM_ICON_INFO + '</button>' +
+          '<button class="adm-icon-btn adm-campaign-toggle" type="button" title="' + (c.active ? 'Deactivate' : 'Activate') + '">' + (c.active ? ADM_ICON_PAUSE : ADM_ICON_PLAY) + '</button>' +
+          '<button class="adm-icon-btn adm-campaign-rename" type="button" title="Rename">' + ADM_ICON_EDIT + '</button>' +
+          '<button class="adm-icon-btn adm-campaign-delete" type="button" title="Delete">' + ADM_ICON_TRASH + '</button>' +
+        '</td></tr>';
+    }).join('') || '<tr><td colspan="7" class="adm-empty">No campaign links yet - add one above.</td></tr>';
+  }
+
+  var campaignCreateForm = $('admCampaignCreateForm');
+  if (campaignCreateForm) campaignCreateForm.addEventListener('submit', function (e) {
+    e.preventDefault();
+    var codeEl = $('admCampaignCode'), labelEl = $('admCampaignLabel'), msgEl = $('admCampaignCreateMsg');
+    invokeAdminFn('admin-campaign-links', { action: 'create', code: codeEl.value, label: labelEl.value }, 'Could not create campaign.').then(function () {
+      codeEl.value = ''; labelEl.value = ''; if (msgEl) msgEl.textContent = '';
+      logAudit('Created campaign link "' + labelEl.value + '"');
+      return refreshCampaigns();
+    }).catch(function (err) { if (msgEl) msgEl.textContent = err.message || 'Could not create campaign.'; });
+  });
+
+  var campaignsBody = $('admCampaignsBody');
+  if (campaignsBody) campaignsBody.addEventListener('click', function (e) {
+    var tr = e.target.closest('tr'); if (!tr) return;
+    var id = tr.getAttribute('data-id'), code = tr.getAttribute('data-code');
+    var c = CAMPAIGNS.filter(function (x) { return x.id === id; })[0]; if (!c) return;
+
+    if (e.target.closest('.adm-campaign-info')) {
+      openCampaignDetail(c);
+    } else if (e.target.closest('.adm-campaign-toggle')) {
+      invokeAdminFn('admin-campaign-links', { action: 'update', id: id, patch: { active: !c.active } }, 'Could not update campaign.').then(function () {
+        logAudit((c.active ? 'Deactivated' : 'Activated') + ' campaign link "' + c.label + '"');
+        return refreshCampaigns();
+      }).catch(function (err) { alert(err.message || 'Could not update campaign.'); });
+    } else if (e.target.closest('.adm-campaign-rename')) {
+      var newLabel = prompt('Rename campaign link:', c.label);
+      if (newLabel == null || !newLabel.trim() || newLabel === c.label) return;
+      invokeAdminFn('admin-campaign-links', { action: 'update', id: id, patch: { label: newLabel.trim() } }, 'Could not rename campaign.').then(function () {
+        logAudit('Renamed campaign link "' + c.label + '" to "' + newLabel.trim() + '"');
+        return refreshCampaigns();
+      }).catch(function (err) { alert(err.message || 'Could not rename campaign.'); });
+    } else if (e.target.closest('.adm-campaign-delete')) {
+      if (!confirm('Delete the campaign link "' + c.label + '" (?cmp=' + code + ')? This does not affect past orders, only future click tracking.')) return;
+      invokeAdminFn('admin-campaign-links', { action: 'delete', id: id }, 'Could not delete campaign.').then(function () {
+        logAudit('Deleted campaign link "' + c.label + '"');
+        return refreshCampaigns();
+      }).catch(function (err) { alert(err.message || 'Could not delete campaign.'); });
+    }
+  });
+
+  function openCampaignDetail(c) {
+    var overlay = $('admCampaignDetailOverlay'); if (!overlay) return;
+    $('admCampaignDetailTitle').textContent = c.label;
+    $('admCampaignDetailSub').textContent = '?cmp=' + c.code + ' · added ' + fmtDate(new Date(c.createdAt));
+    var rate = c.conversionRate == null ? '—' : (c.conversionRate * 100).toFixed(1) + '%';
+    $('admCampaignDetailStats').innerHTML = [
+      statTile('Clicks', c.clicks.toLocaleString('en-US'), null, ''),
+      statTile('Conversions', c.conversions.toLocaleString('en-US'), null, ''),
+      statTile('Conversion rate', rate, null, ''),
+      statTile('Revenue', usd(c.revenue), null, '')
+    ].join('');
+    $('admCampaignDetailBody').innerHTML = '<tr><td colspan="4" class="adm-empty">Loading…</td></tr>';
+    overlay.hidden = false;
+
+    invokeAdminFn('admin-campaign-links', { action: 'detail', code: c.code }, 'Could not load details.').then(function (d) {
+      var orders = d.orders || [];
+      $('admCampaignDetailBody').innerHTML = orders.map(function (o) {
+        return '<tr><td>' + fmtDate(new Date(o.createdAt)) + '</td><td>' + esc(o.buyer) + '</td><td>' + usd(o.totalUsd) + '</td>' +
+          '<td>' + statusBadge(o.status === 'paid' ? 'completed' : o.status) + '</td></tr>';
+      }).join('') || '<tr><td colspan="4" class="adm-empty">No orders attributed to this link yet.</td></tr>';
+    }).catch(function (err) {
+      $('admCampaignDetailBody').innerHTML = '<tr><td colspan="4" class="adm-empty">' + esc(err.message || 'Could not load details.') + '</td></tr>';
+    });
+  }
+  var campaignDetailClose = $('admCampaignDetailClose');
+  if (campaignDetailClose) campaignDetailClose.addEventListener('click', function () { $('admCampaignDetailOverlay').hidden = true; });
+  var campaignDetailOverlay = $('admCampaignDetailOverlay');
+  if (campaignDetailOverlay) campaignDetailOverlay.addEventListener('click', function (e) { if (e.target === campaignDetailOverlay) campaignDetailOverlay.hidden = true; });
 
   function renderMarketing() {
     var signups = REFERRALS.reduce(function (s, r) { return s + r.signups; }, 0);
@@ -1135,6 +1288,8 @@
     if ($('admMktChannels')) {
       $('admMktChannels').innerHTML = MKT_CHANNELS.map(channelRow).join('');
     }
+
+    renderCampaigns();
 
     if ($('admAdbloxStats')) {
       var adMsg = $('admAdbloxMsg');
@@ -1443,6 +1598,10 @@
      ================================================================ */
   var ADM_ICON_DOWNLOAD = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>';
   var ADM_ICON_KEBAB = '<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><circle cx="12" cy="5" r="1.75"/><circle cx="12" cy="12" r="1.75"/><circle cx="12" cy="19" r="1.75"/></svg>';
+  var ADM_ICON_EDIT = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>';
+  var ADM_ICON_INFO = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>';
+  var ADM_ICON_PAUSE = '<svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>';
+  var ADM_ICON_PLAY = '<svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><path d="M7 4v16l14-8Z"/></svg>';
 
   function purchaseCount(id) {
     return ORDERS.filter(function (o) {
@@ -3784,6 +3943,7 @@
   refreshLiveSessions();
   refreshDiscordStats();
   refreshSocialStats();
+  refreshCampaigns();
   refreshAdbloxStats();
   refreshEmailStats();
   refreshEmailCampaigns();

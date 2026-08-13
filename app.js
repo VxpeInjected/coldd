@@ -3442,7 +3442,9 @@
           if (!res || !res.linked) { linkBlock.hidden = false; return; }
           buyBlock.hidden = false;
           if (robuxOrderId) { renderRobuxItems(); return; }
-          window.coldAuth.invokeFn('create-robux-order', { items: robuxItems }).then(function (data) {
+          var robuxOrderBody = { items: robuxItems };
+          if (window.coldAuth.getCampaignCode()) robuxOrderBody.campaignCode = window.coldAuth.getCampaignCode();
+          window.coldAuth.invokeFn('create-robux-order', robuxOrderBody).then(function (data) {
             robuxOrderId = data.orderId;
             robuxOrderItems = data.items;
             robuxOrderSignature = signature;
@@ -3573,6 +3575,7 @@
 
         var checkoutBody = { items: cartToItems() };
         if (appliedCoupon) checkoutBody.couponCode = appliedCoupon.code;
+        if (window.coldAuth && window.coldAuth.getCampaignCode()) checkoutBody.campaignCode = window.coldAuth.getCampaignCode();
 
         // Only slugs, quantities and a coupon code are ever sent. Both
         // functions re-price the whole cart from the database, so a tampered

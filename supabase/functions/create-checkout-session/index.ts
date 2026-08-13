@@ -33,6 +33,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import Stripe from "https://esm.sh/stripe@17?target=deno";
 import { priceItems, resolveCoupon } from "../_shared/coupon.ts";
+import { resolveCampaignCode } from "../_shared/campaign.ts";
 
 const ALLOWED_ORIGIN = "https://coldd.dev";
 
@@ -96,6 +97,7 @@ Deno.serve(async (req: Request) => {
       }
     }
     const total = Math.max(0, Math.round((subtotal - discount) * 100) / 100);
+    const campaignCode = await resolveCampaignCode(admin, body.campaignCode);
 
     // Create the order + order_items as 'pending' before talking to Stripe,
     // so we have an order_id to hand to Stripe as metadata and correlate on
@@ -109,6 +111,7 @@ Deno.serve(async (req: Request) => {
         discount_usd: discount,
         total_usd: total,
         coupon_code: appliedCouponCode,
+        campaign_code: campaignCode,
       })
       .select()
       .single();

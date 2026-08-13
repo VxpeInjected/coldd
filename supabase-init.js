@@ -94,6 +94,27 @@
     return invokeFn('track-referral-signup', { code: code }).catch(function () {});
   }
 
+  var CAMPAIGN_KEY = 'coldd_campaign_code';
+  // Captures ?cmp=CODE the same way captureReferralClick() captures ?ref= -
+  // a separate query param and separate table on purpose, since campaign
+  // links are admin-managed marketing links (partners, sponsors), not the
+  // user-to-user referral program. Read by checkout at order-creation time
+  // via getCampaignCode(), not attributed to a signed-in profile the way
+  // referrals are, so it works for guest checkouts too.
+  (function captureCampaignClick() {
+    try {
+      var m = /[?&]cmp=([^&]+)/.exec(location.search);
+      if (!m) return;
+      var code = decodeURIComponent(m[1]).trim().toLowerCase();
+      if (!code) return;
+      localStorage.setItem(CAMPAIGN_KEY, code);
+      invokeFn('track-campaign-click', { code: code }).catch(function () {});
+    } catch (e) {}
+  })();
+  function getCampaignCode() {
+    try { return localStorage.getItem(CAMPAIGN_KEY); } catch (e) { return null; }
+  }
+
   function saveProfile(p) { try { localStorage.setItem(PROFILE_KEY, JSON.stringify(p)); } catch (e) {} }
   function getProfile() { try { return JSON.parse(localStorage.getItem(PROFILE_KEY) || 'null'); } catch (e) { return null; } }
   function clearProfile() { try { localStorage.removeItem(PROFILE_KEY); } catch (e) {} }
@@ -174,6 +195,7 @@
     targetGuildId: TARGET_GUILD_ID,
     checkIsAdmin: checkIsAdmin,
     attributeReferral: attributeReferral,
+    getCampaignCode: getCampaignCode,
     signInDiscord: function () {
       var redirectTo = location.origin + '/callback.html';
       client.auth.signInWithOAuth({

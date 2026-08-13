@@ -1823,6 +1823,17 @@ button.dt-badge:disabled { cursor: default; opacity: 0.6; }
 .cb-out:hover { color: var(--fg); }
 .cb-card[data-state="error"] .cb-out { display: inline-flex; }
 
+/* Success state - used by /tiktok-callback.html once a token exchange
+   actually completes, distinct from the error icon's ember/exclamation
+   treatment above. */
+.cb-card[data-state="ok"] .cb-spin { display: none; }
+.cb-icon-ok { display: none; width: 40px; height: 40px; border-radius: var(--r-pill);
+  place-items: center; color: var(--ok); background: var(--ok-tint);
+  border: 1px solid rgba(107,216,138,0.32); }
+.cb-icon-ok svg { width: 21px; height: 21px; }
+.cb-card[data-state="ok"] .cb-icon-ok { display: grid; }
+.cb-card[data-state="ok"] .cb-out { display: inline-flex; }
+
 /* Thank-you page ----------------------------------------------------------
    Reuses the checkout shell, but there is no order summary rail here, so the
    single column centres instead of leaving a 388px hole. */

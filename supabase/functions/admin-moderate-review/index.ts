@@ -8,6 +8,7 @@
 // Body: { id, action: 'approve'|'hide'|'reply', reply? }
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { notifyUser } from "../_shared/notify.ts";
 
 const ALLOWED_ORIGIN = "https://coldd.dev";
 
@@ -63,8 +64,14 @@ Deno.serve(async (req: Request) => {
       update.reply_at = new Date().toISOString();
     }
 
-    const { error: updateErr } = await admin.from("reviews").update(update).eq("id", id);
+    const { data: updated, error: updateErr } = await admin.from("reviews").update(update)
+      .eq("id", id).select("user_id, reply, products(title)").maybeSingle();
     if (updateErr) return json({ ok: false, error: "Could not update review." }, 500);
+
+    if (action === "reply" && update.reply && updated?.user_id) {
+      const productTitle = (updated.products as { title?: string } | null)?.title || "your product";
+      await notifyUser(admin, updated.user_id, "coldd replied to your review", `On ${productTitle}: "${String(update.reply).slice(0, 140)}"`, "/dashboard");
+    }
 
     return json({ ok: true });
   } catch (err) {

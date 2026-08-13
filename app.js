@@ -2273,6 +2273,99 @@
     })();
 
     (function () {
+      var wrap = document.getElementById('notifWrap');
+      var btn = document.getElementById('notifBtn');
+      var panel = document.getElementById('notifPanel');
+      var list = document.getElementById('notifList');
+      var badge = document.getElementById('notifBadge');
+      var markAllBtn = document.getElementById('notifMarkAll');
+      if (!wrap || !btn || !panel || !list || !badge) return;
+
+      function isLoggedIn() { try { return localStorage.getItem('coldd_auth') === 'in'; } catch (e) { return false; } }
+      function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+      function fmtWhen(iso) {
+        var d = new Date(iso), diff = Date.now() - d.getTime();
+        var mins = Math.floor(diff / 60000);
+        if (mins < 1) return 'just now';
+        if (mins < 60) return mins + 'm ago';
+        var hrs = Math.floor(mins / 60);
+        if (hrs < 24) return hrs + 'h ago';
+        var days = Math.floor(hrs / 24);
+        if (days < 7) return days + 'd ago';
+        return d.toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
+      }
+
+      var NOTIFS = [];
+
+      function renderBadge() {
+        var unread = NOTIFS.filter(function (n) { return !n.read_at; }).length;
+        if (unread > 0) { badge.hidden = false; badge.textContent = unread > 99 ? '99+' : String(unread); }
+        else badge.hidden = true;
+      }
+
+      function renderList() {
+        if (!NOTIFS.length) { list.innerHTML = '<p class="notif-empty">No notifications yet.</p>'; return; }
+        list.innerHTML = NOTIFS.map(function (n) {
+          var tag = n.url ? 'a' : 'div';
+          var href = n.url ? ' href="' + esc(n.url) + '"' : '';
+          return '<' + tag + ' class="notif-item' + (n.read_at ? '' : ' unread') + '" data-id="' + esc(n.id) + '"' + href + '>' +
+            '<div class="notif-item-title">' + esc(n.title) + '</div>' +
+            (n.body ? '<div class="notif-item-body">' + esc(n.body) + '</div>' : '') +
+            '<div class="notif-item-date">' + fmtWhen(n.created_at) + '</div>' +
+            '</' + tag + '>';
+        }).join('');
+      }
+
+      function loadNotifs() {
+        if (!window.coldSupabase) return;
+        window.coldSupabase.auth.getSession().then(function (res) {
+          var session = res && res.data && res.data.session;
+          if (!session) { wrap.hidden = true; return; }
+          wrap.hidden = false;
+          return window.coldSupabase.from('notifications').select('*').eq('user_id', session.user.id)
+            .order('created_at', { ascending: false }).limit(50).then(function (r) {
+              if (r.error) { console.error('[coldd] failed to load notifications:', r.error.message); return; }
+              NOTIFS = r.data || [];
+              renderBadge();
+              if (!panel.hidden) renderList();
+            });
+        }).catch(function () {});
+      }
+
+      function markRead(ids) {
+        if (!ids.length || !window.coldSupabase) return Promise.resolve();
+        var now = new Date().toISOString();
+        ids.forEach(function (id) {
+          var n = NOTIFS.filter(function (x) { return x.id === id; })[0];
+          if (n) n.read_at = now;
+        });
+        renderBadge(); renderList();
+        return window.coldSupabase.from('notifications').update({ read_at: now }).in('id', ids).then(function () {});
+      }
+
+      function togglePanel() {
+        panel.hidden = !panel.hidden;
+        if (!panel.hidden) {
+          renderList();
+          var unreadIds = NOTIFS.filter(function (n) { return !n.read_at; }).map(function (n) { return n.id; });
+          if (unreadIds.length) markRead(unreadIds);
+        }
+      }
+
+      btn.addEventListener('click', function (e) { e.preventDefault(); e.stopPropagation(); togglePanel(); });
+      if (markAllBtn) markAllBtn.addEventListener('click', function (e) {
+        e.preventDefault();
+        markRead(NOTIFS.filter(function (n) { return !n.read_at; }).map(function (n) { return n.id; }));
+      });
+      document.addEventListener('click', function (e) {
+        if (!panel.hidden && !e.target.closest('.nav-notif')) panel.hidden = true;
+      });
+      document.addEventListener('keydown', function (e) { if (e.key === 'Escape') panel.hidden = true; });
+
+      loadNotifs();
+    })();
+
+    (function () {
       var KEY = 'coldd_auth';
 
       window.__isLoggedIn = function () { try { return localStorage.getItem(KEY) !== 'out'; } catch (e) { return true; } };

@@ -2768,6 +2768,30 @@ input[type="checkbox"]:focus-visible { outline: 2px solid var(--accent); outline
   display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: #fff;
   background-size: cover; background-position: center; }
 
+/* notification bell + popover (matches notif-* classes built in app.js) */
+.nav-notif { position: relative; }
+.nav-notif[hidden] { display: none; }
+.notif-badge { position: absolute; top: 2px; right: 2px; min-width: 15px; height: 15px; padding: 0 3px; border-radius: 999px;
+  background: var(--accent); color: #fff; font-size: 10px; font-weight: 700; line-height: 15px; text-align: center; pointer-events: none; }
+.notif-badge[hidden] { display: none; }
+.notif-panel { position: absolute; top: calc(100% + 10px); right: 0; width: 320px; max-width: calc(100vw - 32px);
+  max-height: 420px; overflow-y: auto; z-index: 250; background: #0b0b0b; border: 1px solid var(--hairline);
+  border-radius: 12px; padding: 8px; }
+.notif-panel[hidden] { display: none; }
+.notif-panel-head { display: flex; align-items: center; justify-content: space-between; padding: 6px 8px 10px; }
+.notif-panel-head h3 { font-size: 14px; margin: 0; }
+.notif-mark-all { font-size: 11px; color: var(--fg-3); background: none; border: none; cursor: pointer; padding: 0; font-family: inherit; }
+.notif-mark-all:hover { color: var(--fg); }
+.notif-list { display: flex; flex-direction: column; gap: 2px; }
+.notif-item { display: block; padding: 10px 8px; border-radius: 10px; text-decoration: none; color: var(--fg); cursor: pointer; }
+.notif-item:hover { background: rgba(255,255,255,0.05); }
+.notif-item.unread { background: rgba(255,77,68,0.06); }
+.notif-item-title { font-size: 13px; font-weight: 600; }
+.notif-item-body { font-size: 12px; color: var(--fg-2); margin-top: 2px; }
+.notif-item-date { font-size: 11px; color: var(--fg-3); margin-top: 4px; }
+.notif-empty { padding: 26px 8px; text-align: center; font-size: 13px; color: var(--fg-3); }
+@media (max-width: 480px) { .notif-panel { position: fixed; top: 64px; right: 16px; left: 16px; width: auto; } }
+
 /* Identity fields ship empty rather than carrying a fabricated "Kaden R. /
    kaden@example.com", which rendered as a real signed-in user whenever the
    profile fetch had not resolved - or failed. These give the empty state a

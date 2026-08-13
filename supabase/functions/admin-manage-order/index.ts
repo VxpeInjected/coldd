@@ -23,6 +23,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import Stripe from "https://esm.sh/stripe@17?target=deno";
+import { notifyUser } from "../_shared/notify.ts";
 
 const ALLOWED_ORIGIN = "https://coldd.dev";
 
@@ -80,6 +81,7 @@ Deno.serve(async (req: Request) => {
         .update({ status: "paid", paid_at: order.paid_at ?? new Date().toISOString() })
         .eq("id", orderId);
       if (updErr) return json({ ok: false, error: "Could not update the order." }, 500);
+      if (order.user_id) await notifyUser(admin, order.user_id, "Order completed", "Your order has been marked completed - your download is ready.", "/dashboard");
       return json({ ok: true });
     }
 
@@ -95,6 +97,7 @@ Deno.serve(async (req: Request) => {
         .update({ status: "revoked", refund_reason: reason })
         .eq("id", orderId);
       if (updErr) return json({ ok: false, error: "Could not revoke the license." }, 500);
+      if (order.user_id) await notifyUser(admin, order.user_id, "License revoked", reason, "/dashboard");
       return json({ ok: true });
     }
 
@@ -122,6 +125,7 @@ Deno.serve(async (req: Request) => {
       .update({ status: "refunded", refund_reason: reason })
       .eq("id", orderId);
     if (updErr) return json({ ok: false, error: "Refund succeeded on Stripe but the order record could not be updated - check Stripe directly." }, 500);
+    if (order.user_id) await notifyUser(admin, order.user_id, "Order refunded", reason, "/dashboard");
 
     return json({ ok: true });
   } catch (err) {

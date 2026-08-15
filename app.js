@@ -54,6 +54,34 @@
       };
     })();
 
+    // Back to top - mobile only (see .back-to-top's max-width:1100px gate in
+    // styles.css, matching the site's nav breakpoint). Desktop pages are
+    // short enough with a persistent floating nav that this is redundant
+    // there; on mobile the nav collapses into a hamburger with no equivalent
+    // quick return-to-top path.
+    (function () {
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'back-to-top';
+      btn.setAttribute('aria-label', 'Back to top');
+      btn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>';
+      document.body.appendChild(btn);
+
+      var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      var visible = false;
+      function onScroll() {
+        var show = window.scrollY > 600;
+        if (show === visible) return;
+        visible = show;
+        btn.classList.toggle('show', show);
+      }
+      window.addEventListener('scroll', onScroll, { passive: true });
+      onScroll();
+      btn.addEventListener('click', function () {
+        window.scrollTo({ top: 0, behavior: reduceMotion ? 'auto' : 'smooth' });
+      });
+    })();
+
     (function () {
       const KEY = 'coldd_currency';
       const ROBUX_PER_USD = 80;

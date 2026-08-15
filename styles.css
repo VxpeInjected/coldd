@@ -247,7 +247,10 @@
       padding: 7px 13px; border-radius: 10px; transition: color .2s, background .2s; }
     .nav-links a:hover { color: var(--fg); background: rgba(255,255,255,0.06); }
     .nav-search-wrap { display: flex; align-items: center; transition: margin .55s cubic-bezier(0.6,0,0.2,1); }
-    .nav-search { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; flex: 0 0 auto;
+    /* Matches .nav-account's 38px so the search/notif/account icon row reads
+       as one consistent size - it was 32px, 6px smaller than its neighbours,
+       which read as uneven spacing even though the flex gap is identical. */
+    .nav-search { display: inline-flex; align-items: center; justify-content: center; width: 38px; height: 38px; flex: 0 0 auto;
       border-radius: 10px; background: transparent; border: 1px solid transparent;
       color: var(--fg-2); cursor: pointer; transition: color .2s, background .2s; }
     .nav-search:hover, .nav-links.searching .nav-search { color: var(--accent); }
@@ -257,6 +260,9 @@
     .nav-links.searching .nav-search-input { width: 190px; opacity: 1; padding: 6px 11px; background: rgba(255,255,255,0.05); }
     .nav-search-input::placeholder { color: var(--fg-3); }
     .nav-cta { display: flex; align-items: center; gap: 8px; }
+    /* Mobile-only revenue CTA - see the 1100px block below. Desktop already
+       has "Shop" as a real nav-links item, so this stays hidden there. */
+    .nav-shop-mobile { display: none; }
     .nav-cta .btn { min-height: 38px; padding: 9px 16px; font-size: 13px; }
     .menu-btn { display: none; background: rgba(255,255,255,0.06); border: 1px solid var(--hairline);
       color: var(--fg); width: 38px; height: 38px; border-radius: 10px; cursor: pointer; }
@@ -574,6 +580,16 @@
          its neighbours - the "compressed/uneven" look on tablet. Matching
          it to 38px here brings all three controls to one height. */
       .nav-cta .btn { padding: 12px 14px; height: 38px; min-height: 38px; }
+
+      /* Below 1100px "Shop" drops out of the collapsed nav-links entirely,
+         so the only way to reach the catalog is the hamburger panel - on a
+         storefront that's the one link visitors need fastest. Swaps in for
+         the Discord Join button here (which becomes icon-only anyway once
+         its label hides above), rather than adding a fourth control and
+         blowing the header's tight width budget noted below. Discord stays
+         reachable from the footer and the mega-menu banner. */
+      .nav-shop-mobile { display: inline-flex; }
+      .nav-cta > a[href="https://discord.gg/coldd"] { display: none; }
 
       /* Left-anchored rather than centred, so the pill grows away from .tc.
          brand+account+Join+burger (~208px) and currency+cart (~211px) still do
@@ -2258,6 +2274,15 @@ html.js .nr-frame .nr-slide.is-active .nr-cap > :nth-child(3) { animation-delay:
    on every dashboard table and form here. */
 .adm-body { min-height: 100vh; min-height: 100dvh; background: var(--bg); }
 .adm-body .backdrop, .adm-body .scrim { display: none; }
+/* Dashboard content length varies with how much a given account owns
+   (purchase count, wishlist, referrals) - the shared 940px scrim floor
+   only fully resolves to solid --bg by 88% of that height (~827px), so a
+   short account's footer could land inside the still-fading gradient and
+   show the banner's red glow bleeding into it. Account pages read as
+   clean graphite surfaces already (dashboard cards are solid --bg-2/
+   --bg-3), so drop the photography atmosphere entirely here rather than
+   trying to guess a height that works for every account. */
+body.dash-body .backdrop, body.dash-body .scrim { display: none; }
 .adm-gate { position: fixed; inset: 0; z-index: 500; display: flex; align-items: center; justify-content: center; padding: 24px; }
 .adm-gate[hidden] { display: none; }
 .adm-gate-card { max-width: 380px; padding: 40px 32px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 12px; }

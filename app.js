@@ -693,7 +693,19 @@
         mega.style.left = left + 'px';
         mega.style.top = (r.bottom + 12) + 'px';
       }
+      // Mobile Safari fires a synthetic mouseenter on the first tap of any
+      // element with hover listeners (its long-standing hover-before-click
+      // compatibility shim) - so tapping "Shop" inside the mobile hamburger
+      // panel opened this fixed, z-index:150 flyout on top of that panel
+      // instead of just following the link. The desktop hover flyout has no
+      // mobile equivalent (categories there live behind /assets' filter
+      // panel instead), so it should never open without a real hover
+      // device to begin with.
+      function canHover() {
+        return window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+      }
       function open() {
+        if (!canHover()) return;
         const links = document.querySelector('.nav-links');
         if (links && links.classList.contains('searching')) return;
         clearTimeout(hideT); position(); mega.classList.add('open');

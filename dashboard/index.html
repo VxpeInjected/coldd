@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <script>document.documentElement.classList.add('js');</script>
+  <script>document.documentElement.classList.add('js');try{if(localStorage.getItem('coldd_theme')==='light')document.documentElement.setAttribute('data-theme','light');}catch(e){}</script>
   <script>
     // Fast, optimistic pre-check reading the Supabase SDK's own persisted
     // session directly, before the SDK has even loaded - avoids a flash of
@@ -32,7 +32,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
 
-  <link rel="stylesheet" href="/styles.css?v=20260816o" />
+  <link rel="stylesheet" href="/styles.css?v=20260816q" />
 </head>
 <body class="dash-body">
   <div class="backdrop"></div>
@@ -248,6 +248,9 @@
       </section>
       <section class="dash-panel" id="panel-account" hidden>
         <div class="dash-head"><h1>Account settings</h1><p>Update your details, manage security, or close your account.</p></div>
+        <div class="dash-card glass"><div class="dash-card-head"><h2>Appearance</h2></div>
+          <div class="ntf-row"><div class="ntf-text"><div class="ntf-label">Light mode</div><div class="ntf-sub">coldd is dark by default - turn this on for a light theme instead. Only affects your own browser.</div></div><label class="switch"><input type="checkbox" id="themeLightToggle" /><span class="track"></span></label></div>
+        </div>
         <div class="dash-card glass"><div class="dash-card-head"><h2>Change account details</h2></div>
           <form class="auth-form" id="acctForm" novalidate style="max-width:420px;">
             <div class="auth-field" data-for="name"><label for="ac-name">Display name</label><input id="ac-name" name="name" type="text" value="" /><span class="auth-err"></span></div>
@@ -515,6 +518,6 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.2/dist/umd/supabase.min.js" integrity="sha384-B2duOBIryCXbX4eDE4BdJwtNkQMRQde3o6IsjfPW28E6aH1CYE96hHeZRG3zY56O" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script src="/supabase-init.js?v=20260816c"></script>
   <script src="/site-gate.js?v=20260816a"></script>
-  <script src="/catalog.js?v=20260810a" data-then="/app.js?v=20260816g"></script>
+  <script src="/catalog.js?v=20260810a" data-then="/app.js?v=20260816h"></script>
 </body>
 </html>

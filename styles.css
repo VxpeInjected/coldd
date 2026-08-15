@@ -96,6 +96,58 @@
       --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
     }
 
+    /* Opt-in light mode - a per-visitor accessibility/preference setting
+       (dashboard > Settings), OFF by default, not a second brand identity.
+       DESIGN.md's "committed dark system" rule is about not designing two
+       parallel visual worlds; this is one token layer re-pointed for anyone
+       who explicitly asks for it. Same variable names, same structural
+       relationships (surfaces step up by getting *brighter* toward the
+       viewer in both themes), so every rule elsewhere in this file that
+       already uses var(--bg-3) etc. themes for free with zero changes.
+       Status/price colors are darkened here specifically because they
+       carry real text - the dark-mode values are legible as bright text on
+       near-black but fail contrast as the same bright value on near-white. */
+    html[data-theme="light"] {
+      --bg: #f1f2f5;
+      --bg-2: #ffffff;
+      --bg-3: #fbfbfd;
+
+      --glass-top: rgba(0,0,0,0.035);
+      --glass-bot: rgba(0,0,0,0.014);
+      --hairline: rgba(0,0,0,0.09);
+      --hairline-strong: rgba(0,0,0,0.16);
+
+      --fg: #15161b;
+      --fg-1: #2b2e35;
+      --fg-2: #565c68;
+      --fg-3: #6b7280;
+
+      --price: #16794a;
+      --star: #d69c1f;
+      --ok: #1f8a4c;
+      --ok-tint: rgba(31,138,76,0.12);
+      --warn: #9a6b06;
+      --warn-tint: rgba(154,107,6,0.12);
+      --info: #2a6fd1;
+      --info-tint: rgba(42,111,209,0.1);
+      --warn-line: rgba(154,107,6,0.25);
+    }
+    @media (prefers-color-scheme: light) {
+      /* No system-preference auto-switch: dark stays the default even on a
+         light-OS device unless the visitor opts in explicitly (see above).
+         This block intentionally does nothing - it exists so a future
+         change here is a deliberate decision, not an oversight. */
+    }
+    /* .backdrop/.scrim are hardcoded dark literals (a moody banner.jpg blur
+       plus a near-black gradient) - the "Late-Night Workshop" atmosphere
+       DESIGN.md describes, and it doesn't invert. Left on, hero text sits
+       on a dark photo while the rest of the page is light. Light mode
+       drops the atmosphere and shows a flat var(--bg) hero instead. */
+    html[data-theme="light"] .backdrop,
+    html[data-theme="light"] .scrim {
+      display: none;
+    }
+
     * { box-sizing: border-box; }
     html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; scroll-padding-top: 84px; }
 
@@ -2245,6 +2297,7 @@ html.js .ref-method-btn:focus-visible { outline: 2px solid var(--accent); outlin
 .hero-h1 .hl { color: var(--accent); display: inline-block; transition: opacity .35s ease; }
 .hero-h1 .hl.hl-fade { opacity: 0; }
 .hero-h1 .hl.hl-minecraft { color: #6cc25c; }
+html[data-theme="light"] .hero-h1 .hl.hl-minecraft { color: #2e7d32; }
 .hero-sub { font-size: var(--t-lead); color: var(--fg-1); line-height: 1.62; max-width: 520px; margin: 20px 0 0; }
 .hero-copy .hero-cta { display: flex; justify-content: flex-start; gap: 12px; flex-wrap: wrap; margin-top: 30px; }
 .hero-copy .hero-cta .btn { min-height: 50px; padding: 0 30px; font-size: 15px; }

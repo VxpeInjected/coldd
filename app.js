@@ -54,6 +54,27 @@
       };
     })();
 
+    // Light mode toggle (dashboard > Appearance). The actual theme
+    // application happens in an early inline <head> script on every page
+    // (reads localStorage before paint, sets data-theme on <html>) so there
+    // is no flash of the wrong theme on pages other than dashboard; this
+    // block only has to sync the checkbox and handle live changes.
+    (function () {
+      var KEY = 'coldd_theme';
+      var toggle = document.getElementById('themeLightToggle');
+      if (!toggle) return;
+      toggle.checked = document.documentElement.getAttribute('data-theme') === 'light';
+      toggle.addEventListener('change', function () {
+        if (toggle.checked) {
+          document.documentElement.setAttribute('data-theme', 'light');
+          try { localStorage.setItem(KEY, 'light'); } catch (e) {}
+        } else {
+          document.documentElement.removeAttribute('data-theme');
+          try { localStorage.removeItem(KEY); } catch (e) {}
+        }
+      });
+    })();
+
     // Back to top - mobile only (see .back-to-top's max-width:1100px gate in
     // styles.css, matching the site's nav breakpoint). Desktop pages are
     // short enough with a persistent floating nav that this is redundant

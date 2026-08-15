@@ -268,7 +268,7 @@ Everything that looks like an icon is drawn. Stars are authored SVG, arrows and 
 - Selection is a neutral fill plus a weight step, never a coloured side-tab
 - Archivo on a whole-pixel ramp — integer sizes only, 11px floor
 - Cards lift 2px on hover; buttons never lift, they change fill
-- No light mode — a committed dark system, not a dark variant of a light one
+- No light mode as a default or system-preference auto-switch — dark is the committed identity, not a dark variant of a light one. A per-visitor opt-in light theme exists as an accessibility/preference toggle (dashboard → Appearance, off by default, `html[data-theme="light"]` token overrides in `styles.css`); it re-points the same tokens rather than designing a second visual world, and the atmospheric photo backdrop is dropped rather than adapted since it doesn't invert.
 
 ## Colors
 
@@ -533,7 +533,7 @@ Do not add a ninth without the same justification, and never animate width or he
 - **Don't** author an entrance animation whose resting state is invisible outside the `html.js` scope.
 - **Don't** use Minecraft Green, Price Green and Success Green interchangeably, or invent a fourth green.
 - **Don't** introduce a border colour beyond Hairline and Hairline Strong.
-- **Don't** add a light mode or a second theme. This is a committed single dark system.
+- **Don't** default to light mode, auto-switch on system `prefers-color-scheme`, or design light mode as a second brand identity. The one sanctioned exception is the opt-in `data-theme="light"` toggle in dashboard Appearance settings — off by default, same tokens re-pointed, no new components.
 
 ### Cookie Consent Bar
 

@@ -120,13 +120,25 @@
          sits behind. Pushed to 14px so it reads as depth, not as content. */
       filter: blur(14px); }
 
+    /* The 88% stop this used to resolve at was tuned against desktop's
+       taller hero lead-in. banner.jpg has real warm/red content in its
+       lower third, and at 58%-88% the scrim only darkens it to 86% opacity
+       - on mobile the hero+copy above the first section is short enough
+       (measured ~885px down the document at 375px wide) that the next
+       panel starts only ~20px past where the gradient finally goes fully
+       opaque, so a visible red line from the photo showed through right
+       behind that panel's heading. Resolving to solid --bg by 68% instead
+       gives a real margin regardless of viewport, and the extra 40px of
+       height (plain solid --bg past that point) guards against
+       filter:blur() bleeding a soft edge past .backdrop's own box, which
+       isn't clipped by the box the way overflow:hidden would clip it. */
     .scrim { position: absolute; top: 0; left: 0; width: 100%;
-      height: max(104vh, 940px); z-index: -3; pointer-events: none;
+      height: calc(max(104vh, 940px) + 40px); z-index: -3; pointer-events: none;
       background: linear-gradient(180deg,
         rgba(17,18,22,0.52) 0%,
-        rgba(17,18,22,0.62) 30%,
-        rgba(19,20,25,0.86) 58%,
-        var(--bg) 88%); }
+        rgba(17,18,22,0.62) 24%,
+        rgba(19,20,25,0.86) 45%,
+        var(--bg) 68%); }
 
     /* Retired atmosphere: animated blur blobs, the red radial wash and the grain
        overlay. Kept as no-ops so pages still carrying the markup render clean. */
@@ -1011,8 +1023,14 @@
     background: none; border: none; box-shadow: none; backdrop-filter: none;
     -webkit-backdrop-filter: none; border-radius: 0; padding: 22px 20px 24px;
   }
+  /* The sheet itself only covers the bottom 82vh, so whatever the page
+     happened to be scrolled to stays visible in the top ~18vh behind the
+     scrim. At 0.6 alpha that sliver read as a distracting half-lit "gap"
+     rather than a dimmed backdrop, especially over the homepage/shop's
+     red banner glow - darkened so the page behind reads as backdrop, not
+     as a layout hole. */
   html.js .shop-filters-scrim {
-    position: fixed; inset: 0; z-index: 300; background: rgba(6,7,10,0.6);
+    position: fixed; inset: 0; z-index: 300; background: rgba(6,7,10,0.86);
     backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px);
   }
   html.js .shop-filters-done {

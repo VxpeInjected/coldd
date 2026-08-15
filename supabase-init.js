@@ -164,6 +164,14 @@
 
   }
 
+  // Returns the promise chain (callers must return/await it) - every
+  // caller used to fire this and resolve immediately, so a fast
+  // isEmailVerified() round trip could win the race and redirect to
+  // /dashboard before saveProfile() ever ran. That left coldd_profile
+  // unset in localStorage: applyProfile() found nothing to apply, so the
+  // account menu and dashboard rendered a bare "?" avatar with no name
+  // even though the real session (and the purchase history it drives)
+  // was completely valid - not a data leak, just a lost race.
   function upsertBasicProfile(user) {
     var email = user.email || '';
     var derivedName = (user.user_metadata && (user.user_metadata.username || user.user_metadata.full_name || user.user_metadata.name)) || (email ? email.split('@')[0] : 'Member');
@@ -171,18 +179,18 @@
     // who customized their display name via Account Settings must not have
     // it silently reverted to their OAuth/email-derived name on every
     // future sign-in.
-    client.from('profiles').select('username').eq('id', user.id).maybeSingle().then(function (existingRes) {
+    return client.from('profiles').select('username').eq('id', user.id).maybeSingle().then(function (existingRes) {
       var existingName = existingRes && existingRes.data ? existingRes.data.username : null;
       var name = existingName || derivedName;
       var payload = { id: user.id, email: email, updated_at: new Date().toISOString() };
       if (!existingName) payload.username = derivedName;
-      client.from('profiles').upsert(payload).then(function (res) {
-        if (res.error) console.warn('[coldd] profile upsert failed:', res.error.message);
-        else attributeReferral();
-      });
       var profile = { id: user.id, provider: 'email', name: name, email: email, avatar: '' };
       saveProfile(profile);
       try { localStorage.setItem(AUTH_KEY, 'in'); } catch (e) {}
+      return client.from('profiles').upsert(payload).then(function (res) {
+        if (res.error) console.warn('[coldd] profile upsert failed:', res.error.message);
+        else attributeReferral();
+      });
     });
   }
 
@@ -273,8 +281,8 @@
       return client.functions.invoke('email-otp', { body: { action: 'verify', code: code } }).then(function (res) {
         if (!res.error && res.data && res.data.ok) {
           return client.auth.getUser().then(function (r) {
-            if (r.data && r.data.user) upsertBasicProfile(r.data.user);
-            return res;
+            if (!r.data || !r.data.user) return res;
+            return upsertBasicProfile(r.data.user).then(function () { return res; });
           });
         }
         return res;
@@ -282,8 +290,8 @@
     },
     signInEmail: function (email, password) {
       return client.auth.signInWithPassword({ email: email, password: password }).then(function (res) {
-        if (!res.error && res.data && res.data.user) upsertBasicProfile(res.data.user);
-        return res;
+        if (res.error || !res.data || !res.data.user) return res;
+        return upsertBasicProfile(res.data.user).then(function () { return res; });
       });
     },
     isEmailVerified: function () {
@@ -306,8 +314,8 @@
       return client.auth.verifyOtp({ email: email, token: code, type: 'recovery' }).then(function (res) {
         if (res.error) return res;
         return client.auth.updateUser({ password: newPassword }).then(function (upRes) {
-          if (!upRes.error && res.data && res.data.user) upsertBasicProfile(res.data.user);
-          return upRes;
+          if (upRes.error || !res.data || !res.data.user) return upRes;
+          return upsertBasicProfile(res.data.user).then(function () { return upRes; });
         });
       });
     },

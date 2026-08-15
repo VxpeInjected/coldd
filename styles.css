@@ -2222,19 +2222,22 @@ html.js .ref-method-btn:focus-visible { outline: 2px solid var(--accent); outlin
 .hero-copy .hero-cta .btn { min-height: 50px; padding: 0 30px; font-size: 15px; }
 /* Hero platform pair neutralised to grey - same reasoning as the .btn-tinted
    buy-pair rule above: red Roblox next to green Minecraft was two competing
-   brand colours fighting the ember accent for attention above the fold. */
+   brand colours fighting the ember accent for attention above the fold.
+   Solid var(--bg-3), not a translucent rgba fill - a see-through tint over
+   the hero art is exactly the glassmorphism look the rest of the site just
+   dropped, so this stays flat and opaque like everything else. */
 .hero-copy .hero-cta .btn-primary,
 .hero-copy .hero-cta .btn-minecraft {
-  color: var(--fg); background: rgba(255,255,255,0.07);
+  color: var(--fg); background: var(--bg-3);
   border-color: var(--hairline-strong); box-shadow: none;
 }
 .hero-copy .hero-cta .btn-primary:hover,
 .hero-copy .hero-cta .btn-minecraft:hover {
-  background: rgba(255,255,255,0.12); border-color: rgba(255,255,255,0.26); color: #fff;
+  background: #2a2d35; border-color: rgba(255,255,255,0.26); color: #fff;
 }
 .hero-copy .hero-cta .btn-primary:active,
 .hero-copy .hero-cta .btn-minecraft:active {
-  background: rgba(255,255,255,0.09);
+  background: var(--bg-3);
 }
 /* Read as a sentence of facts on one baseline, not as a stat-card row. The
    stacked big-number-over-tiny-uppercase-label arrangement is the generated

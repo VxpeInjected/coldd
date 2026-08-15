@@ -8,10 +8,15 @@
 // a general admin action). TikTok's Login Kit isn't a Supabase Auth
 // provider, so this is a hand-rolled authorization-code exchange:
 // /tiktok-callback.html sends the ?code TikTok redirected back with,
-// this function trades it for an access token server-side (the client
-// secret must never reach the browser), and returns the token to the
-// caller for one-time display - it is NOT persisted anywhere. The admin
-// copies it and it gets set as the TIKTOK_ACCESS_TOKEN secret by hand.
+// this function trades it for an access/refresh token server-side (the
+// client secret must never reach the browser) and then writes those
+// tokens straight into TIKTOK_ACCESS_TOKEN / TIKTOK_REFRESH_TOKEN via the
+// Supabase Management API - the browser only ever sees { ok: true }.
+//
+// Requires a SUPABASE_MANAGEMENT_TOKEN secret: a personal access token
+// from supabase.com/dashboard/account/tokens, scoped to this project.
+// Setting secrets this way redeploys every function in the project
+// (normal Supabase behaviour), so expect a short blip after connecting.
 //
 // Body: { code, redirectUri }
 
@@ -85,14 +90,27 @@ Deno.serve(async (req: Request) => {
       return json({ ok: false, error: data.error_description || data.error || "TikTok rejected the exchange." }, 502);
     }
 
-    return json({
-      ok: true,
-      accessToken: data.access_token,
-      refreshToken: data.refresh_token,
-      expiresIn: data.expires_in,
-      openId: data.open_id,
-      scope: data.scope,
+    const managementToken = Deno.env.get("SUPABASE_MANAGEMENT_TOKEN");
+    if (!managementToken) {
+      return json({ ok: false, error: "SUPABASE_MANAGEMENT_TOKEN secret is not set. Create a personal access token at supabase.com/dashboard/account/tokens, set it as that secret, then retry - TikTok tokens are never shown in the browser." }, 400);
+    }
+
+    const projectRef = new URL(supabaseUrl).hostname.split(".")[0];
+    const secretsRes = await fetch(`https://api.supabase.com/v1/projects/${projectRef}/secrets`, {
+      method: "POST",
+      headers: { "Authorization": `Bearer ${managementToken}`, "Content-Type": "application/json" },
+      body: JSON.stringify([
+        { name: "TIKTOK_ACCESS_TOKEN", value: data.access_token },
+        { name: "TIKTOK_REFRESH_TOKEN", value: data.refresh_token || "" },
+      ]),
     });
+    if (!secretsRes.ok) {
+      const errText = await secretsRes.text().catch(() => "");
+      console.error("[tiktok-oauth-exchange] failed to store secrets:", secretsRes.status, errText);
+      return json({ ok: false, error: "TikTok authorized, but saving the token as a secret failed. Check function logs." }, 502);
+    }
+
+    return json({ ok: true, expiresIn: data.expires_in, openId: data.open_id, scope: data.scope });
   } catch (err) {
     console.error("[tiktok-oauth-exchange] error:", err);
     return json({ ok: false, error: "Server error." }, 500);

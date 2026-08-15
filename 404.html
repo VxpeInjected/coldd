@@ -2,6 +2,18 @@
 <html lang="en">
 <head>
   <script>document.documentElement.classList.add('js');</script>
+  <script>
+    // Static hosting serves this file's content for ANY unmatched path
+    // without changing the address bar - a visitor who lands here from a
+    // stale/broken link sees "Page Not Found" but the URL still reads
+    // whatever bad path got them here. Rewrites it to the canonical /404
+    // once the content has already loaded (replaceState, not a real
+    // navigation, so there's no reload/flash) - the browser's Back button
+    // still returns to wherever they actually came from.
+    if (location.pathname !== '/404') {
+      history.replaceState(null, '', '/404' + location.search);
+    }
+  </script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Page Not Found - coldd Development</title>

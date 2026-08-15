@@ -3425,7 +3425,7 @@
       message: msg ? msg.value.trim() : '',
       endsAt: ends && ends.value ? new Date(ends.value).toISOString() : null
     };
-    if (siteMode === 'locked' && !confirm('Lock the entire site? Nobody - including admins - will be able to get in without the shared lock.html password until you unlock it.')) return;
+    if (siteMode === 'locked' && !confirm('Lock the entire site? Nobody - including admins - will be able to get in without the shared /lock password until you unlock it.')) return;
     admSiteSaveBtn.disabled = true;
     invokeAdminFn('admin-set-site-status', payload, 'Could not update site status.').then(function () {
       logAudit('Set site access to ' + siteMode);

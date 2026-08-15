@@ -15,7 +15,7 @@
   // Never gate the shared-password unlock page itself, or the admin
   // panel (which has its own Discord-whitelist gate and needs to stay
   // reachable so an admin can turn maintenance/locked mode back off).
-  if (path === '/lock.html' || path.indexOf('/admin') === 0) return;
+  if (path === '/lock' || path === '/lock.html' || path.indexOf('/admin') === 0) return;
 
   function fmtCountdown(ms) {
     if (ms <= 0) return 'Back shortly';
@@ -127,7 +127,7 @@
       var alreadyUnlocked = false;
       try { alreadyUnlocked = sessionStorage.getItem('coldd_unlocked') === '1'; } catch (e) {}
       if (alreadyUnlocked) return;
-      location.replace('/lock.html?r=' + encodeURIComponent(path + location.search));
+      location.replace('/lock?r=' + encodeURIComponent(path + location.search));
       return;
     }
 

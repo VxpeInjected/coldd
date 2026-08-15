@@ -1694,6 +1694,7 @@
         if (!pv) return;
         var $ = function (id) { return document.getElementById(id); };
         var pdImg = $('pdImg'), pdThumbs = $('pdThumbs'), pdSale = $('pdSale');
+        var pdImgPrev = $('pdImgPrev'), pdImgNext = $('pdImgNext');
         var pdVideo = $('pdVideo'), pdVideoFrame = $('pdVideoFrame');
         var pdCrumb = $('pdCrumb'), pdTitle = $('pdTitle'), pdSub = $('pdSub');
         var pdPrice = $('pdPrice'), pdPriceWas = $('pdPriceWas'), pdPriceRbx = $('pdPriceRbx'), pdPriceNote = $('pdPriceNote');
@@ -1708,6 +1709,8 @@
         var licBtns = pv.querySelectorAll('#pdLicence .pm-lic');
         var licPriceEls = pv.querySelectorAll('#pdLicence [data-licprice]');
         var cur = null;
+        var curGallery = [];
+        var curIdx = 0;
 
         function hsh(s) { var h = 5381; for (var i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) >>> 0; return h; }
         function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
@@ -1798,7 +1801,23 @@
           pdThumbs && pdThumbs.querySelectorAll('.pd-thumb').forEach(function (t) {
             t.classList.toggle('active', t.getAttribute('data-src') === src);
           });
+          // Tracked separately from pdImg.src, which the browser resolves to
+          // an absolute URL - it would never match curGallery's raw strings
+          // on the next lookup, so indexOf(pdImg.src) silently broke cycling
+          // after the first step.
+          var idx = curGallery.indexOf(src);
+          if (idx >= 0) curIdx = idx;
+          var multi = curGallery.length > 1;
+          if (pdImgPrev) pdImgPrev.hidden = !multi;
+          if (pdImgNext) pdImgNext.hidden = !multi;
         }
+        function stepMain(dir) {
+          if (curGallery.length < 2) return;
+          curIdx = (curIdx + dir + curGallery.length) % curGallery.length;
+          setMain(curGallery[curIdx]);
+        }
+        if (pdImgPrev) pdImgPrev.addEventListener('click', function () { stepMain(-1); });
+        if (pdImgNext) pdImgNext.addEventListener('click', function () { stepMain(1); });
         function gallery(p) {
           var imgs = p.image ? [p.image] : [];
           if (Array.isArray(p.gallery) && p.gallery.length) {
@@ -2003,6 +2022,7 @@
           if (pdSub) pdSub.textContent = p.desc || '';
 
           var g = gallery(p);
+          curGallery = g;
           if (pdThumbs) {
             pdThumbs.innerHTML = '';
             if (g.length > 1) g.forEach(function (src) {
@@ -3404,7 +3424,7 @@
         if (!settle) return;
         settle.textContent = onUsd
           ? 'Every method settles the same ' + usd + ' USD. Robux and crypto are converted at the time you pay.'
-          : 'Shown in ' + code + ' for reference only — every method settles the same ' + usd + ' USD, and your bank sets the final ' + code + ' rate.';
+          : 'Shown in ' + code + ' for reference only. Every method settles the same ' + usd + ' USD, and your bank sets the final ' + code + ' rate.';
       }
       function render() {
         renderItems(); renderTotals(); updateResell();
@@ -3777,13 +3797,13 @@
               // Crypto sits in "pending" for real minutes while the network
               // confirms, so say that rather than leaving a blank wait.
               if (cryptoOrderIdParam && subEl) {
-                subEl.textContent = 'Waiting for the network to confirm your payment. This usually takes a few minutes — you can close this page, your order will still complete.';
+                subEl.textContent = 'Waiting for the network to confirm your payment. This usually takes a few minutes; you can close this page and your order will still complete.';
               }
               setTimeout(function () { poll(triesLeft - 1); }, 1500);
             } else if (subEl) {
               subEl.textContent = cryptoOrderIdParam
-                ? 'Still confirming on the network. Your order will complete automatically once it lands — check your dashboard shortly.'
-                : 'Still finalizing your payment — check the Download Centre in your dashboard shortly.';
+                ? 'Still confirming on the network. Your order will complete automatically once it lands; check your dashboard shortly.'
+                : 'Still finalizing your payment; check the Download Centre in your dashboard shortly.';
             }
           })
           .catch(function () {

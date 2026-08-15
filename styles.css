@@ -625,7 +625,12 @@
          itself so the icon keeps balanced spacing instead of sitting
          flush against the left edge. */
       .cart-fab-sep { display: none; }
-      .cart-fab { padding-left: 11px; }
+      /* .tc > .cart-fab (not just .cart-fab) so this beats the later,
+         higher-in-source-order unconditional `.cart-fab { padding: 0 11px 0
+         0; }` base rule at equal specificity - without the extra parent
+         selector the cascade fell back to that rule's padding-left: 0 and
+         the icon sat flush against the pill's left edge. */
+      .tc > .cart-fab { padding-left: 11px; }
       .nav-links.mobile-open .cur-switch { display: inline-flex; align-self: flex-start; margin-top: 22px; }
 
       /* Mobile nav menu - .menu-btn previously had no JS wired to it at all,
@@ -1035,7 +1040,12 @@
     background: var(--bg-2); border-bottom: 1px solid var(--hairline);
     border-radius: 0 0 var(--r) var(--r);
     box-shadow: 0 30px 80px -30px var(--ink-85);
-    padding: env(safe-area-inset-top) 0 0;
+    /* Bottom padding, not just the done button's own margin: a sticky
+       child's trailing margin isn't reserved by an overflow:auto ancestor
+       unless the ancestor's own box makes room for it, so without this the
+       "Show N results" button rendered flush against the scroll edge with
+       its bottom margin clipped off. */
+    padding: env(safe-area-inset-top) 0 16px;
   }
   html.js .shop-side.open { transform: translateY(0); }
   html.js .shop-side .filter-card {
@@ -1054,7 +1064,7 @@
   }
   html.js .shop-filters-done {
     display: block;
-    position: sticky; bottom: 0; width: calc(100% - 40px); margin: 4px 20px 16px;
+    position: sticky; bottom: 0; width: calc(100% - 40px); margin: 4px 20px 0;
     min-height: 46px; font-family: inherit; font-size: 14px; font-weight: 700;
     color: #fff; background: var(--accent-deep); border: 1px solid transparent;
     border-radius: 10px; cursor: pointer;
@@ -1258,6 +1268,24 @@ body.no-scroll { overflow: hidden; }
 .pd-main img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .pd-sale { position: absolute; left: 16px; top: 16px; z-index: 3; font-size: 12px; font-weight: 800; letter-spacing: 0.04em;
   text-transform: uppercase; color: #fff; background: #1f9c53; padding: 6px 12px; border-radius: 10px; }
+/* Prev/next controls for the main product image. Hidden entirely when the
+   gallery has one image (app.js). Same drawn-arrow geometry as .lnk-arrow
+   elsewhere, just sized up and given a solid neutral disc so it reads over
+   any photo. Always visible, not hover-only - the gallery is the one place
+   the arrow *is* the interaction, and touch has no hover to reveal it. */
+.pd-img-nav { position: absolute; top: 50%; z-index: 3; width: 38px; height: 38px; margin-top: -19px;
+  border-radius: 50%; border: 1px solid var(--hairline); background: var(--ink-60); cursor: pointer;
+  transition: background .15s var(--ease), border-color .15s var(--ease); }
+.pd-img-nav::after { content: ""; display: block; width: 20px; height: 20px; margin: 9px auto 0;
+  background-color: #fff; -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
+  -webkit-mask-position: center; mask-position: center; -webkit-mask-size: 20px; mask-size: 20px; }
+.pd-img-prev { left: 12px; }
+.pd-img-prev::after { -webkit-mask-image: var(--ico-arrow-l); mask-image: var(--ico-arrow-l); }
+.pd-img-next { right: 12px; }
+.pd-img-next::after { -webkit-mask-image: var(--ico-arrow-r); mask-image: var(--ico-arrow-r); }
+@media (hover: hover) and (pointer: fine) {
+  .pd-img-nav:hover { background: var(--ink-75); border-color: var(--hairline-strong); }
+}
 .pd-thumbs { display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
 .pd-thumb { width: 96px; height: 62px; border-radius: 10px; background-size: cover; background-position: center;
   cursor: pointer; border: 2px solid var(--hairline); opacity: 0.9; transition: opacity .15s var(--ease), border-color .15s var(--ease); }

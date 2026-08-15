@@ -2980,6 +2980,14 @@
       importReviewResults.hidden = true;
     }
   });
+  var importReviewStarsDropdown = makeDropdown($('admImportReviewStarsDD'), { valueInput: $('admImportReviewStars') });
+  importReviewStarsDropdown.setOptions([
+    { value: '5', label: '★★★★★ (5)' }, { value: '4', label: '★★★★ (4)' }, { value: '3', label: '★★★ (3)' },
+    { value: '2', label: '★★ (2)' }, { value: '1', label: '★ (1)' }
+  ], '5');
+  var importReviewPlatformDropdown = makeDropdown($('admImportReviewPlatformDD'), { valueInput: $('admImportReviewPlatform') });
+  importReviewPlatformDropdown.setOptions(['BuiltByBit', 'ClearlyDev', 'Discord', 'Creator Store', 'Other'], 'BuiltByBit');
+
   var importReviewForm = $('admImportReviewForm');
   if (importReviewForm) importReviewForm.addEventListener('submit', function (e) {
     e.preventDefault();
@@ -2996,6 +3004,7 @@
     invokeAdminFn('admin-import-review', body, 'Could not import review.').then(function () {
       logAudit('Imported a ' + body.platform + ' review for "' + importReviewSearch.value + '"');
       importReviewForm.reset(); importReviewSlugInput.value = '';
+      importReviewStarsDropdown.setValue('5'); importReviewPlatformDropdown.setValue('BuiltByBit');
       if (msgEl) { msgEl.className = 'co-msg show'; msgEl.textContent = 'Review imported and published.'; }
       return refreshReviews();
     }).catch(function (err) {
@@ -3636,10 +3645,12 @@
         '</td></tr>';
     }).join('') || '<tr><td colspan="6" class="adm-empty">No posts yet.</td></tr>';
   }
+  var postCategoryDropdown = makeDropdown($('admNewPostCategoryDD'), { valueInput: $('admNewPostCategory') });
+  postCategoryDropdown.setOptions(['Devlog', 'Studio News', 'Craft'], 'Devlog');
   function fillPostForm(p) {
     $('admPostEditId').value = p.id;
     $('admNewPostTitle').value = p.title;
-    $('admNewPostCategory').value = p.category;
+    postCategoryDropdown.setValue(p.category);
     $('admNewPostAuthor').value = p.author;
     $('admNewPostDate').value = p.date;
     $('admNewPostCover').value = p.cover;
@@ -3653,6 +3664,7 @@
   }
   function resetPostForm() {
     $('admAddPostForm').reset();
+    postCategoryDropdown.setValue('Devlog');
     $('admPostEditId').value = '';
     $('admPostFormTitle').textContent = 'Add post';
     $('admPostFormSubmit').textContent = 'Add post';
@@ -3747,12 +3759,18 @@
         '</td></tr>';
     }).join('') || '<tr><td colspan="7" class="adm-empty">No tutorials yet.</td></tr>';
   }
+  var tutTrackDropdown = makeDropdown($('admNewTutTrackDD'), { valueInput: $('admNewTutTrack') });
+  tutTrackDropdown.setOptions(['Scripting', 'Building', 'Server Setup'], 'Scripting');
+  var tutDifficultyDropdown = makeDropdown($('admNewTutDifficultyDD'), { valueInput: $('admNewTutDifficulty') });
+  tutDifficultyDropdown.setOptions(['Beginner', 'Intermediate', 'Advanced'], 'Beginner');
+  var tutPlatformDropdown = makeDropdown($('admNewTutPlatformDD'), { valueInput: $('admNewTutPlatform') });
+  tutPlatformDropdown.setOptions(['Roblox', 'Minecraft', 'Both'], 'Roblox');
   function fillTutForm(t) {
     $('admTutEditId').value = t.id;
     $('admNewTutTitle').value = t.title;
-    $('admNewTutTrack').value = t.track;
-    $('admNewTutDifficulty').value = t.difficulty;
-    $('admNewTutPlatform').value = t.platform;
+    tutTrackDropdown.setValue(t.track);
+    tutDifficultyDropdown.setValue(t.difficulty);
+    tutPlatformDropdown.setValue(t.platform);
     $('admNewTutOrder').value = t.order;
     $('admNewTutCover').value = t.cover;
     $('admNewTutVideo').value = t.video || '';
@@ -3766,6 +3784,7 @@
   }
   function resetTutForm() {
     $('admAddTutForm').reset();
+    tutTrackDropdown.setValue('Scripting'); tutDifficultyDropdown.setValue('Beginner'); tutPlatformDropdown.setValue('Roblox');
     $('admTutEditId').value = '';
     $('admTutFormTitle').textContent = 'Add tutorial';
     $('admTutFormSubmit').textContent = 'Add tutorial';
@@ -3859,10 +3878,12 @@
         '</td></tr>';
     }).join('') || '<tr><td colspan="6" class="adm-empty">No releases yet.</td></tr>';
   }
+  var relKindDropdown = makeDropdown($('admNewRelKindDD'), { valueInput: $('admNewRelKind') });
+  relKindDropdown.setOptions(['Feature', 'Fix', 'Announcement'], 'Feature');
   function fillRelForm(r) {
     $('admRelEditId').value = r.id;
     $('admNewRelVersion').value = r.version || '';
-    $('admNewRelKind').value = r.kind;
+    relKindDropdown.setValue(r.kind);
     $('admNewRelTitle').value = r.title;
     $('admNewRelDate').value = r.date;
     $('admNewRelAffects').value = (r.affects || []).join(', ');
@@ -3874,6 +3895,7 @@
   }
   function resetRelForm() {
     $('admAddRelForm').reset();
+    relKindDropdown.setValue('Feature');
     $('admRelEditId').value = '';
     $('admRelFormTitle').textContent = 'Add release';
     $('admRelFormSubmit').textContent = 'Add release';

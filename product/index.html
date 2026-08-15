@@ -32,7 +32,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
 
-  <link rel="stylesheet" href="/styles.css?v=20260816m" />
+  <link rel="stylesheet" href="/styles.css?v=20260816n" />
 </head>
 <body>
   <div class="backdrop"></div>
@@ -139,7 +139,10 @@
       <div class="pd-grid">
         <div class="pd-left">
           <div class="pd-gallery">
-            <div class="pd-main"><span class="pd-sale" id="pdSale" hidden>Sale</span><img id="pdImg" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="" decoding="async" /></div>
+            <div class="pd-main"><span class="pd-sale" id="pdSale" hidden>Sale</span><img id="pdImg" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="" decoding="async" />
+              <button class="pd-img-nav pd-img-prev" id="pdImgPrev" type="button" aria-label="Previous image" hidden></button>
+              <button class="pd-img-nav pd-img-next" id="pdImgNext" type="button" aria-label="Next image" hidden></button>
+            </div>
             <div class="pd-thumbs" id="pdThumbs"></div>
           </div>
           <div class="pd-video" id="pdVideo" hidden>
@@ -403,6 +406,6 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.2/dist/umd/supabase.min.js" integrity="sha384-B2duOBIryCXbX4eDE4BdJwtNkQMRQde3o6IsjfPW28E6aH1CYE96hHeZRG3zY56O" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script src="/supabase-init.js?v=20260816c"></script>
   <script src="/site-gate.js?v=20260816a"></script>
-  <script src="/catalog.js?v=20260810a" data-then="/reviews.js?v=20260729a,/app.js?v=20260816e"></script>
+  <script src="/catalog.js?v=20260810a" data-then="/reviews.js?v=20260729a,/app.js?v=20260816f"></script>
 </body>
 </html>

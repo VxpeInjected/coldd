@@ -16,7 +16,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
 
-  <link rel="stylesheet" href="/styles.css?v=20260816m" />
+  <link rel="stylesheet" href="/styles.css?v=20260816n" />
 </head>
 <body class="adm-body">
   <div class="backdrop"></div>
@@ -705,21 +705,21 @@
                   <div id="admImportReviewProductResults" class="adm-dd-menu" style="position:absolute;top:100%;left:0;right:0;z-index:20;" hidden></div>
                 </div>
                 <input type="hidden" id="admImportReviewProductSlug" />
-                <select id="admImportReviewStars" class="adm-select">
-                  <option value="5">★★★★★ (5)</option>
-                  <option value="4">★★★★ (4)</option>
-                  <option value="3">★★★ (3)</option>
-                  <option value="2">★★ (2)</option>
-                  <option value="1">★ (1)</option>
-                </select>
+                <div class="adm-dd adm-dd-inline" id="admImportReviewStarsDD">
+                  <button type="button" class="adm-dd-btn" aria-haspopup="listbox" aria-expanded="false"><span class="adm-dd-val"></span>
+                    <svg class="adm-dd-chev" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                  </button>
+                  <div class="adm-dd-menu" role="listbox" aria-label="Stars" hidden></div>
+                </div>
+                <input type="hidden" id="admImportReviewStars" value="5" />
                 <input type="text" id="admImportReviewName" class="adm-input adm-input-sm" placeholder="Reviewer name" required />
-                <select id="admImportReviewPlatform" class="adm-select">
-                  <option value="BuiltByBit">BuiltByBit</option>
-                  <option value="ClearlyDev">ClearlyDev</option>
-                  <option value="Discord">Discord</option>
-                  <option value="Creator Store">Creator Store</option>
-                  <option value="Other">Other</option>
-                </select>
+                <div class="adm-dd adm-dd-inline" id="admImportReviewPlatformDD">
+                  <button type="button" class="adm-dd-btn" aria-haspopup="listbox" aria-expanded="false"><span class="adm-dd-val"></span>
+                    <svg class="adm-dd-chev" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                  </button>
+                  <div class="adm-dd-menu" role="listbox" aria-label="Review platform" hidden></div>
+                </div>
+                <input type="hidden" id="admImportReviewPlatform" value="BuiltByBit" />
                 <textarea id="admImportReviewText" class="adm-input adm-textarea" rows="3" placeholder="Review text" required></textarea>
                 <button class="btn btn-primary adm-btn-sm" type="submit">Import review</button>
               </form>
@@ -826,7 +826,13 @@
                 <form class="adm-form" id="admAddPostForm">
                   <input type="hidden" id="admPostEditId" value="" />
                   <input type="text" id="admNewPostTitle" class="adm-input" placeholder="Title" required />
-                  <select id="admNewPostCategory" class="adm-select"><option value="Devlog">Devlog</option><option value="Studio News">Studio News</option><option value="Craft">Craft</option></select>
+                  <div class="adm-dd adm-dd-inline" id="admNewPostCategoryDD">
+                    <button type="button" class="adm-dd-btn" aria-haspopup="listbox" aria-expanded="false"><span class="adm-dd-val"></span>
+                      <svg class="adm-dd-chev" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                    </button>
+                    <div class="adm-dd-menu" role="listbox" aria-label="Category" hidden></div>
+                  </div>
+                  <input type="hidden" id="admNewPostCategory" value="Devlog" />
                   <input type="text" id="admNewPostAuthor" class="adm-input adm-input-sm" placeholder="Author" required />
                   <input type="date" id="admNewPostDate" class="adm-input adm-input-sm" required />
                   <input type="number" id="admNewPostRead" class="adm-input adm-input-sm" placeholder="Read mins (auto)" min="1" step="1" readonly title="Computed automatically from the body length" />
@@ -855,9 +861,27 @@
                 <form class="adm-form" id="admAddTutForm">
                   <input type="hidden" id="admTutEditId" value="" />
                   <input type="text" id="admNewTutTitle" class="adm-input" placeholder="Title" required />
-                  <select id="admNewTutTrack" class="adm-select"><option value="Scripting">Scripting</option><option value="Building">Building</option><option value="Server Setup">Server Setup</option></select>
-                  <select id="admNewTutDifficulty" class="adm-select"><option value="Beginner">Beginner</option><option value="Intermediate">Intermediate</option><option value="Advanced">Advanced</option></select>
-                  <select id="admNewTutPlatform" class="adm-select"><option value="Roblox">Roblox</option><option value="Minecraft">Minecraft</option><option value="Both">Both</option></select>
+                  <div class="adm-dd adm-dd-inline" id="admNewTutTrackDD">
+                    <button type="button" class="adm-dd-btn" aria-haspopup="listbox" aria-expanded="false"><span class="adm-dd-val"></span>
+                      <svg class="adm-dd-chev" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                    </button>
+                    <div class="adm-dd-menu" role="listbox" aria-label="Track" hidden></div>
+                  </div>
+                  <input type="hidden" id="admNewTutTrack" value="Scripting" />
+                  <div class="adm-dd adm-dd-inline" id="admNewTutDifficultyDD">
+                    <button type="button" class="adm-dd-btn" aria-haspopup="listbox" aria-expanded="false"><span class="adm-dd-val"></span>
+                      <svg class="adm-dd-chev" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                    </button>
+                    <div class="adm-dd-menu" role="listbox" aria-label="Difficulty" hidden></div>
+                  </div>
+                  <input type="hidden" id="admNewTutDifficulty" value="Beginner" />
+                  <div class="adm-dd adm-dd-inline" id="admNewTutPlatformDD">
+                    <button type="button" class="adm-dd-btn" aria-haspopup="listbox" aria-expanded="false"><span class="adm-dd-val"></span>
+                      <svg class="adm-dd-chev" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                    </button>
+                    <div class="adm-dd-menu" role="listbox" aria-label="Platform" hidden></div>
+                  </div>
+                  <input type="hidden" id="admNewTutPlatform" value="Roblox" />
                   <input type="number" id="admNewTutOrder" class="adm-input adm-input-sm" placeholder="Order" min="1" step="1" required />
                   <input type="number" id="admNewTutMins" class="adm-input adm-input-sm" placeholder="Est. mins (auto)" min="1" step="1" readonly title="Computed automatically from the body length" />
                   <input type="text" id="admNewTutCover" class="adm-input adm-input-sm" placeholder="Cover image, e.g. scripts.jpg" />
@@ -887,7 +911,13 @@
                 <form class="adm-form" id="admAddRelForm">
                   <input type="hidden" id="admRelEditId" value="" />
                   <input type="text" id="admNewRelVersion" class="adm-input adm-input-sm" placeholder="Version, e.g. v2.6.0 (optional)" />
-                  <select id="admNewRelKind" class="adm-select"><option value="Feature">Feature</option><option value="Fix">Fix</option><option value="Announcement">Announcement</option></select>
+                  <div class="adm-dd adm-dd-inline" id="admNewRelKindDD">
+                    <button type="button" class="adm-dd-btn" aria-haspopup="listbox" aria-expanded="false"><span class="adm-dd-val"></span>
+                      <svg class="adm-dd-chev" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                    </button>
+                    <div class="adm-dd-menu" role="listbox" aria-label="Kind" hidden></div>
+                  </div>
+                  <input type="hidden" id="admNewRelKind" value="Feature" />
                   <input type="text" id="admNewRelTitle" class="adm-input" placeholder="Title" required />
                   <input type="date" id="admNewRelDate" class="adm-input adm-input-sm" required />
                   <input type="text" id="admNewRelAffects" class="adm-input adm-input-sm" placeholder="Affects (product ids, comma-separated)" />
@@ -1152,6 +1182,6 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.2/dist/umd/supabase.min.js" integrity="sha384-B2duOBIryCXbX4eDE4BdJwtNkQMRQde3o6IsjfPW28E6aH1CYE96hHeZRG3zY56O" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script src="/supabase-init.js?v=20260816c"></script>
   <script src="/site-gate.js?v=20260816a"></script>
-  <script src="/catalog.js?v=20260810a" data-then="/app.js?v=20260816e,/blog.js?v=20260812a,/reviews.js?v=20260729a,/admin.js?v=20260816d"></script>
+  <script src="/catalog.js?v=20260810a" data-then="/app.js?v=20260816f,/blog.js?v=20260812a,/reviews.js?v=20260729a,/admin.js?v=20260816e"></script>
 </body>
 </html>

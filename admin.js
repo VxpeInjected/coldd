@@ -1506,6 +1506,57 @@
     }
   }
 
+  // Two source modes share one textarea: 'simple' runs it through the
+  // markdown-lite converter above, 'html' sends it through untouched (the
+  // admin is authoring real markup directly). Whichever mode is active
+  // decides what bodyHtml() returns and what the preview iframe renders.
+  var campaignMode = 'simple';
+  function campaignBodyHtml() {
+    var raw = $('admCampaignBody').value;
+    return campaignMode === 'html' ? raw : simpleMarkdownToHtml(raw);
+  }
+  var campaignModeSwitch = document.querySelector('.adm-campaign-mode');
+  if (campaignModeSwitch) campaignModeSwitch.addEventListener('click', function (e) {
+    var btn = e.target.closest('.bt-opt');
+    if (!btn) return;
+    campaignMode = btn.getAttribute('data-mode');
+    campaignModeSwitch.querySelectorAll('.bt-opt').forEach(function (o) {
+      var active = o === btn;
+      o.classList.toggle('active', active);
+      o.setAttribute('aria-selected', active ? 'true' : 'false');
+    });
+    var bodyEl = $('admCampaignBody');
+    var labelEl = $('admCampaignBodyLabel');
+    if (bodyEl) bodyEl.placeholder = campaignMode === 'html'
+      ? '<p>Write raw HTML here. It is sent to Resend exactly as written.</p>'
+      : 'Write your email. Blank lines start a new paragraph, **text** for bold.';
+    if (labelEl) labelEl.textContent = campaignMode === 'html' ? 'Body (raw HTML)' : 'Body';
+    updateCampaignPreview();
+  });
+
+  function updateCampaignPreview() {
+    var frame = $('admCampaignPreviewFrame');
+    if (!frame || $('admCampaignPreviewWrap').hidden) return;
+    var doc = '<!doctype html><html><head><meta charset="utf-8">' +
+      '<style>body{margin:0;padding:20px;font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;' +
+      'font-size:15px;line-height:1.5;color:#1a1a1a;background:#fff;} img{max-width:100%;}</style>' +
+      '</head><body>' + campaignBodyHtml() + '</body></html>';
+    frame.srcdoc = doc;
+  }
+  var campaignPreviewBtn = $('admCampaignPreviewBtn');
+  if (campaignPreviewBtn) campaignPreviewBtn.addEventListener('click', function () {
+    var wrap = $('admCampaignPreviewWrap');
+    var open = wrap.hidden;
+    wrap.hidden = !open;
+    campaignPreviewBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    campaignPreviewBtn.textContent = open ? 'Hide preview' : 'Preview';
+    if (open) updateCampaignPreview();
+  });
+  var campaignBodyEl = $('admCampaignBody');
+  if (campaignBodyEl) campaignBodyEl.addEventListener('input', function () {
+    if (!$('admCampaignPreviewWrap').hidden) updateCampaignPreview();
+  });
+
   var campaignForm = $('admCampaignForm');
   if (campaignForm) {
     campaignForm.addEventListener('submit', function (e) {
@@ -1520,7 +1571,7 @@
       var sendBtn = $('admCampaignSendBtn');
       sendBtn.disabled = true;
       if (msg) msg.textContent = 'Sending…';
-      invokeAdminFn('admin-send-campaign', { action: 'send', subject: subject, bodyHtml: simpleMarkdownToHtml(bodyText) }, 'Could not send campaign.').then(function (data) {
+      invokeAdminFn('admin-send-campaign', { action: 'send', subject: subject, bodyHtml: campaignBodyHtml() }, 'Could not send campaign.').then(function (data) {
         if (msg) msg.textContent = 'Sent to ' + data.sentCount + ' of ' + data.recipientCount + (data.failedCount ? ' (' + data.failedCount + ' failed)' : '') + '.';
         logAudit('Sent email campaign "' + subject + '" to ' + data.sentCount + ' recipients');
         campaignForm.reset();
@@ -1542,7 +1593,7 @@
     if (!testEmail) { if (msg) msg.textContent = 'Enter a test email address.'; return; }
     campaignTestBtn.disabled = true;
     if (msg) msg.textContent = 'Sending test…';
-    invokeAdminFn('admin-send-campaign', { action: 'test', subject: subject, bodyHtml: simpleMarkdownToHtml(bodyText), testEmail: testEmail }, 'Could not send test.').then(function () {
+    invokeAdminFn('admin-send-campaign', { action: 'test', subject: subject, bodyHtml: campaignBodyHtml(), testEmail: testEmail }, 'Could not send test.').then(function () {
       if (msg) msg.textContent = 'Test sent to ' + testEmail + '.';
     }).catch(function (err) {
       if (msg) msg.textContent = err.message;

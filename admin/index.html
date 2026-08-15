@@ -16,7 +16,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
 
-  <link rel="stylesheet" href="/styles.css?v=20260816l" />
+  <link rel="stylesheet" href="/styles.css?v=20260816m" />
 </head>
 <body class="adm-body">
   <div class="backdrop"></div>
@@ -290,7 +290,18 @@
               <div class="dash-card-head" style="margin-top:22px;"><h2>New campaign</h2></div>
               <form class="adm-form" id="admCampaignForm" style="flex-direction:column;align-items:stretch;gap:10px;">
                 <label class="adm-field"><span>Subject</span><input type="text" id="admCampaignSubject" class="adm-input" placeholder="What's new at coldd" required /></label>
-                <label class="adm-field"><span>Body</span><textarea id="admCampaignBody" class="adm-input adm-textarea" rows="8" placeholder="Write your email. Blank lines start a new paragraph, **text** for bold." required></textarea></label>
+                <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between;">
+                  <div class="bt-switch adm-campaign-mode" style="margin-bottom:0;" role="tablist" aria-label="Body format">
+                    <button class="bt-opt active" type="button" data-mode="simple" role="tab" aria-selected="true">Simple text</button>
+                    <button class="bt-opt" type="button" data-mode="html" role="tab" aria-selected="false">Raw HTML</button>
+                  </div>
+                  <button class="btn btn-ghost adm-btn-sm" id="admCampaignPreviewBtn" type="button" aria-expanded="false">Preview</button>
+                </div>
+                <label class="adm-field"><span id="admCampaignBodyLabel">Body</span><textarea id="admCampaignBody" class="adm-input adm-textarea" rows="8" placeholder="Write your email. Blank lines start a new paragraph, **text** for bold." required></textarea></label>
+                <div class="adm-campaign-preview" id="admCampaignPreviewWrap" hidden>
+                  <div class="adm-campaign-preview-head">Preview - how this renders in an inbox</div>
+                  <iframe class="adm-campaign-preview-frame" id="admCampaignPreviewFrame" title="Email preview" sandbox=""></iframe>
+                </div>
                 <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
                   <input type="email" id="admCampaignTestEmail" class="adm-input" placeholder="test@example.com" style="max-width:220px;" />
                   <button class="btn btn-ghost adm-btn-sm" id="admCampaignTestBtn" type="button">Send test</button>
@@ -1141,6 +1152,6 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.2/dist/umd/supabase.min.js" integrity="sha384-B2duOBIryCXbX4eDE4BdJwtNkQMRQde3o6IsjfPW28E6aH1CYE96hHeZRG3zY56O" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script src="/supabase-init.js?v=20260816c"></script>
   <script src="/site-gate.js?v=20260816a"></script>
-  <script src="/catalog.js?v=20260810a" data-then="/app.js?v=20260816e,/blog.js?v=20260812a,/reviews.js?v=20260729a,/admin.js?v=20260816c"></script>
+  <script src="/catalog.js?v=20260810a" data-then="/app.js?v=20260816e,/blog.js?v=20260812a,/reviews.js?v=20260729a,/admin.js?v=20260816d"></script>
 </body>
 </html>

@@ -32,6 +32,12 @@
         '<div class="review-by"><span class="ra">' + esc(initial) + '</span><span class="rn">' + esc(r.user) + (product ? '<small>' + esc(product.title) + '</small>' : '') + '</span></div>' +
         '</article>';
     }).join('');
+    // app.js's scroll-reveal observer already ran by the time this fires
+    // (this script is chained behind app.js in catalog.js's data-then), so
+    // these newly-injected .reveal cards need to be handed to it explicitly
+    // or they stay at their default html.js-scoped opacity:0 forever -
+    // fully rendered, real content, permanently invisible. See app.js.
+    if (window.__scanReveal) window.__scanReveal(grid);
   }
 
   // catalog.js has already resolved window.__REVIEWS/__CATALOG by the time

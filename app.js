@@ -275,12 +275,30 @@
 
     const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
     const els = document.querySelectorAll('.reveal');
+    // This only ever ran once, over whatever .reveal elements existed at the
+    // moment app.js executed. Pages whose content loads after app.js (e.g.
+    // reviews-page.js, chained behind app.js in catalog.js's data-then so
+    // the review count is known first) inject .reveal cards that never got
+    // observed - html.js .reveal defaults to opacity:0 until the observer
+    // adds .in, so those cards sat fully rendered in the DOM but invisible,
+    // forever. Exposed so any script rendering .reveal content after load
+    // can register it - reviews-page.js calls this once after its render().
+    window.__scanReveal = function (root) {
+      var scope = root || document;
+      var found = scope.querySelectorAll('.reveal');
+      if (reduce || !('IntersectionObserver' in window)) {
+        found.forEach(e => e.classList.add('in'));
+      } else if (window.__revealIo) {
+        found.forEach(e => window.__revealIo.observe(e));
+      }
+    };
     if (reduce || !('IntersectionObserver' in window)) {
       els.forEach(e => e.classList.add('in'));
     } else {
       const io = new IntersectionObserver((en) => en.forEach(e => {
         if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
       }), { threshold: 0.12, rootMargin: '0px 0px -8% 0px' });
+      window.__revealIo = io;
       els.forEach(e => io.observe(e));
     }
 

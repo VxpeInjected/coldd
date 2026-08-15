@@ -18,17 +18,20 @@
     console.error('[coldd] Supabase SDK failed to load.');
     return;
   }
-  // Session (access + refresh token) storage. supabase-js defaults to
-  // localStorage, which persists indefinitely and is shared across every
-  // tab - a stolen token (XSS, shared/public machine) stays valid forever.
-  // sessionStorage still survives page-to-page navigation within this tab
-  // (this is a multi-page site, not an SPA, so that's required for staying
-  // signed in while browsing), but it's cleared the moment the tab closes
-  // and never leaks to other tabs. Not a substitute for XSS prevention -
-  // any JS-readable storage is readable by injected JS - but it shrinks the
-  // window an exfiltrated token stays useful.
+  // Session (access + refresh token) storage. This was sessionStorage -
+  // cleared the moment the tab/browser closes, which shrinks how long a
+  // stolen token (XSS, shared machine) stays useful, but also meant every
+  // visitor got signed out just from closing their browser. Moved to
+  // localStorage (supabase-js's own default) to actually persist across
+  // sessions like a normal site login. This is not a security downgrade
+  // relative to a plain cookie - a JS-readable cookie is exactly as
+  // exposed to XSS as localStorage is, since what matters is whether JS
+  // can read it, not which API it's stored behind. The real fix for that
+  // class of exposure is httpOnly cookies plus a server that mediates
+  // every Supabase call, which is a proxy-layer architecture change this
+  // static site doesn't have yet, not a storage flag.
   var client = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-    auth: { storage: window.sessionStorage }
+    auth: { storage: window.localStorage }
   });
   window.coldSupabase = client;
 

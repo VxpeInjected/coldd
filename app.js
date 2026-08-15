@@ -2222,15 +2222,15 @@
 
       // coldd_auth is a client-only "was I signed in" flag, cached in
       // localStorage so the nav can render instantly without waiting on a
-      // network round trip. It can go stale: the real session lives in
-      // sessionStorage (cleared when the tab/browser closes, by design -
-      // see supabase-init.js), so returning to the site after closing it
-      // leaves the flag still saying "in" while there's no session left to
-      // back it up. Without this, the nav shows a signed-in account menu
-      // that dead-ends at /signin the moment its "Your Account" link is
-      // followed. Reconciling the flag against the real session on every
-      // load - not just gating dashboard-style pages - fixes it where the
-      // stale state actually starts.
+      // network round trip. It can still go stale even though the real
+      // session also lives in localStorage now (see supabase-init.js) - a
+      // refresh token can expire, get revoked, or belong to a banned/
+      // deleted account, all of which leave this flag still saying "in"
+      // with nothing backing it up. Without this, the nav shows a signed-
+      // in account menu that dead-ends at /signin the moment its "Your
+      // Account" link is followed. Reconciling the flag against the real
+      // session on every load - not just gating dashboard-style pages -
+      // fixes it where the stale state actually starts.
       if (window.coldSupabase) {
         window.coldSupabase.auth.getSession().then(function (res) {
           var hasSession = !!(res && res.data && res.data.session);

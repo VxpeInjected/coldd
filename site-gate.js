@@ -29,7 +29,13 @@
     return parts.join(' ');
   }
 
-  function showMaintenanceOverlay(status) {
+  var PREVIEW_KEY = 'coldd_maint_preview';
+
+  // adminPreview: true when a whitelisted staff member has opted to see
+  // the public-facing screen rather than being auto-bypassed. Swaps the
+  // lock/sign-in control for an "Exit preview" pill that hands them
+  // straight back to showWhitelistBanner - no reload, no re-auth.
+  function showMaintenanceOverlay(status, adminPreview) {
     if (document.getElementById('siteMaintenanceOverlay')) return;
     var endsAt = status.maintenance_ends_at ? new Date(status.maintenance_ends_at).getTime() : null;
     var msg = status.maintenance_message
@@ -42,13 +48,16 @@
     overlay.innerHTML =
       '<div class="gate-card glass">' +
         '<img class="gate-logo" src="/logo.png" alt="coldd" />' +
+        (adminPreview ? '<p class="gate-eyebrow">Staff preview - visitors see this screen</p>' : '') +
         '<h2>Site under maintenance</h2>' +
         '<p class="gate-msg">' + msg + '</p>' +
         (endsAt ? '<p id="siteMaintCountdown" class="gate-countdown"></p>' : '') +
       '</div>' +
-      '<button id="siteMaintLock" class="gate-lock pm-x" aria-label="Staff sign in">' +
-        '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>' +
-      '</button>';
+      (adminPreview
+        ? '<button id="siteMaintExit" class="btn btn-tinted gate-lock" type="button">Exit preview</button>'
+        : '<button id="siteMaintLock" class="gate-lock pm-x" aria-label="Staff sign in">' +
+            '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>' +
+          '</button>');
     document.documentElement.appendChild(overlay);
     document.body.style.overflow = 'hidden';
 
@@ -60,6 +69,16 @@
       };
       tick();
       setInterval(tick, 1000);
+    }
+
+    if (adminPreview) {
+      document.getElementById('siteMaintExit').addEventListener('click', function () {
+        try { sessionStorage.removeItem(PREVIEW_KEY); } catch (e) {}
+        overlay.remove();
+        document.body.style.overflow = '';
+        showWhitelistBanner(status);
+      });
+      return;
     }
 
     var lockBtn = document.getElementById('siteMaintLock');
@@ -80,13 +99,24 @@
     });
   }
 
-  function showWhitelistBanner() {
-    if (document.getElementById('siteWhitelistBanner')) return;
+  // Bypassed staff view: the real page renders underneath, with a bar
+  // making clear maintenance is still on for everyone else and a way to
+  // see exactly what they see, without signing out or losing the session.
+  function showWhitelistBanner(status) {
+    var existing = document.getElementById('siteWhitelistBanner');
+    if (existing) return;
     var banner = document.createElement('div');
     banner.id = 'siteWhitelistBanner';
     banner.className = 'gate-banner';
-    banner.textContent = "You're viewing as a whitelisted staff member - the site is still under maintenance for everyone else.";
+    banner.innerHTML =
+      '<span>You\'re viewing as a whitelisted staff member - the site is still under maintenance for everyone else.</span>' +
+      '<button id="siteMaintPreviewBtn" type="button">Preview maintenance screen</button>';
     document.documentElement.appendChild(banner);
+    document.getElementById('siteMaintPreviewBtn').addEventListener('click', function () {
+      try { sessionStorage.setItem(PREVIEW_KEY, '1'); } catch (e) {}
+      banner.remove();
+      showMaintenanceOverlay(status, true);
+    });
   }
 
   window.coldSupabase.from('site_status').select('*').eq('id', true).maybeSingle().then(function (res) {
@@ -106,8 +136,11 @@
         var session = sres && sres.data ? sres.data.session : null;
         if (!session) { showMaintenanceOverlay(status); return; }
         window.coldAuth.checkIsAdmin().then(function (info) {
-          if (info.isAdmin) showWhitelistBanner();
-          else showMaintenanceOverlay(status);
+          if (!info.isAdmin) { showMaintenanceOverlay(status); return; }
+          var previewing = false;
+          try { previewing = sessionStorage.getItem(PREVIEW_KEY) === '1'; } catch (e) {}
+          if (previewing) showMaintenanceOverlay(status, true);
+          else showWhitelistBanner(status);
         });
       }).catch(function () {});
     }

@@ -2249,8 +2249,9 @@
         menu.hidden = true;
         var p = window.coldAuth && window.coldAuth.getProfile ? window.coldAuth.getProfile() : null;
         var initial = (p && p.name) ? p.name.trim().charAt(0).toUpperCase() : '?';
-        var avatarHtml = p && p.avatar
-          ? '<span class="account-menu-av" style="background-image:url(' + p.avatar + ')"></span>'
+        var avatarUrl = window.coldAuth && window.coldAuth.avatarUrlFor ? window.coldAuth.avatarUrlFor(p) : (p && p.avatar);
+        var avatarHtml = avatarUrl
+          ? '<span class="account-menu-av" style="background-image:url(' + avatarUrl + ')"></span>'
           : '<span class="account-menu-av">' + initial + '</span>';
         menu.innerHTML =
           '<a href="/dashboard" class="account-menu-item">' + avatarHtml + '<span>Your Account</span></a>' +

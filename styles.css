@@ -161,14 +161,16 @@
        printing an orphaned pill. */
     .eyebrow { display: none; }
 
+    /* Solid, not translucent - was a glass gradient + backdrop blur (a
+       masked gradient ring standing in for a border, so it could fade
+       top-to-bottom like light on real glass). Every panel using this
+       class now reads as a flat raised surface instead, same as the
+       system's existing "solid" family (--bg-2 legal pages, --bg-3
+       product cards) already did - this just makes it the default. */
     .glass { position: relative; border-radius: var(--r);
-      background: linear-gradient(180deg, var(--glass-top), var(--glass-bot));
+      background: var(--bg-3);
+      border: 1px solid var(--hairline);
       box-shadow: var(--e-3); }
-    /* One hairline, even weight. The old top-lit 28% white edge was the giveaway. */
-    .glass::before { content: ""; position: absolute; inset: 0; border-radius: inherit; padding: 1px;
-      background: linear-gradient(180deg, rgba(255,255,255,0.11), rgba(255,255,255,0.05) 50%, rgba(255,255,255,0.035));
-      -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-      -webkit-mask-composite: xor; mask-composite: exclude; pointer-events: none; }
 
     .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; font-family: inherit;
       font-size: var(--t-sm); font-weight: 600; letter-spacing: -0.004em; text-decoration: none;
@@ -1323,7 +1325,7 @@ body.no-scroll { overflow: hidden; }
 
 .pd-right { display: flex; flex-direction: column; gap: 16px; position: sticky; top: 92px; }
 .pd-buycard, .pd-block, .pd-refer, .pd-faq-item, .pd-about, .pd-rev {
-  background: rgba(17,18,24,0.74); backdrop-filter: blur(13px) saturate(130%); -webkit-backdrop-filter: blur(13px) saturate(130%);
+  background: var(--bg-2);
   box-shadow: 0 1px 0 rgba(255,255,255,0.05) inset, 0 20px 46px -26px var(--ink-75);
 }
 .pd-buycard { border: 1px solid var(--hairline); border-radius: var(--r-sm); padding: 20px; }
@@ -1513,8 +1515,11 @@ body.no-scroll { overflow: hidden; }
 .cur-switch { position: relative; display: inline-flex; padding: 0; gap: 2px;
   border-radius: 10px; background: transparent; box-shadow: none; }
 
+/* Green/white experiment: currency is a money context (like Price
+   Green everywhere else - totals, "you saved" figures), so the active
+   state reads as --price instead of the system's usual ember. */
 .cur-thumb { position: absolute; top: 0; bottom: 0; left: 0; width: 0; border-radius: 10px; z-index: 0;
-  background: var(--accent-deep); box-shadow: 0 6px 16px -6px var(--ink-75); pointer-events: none; }
+  background: var(--price); box-shadow: 0 6px 16px -6px var(--ink-75); pointer-events: none; }
 .cur-thumb.anim { transition: left .22s var(--ease), width .22s var(--ease); }
 .cur-opt { position: relative; z-index: 1; display: inline-flex; align-items: center; gap: 4px; font-family: inherit;
   font-size: 12px; font-weight: 600; color: var(--fg-2); background: transparent; border: none; cursor: pointer;
@@ -1536,7 +1541,7 @@ body.no-scroll { overflow: hidden; }
 .cur-row { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; padding: 9px 11px; border-radius: 10px;
   background: transparent; border: none; cursor: pointer; color: var(--fg); font-family: inherit; }
 .cur-row:hover { background: rgba(255,255,255,0.06); }
-.cur-row.active { background: rgba(255,77,68,0.14); }
+.cur-row.active { background: rgba(52,224,138,0.14); }
 /* One ember symbol per row turned the open currency list into a column of
    red. The symbol is a label, not the action - picking the row is. */
 .cur-row .cr-sym { flex: 0 0 38px; font-weight: 700; color: var(--fg-2); font-size: 13px; }
@@ -1796,15 +1801,13 @@ button.dt-badge:disabled { cursor: default; opacity: 0.6; }
 .dash-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 18px; }
 .dash-empty-note { color: var(--fg-2); font-size: 14px; grid-column: 1 / -1; }
 .dash-empty-cta { grid-column: 1 / -1; display: flex; flex-direction: column; align-items: flex-start; gap: 12px;
-  padding: 26px 24px; border-radius: var(--r-sm); border: 1px solid var(--hairline); background: rgba(17,18,24,0.74);
-  backdrop-filter: blur(13px) saturate(130%); -webkit-backdrop-filter: blur(13px) saturate(130%); }
+  padding: 26px 24px; border-radius: var(--r-sm); border: 1px solid var(--hairline); background: var(--bg-2); }
 .dash-empty-cta p { color: var(--fg-2); font-size: 14px; margin: 0; }
-/* Same frosted surface as .dash-card/.dash-stat, not the shop's flat --bg-3 -
+/* Same solid surface as .dash-card/.dash-stat, not the shop's flat --bg-3 -
    these sit inside the dashboard alongside those panels and need to read as
    the same material, not a product-grid card that wandered in. */
 .dash-prod { display: flex; flex-direction: column; padding: 0; overflow: hidden; border-radius: var(--r-sm);
-  border: 1px solid var(--hairline); background: rgba(17,18,24,0.74);
-  backdrop-filter: blur(13px) saturate(130%); -webkit-backdrop-filter: blur(13px) saturate(130%);
+  border: 1px solid var(--hairline); background: var(--bg-2);
   transition: transform .22s var(--ease), border-color .22s, box-shadow .22s; }
 @media (hover: hover) and (pointer: fine) {
   .dash-prod:hover { transform: translateY(-2px); border-color: var(--hairline-strong); box-shadow: var(--e-3); }
@@ -1926,8 +1929,10 @@ html.js .ref-method-btn:focus-visible { outline: 2px solid var(--accent); outlin
 }
 
 .dash-side, .dash-card, .dash-stat {
-  background: rgba(17,18,24,0.74);
-  backdrop-filter: blur(13px) saturate(130%); -webkit-backdrop-filter: blur(13px) saturate(130%); }
+  background: var(--bg-2); }
+/* Customer account sidebar only - .dash-card/.dash-stat keep the
+   neutral hairline .glass already gives every other panel. */
+.dash-side { border-color: rgba(255,77,68,0.35); }
 .ds-money { color: var(--price); }
 
 .announce { z-index: 210; }
@@ -2062,7 +2067,7 @@ html.js .ref-method-btn:focus-visible { outline: 2px solid var(--accent); outlin
 }
 
 .co-sec { padding: 22px 24px; margin-bottom: 16px;
-  background: rgba(17,18,24,0.74); backdrop-filter: blur(13px) saturate(130%); -webkit-backdrop-filter: blur(13px) saturate(130%); }
+  background: var(--bg-2); }
 .co-sec-head { display: flex; align-items: center; justify-content: space-between; }
 .co-sec h2 { font-size: 17px; font-weight: 700; margin-bottom: 14px; }
 .co-sec-head h2 { margin-bottom: 0; }
@@ -2142,7 +2147,7 @@ html.js .ref-method-btn:focus-visible { outline: 2px solid var(--accent); outlin
 
 .co-side { position: sticky; top: 96px; display: flex; flex-direction: column; gap: 16px; }
 .co-sum, .co-suggest { padding: 22px 24px;
-  background: rgba(17,18,24,0.74); backdrop-filter: blur(13px) saturate(130%); -webkit-backdrop-filter: blur(13px) saturate(130%); }
+  background: var(--bg-2); }
 .co-sum h2 { font-size: 17px; font-weight: 700; margin-bottom: 14px; }
 .co-items { display: flex; flex-direction: column; }
 .co-item { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-top: 1px solid var(--hairline); }
@@ -2753,7 +2758,7 @@ a.adm-sub[href] { color: var(--fg-1); cursor: pointer; text-decoration: underlin
 .blog-filters { margin-bottom: 26px; }
 .blog-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
 .blog-card { display: flex; flex-direction: column; border-radius: var(--r); overflow: hidden; text-decoration: none; color: inherit;
-  background: rgba(17,18,24,0.74); backdrop-filter: blur(13px) saturate(130%); -webkit-backdrop-filter: blur(13px) saturate(130%);
+  background: var(--bg-2);
   border: 1px solid var(--hairline); box-shadow: 0 1px 0 rgba(255,255,255,0.05) inset, 0 20px 46px -26px var(--ink-75);
   transition: transform .26s var(--ease), box-shadow .26s var(--ease); }
 .blog-card:hover { transform: translateY(-2px); box-shadow: 0 26px 56px -26px var(--ink-75), inset 0 0 0 1px rgba(255,255,255,0.1); }
@@ -2792,7 +2797,7 @@ a.adm-sub[href] { color: var(--fg-1); cursor: pointer; text-decoration: underlin
 .post-body code { background: rgba(255,255,255,0.07); border: 1px solid var(--hairline); border-radius: 4px; padding: 2px 6px; font-size: 0.9em; }
 .post-rail { display: flex; flex-direction: column; gap: 16px; position: sticky; top: 96px; }
 .post-rail-card { border: 1px solid var(--hairline); border-radius: var(--r-sm); padding: 18px 20px;
-  background: rgba(17,18,24,0.74); backdrop-filter: blur(13px) saturate(130%); -webkit-backdrop-filter: blur(13px) saturate(130%); }
+  background: var(--bg-2); }
 .post-rail-card h3 { font-size: 13px; font-weight: 700; margin-bottom: 12px; }
 .post-rel { display: block; padding: 10px 0; border-top: 1px solid var(--hairline); text-decoration: none; color: inherit; }
 .post-rel:first-of-type { border-top: 0; }
@@ -2814,7 +2819,7 @@ a.adm-sub[href] { color: var(--fg-1); cursor: pointer; text-decoration: underlin
 .tut-track-h { font-size: 20px; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 16px; }
 .tut-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
 .tut-card { display: flex; flex-direction: column; border-radius: var(--r-sm); overflow: hidden; text-decoration: none; color: inherit;
-  background: rgba(17,18,24,0.74); backdrop-filter: blur(13px) saturate(130%); -webkit-backdrop-filter: blur(13px) saturate(130%);
+  background: var(--bg-2);
   border: 1px solid var(--hairline); transition: transform .22s var(--ease), border-color .22s var(--ease); }
 .tut-card:hover { transform: translateY(-2px); border-color: rgba(255,255,255,0.18); }
 .tut-card-cover { height: 120px; background-size: cover; background-position: center; }
@@ -2845,7 +2850,7 @@ a.adm-sub[href] { color: var(--fg-1); cursor: pointer; text-decoration: underlin
 .tut-detail-body code { background: rgba(255,255,255,0.07); border: 1px solid var(--hairline); border-radius: 4px; padding: 2px 6px; font-size: 0.9em; }
 .tut-toc { position: sticky; top: 96px; display: flex; flex-direction: column; gap: 16px; }
 .tut-toc-card { border: 1px solid var(--hairline); border-radius: var(--r-sm); padding: 18px 20px;
-  background: rgba(17,18,24,0.74); backdrop-filter: blur(13px) saturate(130%); -webkit-backdrop-filter: blur(13px) saturate(130%); }
+  background: var(--bg-2); }
 .tut-toc-card h3 { font-size: 13px; font-weight: 700; margin-bottom: 12px; }
 .tut-toc-card nav { display: flex; flex-direction: column; gap: 9px; }
 .tut-toc-card nav a { font-size: 13px; color: var(--fg-2); text-decoration: none; }
@@ -3082,9 +3087,7 @@ input[type="checkbox"]:focus-visible { outline: 2px solid var(--accent); outline
    --------------------------------------------------------------------- */
 .cookie-bar {
   position: fixed; left: 0; right: 0; bottom: 0; z-index: 400;
-  background: var(--frosted-fill);
-  backdrop-filter: blur(14px) saturate(140%);
-  -webkit-backdrop-filter: blur(14px) saturate(140%);
+  background: var(--bg-2);
   border-top: 1px solid var(--hairline);
   box-shadow: 0 -24px 60px -30px var(--ink-85);
   padding: 16px 20px calc(16px + env(safe-area-inset-bottom));

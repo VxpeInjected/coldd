@@ -178,6 +178,20 @@
     var parts = name.trim().split(/\s+/);
     return (parts[0][0] || '').toUpperCase();
   }
+  // Discord identities already carry a real avatar from callback.html, so
+  // this never overrides one. Every other provider (Google, email, and
+  // Roblox when Roblox's own API returns none) saved avatar: '' outright -
+  // a generated identicon reads as an intentional default for those,
+  // rather than the plain-letter initials circle looking like a broken
+  // image that never loaded. Seeded on the account id so it's stable for
+  // that person forever, not re-rolled on every page load.
+  function avatarUrlFor(p) {
+    if (!p) return '';
+    if (p.avatar) return p.avatar;
+    if (p.provider === 'discord') return '';
+    var seed = p.id || p.email || p.name || 'coldd';
+    return 'https://api.dicebear.com/9.x/identicon/svg?seed=' + encodeURIComponent(seed) + '&backgroundType=solid&backgroundColor=1f2127';
+  }
   function capitalizeEmailPrefix(email) {
     if (!email) return '';
     var prefix = email.split('@')[0];
@@ -193,8 +207,9 @@
     document.querySelectorAll('#dashEmail, #coUserEmail').forEach(function (el) { el.textContent = p.email || ''; });
 
     document.querySelectorAll('#dashAvatar, #coAvatar').forEach(function (el) {
-      if (p.avatar) {
-        el.style.backgroundImage = 'url(' + p.avatar + ')';
+      var avatarUrl = avatarUrlFor(p);
+      if (avatarUrl) {
+        el.style.backgroundImage = 'url(' + avatarUrl + ')';
         el.style.backgroundSize = 'cover';
         el.style.backgroundPosition = 'center';
         el.textContent = '';
@@ -252,6 +267,7 @@
   window.coldAuth = {
     invokeFn: invokeFn,
     logClientError: logClientError,
+    avatarUrlFor: avatarUrlFor,
     saveProfile: saveProfile,
     getProfile: getProfile,
     clearProfile: clearProfile,

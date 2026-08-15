@@ -129,16 +129,27 @@
   // every custom error message from every admin Edge Function call gets
   // silently replaced by that one generic string. This wraps
   // functions.invoke() so every call site gets the real message.
+  function logFnError(name, msg, status) {
+    if (window.coldAuth && window.coldAuth.logClientError) {
+      window.coldAuth.logClientError('edge_function', msg, null, { fnName: name, context: { status: status } });
+    }
+  }
   function invokeAdminFn(name, body, fallback) {
     return window.coldSupabase.functions.invoke(name, { body: body || {} }).then(function (res) {
       if (res.error) {
         var ctx = res.error.context;
         var parsed = (ctx && typeof ctx.json === 'function') ? ctx.json().catch(function () { return null; }) : Promise.resolve(null);
         return parsed.then(function (data) {
-          throw new Error((data && data.error) || res.error.message || fallback || 'Request failed.');
+          var msg = (data && data.error) || res.error.message || fallback || 'Request failed.';
+          logFnError(name, msg, ctx && ctx.status);
+          throw new Error(msg);
         });
       }
-      if (!res.data || !res.data.ok) throw new Error((res.data && res.data.error) || fallback || 'Request failed.');
+      if (!res.data || !res.data.ok) {
+        var failMsg = (res.data && res.data.error) || fallback || 'Request failed.';
+        logFnError(name, failMsg);
+        throw new Error(failMsg);
+      }
       return res.data;
     });
   }
@@ -646,24 +657,42 @@
     });
   }
 
+  // client_errors rows (see supabase/client_errors.sql) merge into the
+  // same feed as staff actions, sorted chronologically together - kind:
+  // 'error' distinguishes them for rendering (a code badge instead of a
+  // staff name, and a Details button that opens the full report).
   function refreshAuditLog() {
-    return window.coldSupabase.from('admin_audit_log')
-      .select('actor_name, action, created_at')
-      .order('created_at', { ascending: false })
-      .limit(300)
-      .then(function (res) {
-        if (res.error) {
-          console.error('[refreshAuditLog] failed:', res.error.message);
-          AUDIT_PERSIST_ERROR = res.error.message || 'unknown error';
-          if (curPanel === 'sitemgmt') renderAudit();
-          return;
-        }
-        AUDIT_PERSIST_ERROR = null;
-        AUDIT = (res.data || []).map(function (row) {
-          return { ts: row.created_at, actor: row.actor_name, action: row.action };
-        });
+    return Promise.all([
+      window.coldSupabase.from('admin_audit_log')
+        .select('actor_name, action, created_at')
+        .order('created_at', { ascending: false })
+        .limit(300),
+      window.coldSupabase.from('client_errors')
+        .select('code, kind, message, stack, fn_name, page_url, user_agent, user_id, context, created_at')
+        .order('created_at', { ascending: false })
+        .limit(300)
+    ]).then(function (results) {
+      var auditRes = results[0], errRes = results[1];
+      if (auditRes.error) {
+        console.error('[refreshAuditLog] failed:', auditRes.error.message);
+        AUDIT_PERSIST_ERROR = auditRes.error.message || 'unknown error';
         if (curPanel === 'sitemgmt') renderAudit();
+        return;
+      }
+      AUDIT_PERSIST_ERROR = null;
+      var staffRows = (auditRes.data || []).map(function (row) {
+        return { ts: row.created_at, actor: row.actor_name, action: row.action, kind: 'staff' };
       });
+      var errorRows = errRes.error ? [] : (errRes.data || []).map(function (row) {
+        return {
+          ts: row.created_at, kind: 'error', errKind: row.kind, code: row.code,
+          action: row.message, fnName: row.fn_name, stack: row.stack,
+          pageUrl: row.page_url, userAgent: row.user_agent, userId: row.user_id, context: row.context
+        };
+      });
+      AUDIT = staffRows.concat(errorRows).sort(function (a, b) { return new Date(b.ts) - new Date(a.ts); });
+      if (curPanel === 'sitemgmt') renderAudit();
+    });
   }
 
   /* ================================================================
@@ -3993,11 +4022,54 @@
         : (rows.length + ' of ' + AUDIT.length);
     }
 
-    $('admAuditBody').innerHTML = rows.map(function (a) {
+    $('admAuditBody').innerHTML = rows.map(function (a, i) {
+      if (a.kind === 'error') {
+        return '<tr class="adm-audit-err-row"><td>' + fmtDateTime(new Date(a.ts)) + '</td>' +
+          '<td><span class="adm-err-code">' + esc(a.code || 'ERR-??????') + '</span></td>' +
+          '<td>' + esc(a.action) + (a.fnName ? ' <span class="adm-sub">(' + esc(a.fnName) + ')</span>' : '') +
+          ' <button type="button" class="adm-err-details-btn" data-idx="' + i + '">Details</button></td></tr>';
+      }
       return '<tr><td>' + fmtDateTime(new Date(a.ts)) + '</td><td>' + esc(a.actor) + '</td><td>' + esc(a.action) + '</td></tr>';
     }).join('') || ('<tr><td colspan="3" class="adm-empty">' +
       (AUDIT.length ? 'No entries match that filter.' : 'No actions logged yet.') + '</td></tr>');
+
+    var body = $('admAuditBody');
+    if (body && !body.__errDetailsWired) {
+      body.__errDetailsWired = true;
+      body.addEventListener('click', function (e) {
+        var btn = e.target.closest('.adm-err-details-btn');
+        if (!btn) return;
+        var row = rows[Number(btn.getAttribute('data-idx'))];
+        if (row) openErrDetails(row);
+      });
+    }
   }
+
+  function openErrDetails(row) {
+    var overlay = $('admErrOverlay');
+    if (!overlay) return;
+    $('admErrCode').textContent = row.code || 'ERR-??????';
+    $('admErrKind').textContent = row.errKind || '';
+    $('admErrWhen').textContent = fmtDateTime(new Date(row.ts));
+    $('admErrMsg').textContent = row.action || '';
+    $('admErrUrl').textContent = row.pageUrl || '—';
+    $('admErrUA').textContent = row.userAgent || '—';
+    $('admErrUser').textContent = row.userId || 'Not signed in';
+    var ctxEl = $('admErrContext');
+    var ctxWrap = $('admErrContextWrap');
+    var hasCtx = row.context && Object.keys(row.context).length;
+    if (ctxWrap) ctxWrap.hidden = !hasCtx;
+    if (ctxEl && hasCtx) ctxEl.textContent = JSON.stringify(row.context, null, 2);
+    var stackWrap = $('admErrStackWrap');
+    var stackEl = $('admErrStack');
+    if (stackWrap) stackWrap.hidden = !row.stack;
+    if (stackEl && row.stack) stackEl.textContent = row.stack;
+    overlay.hidden = false;
+  }
+  var admErrCloseBtn = $('admErrClose');
+  if (admErrCloseBtn) admErrCloseBtn.addEventListener('click', function () { $('admErrOverlay').hidden = true; });
+  var admErrOverlayEl = $('admErrOverlay');
+  if (admErrOverlayEl) admErrOverlayEl.addEventListener('click', function (e) { if (e.target === admErrOverlayEl) admErrOverlayEl.hidden = true; });
 
   /* ================================================================
      INIT

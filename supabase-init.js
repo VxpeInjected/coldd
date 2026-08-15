@@ -35,6 +35,52 @@
   });
   window.coldSupabase = client;
 
+  // Site-wide error capture: uncaught JS errors, unhandled promise
+  // rejections, and failed Edge Function calls, from any visitor - signed
+  // in or not, since errors often happen exactly when something (like
+  // auth) is already broken. Each report gets a short code a visitor can
+  // actually read back to support ("it said ERR-4K9X2P"), which shows up
+  // next to staff actions in the admin audit log. See
+  // supabase/client_errors.sql for the table this writes to - insert is
+  // open to anon on purpose (a write-only report can't leak anything back
+  // to the reporter), select is admin-only.
+  var CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no 0/O/1/I - hand-copied into a support message
+  function genErrorCode() {
+    var s = '';
+    for (var i = 0; i < 6; i++) s += CODE_CHARS.charAt(Math.floor(Math.random() * CODE_CHARS.length));
+    return 'ERR-' + s;
+  }
+  function logClientError(kind, message, stack, extra) {
+    try {
+      var code = genErrorCode();
+      var session = null;
+      client.auth.getSession().then(function (res) {
+        var uid = (res && res.data && res.data.session && res.data.session.user && res.data.session.user.id) || null;
+        var row = {
+          code: code, kind: kind, message: String(message || '').slice(0, 2000),
+          stack: stack ? String(stack).slice(0, 8000) : null,
+          fn_name: (extra && extra.fnName) || null,
+          page_url: location.href, user_agent: navigator.userAgent, user_id: uid,
+          context: (extra && extra.context) || null
+        };
+        client.from('client_errors').insert(row).catch(function () {});
+      }).catch(function () {});
+      return code;
+    } catch (e) { return null; }
+  }
+  window.addEventListener('error', function (e) {
+    // Cross-origin scripts (the Google Fonts stylesheet, jsDelivr's
+    // Supabase SDK bundle) report as "Script error." with no stack when
+    // something inside them throws - nothing actionable to log there.
+    if (!e || e.message === 'Script error.') return;
+    logClientError('js_error', e.message, e.error && e.error.stack, { context: { line: e.lineno, col: e.colno, src: e.filename } });
+  });
+  window.addEventListener('unhandledrejection', function (e) {
+    var reason = e && e.reason;
+    var message = (reason && (reason.message || String(reason))) || 'Unhandled rejection';
+    logClientError('unhandled_rejection', message, reason && reason.stack);
+  });
+
   // supabase-js's functions.invoke() does NOT parse the JSON body into
   // res.data on a non-2xx response - it's null, and res.error.message is
   // always the generic "Edge Function returned a non-2xx status code".
@@ -45,10 +91,16 @@
         var ctx = res.error.context;
         var parsed = (ctx && typeof ctx.json === 'function') ? ctx.json().catch(function () { return null; }) : Promise.resolve(null);
         return parsed.then(function (data) {
-          throw new Error((data && data.error) || res.error.message || 'Request failed.');
+          var msg = (data && data.error) || res.error.message || 'Request failed.';
+          logClientError('edge_function', msg, null, { fnName: name, context: { status: ctx && ctx.status } });
+          throw new Error(msg);
         });
       }
-      if (!res.data || !res.data.ok) throw new Error((res.data && res.data.error) || 'Request failed.');
+      if (!res.data || !res.data.ok) {
+        var failMsg = (res.data && res.data.error) || 'Request failed.';
+        logClientError('edge_function', failMsg, null, { fnName: name });
+        throw new Error(failMsg);
+      }
       return res.data;
     });
   }
@@ -199,6 +251,7 @@
 
   window.coldAuth = {
     invokeFn: invokeFn,
+    logClientError: logClientError,
     saveProfile: saveProfile,
     getProfile: getProfile,
     clearProfile: clearProfile,

@@ -2511,6 +2511,27 @@ a.adm-sub[href] { color: var(--fg-1); cursor: pointer; text-decoration: underlin
 .adm-audit-warn code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 12px; padding: 1px 5px; border-radius: var(--r-xs); background: rgba(255,255,255,0.08); }
 .adm-empty { color: var(--fg-3); font-size: 13px; padding: 18px 0; text-align: center; }
+
+/* Client-side error reports (supabase/client_errors.sql) rendered inline
+   in the audit log feed - see admin.js refreshAuditLog(). A distinct
+   warm tint on the row and a monospace code badge (in place of a staff
+   name, which errors don't have) keep them visually separate from staff
+   actions at a glance without needing a second table. */
+.adm-audit-err-row { background: rgba(255,77,68,0.05); }
+.adm-err-code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; font-weight: 700;
+  letter-spacing: 0.02em; color: var(--accent-ink); background: rgba(255,77,68,0.12); border: 1px solid rgba(255,77,68,0.28);
+  border-radius: var(--r-ctl); padding: 3px 8px; white-space: nowrap; }
+.adm-err-details-btn { font-family: inherit; font-size: 12px; font-weight: 600; color: var(--fg-2); cursor: pointer;
+  background: rgba(255,255,255,0.06); border: 1px solid var(--hairline); border-radius: var(--r-ctl); padding: 4px 10px;
+  margin-left: 6px; transition: background .18s, color .18s; }
+.adm-err-details-btn:hover { background: rgba(255,255,255,0.11); color: var(--fg); }
+.adm-err-detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 18px; }
+.adm-err-detail-label { display: block; font-size: 11px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--fg-3); margin-bottom: 4px; }
+.adm-err-detail-val { font-size: 14px; color: var(--fg-1); line-height: 1.5; word-break: break-word; margin: 0; }
+.adm-err-pre { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; line-height: 1.6;
+  color: var(--fg-2); background: var(--ink-25); border: 1px solid var(--hairline); border-radius: var(--r-ctl);
+  padding: 12px 14px; max-height: 220px; overflow: auto; white-space: pre-wrap; word-break: break-word; margin: 0 0 16px; }
+@media (max-width: 560px) { .adm-err-detail-grid { grid-template-columns: 1fr; } }
 .adm-rank { flex: 0 0 auto; width: 26px; color: var(--fg-3); font-weight: 700; font-size: 13px; }
 
 /* align-items defaults to stretch on a flex row - .adm-tabs (a padded pill

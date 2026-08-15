@@ -1044,7 +1044,7 @@
 
               <div class="dash-card glass dash-tablewrap">
                 <table class="dash-table">
-                  <thead><tr><th>When</th><th>Staff member</th><th>Action</th></tr></thead>
+                  <thead><tr><th>When</th><th>Staff / Code</th><th>Action</th></tr></thead>
                   <tbody id="admAuditBody"></tbody>
                 </table>
               </div>
@@ -1072,9 +1072,31 @@
     </div>
   </div>
 
+  <div class="pay-overlay" id="admErrOverlay" hidden>
+    <div class="pay-modal glass" role="dialog" aria-modal="true" aria-labelledby="admErrTitle" style="max-width:640px;">
+      <button class="pm-x" id="admErrClose" type="button" aria-label="Close"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+      <h3 class="pay-title" id="admErrTitle">Error report <span class="adm-err-code" id="admErrCode"></span></h3>
+      <p class="pay-sub"><span id="admErrKind"></span> · <span id="admErrWhen"></span></p>
+      <div class="adm-err-detail-grid">
+        <div><span class="adm-err-detail-label">Message</span><p class="adm-err-detail-val" id="admErrMsg"></p></div>
+        <div><span class="adm-err-detail-label">Page</span><p class="adm-err-detail-val" id="admErrUrl"></p></div>
+        <div><span class="adm-err-detail-label">User</span><p class="adm-err-detail-val" id="admErrUser"></p></div>
+        <div><span class="adm-err-detail-label">Browser</span><p class="adm-err-detail-val" id="admErrUA"></p></div>
+      </div>
+      <div id="admErrContextWrap" hidden>
+        <span class="adm-err-detail-label">Context</span>
+        <pre class="adm-err-pre" id="admErrContext"></pre>
+      </div>
+      <div id="admErrStackWrap" hidden>
+        <span class="adm-err-detail-label">Stack</span>
+        <pre class="adm-err-pre" id="admErrStack"></pre>
+      </div>
+    </div>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.2/dist/umd/supabase.min.js" integrity="sha384-B2duOBIryCXbX4eDE4BdJwtNkQMRQde3o6IsjfPW28E6aH1CYE96hHeZRG3zY56O" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-  <script src="/supabase-init.js?v=20260816a"></script>
+  <script src="/supabase-init.js?v=20260816b"></script>
   <script src="/site-gate.js?v=20260816a"></script>
-  <script src="/catalog.js?v=20260810a" data-then="/app.js?v=20260816d,/blog.js?v=20260812a,/reviews.js?v=20260729a,/admin.js?v=20260816a"></script>
+  <script src="/catalog.js?v=20260810a" data-then="/app.js?v=20260816d,/blog.js?v=20260812a,/reviews.js?v=20260729a,/admin.js?v=20260816b"></script>
 </body>
 </html>

@@ -102,6 +102,18 @@ Deno.serve(async (req: Request) => {
       linked_at: new Date().toISOString(),
     });
     if (upsertErr) {
+      // roblox_id carries its own UNIQUE constraint (one Roblox account
+      // can't back two coldd accounts), but this upsert's implicit
+      // conflict target is only the primary key (user_id) - so relinking
+      // a Roblox account that's already linked to a *different* coldd
+      // user throws an ordinary unique_violation (Postgres code 23505)
+      // here rather than being handled as the upsert's own conflict path.
+      // That's a real, reachable case (anyone testing with one Roblox
+      // account across multiple coldd accounts hits it immediately), not
+      // an edge case - worth its own message instead of a generic 500.
+      if (upsertErr.code === "23505") {
+        return json({ ok: false, error: "That Roblox account is already linked to a different coldd account. Unlink it there first." }, 409);
+      }
       console.error("[roblox-oauth-callback] upsert failed:", upsertErr.message);
       return json({ ok: false, error: "Could not save your Roblox link." }, 500);
     }

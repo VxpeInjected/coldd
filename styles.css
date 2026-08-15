@@ -1519,7 +1519,7 @@ body.no-scroll { overflow: hidden; }
    Green everywhere else - totals, "you saved" figures), so the active
    state reads as --price instead of the system's usual ember. */
 .cur-thumb { position: absolute; top: 0; bottom: 0; left: 0; width: 0; border-radius: 10px; z-index: 0;
-  background: var(--price); box-shadow: 0 6px 16px -6px var(--ink-75); pointer-events: none; }
+  background: #1e9d5e; box-shadow: 0 6px 16px -6px var(--ink-75); pointer-events: none; }
 .cur-thumb.anim { transition: left .22s var(--ease), width .22s var(--ease); }
 .cur-opt { position: relative; z-index: 1; display: inline-flex; align-items: center; gap: 4px; font-family: inherit;
   font-size: 12px; font-weight: 600; color: var(--fg-2); background: transparent; border: none; cursor: pointer;
@@ -1541,7 +1541,7 @@ body.no-scroll { overflow: hidden; }
 .cur-row { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; padding: 9px 11px; border-radius: 10px;
   background: transparent; border: none; cursor: pointer; color: var(--fg); font-family: inherit; }
 .cur-row:hover { background: rgba(255,255,255,0.06); }
-.cur-row.active { background: rgba(52,224,138,0.14); }
+.cur-row.active { background: rgba(30,157,94,0.22); }
 /* One ember symbol per row turned the open currency list into a column of
    red. The symbol is a label, not the action - picking the row is. */
 .cur-row .cr-sym { flex: 0 0 38px; font-weight: 700; color: var(--fg-2); font-size: 13px; }

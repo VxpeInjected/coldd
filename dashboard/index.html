@@ -32,7 +32,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
 
-  <link rel="stylesheet" href="/styles.css?v=20260816f" />
+  <link rel="stylesheet" href="/styles.css?v=20260816g" />
 </head>
 <body class="dash-body">
   <div class="backdrop"></div>
@@ -197,11 +197,22 @@
             <div class="dash-card-head"><h2>Request a payout</h2></div>
             <form class="auth-form" id="refPayoutForm" novalidate style="max-width:420px;">
               <div class="auth-field" data-for="method"><label for="refPayoutMethod">Method</label>
-                <select id="refPayoutMethod" name="method">
-                  <option value="usd">USD</option>
-                  <option value="robux">Robux</option>
-                  <option value="store_credit">Store credit (USD)</option>
-                </select>
+                <div class="ref-method-dd">
+                  <select id="refPayoutMethod" name="method" class="ref-method-native">
+                    <option value="usd">USD</option>
+                    <option value="robux">Robux</option>
+                    <option value="store_credit">Store credit (USD)</option>
+                  </select>
+                  <button type="button" class="ref-method-btn" aria-haspopup="listbox" aria-expanded="false">
+                    <span class="ref-method-val">USD</span>
+                    <svg class="ref-method-chev" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                  </button>
+                  <div class="ref-method-menu" role="listbox" aria-label="Payout method" hidden>
+                    <button type="button" class="ref-method-opt active" data-value="usd" role="option" aria-selected="true"><span>USD</span><span class="ref-method-radio"></span></button>
+                    <button type="button" class="ref-method-opt" data-value="robux" role="option" aria-selected="false"><span>Robux</span><span class="ref-method-radio"></span></button>
+                    <button type="button" class="ref-method-opt" data-value="store_credit" role="option" aria-selected="false"><span>Store credit (USD)</span><span class="ref-method-radio"></span></button>
+                  </div>
+                </div>
               </div>
               <div class="auth-field" data-for="amount"><label for="refPayoutAmount">Amount</label><input id="refPayoutAmount" name="amount" type="number" min="0.01" step="0.01" /><span class="auth-err"></span></div>
               <button class="btn btn-primary auth-submit" type="submit" style="width:auto;align-self:flex-start;"><span class="btn-label">Request payout</span><span class="btn-spinner" hidden></span></button>
@@ -500,6 +511,6 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.2/dist/umd/supabase.min.js" integrity="sha384-B2duOBIryCXbX4eDE4BdJwtNkQMRQde3o6IsjfPW28E6aH1CYE96hHeZRG3zY56O" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script src="/supabase-init.js?v=20260816a"></script>
   <script src="/site-gate.js?v=20260816a"></script>
-  <script src="/catalog.js?v=20260810a" data-then="/app.js?v=20260816c"></script>
+  <script src="/catalog.js?v=20260810a" data-then="/app.js?v=20260816d"></script>
 </body>
 </html>

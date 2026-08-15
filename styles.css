@@ -1862,6 +1862,36 @@ button.dt-badge:disabled { cursor: default; opacity: 0.6; }
 .ref-prod-table th:last-child, .ref-prod-table td:last-child { text-align: right; }
 .ref-prod-copy { padding: 7px 13px; min-height: 0; font-size: 12px; }
 
+/* Payout method - the one plain browser <select> left on a customer-facing
+   page, everywhere else on the site already uses a drawn dropdown. Native
+   select stays in the DOM and keeps its value in sync (the payout submit
+   handler reads it, unmodified) - only its own visibility is scoped to
+   html.js, so a page with scripting blocked still gets a real, working
+   native select instead of a dead custom button. */
+.ref-method-dd { position: relative; }
+html.js .ref-method-native { position: absolute; opacity: 0; pointer-events: none; width: 1px; height: 1px; }
+.ref-method-btn { display: none; }
+html.js .ref-method-btn { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%;
+  min-height: 46px; padding: 12px 14px; border-radius: var(--r-sm); background: rgba(255,255,255,0.04);
+  border: 1px solid var(--hairline); color: var(--fg); font-family: inherit; font-size: 14px; cursor: pointer;
+  transition: border-color .18s, background .18s; }
+html.js .ref-method-btn:hover { border-color: var(--hairline-strong); }
+html.js .ref-method-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.ref-method-chev { color: var(--fg-3); transition: transform .18s var(--ease); flex: 0 0 auto; }
+.ref-method-dd.open .ref-method-chev { transform: rotate(180deg); }
+.ref-method-menu { position: absolute; top: calc(100% + 8px); left: 0; right: 0; z-index: 40; padding: 6px;
+  border-radius: var(--r-sm); background: rgba(19,20,26,0.98); border: 1px solid var(--hairline);
+  box-shadow: 0 20px 46px -18px var(--ink-75); }
+.ref-method-menu[hidden] { display: none; }
+.ref-method-opt { display: flex; align-items: center; justify-content: space-between; gap: 14px; width: 100%;
+  padding: 10px 12px; border-radius: var(--r-ctl); background: transparent; border: none; color: var(--fg-1);
+  font-family: inherit; font-size: 14px; cursor: pointer; text-align: left; }
+.ref-method-opt:hover { background: rgba(255,255,255,0.06); color: var(--fg); }
+.ref-method-opt.active { background: rgba(255,255,255,0.06); color: #fff; }
+.ref-method-radio { width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--hairline); flex: 0 0 auto; position: relative; }
+.ref-method-opt.active .ref-method-radio { border-color: var(--accent); }
+.ref-method-opt.active .ref-method-radio::after { content: ""; position: absolute; inset: 3px; border-radius: 50%; background: var(--accent); }
+
 .ntf-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 0; border-top: 1px solid var(--hairline); }
 .ntf-row:first-of-type { border-top: 0; }
 .ntf-label { font-size: 14px; font-weight: 600; }

@@ -170,7 +170,7 @@
       -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
       -webkit-mask-composite: xor; mask-composite: exclude; pointer-events: none; }
 
-    .btn { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; font-family: inherit;
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; font-family: inherit;
       font-size: var(--t-sm); font-weight: 600; letter-spacing: -0.004em; text-decoration: none;
       padding: 12px 22px; border-radius: 999px;
       border: 1px solid transparent; min-height: 46px;
@@ -2496,7 +2496,14 @@ a.adm-sub[href] { color: var(--fg-1); cursor: pointer; text-decoration: underlin
 .adm-input[readonly] { color: var(--fg-2); background: rgba(255,255,255,0.02); cursor: default; }
 .adm-input[readonly]:focus { border-color: var(--hairline); }
 
-.adm-form { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+/* flex-end, not center: a plain .adm-input is a single box, but .adm-field
+   (used for the "Expires" field here) stacks a label above its input,
+   making it taller than its siblings. Centering on cross-axis centered
+   each item on its OWN box height, so the .adm-field's actual input sat
+   visibly lower than the plain inputs beside it in the same row -
+   aligning by the bottom edge instead lines every real input up, labeled
+   or not. */
+.adm-form { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; }
 .adm-btn-sm { padding: 8px 13px; font-size: 12px; min-height: 0; }
 
 .adm-table-tight td, .adm-table-tight th { white-space: nowrap; }

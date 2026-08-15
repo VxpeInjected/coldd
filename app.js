@@ -3358,10 +3358,16 @@
         // selected currency.
         set('stripe', fiat);
         set('paypal', fiat);
-        // Crypto stays in USD on purpose: the coin amount is only known once
-        // Coinbase quotes it at the live rate on its own checkout page.
-        // Printing a BTC figure here would be a number we invented.
-        set('crypto', usd);
+        // Crypto shows the same fiat reference figure as card/PayPal, not a
+        // coin amount - the BTC/ETH quantity is only known once the payment
+        // processor quotes it live on its own checkout page, and printing
+        // one here would be a number we invented. That's a different thing
+        // from which currency the reference figure itself is in though:
+        // this used to hardcode USD regardless of the buyer's selected
+        // display currency, so switching to GBP converted every other
+        // method but silently left crypto in USD - not a currency-specific
+        // limitation, just this line never being updated to match.
+        set('crypto', fiat);
         // No local fallback here on purpose: ROBUX_PER_USD is scoped to a
         // different IIFE in this file, so a fallback expression referencing it
         // would throw rather than degrade. __robux is defined unconditionally

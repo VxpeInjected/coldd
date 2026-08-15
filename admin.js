@@ -81,6 +81,46 @@
   function $(id) { return document.getElementById(id); }
   function el(html) { var d = document.createElement('div'); d.innerHTML = html.trim(); return d.firstChild; }
 
+  // .adm-row-menu-list (the ⋮ action menu on order/user rows) is
+  // position:absolute inside a table wrapped in .dash-tablewrap, which
+  // sets overflow-x:auto - and per the CSS overflow spec, setting only
+  // overflow-x to a non-visible value forces the browser to compute
+  // overflow-y as auto too, so the wrapper clips vertically as well. Any
+  // row past the wrapper's visible height opened a menu that was clipped
+  // right where its background should have painted, reading as
+  // transparent. Portals the menu to <body> as position:fixed while open,
+  // positioned from the trigger button's real screen coordinates, and
+  // puts it back exactly where it came from on close - same technique the
+  // mobile shop filter sheet already uses for the same class of problem.
+  function closeAllRowMenus() {
+    document.querySelectorAll('.adm-row-menu.open').forEach(function (m) {
+      var list = m.querySelector('.adm-row-menu-list');
+      m.classList.remove('open');
+      if (list) {
+        list.hidden = true;
+        list.removeAttribute('style');
+        if (m.__rmHome) { m.__rmHome.insertBefore(list, m.__rmHomeNext); m.__rmHome = null; m.__rmHomeNext = null; }
+      }
+    });
+  }
+  function openRowMenu(menu) {
+    closeAllRowMenus();
+    var btn = menu.querySelector('.adm-row-menu-btn');
+    var list = menu.querySelector('.adm-row-menu-list');
+    if (!btn || !list) return;
+    menu.__rmHome = list.parentNode;
+    menu.__rmHomeNext = list.nextSibling;
+    list.__ownerMenu = menu;
+    list.hidden = false;
+    document.body.appendChild(list);
+    var r = btn.getBoundingClientRect();
+    var listW = list.offsetWidth || 180;
+    var left = Math.max(8, Math.min(r.right - listW, window.innerWidth - listW - 8));
+    var top = Math.min(r.bottom + 6, window.innerHeight - list.offsetHeight - 8);
+    list.style.cssText = 'position:fixed; z-index:250; top:' + top + 'px; left:' + left + 'px;';
+    menu.classList.add('open');
+  }
+
   // supabase-js's functions.invoke() does NOT put the parsed JSON body
   // into res.data on a non-2xx response - res.data is null and res.error
   // is a generic FunctionsHttpError whose .message is always literally
@@ -2491,21 +2531,31 @@
     }).join('') || '<tr><td colspan="8" class="adm-empty">No orders match.</td></tr>';
   }
   var ordersBody = $('admOrdersBody');
-  if (ordersBody) ordersBody.addEventListener('click', function (e) {
+  // Listens on document, not ordersBody: openRowMenu() portals the open
+  // .adm-row-menu-list to <body> (see its own comment for why), so a click
+  // on one of its action items no longer bubbles through ordersBody at
+  // all once that's happened. The .contains(menuEl) checks below stand in
+  // for the scoping ordersBody used to provide for free - menuEl (the
+  // .adm-row-menu wrapper holding the trigger button) never itself moves,
+  // only its .adm-row-menu-list child does.
+  if (ordersBody) document.addEventListener('click', function (e) {
     var menuBtn = e.target.closest('.adm-row-menu-btn');
     if (menuBtn) {
       var menu = menuBtn.closest('.adm-row-menu');
+      if (!ordersBody.contains(menu)) return;
       var wasOpen = menu.classList.contains('open');
-      document.querySelectorAll('.adm-row-menu.open').forEach(function (m) { m.classList.remove('open'); m.querySelector('.adm-row-menu-list').hidden = true; });
-      if (!wasOpen) { menu.classList.add('open'); menu.querySelector('.adm-row-menu-list').hidden = false; }
+      closeAllRowMenus();
+      if (!wasOpen) openRowMenu(menu);
       return;
     }
     var actionBtn = e.target.closest('.adm-row-menu-item');
     if (!actionBtn) return;
-    var menuEl = actionBtn.closest('.adm-row-menu');
+    var listEl = actionBtn.closest('.adm-row-menu-list');
+    var menuEl = listEl && listEl.__ownerMenu;
+    if (!menuEl || !ordersBody.contains(menuEl)) return;
     var id = menuEl.getAttribute('data-id');
     var o = ORDERS.filter(function (x) { return x.id === id; })[0]; if (!o) return;
-    menuEl.classList.remove('open'); menuEl.querySelector('.adm-row-menu-list').hidden = true;
+    closeAllRowMenus();
     var action = actionBtn.getAttribute('data-action');
 
     if (action === 'view') {
@@ -2537,8 +2587,8 @@
     }
   });
   document.addEventListener('click', function (e) {
-    if (e.target.closest('.adm-row-menu')) return;
-    document.querySelectorAll('.adm-row-menu.open').forEach(function (m) { m.classList.remove('open'); m.querySelector('.adm-row-menu-list').hidden = true; });
+    if (e.target.closest('.adm-row-menu') || e.target.closest('.adm-row-menu-list')) return;
+    closeAllRowMenus();
   });
   var orderSearchInput = $('admOrderSearch');
   if (orderSearchInput) orderSearchInput.addEventListener('input', renderOrders);
@@ -2903,21 +2953,26 @@
     grantProductDropdown.setOptions(allProducts().map(function (p) { return { value: p.id, label: p.title }; }), grantProductDropdown.getValue());
   }
   var usersBody = $('admUsersBody');
-  if (usersBody) usersBody.addEventListener('click', function (e) {
+  // See the matching comment on the orders row-menu listener above - same
+  // portal-to-<body> reason for listening on document instead of usersBody.
+  if (usersBody) document.addEventListener('click', function (e) {
     var menuBtn = e.target.closest('.adm-row-menu-btn');
     if (menuBtn) {
       var menu = menuBtn.closest('.adm-row-menu');
+      if (!usersBody.contains(menu)) return;
       var wasOpen = menu.classList.contains('open');
-      document.querySelectorAll('.adm-row-menu.open').forEach(function (m) { m.classList.remove('open'); m.querySelector('.adm-row-menu-list').hidden = true; });
-      if (!wasOpen) { menu.classList.add('open'); menu.querySelector('.adm-row-menu-list').hidden = false; }
+      closeAllRowMenus();
+      if (!wasOpen) openRowMenu(menu);
       return;
     }
     var actionBtn = e.target.closest('.adm-row-menu-item');
     if (!actionBtn) return;
-    var menuEl = actionBtn.closest('.adm-row-menu');
+    var listEl = actionBtn.closest('.adm-row-menu-list');
+    var menuEl = listEl && listEl.__ownerMenu;
+    if (!menuEl || !usersBody.contains(menuEl)) return;
     var id = menuEl.getAttribute('data-id');
     var u = USERS.filter(function (x) { return x.id === id; })[0]; if (!u) return;
-    menuEl.classList.remove('open'); menuEl.querySelector('.adm-row-menu-list').hidden = true;
+    closeAllRowMenus();
     var action = actionBtn.getAttribute('data-action');
 
     if (!can('admin')) return;

@@ -1139,8 +1139,28 @@
     { key: 'discord', name: 'Discord', note: 'Member and presence counts.' },
     { key: 'x', name: 'X (Twitter)', note: 'Followers, impressions, post reach.', needs: 'Needs TWITTER_BEARER_TOKEN + TWITTER_USERNAME secrets' },
     { key: 'youtube', name: 'YouTube', note: 'Subscribers, views, watch time.', needs: 'Needs YOUTUBE_API_KEY + YOUTUBE_CHANNEL_ID secrets' },
-    { key: 'tiktok', name: 'TikTok', note: 'Followers and video views.', needs: 'Needs a TIKTOK_ACCESS_TOKEN secret (OAuth, not a plain key)' }
+    { key: 'tiktok', name: 'TikTok', note: 'Followers and video views.', needs: 'Not connected yet - click Connect TikTok to authorize.' }
   ];
+
+  // TIKTOK_CLIENT_KEY is the public half of the OAuth pair (as opposed to
+  // TIKTOK_CLIENT_SECRET, which never leaves the server - see
+  // tiktok-oauth-exchange). Safe to embed client-side, same as any OAuth
+  // app's client ID. Builds the same authorize URL TikTok's own docs show
+  // for the Display API; scope covers exactly the two fields
+  // admin-tiktok-stats reads (follower_count, likes_count, video_count).
+  var TIKTOK_CLIENT_KEY = 'sbawte4ixv4nx3rgkb';
+  var TIKTOK_REDIRECT_URI = 'https://coldd.dev/tiktok-callback';
+  function tiktokAuthorizeUrl() {
+    var state = Math.random().toString(36).slice(2) + Date.now().toString(36);
+    var params = new URLSearchParams({
+      client_key: TIKTOK_CLIENT_KEY,
+      scope: 'user.info.basic,user.info.stats',
+      response_type: 'code',
+      redirect_uri: TIKTOK_REDIRECT_URI,
+      state: state
+    });
+    return 'https://www.tiktok.com/v2/auth/authorize/?' + params.toString();
+  }
 
   // Populated by refreshSocialStats(); each admin-*-stats function returns
   // { configured: false } when its secrets aren't set yet, rather than an
@@ -1223,7 +1243,9 @@
       '<span class="adm-channel-trail">' +
       (connected
         ? '<span class="adm-channel-val">' + esc(value) + '</span><span class="dt-badge ok">Connected</span>'
-        : '<span class="dt-badge">Not connected</span>') +
+        : (c.key === 'tiktok'
+            ? '<a class="btn btn-ghost adm-btn-sm" href="' + esc(tiktokAuthorizeUrl()) + '">Connect TikTok</a>'
+            : '<span class="dt-badge">Not connected</span>')) +
       (connected ? '<svg class="adm-collapse-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>' : '') +
       '</span>';
 

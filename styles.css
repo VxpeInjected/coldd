@@ -272,9 +272,15 @@
     .nav-links.searching .nav-search-input { width: 190px; opacity: 1; padding: 6px 11px; background: rgba(255,255,255,0.05); }
     .nav-search-input::placeholder { color: var(--fg-3); }
     .nav-cta { display: flex; align-items: center; gap: 8px; }
-    /* Mobile-only revenue CTA - see the 1100px block below. Desktop already
-       has "Shop" as a real nav-links item, so this stays hidden there. */
-    .nav-shop-mobile { display: none; }
+    /* Mobile-only nav-links stand-in - see the 1100px block below. Desktop
+       already has "Shop" as a real nav-links item (this stays hidden
+       there), so it's styled to match that plain-text link exactly rather
+       than as a second filled button next to Join - two solid pills of
+       different colours right next to each other reads as a generated-UI
+       tell, not a real hierarchy. */
+    .nav-shop-mobile { display: none; color: var(--fg-2); text-decoration: none; font-size: 13px; font-weight: 500;
+      padding: 9px 13px; border-radius: 10px; transition: color .2s, background .2s; }
+    .nav-shop-mobile:hover { color: var(--fg); background: rgba(255,255,255,0.06); }
     .nav-cta .btn { min-height: 38px; padding: 9px 16px; font-size: 13px; }
     .menu-btn { display: none; background: rgba(255,255,255,0.06); border: 1px solid var(--hairline);
       color: var(--fg); width: 38px; height: 38px; border-radius: 10px; cursor: pointer; }
@@ -611,6 +617,13 @@
       header.nav { left: 12px; right: auto; transform: none;
         max-width: calc(100% - 24px - 104px); }
       .tc > .cur-switch { display: none; }
+      /* .cart-fab-sep exists to separate the cart pill from .cur-switch,
+         which just got hidden above - without this it was a divider with
+         nothing left of it to divide from. Padding moves onto the pill
+         itself so the icon keeps balanced spacing instead of sitting
+         flush against the left edge. */
+      .cart-fab-sep { display: none; }
+      .cart-fab { padding-left: 11px; }
       .nav-links.mobile-open .cur-switch { display: inline-flex; align-self: flex-start; margin-top: 22px; }
 
       /* Mobile nav menu - .menu-btn previously had no JS wired to it at all,
@@ -1009,14 +1022,18 @@
   }
   html.js .shop-filters-btn .shop-filters-n:empty { display: none; }
 
+  /* Drops down from the top rather than sliding up from the bottom - the
+     trigger that opens it (.shop-filters-btn) lives in the results bar at
+     the top of the page, so a bottom sheet meant the panel appeared
+     nowhere near the control that opened it. */
   html.js .shop-side {
-    position: fixed; left: 0; right: 0; bottom: 0; top: auto; z-index: 301;
+    position: fixed; left: 0; right: 0; top: 0; bottom: auto; z-index: 301;
     max-height: 82vh; overflow-y: auto; -webkit-overflow-scrolling: touch;
-    transform: translateY(101%); transition: transform .34s var(--ease);
-    background: var(--bg-2); border-top: 1px solid var(--hairline);
-    border-radius: var(--r) var(--r) 0 0;
-    box-shadow: 0 -30px 80px -30px var(--ink-85);
-    padding: 0 0 env(safe-area-inset-bottom);
+    transform: translateY(-101%); transition: transform .34s var(--ease);
+    background: var(--bg-2); border-bottom: 1px solid var(--hairline);
+    border-radius: 0 0 var(--r) var(--r);
+    box-shadow: 0 30px 80px -30px var(--ink-85);
+    padding: env(safe-area-inset-top) 0 0;
   }
   html.js .shop-side.open { transform: translateY(0); }
   html.js .shop-side .filter-card {
@@ -1733,6 +1750,17 @@ body.auth-page { min-height: 100vh; min-height: 100dvh; }
 .dr-sub { font-size: 12px; color: var(--fg-3); margin-top: 3px; }
 .dr-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .dr-cart, .dr-btn { min-height: 36px; padding: 8px 14px; font-size: 13px; }
+
+/* Thumb + title + up to 3 action buttons (View/Download/Review) all fighting
+   for one row was fine on desktop's wide .dash-main, but on a phone's
+   ~300px content width it squeezed everything into wrapped, uneven
+   fragments. Wraps the actions onto their own full-width row instead. */
+@media (max-width: 640px) {
+  .dash-row { flex-wrap: wrap; }
+  .dr-main { flex: 1 1 auto; }
+  .dr-actions { flex: 1 1 100%; margin-top: 10px; }
+  .dr-actions .dr-cart, .dr-actions .dr-btn { flex: 1 1 0; }
+}
 .wl-remove { width: 30px; height: 30px; border: none; background: transparent; color: var(--fg-3); font-size: 20px; line-height: 1; border-radius: 10px; cursor: pointer; }
 .wl-remove:hover { color: var(--accent); background: rgba(255,77,68,0.1); }
 
@@ -2205,11 +2233,22 @@ button.dt-badge:disabled { cursor: default; opacity: 0.6; }
   .hero-show { min-height: 260px; }
 }
 @media (max-width: 560px) {
-  /* Facts wrap to two lines rather than squeezing; the divider only ever sits
-     between neighbours on the same line. */
-  .hstat { padding: 0 14px; }
-  .hstat .hn { font-size: 20px; }
-  .hstat .hl2 { font-size: var(--t-label); }
+  /* flex-wrap doesn't know which item started a new line, so a wrapped
+     3rd stat kept both its left border (":first-child" only ever matches
+     the actual 1st DOM child, never "first on this row") and its 14px
+     left padding, misaligned against the row above it - an orphaned
+     divider floating at the start of line 2. Shrunk to fit all three
+     stats on one line instead of trying to make a wrap look intentional. */
+  .hero-stats { flex-wrap: nowrap; gap: 0; }
+  .hstat { padding: 0 10px; gap: 5px; }
+  .hstat .hn { font-size: 17px; }
+  /* "in Discord" was landing a few px short of its own unwrapped width in
+     that stat's box, dropping "Discord" onto its own line and doubling
+     the row's height. Text doesn't shrink, so hold it to one line and let
+     the row (which has slack - three stats only use ~330 of 375px here)
+     absorb the difference instead. */
+  .hstat .hl2 { white-space: nowrap; }
+  .hstat .hl2 { font-size: 11px; }
 }
 
 .fc-cat-group { margin-bottom: 0; }

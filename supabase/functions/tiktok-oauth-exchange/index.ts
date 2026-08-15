@@ -13,7 +13,7 @@
 // tokens straight into TIKTOK_ACCESS_TOKEN / TIKTOK_REFRESH_TOKEN via the
 // Supabase Management API - the browser only ever sees { ok: true }.
 //
-// Requires a SUPABASE_MANAGEMENT_TOKEN secret: a personal access token
+// Requires a MANAGEMENT_API_TOKEN secret: a personal access token
 // from supabase.com/dashboard/account/tokens, scoped to this project.
 // Setting secrets this way redeploys every function in the project
 // (normal Supabase behaviour), so expect a short blip after connecting.
@@ -90,9 +90,9 @@ Deno.serve(async (req: Request) => {
       return json({ ok: false, error: data.error_description || data.error || "TikTok rejected the exchange." }, 502);
     }
 
-    const managementToken = Deno.env.get("SUPABASE_MANAGEMENT_TOKEN");
+    const managementToken = Deno.env.get("MANAGEMENT_API_TOKEN");
     if (!managementToken) {
-      return json({ ok: false, error: "SUPABASE_MANAGEMENT_TOKEN secret is not set. Create a personal access token at supabase.com/dashboard/account/tokens, set it as that secret, then retry - TikTok tokens are never shown in the browser." }, 400);
+      return json({ ok: false, error: "MANAGEMENT_API_TOKEN secret is not set. Create a personal access token at supabase.com/dashboard/account/tokens, set it as that secret, then retry - TikTok tokens are never shown in the browser." }, 400);
     }
 
     const projectRef = new URL(supabaseUrl).hostname.split(".")[0];

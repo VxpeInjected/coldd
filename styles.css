@@ -3130,7 +3130,14 @@ input[type="checkbox"]:focus-visible { outline: 2px solid var(--accent); outline
   background-size: cover; background-position: center; }
 
 /* notification bell + popover (matches notif-* classes built in app.js) */
-.nav-notif { position: relative; }
+/* .nav-notif is .nav-cta's first child, but .nav-inner's 18px gap (the
+   same value that separates the brand from the nav links) lands right
+   before it - meant to separate nav-links from the account/cart icon
+   tray as groups, not to space out one icon within that tray. The result
+   was the bell sitting with 18px on its left and only 8px (.nav-cta's own
+   internal gap) on its right, reading as off-balance next to its actual
+   neighbours. Pulled back to match that 8px rhythm. */
+.nav-notif { position: relative; margin-left: -10px; }
 .nav-notif[hidden] { display: none; }
 .notif-badge { position: absolute; top: 2px; right: 2px; min-width: 15px; height: 15px; padding: 0 3px; border-radius: 999px;
   background: var(--accent); color: #fff; font-size: 10px; font-weight: 700; line-height: 15px; text-align: center; pointer-events: none; }

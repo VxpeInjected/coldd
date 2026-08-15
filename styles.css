@@ -1857,7 +1857,7 @@ button.dt-badge:disabled { cursor: default; opacity: 0.6; }
 .cb-logo { height: 30px; width: auto; display: block; opacity: 0.92; }
 /* Ember, matching every other loading state on the site. */
 .cb-spin { width: 26px; height: 26px; border: 2px solid var(--hairline);
-  border-top-color: var(--accent); border-radius: var(--r-pill); animation: cbspin 1.6s linear infinite; }
+  border-top-color: var(--accent); border-radius: var(--r-pill); animation: cbspin 3s linear infinite; }
 @keyframes cbspin { to { transform: rotate(360deg); } }
 .cb-card p { margin: 0; font-size: 14.5px; line-height: 1.5; color: var(--fg-2); max-width: 34ch; }
 /* No reduced-motion guard here, matching every other loading spinner on the
@@ -1905,7 +1905,7 @@ button.dt-badge:disabled { cursor: default; opacity: 0.6; }
    only thing telling the buyer the page is still working rather than stuck. */
 .ty-ring { position: absolute; inset: -1px; border-radius: var(--r-pill);
   border: 2px solid transparent; border-top-color: var(--accent);
-  animation: tyspin 1.6s linear infinite; }
+  animation: tyspin 3s linear infinite; }
 @keyframes tyspin { to { transform: rotate(360deg); } }
 .ty-mark:not([data-state="pending"]) .ty-ring { display: none; }
 
@@ -2751,7 +2751,7 @@ a.adm-sub[href] { color: var(--fg-1); cursor: pointer; text-decoration: underlin
 
 /* auth full-page: submit spinner + verify-step controls */
 .auth-submit { position: relative; }
-.auth-submit .btn-spinner { width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; display: inline-block; animation: authbtnspin 1.6s linear infinite; }
+.auth-submit .btn-spinner { width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; display: inline-block; animation: authbtnspin 3s linear infinite; }
 .auth-submit .btn-spinner[hidden] { display: none; }
 .auth-submit.is-loading { opacity: 0.55; cursor: default; }
 .auth-submit.is-loading .btn-label { visibility: hidden; }
@@ -2760,7 +2760,7 @@ a.adm-sub[href] { color: var(--fg-1); cursor: pointer; text-decoration: underlin
 /* Generic version of the same pattern for any .btn (dashboard save
    actions, modals) - .auth-submit above is the form-page-specific one. */
 .btn.is-loading { position: relative; opacity: 0.55; cursor: default; }
-.btn .btn-spinner { width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; display: inline-block; animation: authbtnspin 1.6s linear infinite; }
+.btn .btn-spinner { width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; display: inline-block; animation: authbtnspin 3s linear infinite; }
 .btn .btn-spinner[hidden] { display: none; }
 .btn.is-loading .btn-label { visibility: hidden; }
 .btn.is-loading .btn-spinner { position: absolute; top: 50%; left: 50%; margin-top: -8px; margin-left: -8px; }

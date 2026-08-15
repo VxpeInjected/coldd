@@ -2225,19 +2225,21 @@ html.js .ref-method-btn:focus-visible { outline: 2px solid var(--accent); outlin
    brand colours fighting the ember accent for attention above the fold.
    Solid var(--bg-3), not a translucent rgba fill - a see-through tint over
    the hero art is exactly the glassmorphism look the rest of the site just
-   dropped, so this stays flat and opaque like everything else. */
+   dropped, so this stays flat and opaque like everything else. No border:
+   against the hero art a hairline ring read as a floating glass chip, so
+   depth comes from a real shadow instead, same device .glass panels use. */
 .hero-copy .hero-cta .btn-primary,
 .hero-copy .hero-cta .btn-minecraft {
   color: var(--fg); background: var(--bg-3);
-  border-color: var(--hairline-strong); box-shadow: none;
+  border-color: transparent; box-shadow: var(--e-2);
 }
 .hero-copy .hero-cta .btn-primary:hover,
 .hero-copy .hero-cta .btn-minecraft:hover {
-  background: #2a2d35; border-color: rgba(255,255,255,0.26); color: #fff;
+  background: #2a2d35; border-color: transparent; color: #fff; box-shadow: var(--e-3);
 }
 .hero-copy .hero-cta .btn-primary:active,
 .hero-copy .hero-cta .btn-minecraft:active {
-  background: var(--bg-3);
+  background: var(--bg-3); box-shadow: var(--e-1);
 }
 /* Read as a sentence of facts on one baseline, not as a stat-card row. The
    stacked big-number-over-tiny-uppercase-label arrangement is the generated

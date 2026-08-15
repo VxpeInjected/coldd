@@ -32,19 +32,21 @@
   function showMaintenanceOverlay(status) {
     if (document.getElementById('siteMaintenanceOverlay')) return;
     var endsAt = status.maintenance_ends_at ? new Date(status.maintenance_ends_at).getTime() : null;
+    var msg = status.maintenance_message
+      ? String(status.maintenance_message).replace(/[<>&]/g, function (c) { return { '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c]; })
+      : "We're pushing an update. Back shortly.";
 
     var overlay = document.createElement('div');
     overlay.id = 'siteMaintenanceOverlay';
-    overlay.style.cssText = 'position:fixed;inset:0;z-index:99999;background:#0a0a0a;color:#d7d7d7;' +
-      'font-family:ui-monospace,monospace;display:flex;align-items:center;justify-content:center;text-align:center;padding:24px;';
+    overlay.className = 'gate-overlay';
     overlay.innerHTML =
-      '<div>' +
-        '<p style="font-size:20px;font-weight:700;margin:0 0 10px;">Site under maintenance.</p>' +
-        '<p style="font-size:14px;color:#a3a3a3;margin:0 0 4px;">' + (status.maintenance_message ? String(status.maintenance_message).replace(/[<>&]/g, function (c) { return { '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c]; }) : "We'll be back soon.") + '</p>' +
-        (endsAt ? '<p id="siteMaintCountdown" style="font-size:13px;color:#666;margin:8px 0 0;"></p>' : '') +
+      '<div class="gate-card glass">' +
+        '<img class="gate-logo" src="/logo.png" alt="coldd" />' +
+        '<h2>Site under maintenance</h2>' +
+        '<p class="gate-msg">' + msg + '</p>' +
+        (endsAt ? '<p id="siteMaintCountdown" class="gate-countdown"></p>' : '') +
       '</div>' +
-      '<button id="siteMaintLock" aria-label="Staff sign in" style="position:fixed;bottom:18px;right:18px;width:38px;height:38px;border-radius:50%;' +
-        'background:#151515;border:1px solid #262626;color:#888;cursor:pointer;display:flex;align-items:center;justify-content:center;">' +
+      '<button id="siteMaintLock" class="gate-lock pm-x" aria-label="Staff sign in">' +
         '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>' +
       '</button>';
     document.documentElement.appendChild(overlay);
@@ -65,9 +67,12 @@
       if (document.getElementById('siteMaintSignin')) return;
       var box = document.createElement('div');
       box.id = 'siteMaintSignin';
-      box.style.cssText = 'position:fixed;bottom:64px;right:18px;background:#111;border:1px solid #262626;border-radius:10px;padding:16px;width:220px;';
-      box.innerHTML = '<p style="font-size:12px;color:#a3a3a3;margin:0 0 10px;">Staff sign-in only. Signing in does not grant public access during maintenance.</p>' +
-        '<button id="siteMaintDiscord" style="width:100%;padding:9px;border-radius:8px;border:none;background:#5865F2;color:#fff;font-size:13px;cursor:pointer;">Sign in with Discord</button>';
+      box.className = 'gate-signin glass';
+      box.innerHTML = '<p>Staff sign-in only. Signing in does not grant public access during maintenance.</p>' +
+        '<button id="siteMaintDiscord" class="auth-oauth" type="button" data-provider="Discord">' +
+          '<svg viewBox="0 0 24 24" fill="#5865F2"><path d="M20.317 4.3698a19.7913 19.7913 0 0 0-4.8851-1.5152.0741.0741 0 0 0-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 0 0-.0785-.037 19.7363 19.7363 0 0 0-4.8852 1.515.0699.0699 0 0 0-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 0 0 .0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 0 0 .0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 0 0-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 0 1-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 0 1 .0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 0 1 .0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 0 1-.0066.1276 12.2986 12.2986 0 0 1-1.873.8914.0766.0766 0 0 0-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 0 0 .0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 0 0 .0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 0 0-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.4189-2.1568 2.4189Z"/></svg>' +
+          ' Sign in with Discord' +
+        '</button>';
       overlay.appendChild(box);
       document.getElementById('siteMaintDiscord').addEventListener('click', function () {
         if (window.coldAuth) window.coldAuth.signInDiscord();
@@ -79,8 +84,7 @@
     if (document.getElementById('siteWhitelistBanner')) return;
     var banner = document.createElement('div');
     banner.id = 'siteWhitelistBanner';
-    banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:99998;background:#b23a3a;color:#fff;' +
-      'font-family:ui-monospace,monospace;font-size:13px;text-align:center;padding:8px 12px;';
+    banner.className = 'gate-banner';
     banner.textContent = "You're viewing as a whitelisted staff member - the site is still under maintenance for everyone else.";
     document.documentElement.appendChild(banner);
   }
@@ -124,10 +128,13 @@
       window.coldSupabase.auth.signOut().catch(function () {}).then(function () {
         try { localStorage.setItem('coldd_auth', 'out'); } catch (e) {}
         var overlay = document.createElement('div');
-        overlay.style.cssText = 'position:fixed;inset:0;z-index:99999;background:#0a0a0a;color:#d7d7d7;' +
-          'font-family:ui-monospace,monospace;display:flex;align-items:center;justify-content:center;text-align:center;padding:24px;';
-        overlay.innerHTML = '<div><p style="font-size:20px;font-weight:700;margin:0 0 10px;">Account suspended.</p>' +
-          '<p style="font-size:14px;color:#a3a3a3;margin:0;">' + (prof.ban_reason ? String(prof.ban_reason).replace(/[<>&]/g, function (c) { return { '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c]; }) : 'Contact support if you believe this is a mistake.') + '</p></div>';
+        overlay.className = 'gate-overlay';
+        overlay.innerHTML = '<div class="gate-card glass">' +
+          '<img class="gate-logo" src="/logo.png" alt="coldd" />' +
+          '<h2>Account suspended</h2>' +
+          '<p class="gate-msg">' + (prof.ban_reason ? String(prof.ban_reason).replace(/[<>&]/g, function (c) { return { '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c]; }) : 'Contact support if you believe this is a mistake.') + '</p>' +
+          '<p class="gate-msg" style="margin-top:14px;"><a href="mailto:support@coldd.dev" style="color:var(--accent);font-weight:600;">support@coldd.dev</a></p>' +
+        '</div>';
         document.documentElement.appendChild(overlay);
         document.body.style.overflow = 'hidden';
       });

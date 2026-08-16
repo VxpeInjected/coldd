@@ -325,7 +325,7 @@
       transition: width .55s cubic-bezier(0.6,0,0.2,1), opacity .35s ease, padding .4s ease, background .3s ease; }
     .nav-links.searching .nav-search-input { width: 190px; opacity: 1; padding: 6px 11px; background: rgba(255,255,255,0.05); }
     .nav-search-input::placeholder { color: var(--fg-3); }
-    .nav-cta { display: flex; align-items: center; gap: 8px; }
+    .nav-cta { display: flex; align-items: center; gap: 4px; }
     /* Mobile-only nav-links stand-in - see the 1100px block below. Desktop
        already has "Shop" as a real nav-links item (this stays hidden
        there), so it's styled to match that plain-text link exactly rather
@@ -3133,11 +3133,10 @@ input[type="checkbox"]:focus-visible { outline: 2px solid var(--accent); outline
 /* .nav-notif is .nav-cta's first child, but .nav-inner's 18px gap (the
    same value that separates the brand from the nav links) lands right
    before it - meant to separate nav-links from the account/cart icon
-   tray as groups, not to space out one icon within that tray. The result
-   was the bell sitting with 18px on its left and only 8px (.nav-cta's own
-   internal gap) on its right, reading as off-balance next to its actual
-   neighbours. Pulled back to match that 8px rhythm. */
-.nav-notif { position: relative; margin-left: -10px; }
+   tray as groups, not to space out one icon within that tray. Pulled
+   back to match .nav-cta's own internal gap (4px) instead, so the bell
+   reads as one of that tray's icons rather than sitting off on its own. */
+.nav-notif { position: relative; margin-left: -14px; }
 .nav-notif[hidden] { display: none; }
 .notif-badge { position: absolute; top: 2px; right: 2px; min-width: 15px; height: 15px; padding: 0 3px; border-radius: 999px;
   background: var(--accent); color: #fff; font-size: 10px; font-weight: 700; line-height: 15px; text-align: center; pointer-events: none; }

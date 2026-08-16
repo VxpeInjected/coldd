@@ -1708,7 +1708,7 @@ body.auth-page { min-height: 100vh; min-height: 100dvh; }
 .auth-field { display: flex; flex-direction: column; gap: 7px; }
 .auth-field > label { font-size: 13px; font-weight: 600; color: var(--fg-2); }
 .auth-input-wrap { position: relative; }
-.auth-field input[type="email"], .auth-field input[type="password"], .auth-field input[type="text"] {
+.auth-field input[type="email"], .auth-field input[type="password"], .auth-field input[type="text"], .auth-field input[type="number"] {
   width: 100%; min-height: 46px; padding: 12px 14px; border-radius: 16px; border: 1px solid var(--hairline);
   /* 16px, not 14px. Below 16px iOS Safari zooms the viewport the moment the
      field is focused, which on the sign-in page means the layout lurches
@@ -1716,6 +1716,13 @@ body.auth-page { min-height: 100vh; min-height: 100dvh; }
      floor explicitly and the auth pages were the last place still breaking it. */
   background: rgba(255,255,255,0.04); color: var(--fg); font-family: inherit; font-size: 16px; outline: none;
   transition: border-color .2s, background .2s; }
+/* Native step arrows don't take dark-theme styling and read as a stray
+   browser control glued onto an otherwise designed field - dropped in
+   favour of a plain typed amount, same as every other money field on
+   the site (checkout, coupon values, etc.). */
+.auth-field input[type="number"] { -moz-appearance: textfield; }
+.auth-field input[type="number"]::-webkit-outer-spin-button,
+.auth-field input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 .auth-field input::placeholder, .auth-field textarea::placeholder { color: var(--fg-3); }
 .auth-field input:focus, .auth-field textarea:focus { border-color: rgba(255,77,68,0.5); background: rgba(255,255,255,0.06); }
 .auth-field.invalid input { border-color: var(--accent); }
@@ -2010,9 +2017,6 @@ html.js .ref-method-btn:focus-visible { outline: 2px solid var(--accent); outlin
 
 .dash-side, .dash-card, .dash-stat {
   background: var(--bg-2); }
-/* Customer account sidebar only - .dash-card/.dash-stat keep the
-   neutral hairline .glass already gives every other panel. */
-.dash-side { border-color: rgba(255,77,68,0.35); }
 .ds-money { color: var(--price); }
 
 .announce { z-index: 210; }

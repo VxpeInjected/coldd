@@ -536,17 +536,27 @@
     .resell-trust { grid-column: 1 / -1; padding: 34px 50px 42px; border-top: 1px solid var(--hairline); }
     .resell-trust h3 { font-size: var(--t-h5); letter-spacing: -0.02em; margin: 0; }
     .resell-trust p { color: var(--fg-2); font-size: 15px; line-height: 1.6; margin: 8px 0 0; max-width: 520px; }
-    .resell-logos { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; margin-top: 22px; }
+    /* flex:1 per chip (below) so three logos stretch to fill the row -
+       fewer, bigger marks reads more confident than a cluster of small
+       ones with dead space beside them. */
+    .resell-logos { display: flex; align-items: center; gap: 16px; margin-top: 22px; }
     /* Neutral tile per logo, same reasoning as the payment-method marks
-       elsewhere - the four files vary wildly (two transparent wordmarks,
-       one on a solid white card, one square character render), so a
-       uniform dark chip is what makes them read as one consistent row
-       instead of four mismatched floating images. */
-    .resell-logo { display: flex; align-items: center; justify-content: center; height: 88px; padding: 0 30px;
+       elsewhere - the files vary wildly (transparent wordmarks vs. one
+       that shipped on a solid card), so a uniform dark chip is what makes
+       them read as one consistent row instead of mismatched floating
+       images. */
+    .resell-logo { flex: 1; display: flex; align-items: center; justify-content: center; height: 120px; padding: 0 24px;
       border-radius: var(--r-ctl); background: var(--bg-3); border: 1px solid var(--hairline); }
-    .resell-logo img { max-height: 52px; max-width: 176px; width: auto; height: auto; object-fit: contain; display: block; }
+    .resell-logo img { max-height: 72px; max-width: 100%; width: auto; height: auto; object-fit: contain; display: block; }
     @media (max-width: 860px) {
       .resell-trust { padding: 28px 28px 32px; }
+      .resell-logo { height: 100px; }
+      .resell-logo img { max-height: 58px; }
+    }
+    @media (max-width: 560px) {
+      .resell-logos { flex-direction: column; }
+      .resell-logo { width: 100%; height: 84px; }
+      .resell-logo img { max-height: 46px; }
     }
     @media (max-width: 560px) {
       .resell-logos { gap: 10px; }

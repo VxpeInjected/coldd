@@ -1179,13 +1179,25 @@
         // Use price while the shopper is specifically browsing for a resell
         // licence. Swap the visible price for the resell price while that
         // filter is active, and back to normal the moment it isn't.
+        // Same real per-product robux_price the cart/checkout and product.html
+        // already prefer over the flat 80-per-dollar estimate (see app.js's
+        // catalogRobuxPrice, a separate IIFE scope this can't reach directly -
+        // this is that same lookup against the same window.__CATALOG global).
+        // Without it the shop grid quoted one Robux number while the cart
+        // quoted a different, real one for the identical product.
+        function cardRobuxPrice(id) {
+          var p = (window.__CATALOG || []).filter(function (c) { return c.id === id; })[0];
+          return p && p.robuxPrice != null ? p.robuxPrice : null;
+        }
         function syncCardPricing(card) {
           var priceRow = card.querySelector('.p-price-row');
           if (!priceRow) return;
           var resell = card.getAttribute('data-resell') === 'yes';
+          var robuxMode = window.__currencyMode ? window.__currencyMode() === 'robux' : false;
           if (curCat === 'resell' && resell) {
             var resellUsd = Number(card.getAttribute('data-resell-price'));
-            var robuxMode = window.__currencyMode ? window.__currencyMode() === 'robux' : false;
+            // Resell licences aren't sold in Robux at all (matches product.html
+            // and the cart), so this stays USD even in Robux mode.
             var text = robuxMode
               ? (window.__usd ? window.__usd(resellUsd) : ('$' + resellUsd))
               : (window.__money ? window.__money(resellUsd) : ('$' + resellUsd));
@@ -1195,7 +1207,8 @@
           } else {
             var was = card.getAttribute('data-was');
             var baseUsd = Number(card.getAttribute('data-price'));
-            var baseText = window.__money ? window.__money(baseUsd) : ('$' + baseUsd);
+            var rbx = robuxMode ? cardRobuxPrice(card.getAttribute('data-id')) : null;
+            var baseText = rbx != null ? ('R$ ' + Math.round(rbx).toLocaleString('en-US')) : (window.__money ? window.__money(baseUsd) : ('$' + baseUsd));
             priceRow.innerHTML = (was ? '<span class="p-was">' + (window.__money ? window.__money(Number(was)) : ('$' + was)) + '</span>' : '') + '<span class="p-price">' + baseText + '</span>';
           }
         }

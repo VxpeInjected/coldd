@@ -1219,7 +1219,10 @@
         // quoted a different, real one for the identical product.
         function cardRobuxPrice(id) {
           var p = (window.__CATALOG || []).filter(function (c) { return c.id === id; })[0];
-          return p && p.robuxPrice != null ? p.robuxPrice : null;
+          // > 0: a stored robux_price of 0 is bad data, not a real R$0
+          // price - falls back to the flat estimate instead of quoting
+          // a product free in Robux while it still costs real money.
+          return p && p.robuxPrice > 0 ? p.robuxPrice : null;
         }
         function syncCardPricing(card) {
           var priceRow = card.querySelector('.p-price-row');
@@ -1463,10 +1466,16 @@
       // checkout need to do the same instead of showing a generic
       // estimate. Robux pricing doesn't support resell licences (matches
       // product.html, which shows "Not available" for that combo).
+      var ROBUX_PER_USD_FALLBACK = 80; // matches _shared/roblox.ts's ROBUX_PER_USD
       function catalogRobuxPrice(id) {
         var baseId = String(id).replace(/--resell$/, '').replace(/--bundle$/, '');
         var p = (window.__CATALOG || []).filter(function (c) { return c.id === baseId; })[0];
-        return p && p.robuxPrice != null ? p.robuxPrice : null;
+        // > 0, not != null: an admin-set robux_price of 0 is never really
+        // intended (nothing should cost real money in USD and be free in
+        // Robux) - treating it as "no override" instead of "R$ 0" is what
+        // stops one bad field value from making a product unsellable via
+        // Robux instead of just falling back to the flat estimate.
+        return p && p.robuxPrice > 0 ? p.robuxPrice : null;
       }
       function itemUnitMoney(item) {
         var robuxMode = window.__currencyMode && window.__currencyMode() === 'robux';
@@ -1795,7 +1804,7 @@
             if (!isResell && cur.was > cur.priceNum) { pdPriceWas.textContent = fiat(cur.was); pdPriceWas.hidden = false; }
             else pdPriceWas.hidden = true;
           }
-          if (pdPriceRbx) { pdPriceRbx.textContent = showRbx ? (cur.robuxPrice != null ? robuxRaw(cur.robuxPrice) : robux(base)) : ''; pdPriceRbx.hidden = !showRbx; }
+          if (pdPriceRbx) { pdPriceRbx.textContent = showRbx ? (cur.robuxPrice > 0 ? robuxRaw(cur.robuxPrice) : robux(base)) : ''; pdPriceRbx.hidden = !showRbx; }
           if (pdPriceNote) pdPriceNote.hidden = !showRbx;
           if (pdSale) pdSale.hidden = !(cur.was > cur.priceNum);
           var robuxMode = window.__currencyMode ? window.__currencyMode() === 'robux' : false;
@@ -1809,7 +1818,7 @@
               el.textContent = window.__usd ? window.__usd(resellUsd) : ('$' + resellUsd);
               return;
             }
-            if (!isResellOpt && robuxMode && cur.robuxPrice != null) { el.textContent = robuxRaw(cur.robuxPrice); return; }
+            if (!isResellOpt && robuxMode && cur.robuxPrice > 0) { el.textContent = robuxRaw(cur.robuxPrice); return; }
             var pp = isResellOpt ? resellUsd : cur.priceNum;
             el.textContent = window.__money ? window.__money(pp) : fiat(pp);
           });
@@ -2434,7 +2443,7 @@
       function saveWishIds(ids) { try { localStorage.setItem(WISH_KEY, JSON.stringify(ids)); } catch (e) {} }
       function wishPriceText(p) {
         var robuxMode = window.__currencyMode ? window.__currencyMode() === 'robux' : false;
-        var rbx = robuxMode && p.robuxPrice != null ? p.robuxPrice : null;
+        var rbx = robuxMode && p.robuxPrice > 0 ? p.robuxPrice : null;
         return rbx != null ? ('R$ ' + Math.round(rbx).toLocaleString('en-US')) : (window.__money ? window.__money(p.priceNum) : ('$' + p.priceNum));
       }
       function renderWishlist() {
@@ -3255,7 +3264,12 @@
       function catalogRobuxPrice(id) {
         var baseId = String(id).replace(/--resell$/, '').replace(/--bundle$/, '');
         var p = (window.__CATALOG || []).filter(function (c) { return c.id === baseId; })[0];
-        return p && p.robuxPrice != null ? p.robuxPrice : null;
+        // > 0, not != null: a stored robux_price of 0 is bad data, not an
+        // intentional free-in-Robux price - falls back to the flat
+        // estimate instead of quoting R$0 for a product that costs real
+        // money, and instead of failing the whole Robux order (server
+        // rejects a total <= 0) if that were the only item in the cart.
+        return p && p.robuxPrice > 0 ? p.robuxPrice : null;
       }
       function lineMoney(item) {
         if (window.__currencyMode && window.__currencyMode() === 'robux' && item.licence !== 'resell') {
@@ -3379,11 +3393,22 @@
         // method but silently left crypto in USD - not a currency-specific
         // limitation, just this line never being updated to match.
         set('crypto', fiat);
-        // No local fallback here on purpose: ROBUX_PER_USD is scoped to a
-        // different IIFE in this file, so a fallback expression referencing it
-        // would throw rather than degrade. __robux is defined unconditionally
-        // at the top of this same file, so it is always present.
-        set('robux', window.__robux ? window.__robux(total) : usd);
+        // Sums each item's REAL robux_price where one is set, falling back
+        // to the flat 80-per-$1 estimate only per-item, not for the whole
+        // row - matches priceRobuxItems' server-side math exactly. This
+        // used to flat-convert the order's USD total in one shot
+        // (window.__robux(total)), which showed a different number here
+        // than the actual Robux panel below once any cart item had a real
+        // robux_price - the classic "why does checkout show two different
+        // Robux prices" report.
+        var robuxRow = 0;
+        cart.forEach(function (i) {
+          if (i.licence === 'resell') return; // never sold in Robux, matches priceRobuxItems
+          var rbx = catalogRobuxPrice(i.id);
+          if (rbx == null) rbx = Math.round(i.price * ROBUX_PER_USD_FALLBACK);
+          robuxRow += rbx * i.qty;
+        });
+        set('robux', 'R$ ' + Math.round(robuxRow).toLocaleString('en-US'));
 
         var settle = document.getElementById('coPaySettle');
         if (!settle) return;

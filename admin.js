@@ -29,6 +29,18 @@
   function boot(ADMIN) {
   window.__ADMIN_ID = ADMIN.id;
 
+  // A focused <input type="number"> silently changes value on mouse wheel
+  // scroll in every major browser - scroll the page while the cursor
+  // happens to be over a still-focused price field (easy to do on a form
+  // this long) and the number underneath it changes with no visual cue.
+  // That's the most likely way a real robux_price ended up saved as a
+  // flat 0 - blurring on wheel lets the page scroll normally without the
+  // input eating it.
+  document.addEventListener('wheel', function (e) {
+    var el = document.activeElement;
+    if (el && el.tagName === 'INPUT' && el.type === 'number' && e.target === el) el.blur();
+  }, { passive: true });
+
   /* ================================================================
      UTILITIES
      ================================================================ */
@@ -2428,7 +2440,16 @@
   function collectEditFields() {
     return {
       price: Math.max(0, parseFloat($('admEditPrice').value) || 0),
-      robuxPrice: $('admEditRobuxPrice').value === '' ? null : Math.max(0, parseFloat($('admEditRobuxPrice').value) || 0),
+      // A 0-or-negative Robux price is never actually intended (nothing
+      // should cost real USD and be free in Robux) - saved as null (no
+      // override, falls back to the flat estimate) instead of a literal
+      // 0 that then quotes the product as free everywhere Robux pricing
+      // is shown. The old Math.max(0, ...) clamp let exactly that happen
+      // silently on any negative or unparseable entry.
+      robuxPrice: (function () {
+        var v = parseFloat($('admEditRobuxPrice').value);
+        return Number.isFinite(v) && v > 0 ? v : null;
+      })(),
       cat: $('admEditCat').value,
       subcat: $('admEditSubcat').value || null,
       desc: $('admEditSubtext').value.trim(),

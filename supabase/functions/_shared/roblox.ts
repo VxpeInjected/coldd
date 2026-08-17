@@ -142,7 +142,12 @@ export async function priceRobuxItems(
     if (product.platform !== "Roblox") {
       return { ok: false, error: `${product.title} isn't available for Robux checkout yet.` };
     }
-    const unitRobux = product.robux_price != null ? Number(product.robux_price) : Math.round(Number(product.price_usd) * ROBUX_PER_USD);
+    // > 0, not != null: a product with robux_price stored as exactly 0
+    // is bad admin data, not an intentional "free in Robux" price - this
+    // is the actual charge, so treating 0 as real here would either sell
+    // the product for nothing or (if it's the only cart item) fail the
+    // whole order outright once the total <= 0 check below runs.
+    const unitRobux = Number(product.robux_price) > 0 ? Number(product.robux_price) : Math.round(Number(product.price_usd) * ROBUX_PER_USD);
     lines.push({
       slug,
       title: product.title,

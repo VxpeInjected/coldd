@@ -1545,7 +1545,6 @@ body.no-scroll { overflow: hidden; }
 .about-story .about-info-body { column-count: 2; column-gap: 48px; margin-top: 18px; }
 .about-story .about-info-body p, .about-story .about-founder { break-inside: avoid; }
 .about-story .about-info-body p { font-size: 15px; line-height: 1.66; margin: 0 0 15px; }
-.about-story .about-stats { column-span: all; margin-top: 10px; }
 
 @media (max-width: 820px) {
   .about-story .about-info-body { column-count: 1; margin-top: 0; }
@@ -1554,27 +1553,37 @@ body.no-scroll { overflow: hidden; }
 .about-tags span { font-size: 13px; font-weight: 500; color: var(--fg-2); padding: 7px 14px; border-radius: 999px;
   background: var(--glass-top); border: 1px solid var(--hairline); }
 
-/* Reuses the hero's own inline stat sentence (.hero-stats/.hstat) instead of
-   the stacked number-over-label cards this used to be - three boxes with
-   dividers between them is the stat-card template the hero itself was
-   rewritten to drop; this brings the about page in line with that same
-   call rather than keeping the one place on the site that still made it. */
-.about-stats { margin-top: 4px; }
-
 @media (max-width: 820px) {
   .about-info { grid-template-columns: 1fr; gap: 20px; padding: 32px 26px; }
 }
 
 @media (max-width: 560px) {
-  /* Four stats with descriptive labels (vs. the hero's short number
-     sentence) don't fit .hero-stats's shared nowrap-on-mobile rule -
-     wrap into a 2x2 grid instead of squeezing/truncating one line. */
-  .about-stats.hero-stats { flex-wrap: wrap; gap: 14px 0; }
-  .about-stats .hstat { flex: 0 0 50%; padding: 0 0 0 14px; }
-  .about-stats .hstat:nth-child(odd) { border-left: none; padding-left: 0; }
-  .about-stats .hstat:nth-child(even) { border-left: 1px solid var(--hairline); }
   .about-founder { gap: 10px; }
   .about-founder-pic { width: 38px; height: 38px; }
+}
+
+/* Its own panel, not a stacked-card row - a hairline-ruled grid of cells
+   reads as a small data table (real figures) rather than the generated
+   landing page's default gradient-card proof block. */
+.about-stat-panel { padding: 44px 50px 40px; }
+.asp-head { max-width: 520px; margin: 0 0 32px; }
+.asp-head h2 { font-size: var(--t-h2); margin: 0; letter-spacing: -0.035em; line-height: 1.08; }
+.asp-head p { color: var(--fg-2); font-size: 15px; margin: 10px 0 0; }
+.about-stat-grid {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px;
+  background: var(--hairline); border: 1px solid var(--hairline);
+  border-radius: var(--r-sm); overflow: hidden;
+}
+.about-stat { background: var(--bg-2); padding: 26px 22px; display: flex; flex-direction: column; gap: 8px; }
+.as-num { font-size: clamp(30px, 3vw, 40px); font-weight: 800; letter-spacing: -0.03em; color: var(--fg); }
+.as-label { font-size: 13.5px; color: var(--fg-2); font-weight: 500; }
+
+@media (max-width: 820px) {
+  .about-stat-panel { padding: 32px 26px; }
+  .about-stat-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 480px) {
+  .about-stat-grid { grid-template-columns: 1fr; }
 }
 
 .career-section-label { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap;

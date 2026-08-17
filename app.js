@@ -352,6 +352,38 @@
     }
 
     (function () {
+      var nums = document.querySelectorAll('.as-num[data-count]');
+      if (!nums.length) return;
+      function paint(el, val) {
+        var n = Math.round(val);
+        var text = el.hasAttribute('data-plain') ? String(n) : n.toLocaleString('en-US');
+        el.textContent = text + (el.getAttribute('data-suffix') || '');
+      }
+      function run(el) {
+        var target = parseFloat(el.getAttribute('data-count')) || 0;
+        if (reduce) { paint(el, target); return; }
+        var start = null, dur = 1300;
+        function tick(ts) {
+          if (start === null) start = ts;
+          var p = Math.min((ts - start) / dur, 1);
+          paint(el, target * (1 - Math.pow(1 - p, 3)));
+          if (p < 1) requestAnimationFrame(tick);
+        }
+        requestAnimationFrame(tick);
+      }
+      if (!('IntersectionObserver' in window)) {
+        nums.forEach(function (el) { paint(el, parseFloat(el.getAttribute('data-count')) || 0); });
+      } else {
+        var io2 = new IntersectionObserver(function (entries) {
+          entries.forEach(function (e) {
+            if (e.isIntersecting) { run(e.target); io2.unobserve(e.target); }
+          });
+        }, { threshold: 0.5 });
+        nums.forEach(function (el) { io2.observe(el); });
+      }
+    })();
+
+    (function () {
       const wrap = document.getElementById('heroStats');
       if (!wrap) return;
       const nums = Array.prototype.slice.call(wrap.querySelectorAll('.hn[data-target]'));

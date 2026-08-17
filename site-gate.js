@@ -110,13 +110,18 @@
     banner.className = 'gate-banner';
     banner.innerHTML =
       '<span>You\'re viewing as a whitelisted staff member - the site is still under maintenance for everyone else.</span>' +
-      '<button id="siteMaintPreviewBtn" type="button">Preview maintenance screen</button>';
+      '<button id="siteMaintPreviewBtn" type="button">Preview maintenance screen</button>' +
+      '<button id="siteMaintBannerX" type="button" aria-label="Dismiss">&times;</button>';
     document.documentElement.appendChild(banner);
     document.getElementById('siteMaintPreviewBtn').addEventListener('click', function () {
       try { sessionStorage.setItem(PREVIEW_KEY, '1'); } catch (e) {}
       banner.remove();
       showMaintenanceOverlay(status, true);
     });
+    // Same as the site's other dismissible bar (the sale announcement) -
+    // clears for this page view only, not persisted, so it's back on the
+    // next navigation as a standing reminder rather than gone for good.
+    document.getElementById('siteMaintBannerX').addEventListener('click', function () { banner.remove(); });
   }
 
   window.coldSupabase.from('site_status').select('*').eq('id', true).maybeSingle().then(function (res) {

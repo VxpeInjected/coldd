@@ -1818,6 +1818,8 @@ body.auth-page { min-height: 100vh; min-height: 100dvh; }
   background: rgba(255,255,255,0.16); border: 1px solid rgba(255,255,255,0.28); border-radius: 999px; padding: 6px 14px;
   transition: background .18s; }
 .gate-banner button:hover { background: rgba(255,255,255,0.26); }
+#siteMaintBannerX { background: transparent; border-color: transparent; padding: 4px 8px; font-size: 18px; line-height: 1; }
+#siteMaintBannerX:hover { background: rgba(255,255,255,0.16); }
 @media (max-width: 480px) { .gate-card { padding: 34px 24px; } }
 
 .dash-page { padding-top: 110px; padding-bottom: 90px; }

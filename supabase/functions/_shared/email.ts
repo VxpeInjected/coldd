@@ -160,3 +160,118 @@ export function renderAutomationEmail(bodyMd: string, extraHtmlBlocks: string[],
   const html = renderBodyMd(bodyMd) + extraHtmlBlocks.join("\n");
   return wrapCampaignEmail(html, unsubscribeUrl);
 }
+
+/**
+ * Same visual shell as wrapCampaignEmail (marketing), minus the unsubscribe
+ * link/footer - a receipt is a transactional record of a purchase, not a
+ * marketing send, and must go out regardless of profiles.marketing_unsubscribed.
+ * Separate function rather than an optional param so a future edit to the
+ * marketing footer can't accidentally leak into transactional mail or vice
+ * versa.
+ */
+export function wrapTransactionalEmail(bodyHtml: string): string {
+  return `<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+<body style="margin:0;padding:0;background-color:#030303;">
+<table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#030303;padding:44px 0 56px;">
+<tr><td align="center">
+<table width="560" cellpadding="0" cellspacing="0" border="0" style="width:560px;background-color:#0b0b0b;border-radius:8px;overflow:hidden;">
+<tr><td style="background:linear-gradient(90deg,#ff2233 0%,#ff6677 50%,#ff2233 100%);height:3px;line-height:3px;font-size:3px;">&nbsp;</td></tr>
+
+<tr><td style="padding:40px 44px 8px;">
+<p style="margin:0;font-size:9px;letter-spacing:4px;color:#ff3344;text-transform:uppercase;font-weight:700;font-family:Arial,Helvetica,sans-serif;">coldd Development</p>
+</td></tr>
+
+<tr><td style="padding:18px 44px 30px;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.7;color:#d7d7d7;">
+${bodyHtml}
+</td></tr>
+
+<tr><td style="padding:0 44px;">
+<table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td style="border-top:1px solid rgba(255,51,68,0.2);font-size:0;line-height:0;">&nbsp;</td></tr></table>
+</td></tr>
+
+<tr><td style="padding:24px 44px 40px;">
+<p style="margin:0;font-size:11px;color:#3e3e3e;line-height:1.8;font-family:Arial,Helvetica,sans-serif;">
+Need help with this order? Contact <a href="mailto:support@coldd.dev" style="color:#ff3344;text-decoration:none;">support@coldd.dev</a>.
+</p>
+</td></tr>
+
+<tr><td style="background-color:#070707;border-top:1px solid #141414;padding:18px 44px;">
+<p style="margin:0;font-size:10px;color:#252525;font-family:Arial,Helvetica,sans-serif;">coldd Development &nbsp;&middot;&nbsp; noreply@coldd.dev</p>
+</td></tr>
+
+<tr><td style="background:linear-gradient(90deg,#ff2233 0%,#ff6677 50%,#ff2233 100%);height:2px;line-height:2px;font-size:2px;">&nbsp;</td></tr>
+</table>
+</td></tr>
+</table>
+</body></html>`;
+}
+
+/**
+ * Fetches an order + its items and emails a receipt via the transactional
+ * shell. Called from every payment path (Stripe/PayPal/crypto/Robux) right
+ * after the same idempotency-guarded UPDATE that flips an order to 'paid',
+ * so it only ever fires once per order regardless of webhook retries.
+ *
+ * Email resolution: a signed-in buyer's address comes from auth.users
+ * (always present, never missing). A guest buyer only has an address if the
+ * caller passes one in explicitly (guestEmail) - Stripe Checkout always
+ * collects one on its own hosted page, so the Stripe webhook can pass
+ * session.customer_details.email. PayPal/crypto/Robux currently capture no
+ * guest email anywhere in the checkout flow, so a guest paying by one of
+ * those methods will not receive a receipt until that gap is closed
+ * separately - this function silently no-ops rather than erroring when no
+ * address is available, since a missing receipt must never fail or retry
+ * the payment webhook that triggered it.
+ */
+export async function sendOrderReceipt(
+  admin: any,
+  orderId: string,
+  guestEmail?: string | null,
+): Promise<SendResult> {
+  const { data: order, error: orderErr } = await admin
+    .from("orders")
+    .select("id, user_id, total_usd, currency, created_at")
+    .eq("id", orderId)
+    .single();
+  if (orderErr || !order) return { ok: false, error: "Order not found for receipt." };
+
+  let to = guestEmail || null;
+  if (!to && order.user_id) {
+    const { data: userRes } = await admin.auth.admin.getUserById(order.user_id);
+    to = userRes?.user?.email || null;
+  }
+  if (!to) return { ok: false, error: "No email address available for this order.", code: "NO_EMAIL" };
+
+  const { data: items } = await admin
+    .from("order_items")
+    .select("title, qty, product_slug")
+    .eq("order_id", orderId);
+
+  const itemsHtml = itemsTableHtml(
+    (items || []).map((i: any) => ({
+      title: i.title,
+      qty: i.qty,
+      linkUrl: `https://coldd.dev/product?id=${encodeURIComponent(i.product_slug)}`,
+      linkLabel: "View",
+    })),
+  );
+
+  const total = `$${Number(order.total_usd).toFixed(2)}`;
+  const shortId = String(order.id).slice(0, 8).toUpperCase();
+
+  const body = `
+<p style="margin:0 0 4px;font-size:20px;font-weight:700;color:#ffffff;font-family:Arial,Helvetica,sans-serif;">Order confirmed</p>
+<p style="margin:0 0 24px;">Thanks for your order - here's your receipt. Every item below is ready to download right away.</p>
+${itemsHtml}
+<table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:28px;">
+<tr><td style="font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#7a7a7a;">Order #${shortId} &middot; Total charged</td>
+<td align="right" style="font-family:Arial,Helvetica,sans-serif;font-size:16px;font-weight:700;color:#ffffff;">${total}</td></tr>
+</table>
+${order.user_id ? ctaButtonHtml("https://coldd.dev/dashboard?panel=owned", "Go to your downloads") : ""}
+${order.user_id ? "" : `<p style="margin:20px 0 0;font-size:12px;color:#7a7a7a;">Bought as a guest - create an account with this email any time to see this order and re-download later.</p>`}
+`;
+
+  const html = wrapTransactionalEmail(body);
+  return sendSingle(to, `Your coldd order #${shortId} is confirmed`, html);
+}

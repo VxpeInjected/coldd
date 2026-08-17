@@ -19,6 +19,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { paypalToken, paypalFetch } from "../_shared/paypal.ts";
+import { sendOrderReceipt } from "../_shared/email.ts";
 
 const ALLOWED_ORIGIN = "https://coldd.dev";
 
@@ -132,14 +133,22 @@ Deno.serve(async (req: Request) => {
       .select()
       .maybeSingle();
 
-    if (updated?.coupon_code) {
-      const { data: coupon } = await admin
-        .from("coupons").select("code, usage_count").eq("code", updated.coupon_code).maybeSingle();
-      if (coupon) {
-        await admin.from("coupons")
-          .update({ usage_count: (coupon.usage_count ?? 0) + 1 })
-          .eq("code", updated.coupon_code);
+    if (updated) {
+      if (updated.coupon_code) {
+        const { data: coupon } = await admin
+          .from("coupons").select("code, usage_count").eq("code", updated.coupon_code).maybeSingle();
+        if (coupon) {
+          await admin.from("coupons")
+            .update({ usage_count: (coupon.usage_count ?? 0) + 1 })
+            .eq("code", updated.coupon_code);
+        }
       }
+      // PayPal's own order resource carries the payer's email regardless of
+      // whether the buyer has a coldd account, so a guest checkout still
+      // gets a receipt here (unlike crypto/Robux, which capture no email).
+      const guestEmail = paypalOrder?.payer?.email_address || null;
+      const receipt = await sendOrderReceipt(admin, order.id, guestEmail);
+      if (!receipt.ok) console.error("[capture-paypal-order] receipt email failed:", receipt.error);
     }
 
     return json({ ok: true, status: "paid", orderId: order.id });

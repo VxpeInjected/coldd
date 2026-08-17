@@ -23,6 +23,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { activeProvider } from "../_shared/crypto.ts";
+import { sendOrderReceipt } from "../_shared/email.ts";
 
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -101,6 +102,13 @@ Deno.serve(async (req: Request) => {
           .eq("code", updated.coupon_code);
       }
     }
+
+    // No guest email: nothing in the crypto checkout flow captures one
+    // today (create-crypto-charge takes no email field). Signed-in buyers
+    // still get a receipt via their account email; sendOrderReceipt no-ops
+    // cleanly for a guest order rather than erroring.
+    const receipt = await sendOrderReceipt(admin, order.id, null);
+    if (!receipt.ok && receipt.code !== "NO_EMAIL") console.error("[crypto-webhook] receipt email failed:", receipt.error);
 
     return json({ ok: true, status: "paid" });
   } catch (e) {

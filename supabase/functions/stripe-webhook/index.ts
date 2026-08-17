@@ -18,6 +18,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import Stripe from "https://esm.sh/stripe@17?target=deno";
+import { sendOrderReceipt } from "../_shared/email.ts";
 
 const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY")!, {
   httpClient: Stripe.createFetchHttpClient(),
@@ -70,11 +71,21 @@ Deno.serve(async (req: Request) => {
           .single();
         if (error && error.code !== "PGRST116") console.error("[stripe-webhook] failed to mark order paid:", error);
 
-        if (updated?.coupon_code) {
-          const { data: coupon } = await admin.from("coupons").select("usage_count").eq("code", updated.coupon_code).single();
-          if (coupon) {
-            await admin.from("coupons").update({ usage_count: coupon.usage_count + 1 }).eq("code", updated.coupon_code);
+        if (updated) {
+          if (updated.coupon_code) {
+            const { data: coupon } = await admin.from("coupons").select("usage_count").eq("code", updated.coupon_code).single();
+            if (coupon) {
+              await admin.from("coupons").update({ usage_count: coupon.usage_count + 1 }).eq("code", updated.coupon_code);
+            }
           }
+          // Awaited, not fire-and-forget: a Deno Edge Function's isolate can
+          // be torn down as soon as the response below is sent, which would
+          // silently drop an un-awaited send before Resend ever received it.
+          // Stripe Checkout always collects an email on its own hosted page,
+          // even for guests, so this is present regardless of account status.
+          const guestEmail = session.customer_details?.email || session.customer_email || null;
+          const receipt = await sendOrderReceipt(admin, orderId, guestEmail);
+          if (!receipt.ok) console.error("[stripe-webhook] receipt email failed:", receipt.error);
         }
       }
     } else if (event.type === "checkout.session.async_payment_failed" || event.type === "checkout.session.expired") {

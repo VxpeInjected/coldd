@@ -26,6 +26,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { findPoolSale, getValidRobloxToken } from "../_shared/roblox.ts";
 import { getLeasedPass, releasePass } from "../_shared/roblox_pool.ts";
+import { sendOrderReceipt } from "../_shared/email.ts";
 
 const ALLOWED_ORIGIN = "https://coldd.dev";
 
@@ -130,7 +131,10 @@ Deno.serve(async (req: Request) => {
     }
 
     // Conditional update doubles as the guard against two verify calls racing.
-    await admin
+    // .select() lets us tell whether THIS call is the one that actually won
+    // the race, same idempotency pattern as the other payment paths - without
+    // it, two racing verify calls could both fall through and double-send.
+    const { data: updated } = await admin
       .from("orders")
       .update({
         status: "paid",
@@ -138,11 +142,20 @@ Deno.serve(async (req: Request) => {
         roblox_verification_method: "pool_sale",
       })
       .eq("id", orderId)
-      .neq("status", "paid");
+      .neq("status", "paid")
+      .select("id")
+      .maybeSingle();
 
     // Hand the pass back and take it off sale, so nobody can pay this order's
     // price in the gap before it is re-leased and re-priced.
     await releasePass(admin, orderId, String(pass.universe_id), String(pass.gamepass_id));
+
+    // Robux checkout requires a linked (signed-in) Roblox account, so this
+    // always has a user_id - no guest path to worry about here.
+    if (updated) {
+      const receipt = await sendOrderReceipt(admin, orderId, null);
+      if (!receipt.ok) console.error("[verify-robux-order] receipt email failed:", receipt.error);
+    }
 
     return json({ ok: true, verified: true, status: "paid" });
   } catch (err) {

@@ -112,10 +112,15 @@ Deno.serve(async (req: Request) => {
     );
 
     if (!sale.found) {
-      if (sale.reason === "NOT_CONFIGURED" || sale.reason === "COOKIE_BROKEN") {
+      if (sale.reason === "NOT_CONFIGURED" || sale.reason === "COOKIE_BROKEN" || sale.reason === "LOOKUP_FAILED") {
         // Fail closed. There is no ownership fallback under pooling, so an
         // unavailable ledger means "cannot confirm", never "assume paid".
-        console.error("[verify-robux-order] sale ledger unavailable:", sale.reason);
+        // LOOKUP_FAILED belongs here too - it means the Roblox request itself
+        // broke (bad response, timeout, parse error), not that the sale
+        // genuinely isn't there yet. Lumping it in with a real "not found"
+        // told buyers to just keep waiting on a check that was never going
+        // to succeed.
+        console.error("[verify-robux-order] sale ledger unavailable:", sale.reason, orderId);
         return json({
           ok: false,
           code: "VERIFY_UNAVAILABLE",

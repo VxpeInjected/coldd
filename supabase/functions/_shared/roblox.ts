@@ -349,6 +349,28 @@ export async function findPoolSale(
       return created >= leasedAt - 120_000;
     });
 
+    if (!match) {
+      // No log access via CLI in this environment - this is the only trail
+      // for diagnosing a "not found" that should have matched. Look for a
+      // same-pass/same-buyer row that failed on amount or timing alone, so a
+      // future read of these logs can tell "not posted yet" apart from "the
+      // 0.65 tolerance or clock-skew allowance is wrong for this order."
+      const nearMiss = rows.find((row) => {
+        const details = row.details || {};
+        const agent = row.agent || {};
+        return String(details.id) === String(gamePassId) && String(agent.id) === String(buyerRobloxId);
+      });
+      if (nearMiss) {
+        console.error(
+          "[roblox] findPoolSale: same pass+buyer row exists but was rejected -",
+          "amount:", nearMiss.currency?.amount, "expected:", expectedRobux, "* 0.65 =", expectedRobux * 0.65,
+          "created:", nearMiss.created, "leasedAt:", leasedAtIso,
+        );
+      } else {
+        console.error("[roblox] findPoolSale: no row at all for pass", gamePassId, "buyer", buyerRobloxId, "in last", rows.length, "sales");
+      }
+    }
+
     return { found: !!match };
   } catch (err) {
     console.error("[roblox] pool sale lookup error:", err);

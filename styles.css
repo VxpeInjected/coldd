@@ -525,10 +525,10 @@
     .resell-art::before { content: ""; position: absolute; inset: 0;
       background: linear-gradient(110deg, rgba(15,16,21,0.92) 0%, rgba(15,16,21,0.55) 45%, rgba(15,16,21,0.25) 100%); }
     .resell-points { position: relative; z-index: 1; list-style: none; margin: 0; padding: 30px 34px;
-      display: flex; flex-direction: column; justify-content: center; gap: 14px; height: 100%; }
-    .resell-points li { position: relative; padding-left: 26px; font-size: 14px; font-weight: 500; color: var(--fg); }
-    .resell-points li::before { content: ""; position: absolute; left: 0; top: 6px; width: 14px; height: 8px;
-      border-left: 2px solid var(--accent); border-bottom: 2px solid var(--accent); transform: rotate(-45deg); }
+      display: flex; flex-direction: column; justify-content: center; gap: 20px; height: 100%; }
+    .resell-points li { position: relative; padding-left: 32px; font-size: 17px; font-weight: 500; color: var(--fg); }
+    .resell-points li::before { content: ""; position: absolute; left: 0; top: 8px; width: 17px; height: 10px;
+      border-left: 3px solid var(--accent); border-bottom: 3px solid var(--accent); transform: rotate(-45deg); }
 
     /* Spans both .resell columns as its own row, closed off by a hairline
        so it reads as a distinct band rather than a continuation of the
@@ -548,20 +548,23 @@
     .resell-logo { flex: 1; display: flex; align-items: center; justify-content: center; height: 120px; padding: 0 24px;
       border-radius: var(--r-ctl); background: var(--bg-3); border: 1px solid var(--hairline); }
     .resell-logo img { max-height: 72px; max-width: 100%; width: auto; height: auto; object-fit: contain; display: block; }
+    /* Broken Studios and Skater Studios both carry extra baked-in padding
+       inside their source canvas (Skater's especially, from the black card
+       it used to ship on), so at the same max-height they render visibly
+       smaller than Destiny Tech's tighter-cropped wordmark. Sized up to
+       compensate rather than re-exporting the source files. */
+    .resell-logo img.resell-logo-lg { max-height: 96px; }
     @media (max-width: 860px) {
       .resell-trust { padding: 28px 28px 32px; }
       .resell-logo { height: 100px; }
       .resell-logo img { max-height: 58px; }
+      .resell-logo img.resell-logo-lg { max-height: 78px; }
     }
     @media (max-width: 560px) {
       .resell-logos { flex-direction: column; }
       .resell-logo { width: 100%; height: 84px; }
       .resell-logo img { max-height: 46px; }
-    }
-    @media (max-width: 560px) {
-      .resell-logos { gap: 10px; }
-      .resell-logo { height: 72px; padding: 0 20px; flex: 1 1 calc(50% - 10px); }
-      .resell-logo img { max-height: 42px; max-width: 130px; }
+      .resell-logo img.resell-logo-lg { max-height: 62px; }
     }
 
     .reviews { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }

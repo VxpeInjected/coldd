@@ -1554,27 +1554,40 @@
     updateCampaignPreview();
   });
 
+  // Shared by the campaign composer and each automation's own preview -
+  // same shell either way, since both send through the same Resend path.
+  function emailPreviewDoc(bodyHtml) {
+    return '<!doctype html><html><head><meta charset="utf-8">' +
+      '<style>body{margin:0;padding:20px;font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;' +
+      'font-size:15px;line-height:1.5;color:#1a1a1a;background:#fff;} img{max-width:100%;}</style>' +
+      '</head><body>' + bodyHtml + '</body></html>';
+  }
   function updateCampaignPreview() {
     var frame = $('admCampaignPreviewFrame');
     if (!frame || $('admCampaignPreviewWrap').hidden) return;
-    var doc = '<!doctype html><html><head><meta charset="utf-8">' +
-      '<style>body{margin:0;padding:20px;font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;' +
-      'font-size:15px;line-height:1.5;color:#1a1a1a;background:#fff;} img{max-width:100%;}</style>' +
-      '</head><body>' + campaignBodyHtml() + '</body></html>';
-    frame.srcdoc = doc;
+    frame.srcdoc = emailPreviewDoc(campaignBodyHtml());
   }
-  var campaignPreviewBtn = $('admCampaignPreviewBtn');
-  if (campaignPreviewBtn) campaignPreviewBtn.addEventListener('click', function () {
+  // Delegated rather than bound once to the button itself - this whole
+  // panel re-renders sub-sections of itself repeatedly (every stats/
+  // campaigns/automations refresh calls back into renderMarketing()), and
+  // a listener bound directly to a node that later gets replaced by an
+  // innerHTML rebuild elsewhere silently stops firing. Delegating from
+  // document survives that regardless of which nodes get rebuilt.
+  document.addEventListener('click', function (e) {
+    var btn = e.target.closest('#admCampaignPreviewBtn');
+    if (!btn) return;
     var wrap = $('admCampaignPreviewWrap');
+    if (!wrap) return;
     var open = wrap.hidden;
     wrap.hidden = !open;
-    campaignPreviewBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
-    campaignPreviewBtn.textContent = open ? 'Hide preview' : 'Preview';
+    btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    btn.textContent = open ? 'Hide preview' : 'Preview';
     if (open) updateCampaignPreview();
   });
-  var campaignBodyEl = $('admCampaignBody');
-  if (campaignBodyEl) campaignBodyEl.addEventListener('input', function () {
-    if (!$('admCampaignPreviewWrap').hidden) updateCampaignPreview();
+  document.addEventListener('input', function (e) {
+    if (!e.target.closest('#admCampaignBody')) return;
+    var wrap = $('admCampaignPreviewWrap');
+    if (wrap && !wrap.hidden) updateCampaignPreview();
   });
 
   var campaignForm = $('admCampaignForm');
@@ -1658,7 +1671,10 @@
         '<label class="adm-field"><span>Delay (hours) - ' + esc(meta.hint) + '</span><input type="number" class="adm-input am-delay" min="1" value="' + esc(a.delay_hours) + '" style="max-width:140px;" /></label>' +
         '<label class="adm-field"><span>Subject</span><input type="text" class="adm-input am-subject" value="' + esc(a.subject) + '" /></label>' +
         '<label class="adm-field"><span>Body</span><textarea class="adm-input adm-textarea am-body" rows="4">' + esc(a.body_md) + '</textarea></label>' +
-        '<div style="display:flex;gap:8px;align-items:center;"><button class="btn btn-primary adm-btn-sm am-save" type="button">Save</button><span class="adm-edit-msg am-msg"></span></div>' +
+        '<div style="display:flex;gap:8px;align-items:center;"><button class="btn btn-primary adm-btn-sm am-save" type="button">Save</button>' +
+        '<button class="btn btn-ghost adm-btn-sm am-preview" type="button" aria-expanded="false">Preview</button><span class="adm-edit-msg am-msg"></span></div>' +
+        '<div class="adm-campaign-preview am-preview-wrap" hidden><div class="adm-campaign-preview-head">Preview</div>' +
+        '<iframe class="adm-campaign-preview-frame am-preview-frame" title="Automation email preview" sandbox=""></iframe></div>' +
         '</div></details>';
     }).join('');
 
@@ -1686,6 +1702,24 @@
           btn.disabled = false;
         });
       });
+    });
+
+    // Renders live from whatever is currently typed, not the last-saved
+    // body_md - same "preview what you're about to send" as campaigns.
+    el.querySelectorAll('.am-preview').forEach(function (btn) {
+      var row = btn.closest('[data-automation-key]');
+      var previewWrap = row.querySelector('.am-preview-wrap');
+      var frame = row.querySelector('.am-preview-frame');
+      var bodyEl = row.querySelector('.am-body');
+      function update() { frame.srcdoc = emailPreviewDoc(simpleMarkdownToHtml(bodyEl.value)); }
+      btn.addEventListener('click', function () {
+        var open = previewWrap.hidden;
+        previewWrap.hidden = !open;
+        btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+        btn.textContent = open ? 'Hide preview' : 'Preview';
+        if (open) update();
+      });
+      bodyEl.addEventListener('input', function () { if (!previewWrap.hidden) update(); });
     });
   }
 
@@ -2017,19 +2051,39 @@
       ? ('DevEx equivalent of ' + usd(usdPrice) + ' ≈ R$ ' + Math.round(usdPrice / DEVEX_USD_PER_ROBUX).toLocaleString('en-US'))
       : '';
   }
+  // f.path (real upload, private product-files bucket) opens via a
+  // freshly-minted signed URL on click - no permanent URL is ever stored,
+  // so there's nothing to go stale. f.url only appears on entries saved
+  // before that existed (a blob: URL, dead the moment that tab closed) -
+  // shown as plain text since there's nothing left to link to.
   function renderFileList(listId, files, removeClass) {
     var list = $(listId); if (!list) return;
     list.innerHTML = files.map(function (f, i) {
       var name = typeof f === 'string' ? f : (f.name || '');
-      var url = typeof f === 'string' ? null : f.url;
-      var nameHtml = url
-        ? '<a href="' + esc(url) + '" target="_blank" rel="noopener">' + esc(name) + '</a>'
+      var path = typeof f === 'string' ? null : f.path;
+      var nameHtml = path
+        ? '<a href="#" class="adm-file-open" data-path="' + esc(path) + '">' + esc(name) + '</a>'
         : '<span>' + esc(name) + '</span>';
       return '<div class="adm-file-item">' + nameHtml + '<button type="button" class="adm-icon-btn ' + removeClass + '" data-i="' + i + '">' + ADM_ICON_TRASH + '</button></div>';
     }).join('') || '<p class="adm-empty" style="padding:8px 0;">No files uploaded yet.</p>';
   }
   function renderProofList() { renderFileList('admLegalProofList', editProofFiles, 'adm-proof-remove'); }
   function renderDevProofList() { renderFileList('admLegalDevProofList', editDevProofFiles, 'adm-dev-proof-remove'); }
+  document.addEventListener('click', function (e) {
+    var link = e.target.closest('.adm-file-open');
+    if (!link || !(link.closest('#admLegalProofList') || link.closest('#admLegalDevProofList'))) return;
+    e.preventDefault();
+    var path = link.getAttribute('data-path');
+    var prevText = link.textContent;
+    link.textContent = 'Opening…';
+    invokeAdminFn('admin-get-download-url', { path: path }, 'Could not open file.').then(function (d) {
+      link.textContent = prevText;
+      window.open(d.url, '_blank', 'noopener');
+    }).catch(function (err) {
+      link.textContent = prevText;
+      alert(err.message || 'Could not open file.');
+    });
+  });
   function renderGalleryList() {
     var list = $('admEditGalleryList'); if (!list) return;
     list.innerHTML = editGallery.map(function (src, i) {
@@ -2283,9 +2337,30 @@
     });
   }
 
+  // Real Storage upload (private product-files bucket, kind 'legalDoc') -
+  // this used to just wrap the file in a blob: URL, which is only valid
+  // for the tab that created it and is already gone by the time the saved
+  // product is reopened. A placeholder row shows immediately so a slow
+  // upload doesn't look like nothing happened; it gets its real path once
+  // the upload resolves, or is removed on failure.
+  function addLegalFiles(list, files, rerender) {
+    Array.prototype.forEach.call(files, function (f) {
+      var row = { name: f.name, path: null };
+      list.push(row);
+      rerender();
+      uploadToStorage('legalDoc', f).then(function (r) {
+        row.path = r.path;
+        rerender();
+      }).catch(function (err) {
+        var idx = list.indexOf(row);
+        if (idx !== -1) list.splice(idx, 1);
+        rerender();
+        alert(err.message || 'Could not upload file.');
+      });
+    });
+  }
   wireDropzone($('admLegalProofDrop'), $('admLegalProofInput'), function (files) {
-    Array.prototype.forEach.call(files, function (f) { editProofFiles.push({ name: f.name, url: URL.createObjectURL(f) }); });
-    renderProofList();
+    addLegalFiles(editProofFiles, files, renderProofList);
   });
   var proofList = $('admLegalProofList');
   if (proofList) proofList.addEventListener('click', function (e) {
@@ -2295,8 +2370,7 @@
   });
 
   wireDropzone($('admLegalDevProofDrop'), $('admLegalDevProofInput'), function (files) {
-    Array.prototype.forEach.call(files, function (f) { editDevProofFiles.push({ name: f.name, url: URL.createObjectURL(f) }); });
-    renderDevProofList();
+    addLegalFiles(editDevProofFiles, files, renderDevProofList);
   });
   var devProofList = $('admLegalDevProofList');
   if (devProofList) devProofList.addEventListener('click', function (e) {

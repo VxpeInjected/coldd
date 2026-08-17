@@ -16,7 +16,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
 
-  <link rel="stylesheet" href="/styles.css?v=20260817e" />
+  <link rel="stylesheet" href="/styles.css?v=20260817f" />
 </head>
 <body class="adm-body">
   <div class="backdrop"></div>
@@ -458,7 +458,6 @@
                     </div>
                   </div>
                   <input type="hidden" id="admEditThumbUrl" />
-                  <p class="adm-note">Actual image hosting needs Supabase Storage connected — for now this previews locally and tracks the file name.</p>
                 </div>
 
                 <div class="adm-field" style="margin-top:20px;">
@@ -470,7 +469,7 @@
                     <p class="adm-dropzone-hint">PNG, JPG, GIF or WEBP — multiple allowed</p>
                   </div>
                   <div class="adm-gallery-grid" id="admEditGalleryList"></div>
-                  <p class="adm-note">Extra images shown in the product page gallery, in order. Same local-preview caveat as above.</p>
+                  <p class="adm-note">Extra images shown in the product page gallery, in order.</p>
                 </div>
 
                 <label class="adm-field" style="margin-top:20px;max-width:420px;"><span>YouTube demo link</span><input type="url" id="admEditVideoUrl" class="adm-input" placeholder="https://youtube.com/watch?v=…" /></label>
@@ -503,7 +502,7 @@
                     <p class="adm-dropzone-hint">Any file type — multiple allowed</p>
                   </div>
                   <div class="adm-file-list" id="admLegalProofList"></div>
-                  <p class="adm-note">File storage needs Supabase Storage connected — for now this previews locally and tracks file names.</p>
+                  <p class="adm-note">Kept private - only visible to staff.</p>
                 </div>
 
                 <div class="adm-field" style="margin-top:20px;">
@@ -515,7 +514,7 @@
                     <p class="adm-dropzone-hint">MP4 and other video formats — multiple allowed</p>
                   </div>
                   <div class="adm-file-list" id="admLegalDevProofList"></div>
-                  <p class="adm-note">Screen recordings or clips showing the product being built. Same storage caveat as above — previews locally for now.</p>
+                  <p class="adm-note">Screen recordings or clips showing the product being built. Kept private - only visible to staff.</p>
                 </div>
 
                 <div class="adm-field" style="margin-top:20px;">
@@ -584,7 +583,7 @@
                 <div class="adm-field" style="margin-top:16px;">
                   <span>File</span>
                   <input type="file" id="admUpdFileInput" disabled />
-                  <p class="adm-note">File uploads need Supabase Storage connected — coming once the backend is live.</p>
+                  <p class="adm-note">Pushing a version here only records the version number and changelog. If the file itself changed, replace it in the product's own file section instead.</p>
                 </div>
 
                 <button type="button" class="btn btn-ghost adm-btn-sm" id="admUpdDescToggle" style="margin-top:18px;">Update description</button>
@@ -1181,6 +1180,6 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.2/dist/umd/supabase.min.js" integrity="sha384-B2duOBIryCXbX4eDE4BdJwtNkQMRQde3o6IsjfPW28E6aH1CYE96hHeZRG3zY56O" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script src="/supabase-init.js?v=20260816c"></script>
   <script src="/site-gate.js?v=20260816a"></script>
-  <script src="/catalog.js?v=20260810a" data-then="/app.js?v=20260817e,/blog.js?v=20260812a,/reviews.js?v=20260729a,/admin.js?v=20260816f"></script>
+  <script src="/catalog.js?v=20260810a" data-then="/app.js?v=20260817f,/blog.js?v=20260812a,/reviews.js?v=20260729a,/admin.js?v=20260817a"></script>
 </body>
 </html>

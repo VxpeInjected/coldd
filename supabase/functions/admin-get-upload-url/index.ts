@@ -65,16 +65,21 @@ Deno.serve(async (req: Request) => {
     if (profileErr || !profile?.is_admin) return json({ ok: false, error: "Admin access required." }, 403);
 
     const body = await req.json().catch(() => ({}));
-    const kind = body.kind === "gallery" || body.kind === "productFile" || body.kind === "unreleasedFile" ? body.kind : "thumbnail";
+    const kind = ["gallery", "productFile", "unreleasedFile", "legalDoc"].includes(body.kind) ? body.kind : "thumbnail";
     const filename = safeName(String(body.filename || "file"));
     const unique = crypto.randomUUID().slice(0, 8);
 
-    const bucket = kind === "unreleasedFile" ? FILES_BUCKET : kind === "productFile" ? FILES_BUCKET : MEDIA_BUCKET;
+    // legalDoc shares productFile's private bucket - proof-of-license/
+    // proof-of-development uploads are internal paperwork, not public
+    // product media, so they get no publicUrl back (see admin.js's
+    // legal-doc list, which fetches a short-lived signed URL on click
+    // instead of storing a permanent one).
+    const bucket = kind === "unreleasedFile" || kind === "productFile" || kind === "legalDoc" ? FILES_BUCKET : MEDIA_BUCKET;
     const path = kind === "unreleasedFile"
       ? `unreleased/${unique}-${filename}`
       : (() => {
         const productSlug = safeName(String(body.productSlug || "untitled"));
-        const subdir = kind === "productFile" ? "files" : kind === "gallery" ? "gallery" : "thumbnails";
+        const subdir = kind === "productFile" ? "files" : kind === "gallery" ? "gallery" : kind === "legalDoc" ? "legal" : "thumbnails";
         return `${productSlug}/${subdir}/${unique}-${filename}`;
       })();
 

@@ -783,12 +783,18 @@
       /* Collapsing duration alone doesn't stop an infinite animation - a
          loading spinner (animation: spin 3s linear infinite) still loops
          that near-zero cycle forever, which renders as a rapid, chaotic
-         flicker instead of stillness. This is why the same spinner could
-         look "normal" on one device and "really really fast" on another:
-         whichever one has Reduce Motion on hit this. Capping iteration
-         count to 1 lets it settle on its end frame after one (imperceptible)
-         pass, same as every other reduced-motion transition here. */
+         flicker instead of stillness. Capping iteration count to 1 stops
+         that flicker, but a frozen spinner or a marquee that can no longer
+         scroll (most of its 30 logos are only ever visible mid-scroll) both
+         read as broken, not calm - these aren't decorative motion, they're
+         load-state and content-reveal, so they're exempted below rather
+         than collapsed with everything else. */
       * { transition-duration: .01ms !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; }
+      .cb-spin, .ty-spin, .btn-spinner {
+        animation-duration: 3s !important;
+        animation-iteration-count: infinite !important;
+      }
+      .pay-track { animation-duration: 38s !important; animation-iteration-count: infinite !important; }
     }
 
 .nav-mega { position: fixed; z-index: 150; left: 0; top: -1000px; opacity: 0;
@@ -2322,7 +2328,6 @@ html.js .ref-method-btn:focus-visible { outline: 2px solid var(--accent); outlin
 .pl-visa .pay-name { font-style: italic; letter-spacing: 1.5px; }
 .pay-logo .pl-ic { flex: 0 0 auto; color: currentColor; }
 @keyframes pay-slide { to { transform: translateX(-50%); } }
-@media (prefers-reduced-motion: reduce) { .pay-track { animation: none; } }
 
 .hero { position: relative; padding: 104px 0 28px; overflow: visible; }
 .hero-grid { display: grid; grid-template-columns: 1.04fr 0.96fr; gap: 54px; align-items: center; }

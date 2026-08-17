@@ -8,6 +8,11 @@
 // (e.g. to spot-check what a customer receives) without needing a paid
 // order of their own - get-download-url's ownership check is the wrong
 // tool here since admins usually don't own the product being reviewed.
+//
+// Also doubles as the signed-URL source for legal proof-of-license/
+// proof-of-development uploads (body.path instead of body.productId) -
+// those live in the same private product-files bucket under legal/, and
+// the same admin-only gate is exactly what should guard viewing them.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { downloadName, publicSignedUrl } from "../_shared/download.ts";
@@ -55,6 +60,24 @@ Deno.serve(async (req: Request) => {
     if (profileErr || !profile?.is_admin) return json({ ok: false, error: "Admin access required." }, 403);
 
     const body = await req.json().catch(() => ({}));
+    const rawPath = String(body.path || "");
+
+    if (rawPath) {
+      // Legal-doc path: only ever paths this same admin panel wrote via
+      // admin-get-upload-url's legalDoc kind (product-files/<slug>/legal/...).
+      // Constrained to that exact shape rather than trusting an arbitrary
+      // client-supplied path into the bucket, even though the admin gate
+      // above already limits who can call this at all.
+      if (!/^[a-z0-9.\-]+\/legal\/[a-z0-9.\-]+$/.test(rawPath)) {
+        return json({ ok: false, error: "Invalid file path." }, 400);
+      }
+      const { data: signed, error: signErr } = await admin.storage
+        .from("product-files")
+        .createSignedUrl(rawPath, SIGNED_URL_TTL_SECONDS);
+      if (signErr || !signed) return json({ ok: false, error: "Could not generate link." }, 500);
+      return json({ ok: true, url: publicSignedUrl(signed.signedUrl) });
+    }
+
     const productId = String(body.productId || "");
     if (!productId) return json({ ok: false, error: "Missing product." }, 400);
 

@@ -1642,6 +1642,9 @@
       (function () {
         var pv = document.getElementById('view-product');
         if (!pv) return;
+        // Matches product.html/checkout's fallback when a product has no
+        // admin-set resell_price_usd.
+        var RESELL_MULT = 3;
         var $ = function (id) { return document.getElementById(id); };
         var pdImg = $('pdImg'), pdThumbs = $('pdThumbs'), pdSale = $('pdSale');
         var pdImgPrev = $('pdImgPrev'), pdImgNext = $('pdImgNext');
@@ -2630,23 +2633,11 @@
           .eq('user_id', userId)
           .order('created_at', { ascending: false })
           .then(function (res) {
-            // Purchase history should show purchases, not attempts. Abandoned
-            // checkouts leave 'pending' rows behind - the buyer opened Stripe
-            // or PayPal and never finished - and those piled up until the
-            // history was mostly things that never happened.
-            //
-            // Genuinely in-flight orders are still shown, because a crypto
-            // payment can legitimately sit pending for minutes while the
-            // network confirms and it would be alarming for it to vanish.
-            // Anything older than that window was abandoned.
-            var IN_FLIGHT_MS = 2 * 60 * 60 * 1000; // 2 hours
-            var now = Date.now();
-            var orders = ((res && res.data) || []).filter(function (o) {
-              if (o.status === 'paid') return true;
-              if (o.status === 'failed' || o.status === 'canceled') return false;
-              var age = now - Date.parse(o.created_at || '');
-              return Number.isFinite(age) && age < IN_FLIGHT_MS;
-            });
+            // Purchase history should show purchases, not attempts. Every
+            // status short of 'paid' - abandoned Stripe/PayPal checkouts,
+            // still-confirming crypto/Robux, failed, canceled - is not a
+            // purchase yet, so none of it belongs here even briefly.
+            var orders = ((res && res.data) || []).filter(function (o) { return o.status === 'paid'; });
             renderOverview(orders);
             renderPurchases(orders);
             renderOwnedAndDownloads(orders);
@@ -3502,6 +3493,13 @@
           if (!res || !res.linked) { linkBlock.hidden = false; return; }
           buyBlock.hidden = false;
           if (robuxOrderId) { renderRobuxItems(); return; }
+          // The buy block becomes visible above before the pass is actually
+          // leased - without this, "Buy on Roblox" sat there clickable with
+          // its href still at the static HTML default (#), and clicking it
+          // (target=_blank) just opened a second checkout tab instead of
+          // Roblox. Locking the buttons and saying so until the real order
+          // (and its href) exists closes that window.
+          setRobuxBuyLoading(true);
           var robuxOrderBody = { items: robuxItems };
           if (window.coldAuth.getCampaignCode()) robuxOrderBody.campaignCode = window.coldAuth.getCampaignCode();
           window.coldAuth.invokeFn('create-robux-order', robuxOrderBody).then(function (data) {
@@ -3515,12 +3513,26 @@
             robuxOrderGamePassId = data.gamePassId;
             robuxOrderPriceRobux = data.priceRobux;
             deleteCartSnapshot();
+            setRobuxBuyLoading(false);
             renderRobuxItems();
           }).catch(function (err) {
+            setRobuxBuyLoading(false);
             var msgEl = document.getElementById('coRobuxMsg');
             if (msgEl) { msgEl.className = 'co-msg err show'; msgEl.textContent = err.message || 'Could not start Robux checkout.'; }
           });
         }).catch(function () { linkBlock.hidden = false; });
+      }
+      function setRobuxBuyLoading(loading) {
+        var itemsEl = document.getElementById('coRobuxItems');
+        var totalEl = document.getElementById('coRobuxTotal');
+        var buyBtn = document.getElementById('coRobuxBuyBtn');
+        var verifyBtn = document.getElementById('coRobuxVerifyBtn');
+        if (loading) {
+          if (itemsEl) itemsEl.innerHTML = '<p class="co-hint">Preparing your order…</p>';
+          if (totalEl) totalEl.textContent = '…';
+          if (buyBtn) { buyBtn.setAttribute('aria-disabled', 'true'); buyBtn.href = '#'; }
+        }
+        if (verifyBtn) verifyBtn.disabled = loading;
       }
       function renderRobuxItems() {
         var itemsEl = document.getElementById('coRobuxItems');

@@ -2672,6 +2672,14 @@
     var q = (($('admOrderSearch') || {}).value || '').trim().toLowerCase();
     var rows = ORDERS.filter(function (o) {
       if (o.status === 'failed') return false;
+      // Pending clutters the default view with checkouts that were opened
+      // and never finished - same call as the customer dashboard's own
+      // purchase history. Unlike 'failed' this isn't a hard exclude though:
+      // a pending order can still be genuinely actionable (a stuck crypto/
+      // Robux payment, "Mark completed" below), so filtering to it directly
+      // via the status dropdown still works - it's just not what shows by
+      // default alongside everything else.
+      if (o.status === 'pending' && statusF === 'all') return false;
       var okStatus = statusF === 'all' || o.status === statusF;
       var okQ = !q || o.id.toLowerCase().indexOf(q) >= 0 || o.title.toLowerCase().indexOf(q) >= 0 || o.userName.toLowerCase().indexOf(q) >= 0;
       return okStatus && okQ;

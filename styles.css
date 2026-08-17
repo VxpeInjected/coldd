@@ -542,16 +542,16 @@
        one on a solid white card, one square character render), so a
        uniform dark chip is what makes them read as one consistent row
        instead of four mismatched floating images. */
-    .resell-logo { display: flex; align-items: center; justify-content: center; height: 64px; padding: 0 22px;
+    .resell-logo { display: flex; align-items: center; justify-content: center; height: 88px; padding: 0 30px;
       border-radius: var(--r-ctl); background: var(--bg-3); border: 1px solid var(--hairline); }
-    .resell-logo img { max-height: 34px; max-width: 132px; width: auto; height: auto; object-fit: contain; display: block; }
+    .resell-logo img { max-height: 52px; max-width: 176px; width: auto; height: auto; object-fit: contain; display: block; }
     @media (max-width: 860px) {
       .resell-trust { padding: 28px 28px 32px; }
     }
     @media (max-width: 560px) {
       .resell-logos { gap: 10px; }
-      .resell-logo { height: 56px; padding: 0 16px; flex: 1 1 calc(50% - 10px); }
-      .resell-logo img { max-height: 28px; max-width: 100px; }
+      .resell-logo { height: 72px; padding: 0 20px; flex: 1 1 calc(50% - 10px); }
+      .resell-logo img { max-height: 42px; max-width: 130px; }
     }
 
     .reviews { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }

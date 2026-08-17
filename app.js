@@ -1938,10 +1938,13 @@
           return h;
         }
         function relatedCard(p) {
+          var robuxMode = window.__currencyMode ? window.__currencyMode() === 'robux' : false;
+          var rbx = robuxMode ? catalogRobuxPrice(p.id) : null;
+          var priceText = rbx != null ? ('R$ ' + Math.round(rbx).toLocaleString('en-US')) : (window.__money ? window.__money(p.priceNum) : ('$' + p.priceNum));
           return '<article class="product" data-id="' + esc(p.id) + '" data-resell="' + (p.resell ? 'yes' : 'no') + '" data-catlabel="' + esc(p.cat) + '" data-price="' + p.priceNum + '">' +
             '<div class="p-thumb" style="background-image:url(\'' + p.image + '\')"></div>' +
             '<div class="p-body"><h3 class="p-name">' + esc(p.title) + '</h3>' +
-            '<div class="p-price-row"><span class="p-price" data-usd="' + p.priceNum + '">' + (window.__money ? window.__money(p.priceNum) : ('$' + p.priceNum)) + '</span></div>' +
+            '<div class="p-price-row"><span class="p-price" data-usd="' + p.priceNum + '">' + priceText + '</span></div>' +
             '<p class="p-sum">' + esc(p.desc) + '</p>' +
             '<div class="p-actions"><button class="p-buy" type="button">Buy now</button>' +
             '<button class="p-add" type="button">Add to cart</button></div></div></article>';
@@ -2278,7 +2281,20 @@
           });
         }
 
-        window.addEventListener('currencychange', function () { if (cur) refreshPrice(); });
+        function syncRelatedPricing() {
+          if (!pdRelated) return;
+          pdRelated.querySelectorAll('.product').forEach(function (card) {
+            var id = card.getAttribute('data-id');
+            var p = (window.__CATALOG || []).filter(function (x) { return x.id === id; })[0];
+            if (!p) return;
+            var priceEl = card.querySelector('.p-price');
+            if (!priceEl) return;
+            var robuxMode = window.__currencyMode ? window.__currencyMode() === 'robux' : false;
+            var rbx = robuxMode ? catalogRobuxPrice(p.id) : null;
+            priceEl.textContent = rbx != null ? ('R$ ' + Math.round(rbx).toLocaleString('en-US')) : (window.__money ? window.__money(p.priceNum) : ('$' + p.priceNum));
+          });
+        }
+        window.addEventListener('currencychange', function () { if (cur) refreshPrice(); syncRelatedPricing(); });
         window.__renderProduct = render;
         if (!window.__singleFile) {
           pv.hidden = false;
@@ -2526,6 +2542,11 @@
       function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
       function wishIds() { try { return JSON.parse(localStorage.getItem(WISH_KEY) || '[]') || []; } catch (e) { return []; } }
       function saveWishIds(ids) { try { localStorage.setItem(WISH_KEY, JSON.stringify(ids)); } catch (e) {} }
+      function wishPriceText(p) {
+        var robuxMode = window.__currencyMode ? window.__currencyMode() === 'robux' : false;
+        var rbx = robuxMode && p.robuxPrice != null ? p.robuxPrice : null;
+        return rbx != null ? ('R$ ' + Math.round(rbx).toLocaleString('en-US')) : (window.__money ? window.__money(p.priceNum) : ('$' + p.priceNum));
+      }
       function renderWishlist() {
         var el = document.getElementById('dashWishlistRows');
         if (!el) return;
@@ -2535,7 +2556,7 @@
         if (!items.length) { el.innerHTML = '<p class="dash-empty-note">Nothing saved yet - tap the heart on any product to add it here.</p>'; return; }
         el.innerHTML = items.map(function (p) {
           return '<div class="dash-row" data-id="' + esc(p.id) + '"><span class="dr-thumb" style="background-image:url(\'' + p.image + '\')"></span>' +
-            '<div class="dr-main"><div class="dr-title">' + esc(p.title) + '</div><div class="dr-sub"><span class="p-price" data-usd="' + p.priceNum + '">' + (window.__money ? window.__money(p.priceNum) : ('$' + p.priceNum)) + '</span></div></div>' +
+            '<div class="dr-main"><div class="dr-title">' + esc(p.title) + '</div><div class="dr-sub"><span class="p-price" data-usd="' + p.priceNum + '">' + wishPriceText(p) + '</span></div></div>' +
             '<div class="dr-actions"><button class="btn btn-ghost dr-cart" type="button">Add to cart</button><button class="wl-remove" type="button" aria-label="Remove">×</button></div></div>';
         }).join('');
       }
@@ -2549,10 +2570,14 @@
         var items = ids.map(function (id) { return cat.filter(function (p) { return p.id === id; })[0]; }).filter(Boolean);
         el.innerHTML = items.length ? items.map(function (p) {
           return '<div class="dash-row"><span class="dr-thumb" style="background-image:url(\'' + p.image + '\')"></span>' +
-            '<div class="dr-main"><div class="dr-title">' + esc(p.title) + '</div><div class="dr-sub"><span class="p-price" data-usd="' + p.priceNum + '">' + (window.__money ? window.__money(p.priceNum) : ('$' + p.priceNum)) + '</span></div></div>' +
+            '<div class="dr-main"><div class="dr-title">' + esc(p.title) + '</div><div class="dr-sub"><span class="p-price" data-usd="' + p.priceNum + '">' + wishPriceText(p) + '</span></div></div>' +
             '<div class="dr-actions"><a class="btn btn-ghost dr-btn" href="/product?id=' + encodeURIComponent(p.id) + '">' + window.msym('visibility') + 'View</a></div></div>';
         }).join('') : '<p class="dash-empty-note">Nothing saved yet - tap the heart on any product to add it here.</p>';
       }
+      window.addEventListener('currencychange', function () {
+        if (document.getElementById('dashWishlistRows')) renderWishlist();
+        if (document.getElementById('dashWishlistPreview')) renderWishlistPreview();
+      });
       var wishlistRows = document.getElementById('dashWishlistRows');
       if (wishlistRows) wishlistRows.addEventListener('click', function (e) {
         var row = e.target.closest('.dash-row'); if (!row) return;

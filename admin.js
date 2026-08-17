@@ -758,8 +758,6 @@
       versions: row.versions || [],
       storagePath: row.storage_path || '',
       visible: !!row.is_active,
-      robloxGamepassId: row.roblox_gamepass_id || null,
-      robloxUniverseId: row.roblox_universe_id || null,
       platform: row.platform,
       page: row.page,
       createdAt: row.created_at || null,
@@ -2013,9 +2011,8 @@
     var hint = $('admEditDevexHint'); if (!hint) return;
     var platform = ($('admEditPlatform') || {}).value;
     var usdPrice = parseFloat($('admEditPrice').value) || 0;
-    // Matches renderGamepassStatus()'s gate - Robux/DevEx pricing only
-    // applies to Roblox products, so Minecraft products shouldn't show a
-    // nonsensical Robux conversion hint.
+    // Robux/DevEx pricing only applies to Roblox products, so Minecraft
+    // products shouldn't show a nonsensical Robux conversion hint.
     hint.textContent = (platform === 'Roblox' && usdPrice > 0)
       ? ('DevEx equivalent of ' + usd(usdPrice) + ' ≈ R$ ' + Math.round(usdPrice / DEVEX_USD_PER_ROBUX).toLocaleString('en-US'))
       : '';
@@ -2071,16 +2068,6 @@
     }).join('');
   }
 
-  function renderGamepassStatus(p) {
-    var el = $('admGamepassStatus'); if (!el) return;
-    if (!p || p.platform !== 'Roblox') { el.textContent = ''; return; }
-    if (p.robloxGamepassId) {
-      el.textContent = 'Roblox gamepass linked (universe ' + p.robloxUniverseId + ', pass ' + p.robloxGamepassId + '). Price syncs on save.';
-    } else {
-      el.textContent = 'Not linked to a Roblox gamepass yet - one will be created on save.';
-    }
-  }
-
   function openProductEdit(id) {
     var p = findProduct(id); if (!p) return;
     pendingStoragePath = null;
@@ -2101,7 +2088,6 @@
     $('admEditSaveBtn').textContent = 'Save changes';
     $('admEditMsg').textContent = '';
     updateDevexHint();
-    renderGamepassStatus(p);
 
     var tech = p.tech || {};
     $('admEditTechFormat').value = tech.format || '';
@@ -2325,7 +2311,6 @@
     $('admEditTitleInput').value = '';
     $('admEditPrice').value = 0;
     $('admEditRobuxPrice').value = '';
-    renderGamepassStatus(null);
     setEditPlatform('Roblox', null);
     document.querySelectorAll('#admEditPlatformToggle .adm-platform-btn').forEach(function (b) { b.disabled = false; });
     $('admEditSubtext').value = '';
@@ -2434,7 +2419,7 @@
           if (saveBtn) saveBtn.disabled = false;
           var created = allProducts().filter(function (p) { return p.dbId === res.id; })[0];
           if (created) openProductEdit(created.id);
-          if (msg) msg.textContent = res.robloxWarning || 'Created.';
+          if (msg) msg.textContent = 'Created.';
         });
       }).catch(function (err) {
         if (saveBtn) saveBtn.disabled = false;
@@ -2448,17 +2433,13 @@
     if (pendingStoragePath) fields.storagePath = pendingStoragePath;
     if (saveBtn) saveBtn.disabled = true;
     if (msg) msg.textContent = 'Saving…';
-    var savedRobloxWarning;
-    callUpsertProduct(upsertPayloadFor(p, fields)).then(function (res) {
-      savedRobloxWarning = res && res.robloxWarning;
+    callUpsertProduct(upsertPayloadFor(p, fields)).then(function () {
       logAudit('Updated product "' + fields.title + '"');
       pendingStoragePath = null;
       return refreshProducts();
     }).then(function () {
       if (saveBtn) saveBtn.disabled = false;
-      if (msg) msg.textContent = savedRobloxWarning || 'Saved.';
-      var updated = findProduct(id);
-      if (updated) renderGamepassStatus(updated);
+      if (msg) msg.textContent = 'Saved.';
     }).catch(function (err) {
       if (saveBtn) saveBtn.disabled = false;
       if (msg) msg.textContent = err.message || 'Could not save product.';

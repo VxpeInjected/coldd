@@ -1455,8 +1455,6 @@
       function count() { return cart.reduce(function (s, i) { return s + i.qty; }, 0); }
       function subtotal() { return cart.reduce(function (s, i) { return s + i.price * i.qty; }, 0); }
 
-      var ROBUX_PER_USD = 80;
-
       // The flat 80-Robux-per-$1 conversion (window.__robux/__money) is
       // only a display estimate for arbitrary numbers - it ignores each
       // product's real admin-configured robux_price (which reflects
@@ -1503,30 +1501,6 @@
         }
         return money(subtotal());
       }
-      var payOverlay = document.getElementById('payOverlay');
-      var payUsdAmt = document.getElementById('payUsdAmt');
-      var payRobuxAmt = document.getElementById('payRobuxAmt');
-      var paySub = document.getElementById('paySub');
-      var payPending = null;
-      function openPay(usd, label, onChoose) {
-
-        if (payUsdAmt) payUsdAmt.textContent = window.__usd ? window.__usd(usd) : ('$' + usd);
-        if (payRobuxAmt) payRobuxAmt.textContent = window.__robux ? window.__robux(usd) : ('R$ ' + Math.round(usd * ROBUX_PER_USD));
-        if (paySub && label) paySub.textContent = label;
-        payPending = onChoose;
-        if (payOverlay) payOverlay.hidden = false;
-        document.body.classList.add('no-scroll');
-      }
-      function closePay() { if (payOverlay) payOverlay.hidden = true; payPending = null; document.body.classList.remove('no-scroll'); }
-      function choosePay(currency) { var cb = payPending; closePay(); if (cb) cb(currency); }
-      var payUsdBtn = document.getElementById('payUsd');
-      var payRobuxBtn = document.getElementById('payRobux');
-      var payCloseBtn = document.getElementById('payClose');
-      if (payUsdBtn) payUsdBtn.addEventListener('click', function () { choosePay('usd'); });
-      if (payRobuxBtn) payRobuxBtn.addEventListener('click', function () { choosePay('robux'); });
-      if (payCloseBtn) payCloseBtn.addEventListener('click', closePay);
-      if (payOverlay) payOverlay.addEventListener('click', function (e) { if (e.target === payOverlay) closePay(); });
-
       function updateBadge() {
         var c = count();
         if (countEl) {
@@ -1606,62 +1580,6 @@
         if (window.__goCheckout) window.__goCheckout(); else location.href = '/checkout';
       });
 
-      var pmOverlay = document.getElementById('pmOverlay');
-      var pmMedia = document.getElementById('pmMedia');
-      var pmTitle = document.getElementById('pmTitle');
-      var pmPrice = document.getElementById('pmPrice');
-      var pmDesc = document.getElementById('pmDesc');
-      var pmTag = document.getElementById('pmTag');
-      var pmAdd = document.getElementById('pmAdd');
-      var pmBuy = document.getElementById('pmBuy');
-      var pmTotalLabel = document.getElementById('pmTotalLabel');
-      var pmDetails = document.getElementById('pmDetails');
-      var active = null;
-
-      var pmImg = null, pmThumbs = document.getElementById('pmThumbs');
-      if (pmMedia) {
-        pmImg = document.createElement('img');
-        pmImg.className = 'pm-img'; pmImg.alt = ''; pmImg.decoding = 'async';
-        // Transparent placeholder so the element is never a src-less <img>
-        // between construction and the first product being opened.
-        pmImg.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
-        pmMedia.appendChild(pmImg);
-      }
-
-      function buildGallery(main) {
-        var imgs = main ? [main] : [];
-        var cat = window.__CATALOG || [];
-        for (var i = 0; i < cat.length && imgs.length < 5; i++) {
-          var im = cat[i].image;
-          if (im && imgs.indexOf(im) < 0) imgs.push(im);
-        }
-        return imgs;
-      }
-      function setMainImage(src) {
-        // alt was fixed at '' for the modal's whole life, so the quick-view
-        // image announced nothing. Named from the product being previewed.
-        if (pmImg) {
-          pmImg.src = src || '';
-          pmImg.alt = active && active.title ? active.title : '';
-        }
-        if (pmThumbs) pmThumbs.querySelectorAll('.pm-thumb').forEach(function (t) {
-          t.classList.toggle('active', t.getAttribute('data-src') === src);
-        });
-      }
-      function renderThumbs(imgs) {
-        if (!pmThumbs) return;
-        pmThumbs.innerHTML = '';
-        pmThumbs.hidden = imgs.length < 2;
-        if (imgs.length < 2) return;
-        imgs.forEach(function (src) {
-          var t = document.createElement('button'); t.type = 'button'; t.className = 'pm-thumb';
-          t.setAttribute('data-src', src); t.setAttribute('aria-label', 'View image');
-          t.style.backgroundImage = "url('" + src + "')";
-          t.addEventListener('click', function () { setMainImage(src); });
-          pmThumbs.appendChild(t);
-        });
-      }
-
       function readCard(card) {
         var titleEl = card.querySelector('.p-name') || card.querySelector('.p-body h3');
         var priceEl = card.querySelector('.p-price');
@@ -1700,67 +1618,8 @@
                  resell: card.getAttribute('data-resell') === 'yes',
                  resellPrice: catalogProd && catalogProd.resellPrice != null ? catalogProd.resellPrice : null };
       }
-      var RESELL_MULT = 3;
-      function resellPriceFor(data) { return data.resellPrice != null ? data.resellPrice : Math.round(data.basePrice * RESELL_MULT); }
-      var pmLicence = document.getElementById('pmLicence');
-      var pmLicLabel = document.querySelector('.pm-lic-label');
-      var licBtns = document.querySelectorAll('#pmLicence .pm-lic');
-      var licPriceEls = document.querySelectorAll('#pmLicence [data-licprice]');
-      function refreshLicPrices() {
-        if (!active) return;
-        licPriceEls.forEach(function (el) {
-          var p = el.getAttribute('data-licprice') === 'resell' ? resellPriceFor(active) : active.basePrice;
-          el.textContent = money(p);
-        });
-      }
-      function setLicence(lic) {
-        if (!active) return;
-        active.licence = lic;
-        active.price = lic === 'resell' ? resellPriceFor(active) : active.basePrice;
-        if (pmPrice) pmPrice.textContent = money(active.price);
-        licBtns.forEach(function (b) { b.classList.toggle('active', b.getAttribute('data-lic') === lic); });
-      }
-      licBtns.forEach(function (b) { b.addEventListener('click', function () { setLicence(b.getAttribute('data-lic')); }); });
-      window.addEventListener('currencychange', function () {
-        if (active && pmOverlay && !pmOverlay.hidden) {
-          if (pmPrice) pmPrice.textContent = money(active.price);
-          refreshLicPrices();
-        }
-      });
-
-      function openModal(data) {
-        data.basePrice = data.price; data.licence = 'standard';
-        active = data;
-        var gallery = buildGallery(data.image);
-        renderThumbs(gallery);
-        setMainImage(gallery[0] || '');
-        if (pmTitle) pmTitle.textContent = data.title;
-        if (pmPrice) pmPrice.textContent = money(data.price);
-        refreshLicPrices();
-        if (pmLicence) pmLicence.style.display = data.resell ? '' : 'none';
-        if (pmLicLabel) pmLicLabel.style.display = data.resell ? '' : 'none';
-        if (pmTotalLabel) pmTotalLabel.textContent = data.resell ? 'Total' : 'Price';
-        licBtns.forEach(function (b) { b.classList.toggle('active', b.getAttribute('data-lic') === 'standard'); });
-        if (pmTag) { pmTag.textContent = data.tag; pmTag.hidden = !data.tag; }
-        if (pmDesc) pmDesc.textContent = data.desc || 'A ready-to-use coldd asset, instant delivery with full files and setup support from our team.';
-        if (pmOverlay) pmOverlay.hidden = false;
-        document.body.classList.add('no-scroll');
-      }
-      function closeModal() { if (pmOverlay) pmOverlay.hidden = true;
-        document.body.classList.remove('no-scroll'); active = null; }
-
-      window.__openProduct = function (data) {
-        openModal({
-          id: (data.id || data.title).toString().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, ''),
-          title: data.title,
-          price: typeof data.price === 'number' ? data.price : (parseFloat(String(data.price).replace(/[^0-9.]/g, '')) || 0),
-          image: data.image || '',
-          tag: data.tag || data.cat || ''
-        });
-      };
-
       document.addEventListener('click', function (e) {
-        if (e.target.closest('.cart-drawer') || e.target.closest('.pm-modal') || e.target.closest('.search-panel')) return;
+        if (e.target.closest('.cart-drawer') || e.target.closest('.search-panel')) return;
         var card = e.target.closest('.product');
         if (!card) return;
         e.preventDefault();
@@ -1774,23 +1633,9 @@
           a.click();
         }
       });
-      var pmCloseBtn = document.getElementById('pmClose');
-      if (pmCloseBtn) pmCloseBtn.addEventListener('click', closeModal);
-      if (pmOverlay) pmOverlay.addEventListener('click', function (e) { if (e.target === pmOverlay) closeModal(); });
-      if (pmAdd) pmAdd.addEventListener('click', function () { if (active) { add(active); closeModal(); openCart(); } });
-      if (pmBuy) pmBuy.addEventListener('click', function () {
-        if (!active) return;
-        add(active); closeModal();
-        if (window.__goCheckout) window.__goCheckout(); else location.href = '/checkout';
-      });
-      if (pmDetails) pmDetails.addEventListener('click', function () {
-        if (!active) return;
-        if (window.__go) { if (window.__renderProduct) window.__renderProduct(active.id); window.__go('product'); closeModal(); return; }
-        location.href = '/product?id=' + encodeURIComponent(active.id);
-      });
 
       document.addEventListener('keydown', function (e) {
-        if (e.key === 'Escape') { closePay(); closeModal(); closeCart(); }
+        if (e.key === 'Escape') closeCart();
       });
 
 
@@ -2349,7 +2194,6 @@
 
       window.addEventListener('currencychange', function () {
         updateBadge(); renderCart();
-        if (pmOverlay && pmOverlay.hidden === false && active && pmPrice) pmPrice.textContent = money(active.price);
       });
 
       updateBadge();

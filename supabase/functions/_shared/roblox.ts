@@ -99,13 +99,21 @@ export type RobuxPricedLine = {
   unitPriceUsd: number;
   qty: number;
   productId: string;
-  gamePassId: string;
 };
 
-// Robux-specific pricing: requires a linked gamepass (Phase B creates one
-// for every Roblox product on save) and rejects resell licences - Robux
-// pricing doesn't support resell anywhere else in this codebase either
-// (see product.html/app.js's cart+checkout fix).
+// Robux-specific pricing: only requires the product to be a Roblox item
+// (not resell), and rejects resell licences - Robux pricing doesn't
+// support resell anywhere else in this codebase either (see
+// product.html/app.js's cart+checkout fix).
+//
+// This used to also require product.roblox_gamepass_id - a per-product
+// gamepass, from a design where each product had its own pass to buy.
+// That model was replaced by the pool (see roblox_pool.ts: one shared
+// pass, leased and re-priced per order), which needs no per-product
+// gamepass at all. The old field is unpopulated on nearly every product
+// (only ever set on whichever product happened to get one under the old
+// flow), so this gate was hard-blocking Robux checkout for almost the
+// entire catalog with "isn't available for Robux checkout yet."
 // deno-lint-ignore no-explicit-any
 export async function priceRobuxItems(
   admin: any,
@@ -117,7 +125,7 @@ export async function priceRobuxItems(
   const slugs = Array.from(new Set(items.map((i) => String(i.slug || ""))));
   const { data: products, error } = await admin
     .from("products")
-    .select("id, slug, title, price_usd, robux_price, roblox_gamepass_id, platform")
+    .select("id, slug, title, price_usd, robux_price, platform")
     .in("slug", slugs)
     .eq("is_active", true);
   if (error) return { ok: false, error: "Could not load products." };
@@ -131,7 +139,7 @@ export async function priceRobuxItems(
     if (raw.licence === "resell") return { ok: false, error: "Robux checkout doesn't support resell-licence items." };
     const product = bySlug.get(slug);
     if (!product) return { ok: false, error: `"${slug}" is no longer available.` };
-    if (product.platform !== "Roblox" || !product.roblox_gamepass_id) {
+    if (product.platform !== "Roblox") {
       return { ok: false, error: `${product.title} isn't available for Robux checkout yet.` };
     }
     const unitRobux = product.robux_price != null ? Number(product.robux_price) : Math.round(Number(product.price_usd) * ROBUX_PER_USD);
@@ -142,7 +150,6 @@ export async function priceRobuxItems(
       unitPriceUsd: Number(product.price_usd),
       qty,
       productId: product.id,
-      gamePassId: product.roblox_gamepass_id,
     });
   }
 

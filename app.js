@@ -1235,13 +1235,13 @@
               : (window.__money ? window.__money(resellUsd) : ('$' + resellUsd));
             // No "was" price for resell - it isn't a sale off a base price,
             // it's a different licence with its own price.
-            priceRow.innerHTML = '<span class="p-price">' + text + '</span>';
+            priceRow.innerHTML = '<span class="p-price" data-usd="' + resellUsd + '">' + text + '</span>';
           } else {
             var was = card.getAttribute('data-was');
             var baseUsd = Number(card.getAttribute('data-price'));
             var rbx = robuxMode ? cardRobuxPrice(card.getAttribute('data-id')) : null;
             var baseText = rbx != null ? ('R$ ' + Math.round(rbx).toLocaleString('en-US')) : (window.__money ? window.__money(baseUsd) : ('$' + baseUsd));
-            priceRow.innerHTML = (was ? '<span class="p-was">' + (window.__money ? window.__money(Number(was)) : ('$' + was)) + '</span>' : '') + '<span class="p-price">' + baseText + '</span>';
+            priceRow.innerHTML = (was ? '<span class="p-was">' + (window.__money ? window.__money(Number(was)) : ('$' + was)) + '</span>' : '') + '<span class="p-price" data-usd="' + baseUsd + '">' + baseText + '</span>';
           }
         }
         function refilter(resetPage) {
@@ -1671,8 +1671,19 @@
         var bg = thumb ? (thumb.style.backgroundImage || getComputedStyle(thumb).backgroundImage) : '';
         var m = bg && bg.match(/url\(["']?([^"')]+)["']?\)/);
         var title = titleEl ? titleEl.textContent.trim() : 'Product';
+        // Reading the DISPLAYED .p-price text (or a data-usd captured from
+        // it) is unsafe: syncCardPricing rebuilds that span via innerHTML
+        // whenever the currency toggle flips to Robux, and the fresh span
+        // carries no data-usd - so the fallback below parsed "R$ 12,999"
+        // down to 12999 and priced the cart in Robux while displaying $.
+        // data-price on the card itself is set once from the real catalog
+        // USD number and never touched by currency-display code, so it's
+        // the only value here immune to that race.
         var price = 0;
-        if (priceEl) {
+        var dp = card.getAttribute('data-price');
+        if (dp != null && dp !== '') {
+          price = parseFloat(dp) || 0;
+        } else if (priceEl) {
           var du = priceEl.getAttribute('data-usd');
           price = du != null ? (parseFloat(du) || 0) : (parseFloat(priceEl.textContent.replace(/[^0-9.]/g, '')) || 0);
         }
@@ -3613,6 +3624,8 @@
       var robuxOrderId = null;
       var robuxOrderItems = null;
       var robuxOrderSignature = null;
+      var robuxOrderGamePassId = null;
+      var robuxOrderPriceRobux = null;
       function robuxItemsSignature(items) {
         return JSON.stringify(items.map(function (i) { return [i.slug, i.qty, i.licence]; }).sort());
       }
@@ -3637,6 +3650,8 @@
         if (robuxOrderId && robuxOrderSignature !== signature) {
           robuxOrderId = null;
           robuxOrderItems = null;
+          robuxOrderGamePassId = null;
+          robuxOrderPriceRobux = null;
         }
 
         window.coldAuth.robloxLinkStatus().then(function (res) {
@@ -3649,6 +3664,12 @@
             robuxOrderId = data.orderId;
             robuxOrderItems = data.items;
             robuxOrderSignature = signature;
+            // The pass to actually buy - one leased pass covering the whole
+            // order, priced to its exact total. Per-item gamepass IDs don't
+            // exist under the pool model, so this is the only purchasable
+            // link; see roblox_pool.ts.
+            robuxOrderGamePassId = data.gamePassId;
+            robuxOrderPriceRobux = data.priceRobux;
             deleteCartSnapshot();
             renderRobuxItems();
           }).catch(function (err) {
@@ -3660,14 +3681,28 @@
       function renderRobuxItems() {
         var itemsEl = document.getElementById('coRobuxItems');
         var totalEl = document.getElementById('coRobuxTotal');
+        var buyBtn = document.getElementById('coRobuxBuyBtn');
         if (!itemsEl || !robuxOrderItems) return;
+        // No per-item link here - a pooled pass is shared across the whole
+        // order (see roblox_pool.ts), so there's one purchasable gamepass
+        // for the order, not one per line. This used to build a per-item
+        // "Buy on Roblox" link from it.gamePassId, which the server never
+        // actually sent - every link pointed at .../game-pass/undefined/.
         itemsEl.innerHTML = robuxOrderItems.map(function (it) {
           return '<div class="co-item"><div class="co-item-info"><div class="co-item-title">' + esc(it.title) + '</div>' +
-            '<div class="co-item-sub">Qty ' + it.qty + ' · R$ ' + it.unitRobux.toLocaleString('en-US') + ' each</div></div>' +
-            '<a class="btn btn-ghost" href="https://www.roblox.com/game-pass/' + it.gamePassId + '/" target="_blank" rel="noopener">Buy on Roblox</a></div>';
+            '<div class="co-item-sub">Qty ' + it.qty + ' · R$ ' + it.unitRobux.toLocaleString('en-US') + ' each</div></div></div>';
         }).join('');
-        var total = robuxOrderItems.reduce(function (s, it) { return s + it.unitRobux * it.qty; }, 0);
+        var total = robuxOrderPriceRobux != null ? robuxOrderPriceRobux : robuxOrderItems.reduce(function (s, it) { return s + it.unitRobux * it.qty; }, 0);
         if (totalEl) totalEl.textContent = 'R$ ' + total.toLocaleString('en-US');
+        if (buyBtn) {
+          if (robuxOrderGamePassId) {
+            buyBtn.href = 'https://www.roblox.com/game-pass/' + robuxOrderGamePassId + '/';
+            buyBtn.setAttribute('aria-disabled', 'false');
+          } else {
+            buyBtn.href = '#';
+            buyBtn.setAttribute('aria-disabled', 'true');
+          }
+        }
       }
       var robuxLinkBtn = document.getElementById('coRobuxLinkBtn');
       // Come back to checkout with Robux still selected, rather than landing

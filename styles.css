@@ -780,7 +780,15 @@
     @media (prefers-reduced-motion: reduce) {
       html { scroll-behavior: auto; }
       .reveal, html.js .reveal { opacity: 1; transform: none; transition: none; }
-      * { transition-duration: .01ms !important; animation-duration: .01ms !important; }
+      /* Collapsing duration alone doesn't stop an infinite animation - a
+         loading spinner (animation: spin 3s linear infinite) still loops
+         that near-zero cycle forever, which renders as a rapid, chaotic
+         flicker instead of stillness. This is why the same spinner could
+         look "normal" on one device and "really really fast" on another:
+         whichever one has Reduce Motion on hit this. Capping iteration
+         count to 1 lets it settle on its end frame after one (imperceptible)
+         pass, same as every other reduced-motion transition here. */
+      * { transition-duration: .01ms !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; }
     }
 
 .nav-mega { position: fixed; z-index: 150; left: 0; top: -1000px; opacity: 0;
@@ -2237,6 +2245,14 @@ html.js .ref-method-btn:focus-visible { outline: 2px solid var(--accent); outlin
 .co-pay-panel .auth-field { margin-bottom: 14px; }
 .co-robux-box { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 16px; border-radius: 16px; background: rgba(255,255,255,0.04); border: 1px solid var(--hairline); }
 .co-robux-amt { font-size: 20px; font-weight: 800; color: var(--price); }
+/* Both buttons sat with zero gap against the hint paragraph above them -
+   .co-hint's own margin-top only pushes itself down from what's above it,
+   it doesn't add space below, so a bare <button> right after touched the
+   text directly. */
+#coRobuxLinkBtn { margin-top: 14px; }
+.co-robux-actions { display: flex; align-items: center; gap: 12px; margin-top: 14px; flex-wrap: wrap; }
+.co-robux-actions .btn { flex: 1 1 auto; justify-content: center; }
+.co-robux-actions .btn[aria-disabled="true"] { pointer-events: none; opacity: 0.5; }
 .co-check { display: flex; align-items: flex-start; gap: 11px; font-size: 13px; color: var(--fg-2); line-height: 1.5; cursor: pointer; padding: 7px 0; }
 /* Any author `display` beats the browser's default [hidden]{display:none}, so
    a class that sets display MUST restate it - otherwise app.js sets .hidden,

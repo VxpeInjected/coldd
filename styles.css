@@ -530,6 +530,30 @@
     .resell-points li::before { content: ""; position: absolute; left: 0; top: 6px; width: 14px; height: 8px;
       border-left: 2px solid var(--accent); border-bottom: 2px solid var(--accent); transform: rotate(-45deg); }
 
+    /* Spans both .resell columns as its own row, closed off by a hairline
+       so it reads as a distinct band rather than a continuation of the
+       body copy above it. */
+    .resell-trust { grid-column: 1 / -1; padding: 34px 50px 42px; border-top: 1px solid var(--hairline); }
+    .resell-trust h3 { font-size: var(--t-h5); letter-spacing: -0.02em; margin: 0; }
+    .resell-trust p { color: var(--fg-2); font-size: 15px; line-height: 1.6; margin: 8px 0 0; max-width: 520px; }
+    .resell-logos { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; margin-top: 22px; }
+    /* Neutral tile per logo, same reasoning as the payment-method marks
+       elsewhere - the four files vary wildly (two transparent wordmarks,
+       one on a solid white card, one square character render), so a
+       uniform dark chip is what makes them read as one consistent row
+       instead of four mismatched floating images. */
+    .resell-logo { display: flex; align-items: center; justify-content: center; height: 64px; padding: 0 22px;
+      border-radius: var(--r-ctl); background: var(--bg-3); border: 1px solid var(--hairline); }
+    .resell-logo img { max-height: 34px; max-width: 132px; width: auto; height: auto; object-fit: contain; display: block; }
+    @media (max-width: 860px) {
+      .resell-trust { padding: 28px 28px 32px; }
+    }
+    @media (max-width: 560px) {
+      .resell-logos { gap: 10px; }
+      .resell-logo { height: 56px; padding: 0 16px; flex: 1 1 calc(50% - 10px); }
+      .resell-logo img { max-height: 28px; max-width: 100px; }
+    }
+
     .reviews { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
     .review { padding: 26px 28px; display: flex; flex-direction: column; gap: 14px; }
     .review .stars { margin: 0; }

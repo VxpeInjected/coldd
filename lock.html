@@ -4,7 +4,13 @@
   <meta charset="UTF-8" />
   <title>Redirecting…</title>
   <meta name="robots" content="noindex" />
-  <script>location.replace('/lock' + location.search);</script>
+  <!-- Redirects to /lock/ (trailing slash), not /lock - GitHub Pages
+       resolves an extensionless /lock request to THIS file (exact filename
+       match) before it ever considers lock/index.html, so redirecting to
+       /lock without the slash sent every visitor straight back to this same
+       shim: an infinite loop that locked the entire site. The trailing
+       slash forces resolution to the real directory page instead. -->
+  <script>location.replace('/lock/' + location.search);</script>
 </head>
 <body></body>
 </html>

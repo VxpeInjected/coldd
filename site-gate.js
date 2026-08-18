@@ -1,7 +1,7 @@
 // site-gate.js
 //
 // Loaded on every page, right after supabase-init.js. Checks the
-// site-wide mode (open / maintenance / locked) and gates accordingly.
+// site-wide mode (open / maintenance) and gates accordingly.
 //
 // FAIL-SAFE BY DESIGN: any error, missing data, or unexpected response
 // while checking site_status is treated as "open" (do nothing). This
@@ -127,14 +127,6 @@
   window.coldSupabase.from('site_status').select('*').eq('id', true).maybeSingle().then(function (res) {
     var status = res && res.data;
     if (!status || res.error || status.mode === 'open') return;
-
-    if (status.mode === 'locked') {
-      var alreadyUnlocked = false;
-      try { alreadyUnlocked = sessionStorage.getItem('coldd_unlocked') === '1'; } catch (e) {}
-      if (alreadyUnlocked) return;
-      location.replace('/lock?r=' + encodeURIComponent(path + location.search));
-      return;
-    }
 
     if (status.mode === 'maintenance') {
       window.coldSupabase.auth.getSession().then(function (sres) {

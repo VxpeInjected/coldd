@@ -958,13 +958,11 @@
                 <div class="adm-tabs" id="admSiteModeToggle" style="margin:14px 0;">
                   <button type="button" class="adm-tab adm-site-mode-btn active" data-mode="open">Open</button>
                   <button type="button" class="adm-tab adm-site-mode-btn" data-mode="maintenance">Maintenance</button>
-                  <button type="button" class="adm-tab adm-site-mode-btn" data-mode="locked">Locked</button>
                 </div>
                 <div id="admSiteMaintFields" hidden>
                   <label class="adm-field"><span>Maintenance message</span><input type="text" id="admSiteMaintMsg" class="adm-input" placeholder="We'll be back soon." /></label>
                   <label class="adm-field" style="margin-top:10px;max-width:260px;"><span>Ends at (optional)</span><input type="datetime-local" id="admSiteMaintEnds" class="adm-input" /></label>
                 </div>
-                <p class="adm-hint" id="admSiteLockedHint" hidden>Locked mode uses the existing shared-password gate (/lock / LOCK_PASSWORD secret) - nobody gets in, including admins, without that password. Recovery: you can always flip this back to Open directly in the Supabase SQL Editor if you ever get stuck.</p>
                 <button class="btn btn-primary adm-btn-sm" id="admSiteSaveBtn" type="button" style="margin-top:14px;"><span class="btn-label">Save</span><span class="btn-spinner" hidden></span></button>
                 <div class="adm-edit-msg" id="admSiteMsg"></div>
               </div>
@@ -1179,7 +1177,7 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.2/dist/umd/supabase.min.js" integrity="sha384-B2duOBIryCXbX4eDE4BdJwtNkQMRQde3o6IsjfPW28E6aH1CYE96hHeZRG3zY56O" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script src="/supabase-init.js?v=20260816c"></script>
-  <script src="/site-gate.js?v=20260818a"></script>
-  <script src="/catalog.js?v=20260810a" data-then="/app.js?v=20260818a,/blog.js?v=20260812a,/reviews.js?v=20260729a,/admin.js?v=20260817b"></script>
+  <script src="/site-gate.js?v=20260818b"></script>
+  <script src="/catalog.js?v=20260810a" data-then="/app.js?v=20260818a,/blog.js?v=20260812a,/reviews.js?v=20260729a,/admin.js?v=20260817c"></script>
 </body>
 </html>

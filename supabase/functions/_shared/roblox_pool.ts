@@ -33,15 +33,37 @@ export type LeaseOutcome =
 const LEASE_TTL_SECONDS = 900; // 15 minutes
 
 // deno-lint-ignore no-explicit-any
-async function tryLease(admin: any, orderId: string) {
+async function tryLease(admin: any, orderId: string, excludeGamepassIds?: string[]) {
   const { data, error } = await admin.rpc("lease_roblox_pass", {
     p_order_id: orderId,
     p_ttl_seconds: LEASE_TTL_SECONDS,
+    p_exclude_gamepass_ids: excludeGamepassIds && excludeGamepassIds.length ? excludeGamepassIds : null,
   });
   if (error) throw new Error(`lease_roblox_pass failed: ${error.message}`);
   // The RPC returns the row, or nothing when the pool is exhausted.
   const row = Array.isArray(data) ? data[0] : data;
   return row && row.id ? row : null;
+}
+
+// Gamepasses this buyer already owns from a past REAL purchase through us.
+// Ownership on Roblox is permanent once bought, so re-leasing one of these
+// to the same buyer would hand them a "purchase" Roblox will never actually
+// charge for - their buy click is a no-op on an already-owned pass, so no
+// new sale is ever created and verify-robux-order waits forever for
+// nothing. Only our own paid-order history is checked (not a live Roblox
+// inventory call) - cheap, no extra scope required, and covers the actual
+// failure mode: a pass this same checkout system sold this same buyer
+// before.
+// deno-lint-ignore no-explicit-any
+async function passesAlreadyOwnedBy(admin: any, buyerRobloxId: string): Promise<string[]> {
+  const { data } = await admin
+    .from("orders")
+    .select("roblox_gamepass_id")
+    .eq("roblox_buyer_id", buyerRobloxId)
+    .eq("status", "paid")
+    .not("roblox_gamepass_id", "is", null);
+  // deno-lint-ignore no-explicit-any
+  return Array.from(new Set((data ?? []).map((o: any) => String(o.roblox_gamepass_id))));
 }
 
 /**
@@ -92,16 +114,21 @@ export async function leasePassForOrder(
   admin: any,
   orderId: string,
   priceRobux: number,
+  buyerRobloxId: string,
 ): Promise<LeaseOutcome> {
   const price = Math.max(1, Math.round(priceRobux));
 
-  let row = await tryLease(admin, orderId);
+  const owned = await passesAlreadyOwnedBy(admin, buyerRobloxId);
+  let row = await tryLease(admin, orderId, owned);
 
   if (!row) {
-    // Pool exhausted. Grow it once and retry - "once" because a second failure
-    // means the containers are full, which no amount of retrying fixes.
+    // Pool exhausted, OR every remaining pass is one this buyer already owns.
+    // Either way a fresh pass (never sold to anyone) is the only thing that
+    // can fix it - grow the pool once and retry. "Once" because a second
+    // failure means the containers are full, which no amount of retrying
+    // fixes.
     const grew = await provisionPass(admin);
-    if (grew) row = await tryLease(admin, orderId);
+    if (grew) row = await tryLease(admin, orderId, owned);
   }
 
   if (!row) {

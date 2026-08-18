@@ -3580,7 +3580,7 @@
   });
 
   /* ================================================================
-     SITE ACCESS PANEL (open / maintenance / locked)
+     SITE ACCESS PANEL (open / maintenance)
      ================================================================ */
   var siteMode = 'open';
   function refreshSiteStatus() {
@@ -3593,9 +3593,8 @@
       document.querySelectorAll('.adm-site-mode-btn').forEach(function (b) {
         b.classList.toggle('active', b.getAttribute('data-mode') === siteMode);
       });
-      var maintFields = $('admSiteMaintFields'), lockedHint = $('admSiteLockedHint');
+      var maintFields = $('admSiteMaintFields');
       if (maintFields) maintFields.hidden = siteMode !== 'maintenance';
-      if (lockedHint) lockedHint.hidden = siteMode !== 'locked';
       if (data) {
         var msgEl = $('admSiteMaintMsg'); if (msgEl) msgEl.value = data.maintenance_message || '';
         var endsEl = $('admSiteMaintEnds');
@@ -3607,9 +3606,8 @@
     b.addEventListener('click', function () {
       siteMode = b.getAttribute('data-mode');
       document.querySelectorAll('.adm-site-mode-btn').forEach(function (x) { x.classList.toggle('active', x === b); });
-      var maintFields = $('admSiteMaintFields'), lockedHint = $('admSiteLockedHint');
+      var maintFields = $('admSiteMaintFields');
       if (maintFields) maintFields.hidden = siteMode !== 'maintenance';
-      if (lockedHint) lockedHint.hidden = siteMode !== 'locked';
     });
   });
   var admSiteSaveBtn = $('admSiteSaveBtn');
@@ -3621,7 +3619,6 @@
       message: msg ? msg.value.trim() : '',
       endsAt: ends && ends.value ? new Date(ends.value).toISOString() : null
     };
-    if (siteMode === 'locked' && !confirm('Lock the entire site? Nobody - including admins - will be able to get in without the shared /lock password until you unlock it.')) return;
     admSiteSaveBtn.disabled = true;
     invokeAdminFn('admin-set-site-status', payload, 'Could not update site status.').then(function () {
       logAudit('Set site access to ' + siteMode);

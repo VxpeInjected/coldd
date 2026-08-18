@@ -1,12 +1,18 @@
 -- Run this once in Supabase Dashboard -> SQL Editor. Safe to re-run
 -- (idempotent).
 --
--- Singleton site-wide mode: open / maintenance / locked. Read by EVERY
--- visitor's browser on EVERY page load (site-gate.js), so this needs a
--- public select policy - unlike almost everything else in this project,
--- there is deliberately no auth requirement to read it. Only the
+-- Singleton site-wide mode: open / maintenance. Read by EVERY visitor's
+-- browser on EVERY page load (site-gate.js), so this needs a public select
+-- policy - unlike almost everything else in this project, there is
+-- deliberately no auth requirement to read it. Only the
 -- admin-set-site-status Edge Function (service role, is_admin gated)
 -- writes to it.
+--
+-- There used to be a third mode, 'locked', gated by a shared password
+-- (/lock) instead of maintenance's Discord-whitelist staff bypass. Removed:
+-- a shared password nobody but the owner could recover from without
+-- dropping into the SQL Editor directly was worse than just using
+-- maintenance mode for everything private-site needs.
 --
 -- Recovery note: if this ever gets misconfigured in a way that's hard to
 -- fix from the site itself, you can always fix it directly here in the
@@ -15,7 +21,7 @@
 
 create table if not exists public.site_status (
   id boolean primary key default true,
-  mode text not null default 'open' check (mode in ('open', 'maintenance', 'locked')),
+  mode text not null default 'open' check (mode in ('open', 'maintenance')),
   maintenance_message text,
   maintenance_ends_at timestamptz,
   updated_at timestamptz not null default now(),

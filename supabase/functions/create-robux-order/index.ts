@@ -109,7 +109,7 @@ Deno.serve(async (req: Request) => {
     // One pass for the whole order, priced to the exact total - not one pass
     // per product. The buyer makes a single Roblox purchase regardless of how
     // many items are in the cart.
-    const leased = await leasePassForOrder(admin, order.id, totalRobux);
+    const leased = await leasePassForOrder(admin, order.id, totalRobux, robloxAcct.roblox_id);
     if (!leased.ok) {
       await admin.from("orders").update({ status: "canceled" }).eq("id", order.id);
       return json({ ok: false, error: leased.error, code: leased.code }, 503);

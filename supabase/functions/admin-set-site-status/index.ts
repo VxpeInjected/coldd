@@ -6,7 +6,7 @@
 // Same auth/is_admin gate as the other admin-* functions. Sets the
 // site-wide mode read by site-gate.js on every page load.
 //
-// Body: { mode: 'open'|'maintenance'|'locked', message?, endsAt? }
+// Body: { mode: 'open'|'maintenance', message?, endsAt? }
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -52,7 +52,7 @@ Deno.serve(async (req: Request) => {
     if (profileErr || !profile?.is_admin) return json({ ok: false, error: "Admin access required." }, 403);
 
     const body = await req.json().catch(() => ({}));
-    const mode = ["open", "maintenance", "locked"].includes(body.mode) ? body.mode : null;
+    const mode = ["open", "maintenance"].includes(body.mode) ? body.mode : null;
     if (!mode) return json({ ok: false, error: "Invalid mode." }, 400);
 
     const { error: updateErr } = await admin

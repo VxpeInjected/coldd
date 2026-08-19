@@ -1205,10 +1205,22 @@
         //   - recency: new arrivals get a visibility nudge that decays
         //     over ~2 months, instead of being buried under old bestsellers
         //     forever with no way to ever accumulate reviews of their own
-        // All three signals are things that plausibly correlate with
-        // someone actually completing a purchase, not just similarity to
-        // whatever they're currently looking at (that's related()'s job,
-        // on the product page).
+        //   - price, log-dampened same as reviews: between two similarly
+        //     well-reviewed products, nudge the higher-value one forward -
+        //     revenue per impression matters, but this is deliberately
+        //     gentle (a $500 item with no reviews still loses badly to a
+        //     $50 item with 200 five-star ones) so it breaks near-ties
+        //     toward money without burying quality under price alone
+        //   - interest: a signed-in visitor's own purchase history (which
+        //     categories they've actually bought from before) boosts
+        //     matching products - someone who's bought VFX packs is a
+        //     better prospect for another VFX pack than a cold visitor is,
+        //     so show it to them first
+        // These are all things that plausibly correlate with someone
+        // actually completing a purchase, not just similarity to whatever
+        // they're currently looking at (that's related()'s job, on the
+        // product page).
+        var userCategories = null; // Set of "platform|cat", null until the async fetch below resolves (or resolves to signed-out)
         function conversionScore(el) {
           // Manual admin override (product edit form's "Priority" checkbox) -
           // large enough to reliably clear the real signals below (a
@@ -1237,8 +1249,38 @@
             recencyBoost = Math.max(0, 20 - daysOld / 3);
           }
 
-          return priorityBoost + social + saleBoost + recencyBoost;
+          var priceWeight = Math.log(1 + price) * 4;
+
+          var interestBoost = 0;
+          if (userCategories && userCategories.size) {
+            // reconcileGrid's own shopPlatform is scoped to its own inner
+            // function, not shared with this one - same derivation from
+            // the same `base` const, just recomputed here.
+            var platform = base === '/minecraft' ? 'Minecraft' : 'Roblox';
+            var key = platform + '|' + (el.getAttribute('data-catlabel') || '');
+            if (userCategories.has(key)) interestBoost = 25;
+          }
+
+          return priorityBoost + social + saleBoost + recencyBoost + priceWeight + interestBoost;
         }
+        function loadUserCategories() {
+          if (!window.coldSupabase) return;
+          window.coldSupabase.auth.getSession().then(function (res) {
+            var session = res && res.data && res.data.session;
+            if (!session) return;
+            return window.coldSupabase.rpc('get_user_categories', { p_user_id: session.user.id }).then(function (r) {
+              var rows = r.data || [];
+              if (!rows.length) return;
+              userCategories = new Set(rows.map(function (row) { return row.platform + '|' + row.cat; }));
+              // Interest data landed after the page's first render (it
+              // needs a round trip) - reflow the already-visible grid with
+              // it now rather than making every visitor wait on this
+              // before seeing anything.
+              if ((sortMode || 'recommended') === 'recommended') refilter(false);
+            });
+          }).catch(function () {});
+        }
+        loadUserCategories();
         function sortMatches(arr) {
           const mode = sortMode || 'recommended';
           if (mode === 'recommended') {

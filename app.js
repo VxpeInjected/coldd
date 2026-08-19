@@ -1190,9 +1190,53 @@
           // open would otherwise strand the scroll lock and scrim behind it.
           window.addEventListener('resize', function () { if (!sheetActive()) closeSheet(); });
         }
+        // "Recommended" (the default every visitor lands on, before they've
+        // touched the sort menu) used to just return the grid in whatever
+        // arbitrary order the DOM happened to have it in - not sorted by
+        // anything, just literally not-sorted. This is what most visitors
+        // actually see, so it's the highest-leverage place on the whole
+        // catalog to rank by something real instead of nothing:
+        //   - social proof: rating and review count, log-dampened so one
+        //     5-star review doesn't outrank a 4.8 with 200 of them
+        //   - sale urgency/value: a real discount is a real reason to buy
+        //     now, weighted by how deep it is
+        //   - recency: new arrivals get a visibility nudge that decays
+        //     over ~2 months, instead of being buried under old bestsellers
+        //     forever with no way to ever accumulate reviews of their own
+        // All three signals are things that plausibly correlate with
+        // someone actually completing a purchase, not just similarity to
+        // whatever they're currently looking at (that's related()'s job,
+        // on the product page).
+        function conversionScore(el) {
+          var rating = parseFloat(el.getAttribute('data-rating')) || 0;
+          var reviews = parseFloat(el.getAttribute('data-reviews')) || 0;
+          var price = parseFloat(el.getAttribute('data-price')) || 0;
+          var was = parseFloat(el.getAttribute('data-was')) || 0;
+          var created = Date.parse(el.getAttribute('data-created')) || 0;
+
+          var social = (rating * 2 + Math.log(1 + reviews)) * 10;
+
+          var saleBoost = 0;
+          if (was > price && was > 0) {
+            var pct = (1 - price / was) * 100;
+            saleBoost = 15 + pct * 0.3;
+          }
+
+          var recencyBoost = 0;
+          if (created) {
+            var daysOld = (Date.now() - created) / 86400000;
+            recencyBoost = Math.max(0, 20 - daysOld / 3);
+          }
+
+          return social + saleBoost + recencyBoost;
+        }
         function sortMatches(arr) {
           const mode = sortMode || 'recommended';
-          if (mode === 'recommended') return arr;
+          if (mode === 'recommended') {
+            const withScore = arr.map(function (p, i) { return { p: p, i: i, s: conversionScore(p) }; });
+            withScore.sort(function (a, b) { return (b.s - a.s) || (a.i - b.i); });
+            return withScore.map(function (m) { return m.p; });
+          }
           if (mode === 'newest' || mode === 'oldest') {
             const withDate = arr.map(function (p, i) { return { p: p, i: i, t: Date.parse(p.getAttribute('data-created')) || 0 }; });
             withDate.sort(function (a, b) { return mode === 'newest' ? (b.t - a.t) || (a.i - b.i) : (a.t - b.t) || (a.i - b.i); });

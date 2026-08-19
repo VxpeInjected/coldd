@@ -10,6 +10,7 @@
 // Body: { id, action: 'mark_paid'|'deny', note? }
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { notifyUser } from "../_shared/notify.ts";
 
 const ALLOWED_ORIGIN = "https://coldd.dev";
 
@@ -63,8 +64,24 @@ Deno.serve(async (req: Request) => {
     };
     if (body.note != null) update.note = String(body.note).trim().slice(0, 500) || null;
 
-    const { error: updateErr } = await admin.from("referral_payouts").update(update).eq("id", id);
+    const { data: updated, error: updateErr } = await admin
+      .from("referral_payouts")
+      .update(update)
+      .eq("id", id)
+      .select("user_id, method, amount_usd, amount_robux")
+      .maybeSingle();
     if (updateErr) return json({ ok: false, error: "Could not update payout." }, 500);
+
+    if (updated?.user_id) {
+      const amountText = updated.method === "robux"
+        ? `R$ ${Math.round(Number(updated.amount_robux || 0)).toLocaleString("en-US")}`
+        : `$${Number(updated.amount_usd || 0).toFixed(2)}`;
+      if (action === "mark_paid") {
+        await notifyUser(admin, updated.user_id, "Referral payout sent", `Your ${amountText} referral payout is on its way.`, "/dashboard?panel=referrals");
+      } else {
+        await notifyUser(admin, updated.user_id, "Referral payout declined", update.note ? String(update.note) : `Your ${amountText} referral payout request was declined.`, "/dashboard?panel=referrals");
+      }
+    }
 
     return json({ ok: true });
   } catch (err) {

@@ -17,7 +17,7 @@
 // linked a Roblox account, before an order can even be created.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { priceRobuxItems, getValidRobloxToken } from "../_shared/roblox.ts";
+import { priceRobuxItems } from "../_shared/roblox.ts";
 import { leasePassForOrder } from "../_shared/roblox_pool.ts";
 import { resolveCampaignCode } from "../_shared/campaign.ts";
 
@@ -63,24 +63,6 @@ Deno.serve(async (req: Request) => {
     if (!robloxAcct) {
       return json({ ok: false, error: "Link your Roblox account first.", code: "NOT_LINKED" }, 400);
     }
-    const robloxToken = await getValidRobloxToken(admin, userData.user.id);
-    if (!robloxToken) {
-      return json({
-        ok: false,
-        error: "Your Roblox link has expired. Please re-link your account.",
-        code: "NOT_LINKED",
-      }, 400);
-    }
-    // Whether that token actually carries user.inventory-item:read is NOT
-    // pre-checked against the stored roblox_accounts.scope here - that
-    // column only exists from the point it started being captured, so it
-    // reads empty for every account linked before that (a real, common
-    // case, not an edge case), which would wrongly block accounts that
-    // already have the scope but never had it recorded. leasePassForOrder
-    // below does a LIVE inventory check instead, which is authoritative
-    // regardless of what's stored - if that fails with insufficient scope,
-    // it returns a distinct INVENTORY_SCOPE_REQUIRED below, and only then
-    // is the buyer actually asked to re-link.
 
     const body = await req.json().catch(() => ({}));
     const priced = await priceRobuxItems(admin, Array.isArray(body.items) ? body.items : []);
@@ -127,7 +109,7 @@ Deno.serve(async (req: Request) => {
     // One pass for the whole order, priced to the exact total - not one pass
     // per product. The buyer makes a single Roblox purchase regardless of how
     // many items are in the cart.
-    const leased = await leasePassForOrder(admin, order.id, totalRobux, robloxAcct.roblox_id, robloxToken.accessToken);
+    const leased = await leasePassForOrder(admin, order.id, totalRobux, robloxAcct.roblox_id);
     if (!leased.ok) {
       await admin.from("orders").update({ status: "canceled" }).eq("id", order.id);
       return json({ ok: false, error: leased.error, code: leased.code }, 503);

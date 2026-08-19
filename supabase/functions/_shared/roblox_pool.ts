@@ -17,7 +17,7 @@
 // If step 2 fails the lease is released immediately - holding a pass we could
 // not price would shrink the pool for nothing.
 
-import { createGamepass, updateGamepass, pickContainer, findOwnedGamePasses, RobloxInsufficientScopeError } from "./roblox.ts";
+import { createGamepass, updateGamepass, pickContainer } from "./roblox.ts";
 
 export type LeasedPass = {
   gamepassId: string;
@@ -45,14 +45,20 @@ async function tryLease(admin: any, orderId: string, excludeGamepassIds?: string
   return row && row.id ? row : null;
 }
 
-// Gamepasses this buyer already owns - from a past REAL purchase through us
-// (checked against our own paid-order history), or from anywhere else
-// verify-robux-order's ownership fallback has detected it (roblox_owned_
-// passes - see 20260819_robux_owned_passes.sql). Ownership on Roblox is
-// permanent once bought, so re-leasing one of these to the same buyer would
-// hand them a "purchase" Roblox will never actually charge for - their buy
-// click is a no-op on an already-owned pass, so no new sale is ever created
-// and verify-robux-order waits forever for nothing.
+// Gamepasses this buyer already owns, sourced ONLY from our own paid-order
+// history - this is the one signal that's actually reliable. A live check
+// against Roblox's inventory-items API used to feed roblox_owned_passes
+// too, but it reported a buyer as owning a pool pass created under a
+// second earlier, with zero sale transactions for it ever - Roblox's
+// inventory endpoint appears to surface passes an account has management/
+// edit rights over (as ours does, being published under the account's own
+// group), not just ones actually purchased. That check is gone; every real
+// purchase already creates a paid order row here, so this covers the only
+// scenario that can actually happen under the pool model - a buyer cannot
+// come to own one of these randomly-named auto-generated passes any other
+// way. roblox_owned_passes is kept as a manual override table (nothing
+// currently writes to it automatically) in case a specific pass/buyer pair
+// ever needs excluding by hand.
 // deno-lint-ignore no-explicit-any
 export async function passesAlreadyOwnedBy(admin: any, buyerRobloxId: string): Promise<string[]> {
   const [ordersRes, ownedRes] = await Promise.all([
@@ -70,12 +76,6 @@ export async function passesAlreadyOwnedBy(admin: any, buyerRobloxId: string): P
   const fromOrders = (ordersRes.data ?? []).map((o: { roblox_gamepass_id: string }) => String(o.roblox_gamepass_id));
   const fromDetected = (ownedRes.data ?? []).map((o: { gamepass_id: string }) => String(o.gamepass_id));
   return Array.from(new Set([...fromOrders, ...fromDetected]));
-}
-
-// deno-lint-ignore no-explicit-any
-async function allPoolGamepassIds(admin: any): Promise<string[]> {
-  const { data } = await admin.from("roblox_pool_passes").select("gamepass_id");
-  return (data ?? []).map((r: { gamepass_id: string }) => String(r.gamepass_id));
 }
 
 /**
@@ -120,15 +120,6 @@ export async function provisionPass(admin: any): Promise<boolean> {
  * Leases a pass for an order and prices it. Idempotent per order: calling twice
  * returns the same pass rather than consuming a second one, which is what makes
  * a double-submitted or retried checkout safe.
- *
- * accessToken, when given, runs a LIVE inventory check against every pass
- * currently in the pool before leasing - this is the primary already-owned
- * defense (never serve an owned pass in the first place), not just the
- * after-the-fact detection verify-robux-order's switch fallback provides.
- * Every caller that has a token should pass it; callers are expected to
- * hard-require the buyer's Roblox link to carry inventory scope before
- * ever reaching here (see create-robux-order), so a token being available
- * is the normal case, not an optional extra.
  */
 // deno-lint-ignore no-explicit-any
 export async function leasePassForOrder(
@@ -136,43 +127,10 @@ export async function leasePassForOrder(
   orderId: string,
   priceRobux: number,
   buyerRobloxId: string,
-  accessToken?: string,
 ): Promise<LeaseOutcome> {
   const price = Math.max(1, Math.round(priceRobux));
 
-  let owned = await passesAlreadyOwnedBy(admin, buyerRobloxId);
-  if (accessToken) {
-    try {
-      const allIds = await allPoolGamepassIds(admin);
-      const liveOwned = await findOwnedGamePasses(accessToken, buyerRobloxId, allIds);
-      if (liveOwned.size) {
-        // Feeds passesAlreadyOwnedBy for this buyer's future orders too,
-        // not just this lease.
-        await admin.from("roblox_owned_passes").upsert(
-          Array.from(liveOwned).map((id) => ({ roblox_id: buyerRobloxId, gamepass_id: id })),
-          { onConflict: "roblox_id,gamepass_id" },
-        );
-        owned = Array.from(new Set([...owned, ...liveOwned]));
-      }
-    } catch (err) {
-      if (err instanceof RobloxInsufficientScopeError) {
-        return {
-          ok: false,
-          code: "INVENTORY_SCOPE_REQUIRED",
-          error: "Your Roblox link needs to be renewed to allow inventory checks for Robux checkout. Please re-link your account.",
-        };
-      }
-      // A transient Roblox error here must not silently fall back to
-      // serving an unchecked pass - fail the lease instead.
-      console.error("[roblox_pool] live ownership pre-check failed:", err instanceof Error ? err.message : err);
-      return {
-        ok: false,
-        code: "OWNERSHIP_CHECK_FAILED",
-        error: "Could not verify your Roblox inventory right now. Please try again in a moment.",
-      };
-    }
-  }
-
+  const owned = await passesAlreadyOwnedBy(admin, buyerRobloxId);
   let row = await tryLease(admin, orderId, owned);
 
   if (!row) {
@@ -249,26 +207,20 @@ export async function releasePass(admin: any, orderId: string, universeId: strin
 }
 
 /**
- * Hands a tainted pass (verify-robux-order found the buyer already owns it,
- * with no matching sale - see checkAlreadyOwned in roblox.ts) back to the
- * pool and leases the same order a fresh one, excluding every pass this
- * buyer is now known to own. Same price, same order - the buyer's "Buy on
- * Roblox" link just needs to change, not the whole checkout.
+ * Hands a tainted pass back to the pool and leases the same order a fresh
+ * one, excluding every pass this buyer is known (via passesAlreadyOwnedBy)
+ * to own. Same price, same order - the buyer's "Buy on Roblox" link just
+ * needs to change, not the whole checkout.
  *
- * This is a fallback, not the primary defense - leasePassForOrder's own
- * live pre-check (see above) is what's supposed to stop an owned pass from
- * ever being served. This exists for whatever that pre-check can't catch
- * (a token that only became available/valid after the initial lease, a
- * transient failure, a buyer who acquires the pass by some other means in
- * the gap between lease and verify) - rare, but the order should still
- * recover rather than dead-end.
- *
- * Every switch is logged to roblox_pass_switches and counted on the order
- * itself, so an order that needed one is distinguishable from a normal
- * single-pass order afterward - without that, a completed order that went
- * through a switch looks identical to one that didn't, which makes it
- * impossible to audit whether this defense is actually firing or to tell
- * support "the buyer's first attempt was a real no-op, not a stall."
+ * Not currently called automatically - it was triggered from
+ * verify-robux-order's live inventory-ownership fallback, which got
+ * removed (see passesAlreadyOwnedBy's comment: that check produced false
+ * positives for accounts with management rights over the pass's group,
+ * which is exactly the account most likely to be testing this flow).
+ * Kept, with its audit trail (roblox_pass_switches /
+ * orders.roblox_pass_switch_count), for a possible future admin-triggered
+ * "switch this buyer off a tainted pass" action if roblox_owned_passes
+ * ever gets a manual entry.
  */
 // deno-lint-ignore no-explicit-any
 export async function switchLeasedPass(
@@ -278,10 +230,9 @@ export async function switchLeasedPass(
   taintedGamepassId: string,
   priceRobux: number,
   buyerRobloxId: string,
-  accessToken?: string,
 ): Promise<LeaseOutcome> {
   await releasePass(admin, orderId, universeId, taintedGamepassId);
-  const outcome = await leasePassForOrder(admin, orderId, priceRobux, buyerRobloxId, accessToken);
+  const outcome = await leasePassForOrder(admin, orderId, priceRobux, buyerRobloxId);
   await admin.from("roblox_pass_switches").insert({
     order_id: orderId,
     from_gamepass_id: taintedGamepassId,

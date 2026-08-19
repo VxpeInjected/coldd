@@ -3388,3 +3388,34 @@ input[type="checkbox"]:focus-visible { outline: 2px solid var(--accent); outline
   .back-to-top { transition: opacity .01ms; }
   .back-to-top:active { transform: none; }
 }
+
+/* ================================================================
+   ROBUX PURCHASE MODAL (checkout - Place order with Robux selected)
+   ================================================================ */
+.robux-overlay { position: fixed; inset: 0; z-index: 400; background: rgba(6,7,10,0.6);
+  display: none; align-items: center; justify-content: center; padding: 24px; }
+.robux-overlay:not([hidden]) { display: flex; }
+.robux-modal { position: relative; width: 460px; max-width: 96vw; max-height: 88vh; overflow-y: auto;
+  background: rgba(19,20,26,0.99); border: 1px solid var(--hairline); border-radius: 20px;
+  box-shadow: 0 30px 70px -22px var(--ink-85); padding: 32px 30px 28px; }
+.robux-modal-x { position: absolute; top: 16px; right: 16px; }
+.robux-modal h2 { font-size: 21px; font-weight: 800; letter-spacing: -0.02em; margin: 0 0 18px; padding-right: 30px; }
+.robux-steps { margin: 0 0 20px; padding-left: 22px; display: flex; flex-direction: column; gap: 12px; }
+.robux-steps li { font-size: 14px; line-height: 1.55; color: var(--fg-2); }
+.robux-steps li strong { color: var(--fg); }
+.robux-modal-total { font-size: 14.5px; color: var(--fg-2); margin: 0 0 18px; }
+.robux-modal-total strong { color: var(--fg); font-weight: 700; }
+.robux-modal-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.robux-modal-actions .btn { flex: 1 1 auto; min-width: 160px; justify-content: center; }
+.robux-modal-actions .btn[aria-disabled="true"] { pointer-events: none; opacity: 0.5; }
+
+#robuxModalWaiting { text-align: center; padding: 12px 4px 4px; }
+.robux-modal-spin { display: flex; justify-content: center; margin-bottom: 18px; }
+.robux-modal-status { font-size: 15.5px; font-weight: 700; color: var(--fg); margin: 0 0 8px; }
+.robux-modal-hint { font-size: 13px; color: var(--fg-3); line-height: 1.5; margin: 0 0 22px; }
+
+#robuxModalDone { text-align: center; padding: 8px 4px 4px; }
+.robux-modal-msg { font-size: 14.5px; line-height: 1.6; color: var(--fg-2); margin: 0 0 20px; }
+.robux-modal-msg.err { color: var(--warn); }
+
+@media (max-width: 480px) { .robux-modal { padding: 26px 20px 22px; } }

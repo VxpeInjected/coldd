@@ -335,11 +335,18 @@ export async function findPoolSale(
       if (String(agent.id) !== String(buyerRobloxId)) return false;
 
       // Amount. Roblox reports the group's share, which for a group-owned pass
-      // is the full price less their cut, so compare with tolerance rather than
-      // exact equality - but never accept materially less than expected.
+      // is ~70% of the price (their marketplace cut is ~30%), floored to a
+      // whole Robux - confirmed against a real sale: a 5 Robux order reported
+      // as exactly 3 Robux (floor(5*0.7)=3), not the >=3.25 the old 0.65
+      // multiplier required. That flat percentage was never actually wrong at
+      // realistic prices (thousands of Robux, where 1 Robux of rounding is
+      // noise) - it silently failed every low-value order, which is
+      // extremely convenient to trip during a merely 5-Robux test purchase,
+      // and murder for anyone testing cheap items. -1 is slack for a second
+      // rounding step Roblox may apply on their end that isn't visible here.
       const amount = Math.abs(Number(row.currency?.amount ?? NaN));
       if (!Number.isFinite(amount)) return false;
-      if (amount < expectedRobux * 0.65) return false;
+      if (amount < Math.floor(expectedRobux * 0.7) - 1) return false;
 
       // Time. Must postdate the lease, or an older purchase of this same pooled
       // pass would satisfy a brand-new order.

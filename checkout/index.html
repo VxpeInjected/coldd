@@ -16,7 +16,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
 
-  <link rel="stylesheet" href="/styles.css?v=20260819e" />
+  <link rel="stylesheet" href="/styles.css?v=20260819f" />
 </head>
 <body>
   <div class="backdrop"></div>
@@ -189,14 +189,9 @@
               <button class="btn btn-ghost" id="coRobuxLinkBtn" type="button">Continue to Roblox</button>
             </div>
             <div id="coRobuxBuyBlock" hidden>
-              <p class="co-hint">Buy the gamepass below on Roblox for the exact total, then come back and verify. Robux payments are handled entirely by Roblox - we never see your Robux balance.</p>
+              <p class="co-hint">Robux payments are handled entirely by Roblox - we never see your Robux balance. Click Place order below to get your gamepass link and instructions.</p>
               <div id="coRobuxItems"></div>
               <p class="co-hint">Total: <strong id="coRobuxTotal"></strong></p>
-              <div class="co-robux-actions">
-                <a class="btn btn-ghost" id="coRobuxBuyBtn" href="#" target="_blank" rel="noopener">Buy on Roblox</a>
-                <button class="btn btn-primary" id="coRobuxVerifyBtn" type="button">I've bought it - verify now</button>
-              </div>
-              <div class="co-msg" id="coRobuxMsg"></div>
             </div>
           </div>
         </section>
@@ -245,6 +240,39 @@
     </div>
   </main>
 
+  <div class="robux-overlay" id="robuxModalOverlay" hidden>
+    <div class="robux-modal glass" id="robuxModal" role="dialog" aria-modal="true" aria-labelledby="robuxModalTitle">
+      <button class="pm-x robux-modal-x" id="robuxModalClose" type="button" aria-label="Close">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+
+      <div id="robuxModalSteps">
+        <h2 id="robuxModalTitle">Buy with Robux</h2>
+        <ol class="robux-steps">
+          <li>Click <strong>Buy on Roblox</strong> below - it opens the gamepass page on Roblox in a new tab.</li>
+          <li>Purchase the gamepass for the exact total shown. <strong>Already own this gamepass?</strong> Delete it from your Roblox inventory first, then buy it again - Roblox won't charge you for something you already own, so we can only confirm a fresh purchase.</li>
+          <li>Come back here and click <strong>I've purchased the gamepass</strong>. We'll check automatically from there - no need to keep clicking.</li>
+        </ol>
+        <p class="robux-modal-total">Total: <strong id="robuxModalTotal">—</strong></p>
+        <div class="robux-modal-actions">
+          <a class="btn btn-ghost" id="robuxModalBuyBtn" href="#" target="_blank" rel="noopener" aria-disabled="true">Buy on Roblox</a>
+          <button class="btn btn-primary" id="robuxModalConfirmBtn" type="button">I've purchased the gamepass</button>
+        </div>
+      </div>
+
+      <div id="robuxModalWaiting" hidden>
+        <div class="robux-modal-spin"><span class="cb-spin"></span></div>
+        <p class="robux-modal-status" id="robuxModalStatusText">Checking for your purchase…</p>
+        <p class="robux-modal-hint" id="robuxModalHint">This can take a minute or two - we're checking automatically, you don't need to do anything else.</p>
+        <button class="btn btn-ghost" id="robuxModalCancelWait" type="button">Cancel and go back</button>
+      </div>
+
+      <div id="robuxModalDone" hidden>
+        <p class="robux-modal-msg" id="robuxModalDoneMsg"></p>
+        <button class="btn btn-primary" id="robuxModalRetryBtn" type="button">Try again</button>
+      </div>
+    </div>
+  </div>
 
   <footer>
     <div class="wrap">
@@ -405,6 +433,6 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.2/dist/umd/supabase.min.js" integrity="sha384-B2duOBIryCXbX4eDE4BdJwtNkQMRQde3o6IsjfPW28E6aH1CYE96hHeZRG3zY56O" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script src="/supabase-init.js?v=20260816c"></script>
   <script src="/site-gate.js?v=20260818b"></script>
-  <script src="/catalog.js?v=20260819a" data-then="/app.js?v=20260819h"></script>
+  <script src="/catalog.js?v=20260819a" data-then="/app.js?v=20260819i"></script>
 </body>
 </html>

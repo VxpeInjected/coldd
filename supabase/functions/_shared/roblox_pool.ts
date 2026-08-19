@@ -45,25 +45,31 @@ async function tryLease(admin: any, orderId: string, excludeGamepassIds?: string
   return row && row.id ? row : null;
 }
 
-// Gamepasses this buyer already owns from a past REAL purchase through us.
-// Ownership on Roblox is permanent once bought, so re-leasing one of these
-// to the same buyer would hand them a "purchase" Roblox will never actually
-// charge for - their buy click is a no-op on an already-owned pass, so no
-// new sale is ever created and verify-robux-order waits forever for
-// nothing. Only our own paid-order history is checked (not a live Roblox
-// inventory call) - cheap, no extra scope required, and covers the actual
-// failure mode: a pass this same checkout system sold this same buyer
-// before.
+// Gamepasses this buyer already owns - from a past REAL purchase through us
+// (checked against our own paid-order history), or from anywhere else
+// verify-robux-order's ownership fallback has detected it (roblox_owned_
+// passes - see 20260819_robux_owned_passes.sql). Ownership on Roblox is
+// permanent once bought, so re-leasing one of these to the same buyer would
+// hand them a "purchase" Roblox will never actually charge for - their buy
+// click is a no-op on an already-owned pass, so no new sale is ever created
+// and verify-robux-order waits forever for nothing.
 // deno-lint-ignore no-explicit-any
-async function passesAlreadyOwnedBy(admin: any, buyerRobloxId: string): Promise<string[]> {
-  const { data } = await admin
-    .from("orders")
-    .select("roblox_gamepass_id")
-    .eq("roblox_buyer_id", buyerRobloxId)
-    .eq("status", "paid")
-    .not("roblox_gamepass_id", "is", null);
-  // deno-lint-ignore no-explicit-any
-  return Array.from(new Set((data ?? []).map((o: any) => String(o.roblox_gamepass_id))));
+export async function passesAlreadyOwnedBy(admin: any, buyerRobloxId: string): Promise<string[]> {
+  const [ordersRes, ownedRes] = await Promise.all([
+    admin
+      .from("orders")
+      .select("roblox_gamepass_id")
+      .eq("roblox_buyer_id", buyerRobloxId)
+      .eq("status", "paid")
+      .not("roblox_gamepass_id", "is", null),
+    admin
+      .from("roblox_owned_passes")
+      .select("gamepass_id")
+      .eq("roblox_id", buyerRobloxId),
+  ]);
+  const fromOrders = (ordersRes.data ?? []).map((o: { roblox_gamepass_id: string }) => String(o.roblox_gamepass_id));
+  const fromDetected = (ownedRes.data ?? []).map((o: { gamepass_id: string }) => String(o.gamepass_id));
+  return Array.from(new Set([...fromOrders, ...fromDetected]));
 }
 
 /**
@@ -192,4 +198,24 @@ export async function releasePass(admin: any, orderId: string, universeId: strin
     console.error("[roblox_pool] could not take pass off sale", e instanceof Error ? e.message : e);
   }
   await admin.rpc("release_roblox_pass", { p_order_id: orderId });
+}
+
+/**
+ * Hands a tainted pass (verify-robux-order found the buyer already owns it,
+ * with no matching sale - see checkAlreadyOwned in roblox.ts) back to the
+ * pool and leases the same order a fresh one, excluding every pass this
+ * buyer is now known to own. Same price, same order - the buyer's "Buy on
+ * Roblox" link just needs to change, not the whole checkout.
+ */
+// deno-lint-ignore no-explicit-any
+export async function switchLeasedPass(
+  admin: any,
+  orderId: string,
+  universeId: string,
+  taintedGamepassId: string,
+  priceRobux: number,
+  buyerRobloxId: string,
+): Promise<LeaseOutcome> {
+  await releasePass(admin, orderId, universeId, taintedGamepassId);
+  return leasePassForOrder(admin, orderId, priceRobux, buyerRobloxId);
 }

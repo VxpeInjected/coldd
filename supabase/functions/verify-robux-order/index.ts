@@ -24,8 +24,8 @@
 // Body: { orderId }
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { findPoolSale, getValidRobloxToken } from "../_shared/roblox.ts";
-import { getLeasedPass, releasePass } from "../_shared/roblox_pool.ts";
+import { findPoolSale, findOwnedGamePasses, getValidRobloxToken, RobloxInsufficientScopeError } from "../_shared/roblox.ts";
+import { getLeasedPass, releasePass, switchLeasedPass } from "../_shared/roblox_pool.ts";
 import { sendOrderReceipt } from "../_shared/email.ts";
 
 const ALLOWED_ORIGIN = "https://coldd.dev";
@@ -127,6 +127,62 @@ Deno.serve(async (req: Request) => {
           error: "We can't confirm Robux payments right now. Contact support and we'll complete your order manually — your payment is safe.",
         }, 503);
       }
+      // Fallback: the sale ledger doesn't show it yet, but does the buyer's
+      // own inventory already show them owning this exact pass? With a
+      // pool this small, a repeat buyer eventually being leased a pass
+      // they already own from before is inevitable no matter how good the
+      // lease-time exclusion is (it only knows about purchases made
+      // *through this system* - this catches everything else). If so,
+      // their "purchase" click on Roblox's page was a silent no-op - no
+      // charge, no new sale, ever - so waiting longer would never help.
+      // Record it and automatically move this order to a fresh pass
+      // instead of leaving the buyer stuck on one that can never work.
+      if (tokenSet) {
+        try {
+          const owned = await findOwnedGamePasses(tokenSet.accessToken, String(buyerId), [String(pass.gamepass_id)]);
+          if (owned.has(String(pass.gamepass_id))) {
+            await admin.from("roblox_owned_passes").upsert(
+              { roblox_id: String(buyerId), gamepass_id: String(pass.gamepass_id) },
+              { onConflict: "roblox_id,gamepass_id" },
+            );
+            const switched = await switchLeasedPass(
+              admin,
+              orderId,
+              String(pass.universe_id),
+              String(pass.gamepass_id),
+              expectedRobux,
+              String(buyerId),
+            );
+            if (switched.ok) {
+              await admin.from("orders").update({ roblox_gamepass_id: switched.pass.gamepassId }).eq("id", orderId);
+              return json({
+                ok: true,
+                verified: false,
+                status: "pending",
+                code: "PASS_SWITCHED",
+                gamePassId: switched.pass.gamepassId,
+                priceRobux: switched.pass.priceRobux,
+                message: "You already own that gamepass from a previous purchase, so buying it again wouldn't charge you. We've switched you to a new one — use the updated link to buy, then verify again.",
+              });
+            }
+            // Couldn't get a replacement pass (pool exhausted) - still tell
+            // the buyer what's actually wrong rather than "try again".
+            return json({
+              ok: false,
+              code: "ALREADY_OWNED_NO_REPLACEMENT",
+              error: "You already own that gamepass from a previous purchase. We couldn't switch you to a new one right now — contact support and we'll sort it out manually.",
+            }, 503);
+          }
+        } catch (err) {
+          // Missing inventory scope (linked before it was requested) or a
+          // transient Roblox error - not fatal to the normal flow, just
+          // means this extra check silently doesn't run this time.
+          if (!(err instanceof RobloxInsufficientScopeError)) {
+            console.error("[verify-robux-order] ownership fallback check failed:", err);
+          }
+        }
+      }
+
       return json({
         ok: true,
         verified: false,

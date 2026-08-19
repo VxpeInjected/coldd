@@ -3552,6 +3552,12 @@
       // estimate Robux with a flat 80-per-$1 conversion - use each
       // product's real admin-configured robux_price when set. Resell
       // licences aren't priced in Robux (matches product.html).
+      // ROBUX_PER_USD_FALLBACK is `var`-scoped per IIFE (see app.js's other
+      // one), so it has to be declared again here rather than shared -
+      // without this line, any cart item missing a real robux_price threw
+      // a ReferenceError the moment renderPayAmounts/renderRobuxEstimate
+      // hit the fallback branch below.
+      var ROBUX_PER_USD_FALLBACK = 80; // matches _shared/roblox.ts's ROBUX_PER_USD
       function catalogRobuxPrice(id) {
         var baseId = String(id).replace(/--resell$/, '').replace(/--bundle$/, '');
         var p = (window.__CATALOG || []).filter(function (c) { return c.id === baseId; })[0];
@@ -3780,6 +3786,13 @@
       function robuxItemsSignature(items) {
         return JSON.stringify(items.map(function (i) { return [i.slug, i.qty, i.licence]; }).sort());
       }
+      // The panel itself is purely informational now - it shows the buyer
+      // what they're about to pay in Robux and whether their account is
+      // linked, but no order is created until they click Place order. That
+      // matches every other payment method (nothing is created on tab
+      // select) and means a buyer who switches methods a few times while
+      // deciding never leases (and holds hostage) a pool pass they haven't
+      // committed to yet.
       function renderRobuxPanel() {
         var resellBlock = document.getElementById('coRobuxResellBlock');
         var linkBlock = document.getElementById('coRobuxLinkBlock');
@@ -3790,6 +3803,7 @@
         // product.html) - resell items just aren't part of the Robux
         // order, not a hard block on the whole cart. Only fully block if
         // EVERY item in the cart is resell (nothing left to buy via Robux).
+        var robuxCartItems = cart.filter(function (i) { return i.licence !== 'resell'; });
         var robuxItems = cartToItems().filter(function (i) { return i.licence !== 'resell'; });
         var hasResell = robuxItems.length !== cart.length;
         resellBlock.hidden = !hasResell;
@@ -3797,10 +3811,14 @@
         buyBlock.hidden = true;
         if (!robuxItems.length || !window.coldAuth) return;
 
+        // A cart edit invalidates any order already leased for the old
+        // items - the next Place order click has to lease fresh rather than
+        // reuse a pass priced for a cart that no longer exists.
         var signature = robuxItemsSignature(robuxItems);
-        if (robuxOrderId && robuxOrderSignature !== signature) {
+        if (robuxOrderSignature && robuxOrderSignature !== signature) {
           robuxOrderId = null;
           robuxOrderItems = null;
+          robuxOrderSignature = null;
           robuxOrderGamePassId = null;
           robuxOrderPriceRobux = null;
         }
@@ -3808,73 +3826,26 @@
         window.coldAuth.robloxLinkStatus().then(function (res) {
           if (!res || !res.linked) { linkBlock.hidden = false; return; }
           buyBlock.hidden = false;
-          if (robuxOrderId) { renderRobuxItems(); return; }
-          // The buy block becomes visible above before the pass is actually
-          // leased - without this, "Buy on Roblox" sat there clickable with
-          // its href still at the static HTML default (#), and clicking it
-          // (target=_blank) just opened a second checkout tab instead of
-          // Roblox. Locking the buttons and saying so until the real order
-          // (and its href) exists closes that window.
-          setRobuxBuyLoading(true);
-          var robuxOrderBody = { items: robuxItems };
-          if (window.coldAuth.getCampaignCode()) robuxOrderBody.campaignCode = window.coldAuth.getCampaignCode();
-          window.coldAuth.invokeFn('create-robux-order', robuxOrderBody).then(function (data) {
-            robuxOrderId = data.orderId;
-            robuxOrderItems = data.items;
-            robuxOrderSignature = signature;
-            // The pass to actually buy - one leased pass covering the whole
-            // order, priced to its exact total. Per-item gamepass IDs don't
-            // exist under the pool model, so this is the only purchasable
-            // link; see roblox_pool.ts.
-            robuxOrderGamePassId = data.gamePassId;
-            robuxOrderPriceRobux = data.priceRobux;
-            deleteCartSnapshot();
-            setRobuxBuyLoading(false);
-            renderRobuxItems();
-          }).catch(function (err) {
-            setRobuxBuyLoading(false);
-            var msgEl = document.getElementById('coRobuxMsg');
-            if (msgEl) { msgEl.className = 'co-msg err show'; msgEl.textContent = err.message || 'Could not start Robux checkout.'; }
-          });
+          renderRobuxEstimate(robuxCartItems);
         }).catch(function () { linkBlock.hidden = false; });
       }
-      function setRobuxBuyLoading(loading) {
+      // Client-side estimate shown before an order exists, using each
+      // product's real robux_price the same way the payment-method row
+      // above does - so this number and the modal's later real total agree
+      // whenever nothing about the cart's pricing is in flux.
+      function renderRobuxEstimate(robuxCartItems) {
         var itemsEl = document.getElementById('coRobuxItems');
         var totalEl = document.getElementById('coRobuxTotal');
-        var buyBtn = document.getElementById('coRobuxBuyBtn');
-        var verifyBtn = document.getElementById('coRobuxVerifyBtn');
-        if (loading) {
-          if (itemsEl) itemsEl.innerHTML = '<p class="co-hint">Preparing your order…</p>';
-          if (totalEl) totalEl.textContent = '…';
-          if (buyBtn) { buyBtn.setAttribute('aria-disabled', 'true'); buyBtn.href = '#'; }
-        }
-        if (verifyBtn) verifyBtn.disabled = loading;
-      }
-      function renderRobuxItems() {
-        var itemsEl = document.getElementById('coRobuxItems');
-        var totalEl = document.getElementById('coRobuxTotal');
-        var buyBtn = document.getElementById('coRobuxBuyBtn');
-        if (!itemsEl || !robuxOrderItems) return;
-        // No per-item link here - a pooled pass is shared across the whole
-        // order (see roblox_pool.ts), so there's one purchasable gamepass
-        // for the order, not one per line. This used to build a per-item
-        // "Buy on Roblox" link from it.gamePassId, which the server never
-        // actually sent - every link pointed at .../game-pass/undefined/.
-        itemsEl.innerHTML = robuxOrderItems.map(function (it) {
-          return '<div class="co-item"><div class="co-item-info"><div class="co-item-title">' + esc(it.title) + '</div>' +
-            '<div class="co-item-sub">Qty ' + it.qty + ' · R$ ' + it.unitRobux.toLocaleString('en-US') + ' each</div></div></div>';
+        if (!itemsEl) return;
+        var total = 0;
+        itemsEl.innerHTML = robuxCartItems.map(function (i) {
+          var rbx = catalogRobuxPrice(i.id);
+          if (rbx == null) rbx = Math.round(i.price * ROBUX_PER_USD_FALLBACK);
+          total += rbx * i.qty;
+          return '<div class="co-item"><div class="co-item-info"><div class="co-item-title">' + esc(i.title) + '</div>' +
+            '<div class="co-item-sub">Qty ' + i.qty + ' · R$ ' + rbx.toLocaleString('en-US') + ' each</div></div></div>';
         }).join('');
-        var total = robuxOrderPriceRobux != null ? robuxOrderPriceRobux : robuxOrderItems.reduce(function (s, it) { return s + it.unitRobux * it.qty; }, 0);
-        if (totalEl) totalEl.textContent = 'R$ ' + total.toLocaleString('en-US');
-        if (buyBtn) {
-          if (robuxOrderGamePassId) {
-            buyBtn.href = 'https://www.roblox.com/game-pass/' + robuxOrderGamePassId + '/';
-            buyBtn.setAttribute('aria-disabled', 'false');
-          } else {
-            buyBtn.href = '#';
-            buyBtn.setAttribute('aria-disabled', 'true');
-          }
-        }
+        if (totalEl) totalEl.textContent = 'R$ ' + Math.round(total).toLocaleString('en-US');
       }
       var robuxLinkBtn = document.getElementById('coRobuxLinkBtn');
       // Come back to checkout with Robux still selected, rather than landing
@@ -3882,23 +3853,135 @@
       if (robuxLinkBtn) robuxLinkBtn.addEventListener('click', function () {
         if (window.coldAuth) window.coldAuth.signInRoblox('/checkout?method=robux');
       });
-      var robuxVerifyBtn = document.getElementById('coRobuxVerifyBtn');
-      if (robuxVerifyBtn) robuxVerifyBtn.addEventListener('click', function () {
+
+      // ---- Robux purchase modal: Place order -> instructions -> continuous
+      // verification polling until paid, switched, or timed out. ----
+      var robuxModalOverlay = document.getElementById('robuxModalOverlay');
+      var robuxModalClose = document.getElementById('robuxModalClose');
+      var robuxModalSteps = document.getElementById('robuxModalSteps');
+      var robuxModalTotal = document.getElementById('robuxModalTotal');
+      var robuxModalBuyBtn = document.getElementById('robuxModalBuyBtn');
+      var robuxModalConfirmBtn = document.getElementById('robuxModalConfirmBtn');
+      var robuxModalWaiting = document.getElementById('robuxModalWaiting');
+      var robuxModalStatusText = document.getElementById('robuxModalStatusText');
+      var robuxModalHint = document.getElementById('robuxModalHint');
+      var robuxModalCancelWait = document.getElementById('robuxModalCancelWait');
+      var robuxModalDone = document.getElementById('robuxModalDone');
+      var robuxModalDoneMsg = document.getElementById('robuxModalDoneMsg');
+      var robuxModalRetryBtn = document.getElementById('robuxModalRetryBtn');
+
+      var robuxPollTimer = null;
+      var robuxPollDeadline = 0;
+      var ROBUX_POLL_INTERVAL_MS = 5000;
+      var ROBUX_POLL_TIMEOUT_MS = 6 * 60 * 1000; // 6 minutes of continuous checking before asking the buyer to retry manually
+
+      function updateRobuxModalBuyLink() {
+        if (robuxModalTotal) robuxModalTotal.textContent = robuxOrderPriceRobux != null ? 'R$ ' + robuxOrderPriceRobux.toLocaleString('en-US') : '—';
+        if (robuxModalBuyBtn) {
+          if (robuxOrderGamePassId) {
+            robuxModalBuyBtn.href = 'https://www.roblox.com/game-pass/' + robuxOrderGamePassId + '/';
+            robuxModalBuyBtn.setAttribute('aria-disabled', 'false');
+          } else {
+            robuxModalBuyBtn.href = '#';
+            robuxModalBuyBtn.setAttribute('aria-disabled', 'true');
+          }
+        }
+      }
+      function showRobuxModalPane(pane) {
+        if (robuxModalSteps) robuxModalSteps.hidden = pane !== 'steps';
+        if (robuxModalWaiting) robuxModalWaiting.hidden = pane !== 'waiting';
+        if (robuxModalDone) robuxModalDone.hidden = pane !== 'done';
+      }
+      function stopRobuxPolling() {
+        if (robuxPollTimer) { clearTimeout(robuxPollTimer); robuxPollTimer = null; }
+      }
+      function openRobuxModal() {
+        if (!robuxModalOverlay) return;
+        updateRobuxModalBuyLink();
+        showRobuxModalPane('steps');
+        robuxModalOverlay.hidden = false;
+      }
+      function closeRobuxModal() {
+        if (!robuxModalOverlay) return;
+        stopRobuxPolling();
+        robuxModalOverlay.hidden = true;
+      }
+      if (robuxModalClose) robuxModalClose.addEventListener('click', closeRobuxModal);
+      if (robuxModalOverlay) robuxModalOverlay.addEventListener('click', function (e) {
+        if (e.target === robuxModalOverlay) closeRobuxModal();
+      });
+      if (robuxModalCancelWait) robuxModalCancelWait.addEventListener('click', function () {
+        stopRobuxPolling();
+        showRobuxModalPane('steps');
+      });
+      if (robuxModalRetryBtn) robuxModalRetryBtn.addEventListener('click', function () {
+        showRobuxModalPane('steps');
+      });
+
+      function finishRobuxWait(success, message) {
+        showRobuxModalPane('done');
+        if (robuxModalDoneMsg) {
+          robuxModalDoneMsg.className = 'robux-modal-msg' + (success ? '' : ' err');
+          robuxModalDoneMsg.textContent = message;
+        }
+      }
+      function scheduleRobuxPoll() {
+        if (Date.now() >= robuxPollDeadline) {
+          finishRobuxWait(false, "We haven't been able to confirm your purchase yet. If you've already bought the gamepass, Roblox can occasionally take longer to report it - try again below.");
+          return;
+        }
+        robuxPollTimer = setTimeout(pollRobuxOrder, ROBUX_POLL_INTERVAL_MS);
+      }
+      // Runs on a loop (not on a click) until the order is paid, its lease
+      // expires, verification fails closed, or the overall timeout passes -
+      // the buyer only ever has to click "I've purchased" once.
+      function pollRobuxOrder() {
         if (!robuxOrderId || !window.coldAuth) return;
-        var msgEl = document.getElementById('coRobuxMsg');
-        robuxVerifyBtn.disabled = true;
-        if (msgEl) { msgEl.className = 'co-msg'; msgEl.textContent = 'Checking your Roblox inventory…'; }
         window.coldAuth.invokeFn('verify-robux-order', { orderId: robuxOrderId }).then(function (data) {
-          robuxVerifyBtn.disabled = false;
           if (data.verified) {
+            stopRobuxPolling();
             location.href = '/success?order_id=' + encodeURIComponent(robuxOrderId);
             return;
           }
-          if (msgEl) { msgEl.className = 'co-msg err show'; msgEl.textContent = data.message || 'Not verified yet - try again shortly.'; }
+          if (data.code === 'PASS_SWITCHED') {
+            // Buyer already owned the pass they were leased - the backend
+            // has already released it and leased a fresh one for this same
+            // order. Point the buy link at the new pass and keep polling
+            // automatically, no re-click needed.
+            robuxOrderGamePassId = data.gamePassId;
+            robuxOrderPriceRobux = data.priceRobux;
+            updateRobuxModalBuyLink();
+            if (robuxModalStatusText) robuxModalStatusText.textContent = 'You already owned that gamepass - switched you to a new one.';
+            if (robuxModalHint) robuxModalHint.textContent = "Buy the updated gamepass linked above, then we'll keep checking automatically.";
+            scheduleRobuxPoll();
+            return;
+          }
+          if (data.code === 'LEASE_EXPIRED') {
+            stopRobuxPolling();
+            robuxOrderId = null; robuxOrderItems = null; robuxOrderSignature = null; robuxOrderGamePassId = null; robuxOrderPriceRobux = null;
+            finishRobuxWait(false, data.message || "This order's payment window expired. Please start the order again - you have not been charged.");
+            return;
+          }
+          // Ledger just doesn't show it yet - keep checking.
+          if (robuxModalStatusText) robuxModalStatusText.textContent = 'Still checking…';
+          scheduleRobuxPoll();
         }).catch(function (err) {
-          robuxVerifyBtn.disabled = false;
-          if (msgEl) { msgEl.className = 'co-msg err show'; msgEl.textContent = err.message || 'Could not verify your purchase.'; }
+          // Every thrown case here (NOT_LINKED, order not found/not yours,
+          // VERIFY_UNAVAILABLE, ALREADY_OWNED_NO_REPLACEMENT, server error)
+          // is a real stop condition, not "not found yet" - that case
+          // resolves above with ok:true instead of throwing. Stop and let
+          // the buyer retry manually rather than looping on something that
+          // will never resolve itself.
+          stopRobuxPolling();
+          finishRobuxWait(false, (err && err.message) || 'Could not check your purchase. Please try again.');
         });
+      }
+      if (robuxModalConfirmBtn) robuxModalConfirmBtn.addEventListener('click', function () {
+        showRobuxModalPane('waiting');
+        if (robuxModalStatusText) robuxModalStatusText.textContent = 'Checking for your purchase…';
+        if (robuxModalHint) robuxModalHint.textContent = "This can take a minute or two - we're checking automatically, you don't need to do anything else.";
+        robuxPollDeadline = Date.now() + ROBUX_POLL_TIMEOUT_MS;
+        pollRobuxOrder();
       });
 
       var payMethod = 'stripe';
@@ -3922,12 +4005,10 @@
           // final branch caught everything that wasn't Stripe or Robux and
           // labelled it "Crypto checkout coming soon" - so adding any new
           // method silently inherited the crypto copy.
-          if (method === 'stripe' || method === 'paypal') {
+          if (method === 'stripe' || method === 'paypal' || method === 'robux') {
             placeBtnEl.hidden = false; placeBtnEl.disabled = false;
             placeBtnEl.textContent = 'Place order';
             syncPlaceButtonToCart();
-          } else if (method === 'robux') {
-            placeBtnEl.hidden = true;
           } else if (method === 'crypto') {
             placeBtnEl.hidden = false; placeBtnEl.disabled = false;
             placeBtnEl.textContent = 'Place order';
@@ -3958,16 +4039,70 @@
       setPayMethod(methodExists ? requestedMethod : 'stripe');
 
       var placeBtn = document.getElementById('coPlace'), msg = document.getElementById('coMsg'), agreeErr = document.getElementById('coAgreeErr');
+      // Robux never goes through create-checkout-session - it leases a pool
+      // pass and opens the instructions modal instead of redirecting.
+      function startRobuxOrder() {
+        if (!window.coldAuth) return;
+        window.coldAuth.robloxLinkStatus().then(function (res) {
+          if (!res || !res.linked) {
+            if (msg) { msg.className = 'co-msg err show'; msg.textContent = 'Link your Roblox account first.'; }
+            return;
+          }
+          var robuxItems = cartToItems().filter(function (i) { return i.licence !== 'resell'; });
+          if (!robuxItems.length) {
+            if (msg) { msg.className = 'co-msg err show'; msg.textContent = 'Your cart has nothing that can be bought with Robux.'; }
+            return;
+          }
+          // Reuse the still-valid lease from a previous Place order click
+          // (e.g. the buyer closed the modal and reopened it) instead of
+          // leasing a second pass for the same cart.
+          var signature = robuxItemsSignature(robuxItems);
+          if (robuxOrderId && robuxOrderSignature === signature) {
+            openRobuxModal();
+            return;
+          }
+          var prevText = placeBtn.textContent;
+          placeBtn.setAttribute('data-busy', '1');
+          placeBtn.disabled = true; placeBtn.textContent = 'Preparing your order…';
+          if (msg) { msg.className = 'co-msg'; msg.textContent = ''; }
+          var robuxOrderBody = { items: robuxItems };
+          if (window.coldAuth.getCampaignCode()) robuxOrderBody.campaignCode = window.coldAuth.getCampaignCode();
+          window.coldAuth.invokeFn('create-robux-order', robuxOrderBody).then(function (data) {
+            robuxOrderId = data.orderId;
+            robuxOrderItems = data.items;
+            robuxOrderSignature = signature;
+            // The pass to actually buy - one leased pass covering the whole
+            // order, priced to its exact total. Per-item gamepass IDs don't
+            // exist under the pool model, so this is the only purchasable
+            // link; see roblox_pool.ts.
+            robuxOrderGamePassId = data.gamePassId;
+            robuxOrderPriceRobux = data.priceRobux;
+            deleteCartSnapshot();
+            placeBtn.removeAttribute('data-busy');
+            placeBtn.disabled = false; placeBtn.textContent = prevText;
+            openRobuxModal();
+          }).catch(function (err) {
+            placeBtn.removeAttribute('data-busy');
+            placeBtn.disabled = false; placeBtn.textContent = prevText;
+            if (msg) { msg.className = 'co-msg err show'; msg.textContent = (err && err.message) || 'Could not start Robux checkout.'; }
+          });
+        }).catch(function () {
+          if (msg) { msg.className = 'co-msg err show'; msg.textContent = 'Could not check your Roblox account link.'; }
+        });
+      }
       if (placeBtn) placeBtn.addEventListener('click', function () {
         if (!cart.length) return;
-        // Card and PayPal both place an order from this button; they differ
-        // only in which function mints the redirect. Robux and crypto drive
-        // their own panels and never reach here.
-        if (payMethod !== 'stripe' && payMethod !== 'paypal' && payMethod !== 'crypto') return;
+        // Card, PayPal and Robux all place an order from this button; they
+        // differ only in what happens after. Crypto drives its own panel
+        // and never reaches here.
+        if (payMethod !== 'stripe' && payMethod !== 'paypal' && payMethod !== 'crypto' && payMethod !== 'robux') return;
 
         // Signing in is optional - a guest can check out fine (create-checkout-session
         // leaves orders.user_id null for them); this just ties the order to an
         // account when one exists, for dashboard history and easier redownloads.
+        // Robux is the one method that requires a signed-in, Roblox-linked
+        // account (startRobuxOrder checks that), since Roblox has no guest
+        // concept to buy a gamepass under.
 
         var tos = document.getElementById('coTos'), resellWrap = document.getElementById('coResellWrap'), resell = document.getElementById('coResell');
         var ok = true, agreeMsgs = [];
@@ -3975,6 +4110,8 @@
         if (resellWrap && !resellWrap.hidden && resell && !resell.checked) { ok = false; agreeMsgs.push('accept the Resell Licence Terms'); }
         if (agreeErr) agreeErr.textContent = agreeMsgs.length ? 'Please ' + agreeMsgs.join(' and ') + '.' : '';
         if (!ok) { if (msg) { msg.className = 'co-msg err show'; msg.textContent = 'Please fix the highlighted fields above.'; } return; }
+
+        if (payMethod === 'robux') { startRobuxOrder(); return; }
 
         var prevText = placeBtn.textContent;
         placeBtn.setAttribute('data-busy', '1');

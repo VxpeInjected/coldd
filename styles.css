@@ -849,7 +849,7 @@
    sidebar of its own, so reserving that column (like an earlier version
    here did) just shifted the whole heading+grid right instead of centering
    it on the page. */
-.free-section > .wrap { max-width: 1180px; padding: 0 40px; }
+.free-section > .wrap { max-width: 1400px; padding: 0 40px; }
 .shop-toolbar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; max-width: 900px; margin: 0 auto 28px; }
 .shop-toolbar .shop-searchbar { flex: 1; min-width: 220px; margin: 0; max-width: none; }
 .plat-select { position: relative; flex: 0 0 auto; }
@@ -1699,7 +1699,12 @@ html[data-ann="on"] header.nav { top: 52px; }
 @media (max-width: 860px) { .deal-grid { grid-template-columns: 1fr 1fr; } }
 @media (max-width: 560px) { .deal-grid { grid-template-columns: 1fr; } }
 
-.free-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+/* auto-fit instead of a fixed 3 columns: with only 3 real free products
+   right now, a fixed-width 3-column grid inside a wide, centered container
+   left big empty margins on either side rather than actually using the
+   space. This stretches the cards themselves to fill it, and still wraps
+   cleanly whenever a 4th free product gets added later. */
+.free-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 18px; }
 .free-card { overflow: hidden; display: flex; flex-direction: column; border-radius: 16px;
   border: 1px solid var(--hairline); background: var(--bg-3);
   transition: transform .3s var(--ease), border-color .3s, box-shadow .3s; }
@@ -2321,12 +2326,19 @@ html.js .ref-method-btn:focus-visible { outline: 2px solid var(--accent); outlin
   mask-image: linear-gradient(90deg, transparent, #000 9%, #000 91%, transparent); }
 .pay-track { display: flex; align-items: center; width: max-content; animation: pay-slide 38s linear infinite; }
 .pay-marquee:hover .pay-track { animation-play-state: paused; }
-.pay-logo { display: inline-flex; align-items: center; gap: 9px; margin-right: 56px; color: #98a0b0;
-  white-space: nowrap; flex: 0 0 auto; transition: color .25s var(--ease); }
-.pay-marquee:hover .pay-logo { color: var(--fg-2); }
-.pay-name { font-size: 24px; font-weight: 700; color: currentColor; letter-spacing: 0.01em; }
-.pl-visa .pay-name { font-style: italic; letter-spacing: 1.5px; }
-.pay-logo .pl-ic { flex: 0 0 auto; color: currentColor; }
+.pay-logo { display: inline-flex; align-items: center; gap: 9px; margin-right: 48px; white-space: nowrap; flex: 0 0 auto; }
+/* Real brand marks (Visa, Mastercard, PayPal, etc. via Simple Icons) - each
+   ships its own official colour baked into the SVG's fill, so unlike the
+   old plain-text-only version there's no uniform currentColor tint to dim
+   on hover. A real payment strip doesn't grey out on hover either. */
+.pay-ic { height: 22px; width: auto; flex: 0 0 auto; }
+.pay-name { font-size: 14.5px; font-weight: 600; color: var(--fg-2); letter-spacing: 0.005em; }
+/* Methods with no widely-recognised brand mark available (regional schemes
+   like Bancontact, BLIK, MB WAY, plus Robux, which isn't a payment network
+   with its own logo) fall back to a small accent dot instead of an icon,
+   so they still read as a deliberate row rather than plain leftover text. */
+.pay-logo-text::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); flex: 0 0 auto; }
+.pay-logo-text .pay-name { color: var(--fg-3); font-weight: 600; }
 @keyframes pay-slide { to { transform: translateX(-50%); } }
 
 .hero { position: relative; padding: 104px 0 28px; overflow: visible; }
@@ -3164,6 +3176,12 @@ input[type="checkbox"]:focus-visible { outline: 2px solid var(--accent); outline
   text-align: left; text-decoration: none; box-sizing: border-box; }
 .account-menu-item:hover { background: rgba(255,255,255,0.05); }
 .account-menu-signout { color: var(--accent-ink); }
+/* Sign out's 16px SVG sat directly next to the text with no box of its own,
+   while Your Account's 20px avatar circle does - that 4px difference in
+   icon width was enough to shift where each label's text actually starts,
+   reading as the two rows being misaligned. Same fixed-width box as the
+   avatar, icon centered inside it. */
+.account-menu-signout svg { flex: 0 0 20px; }
 .account-menu-av { width: 20px; height: 20px; border-radius: 50%; flex: 0 0 auto; background: var(--accent);
   display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: #fff;
   background-size: cover; background-position: center; }

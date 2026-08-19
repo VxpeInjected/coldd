@@ -136,6 +136,7 @@ Deno.serve(async (req: Request) => {
       page: platform === "Minecraft" ? "/minecraft" : "/assets",
       price_usd: price,
       was_price: wasPrice,
+      priority: !!body.priority,
       cat: body.cat != null ? String(body.cat) : null,
       subcat: body.subcat != null ? String(body.subcat) : null,
       description: body.desc != null ? String(body.desc) : "",

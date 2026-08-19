@@ -771,6 +771,7 @@
       resellPrice: row.resell_price_usd != null ? Number(row.resell_price_usd) : null,
       robuxPrice: row.robux_price != null ? Number(row.robux_price) : null,
       wasPrice: row.was_price != null ? Number(row.was_price) : null,
+      priority: !!row.priority,
       tech: Object.assign(defaultTech(), row.tech || {}),
       legal: Object.assign(defaultLegal(), {
         tos: legalRaw.tos, proofFiles: legalRaw.proof_files, devProofFiles: legalRaw.dev_proof_files,
@@ -820,6 +821,7 @@
       resellPrice: p.resellPrice,
       robuxPrice: p.robuxPrice,
       wasPrice: p.wasPrice,
+      priority: p.priority,
       visible: p.visible,
       tech: p.tech,
       versions: p.versions,
@@ -2154,6 +2156,7 @@
     $('admEditPrice').value = p.price;
     $('admEditRobuxPrice').value = p.robuxPrice != null ? p.robuxPrice : '';
     $('admEditWasPrice').value = p.wasPrice != null ? p.wasPrice : '';
+    $('admEditPriority').checked = !!p.priority;
     setEditPlatform(p.platform, p.cat, p.subcat);
     document.querySelectorAll('#admEditPlatformToggle .adm-platform-btn').forEach(function (b) { b.disabled = false; });
     $('admEditSubtext').value = p.desc || '';
@@ -2411,6 +2414,7 @@
     $('admEditPrice').value = 0;
     $('admEditRobuxPrice').value = '';
     $('admEditWasPrice').value = '';
+    $('admEditPriority').checked = false;
     setEditPlatform('Roblox', null);
     document.querySelectorAll('#admEditPlatformToggle .adm-platform-btn').forEach(function (b) { b.disabled = false; });
     $('admEditSubtext').value = '';
@@ -2468,6 +2472,7 @@
         var v = parseFloat($('admEditWasPrice').value);
         return Number.isFinite(v) && v > 0 ? v : null;
       })(),
+      priority: $('admEditPriority').checked,
       cat: $('admEditCat').value,
       subcat: $('admEditSubcat').value || null,
       desc: $('admEditSubtext').value.trim(),

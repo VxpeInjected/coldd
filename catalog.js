@@ -176,6 +176,7 @@
       cat: row.cat,
       desc: row.description,
       resell: !!row.resell_available,
+      priority: !!row.priority,
       was: Number(row.was_price) || 0,
       subcat: row.subcat || '',
       reviews: row.reviews_count || 0,

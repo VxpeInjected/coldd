@@ -983,6 +983,7 @@
             var existing = existingByCardId[p.id];
             if (existing) {
               existing.setAttribute('data-id', p.id);
+              existing.setAttribute('data-priority', p.priority ? 'yes' : 'no');
               if (p.createdAt) existing.setAttribute('data-created', p.createdAt);
               if (p.resell) {
                 existing.setAttribute('data-resell', 'yes');
@@ -1002,6 +1003,7 @@
             art.setAttribute('data-reviews', p.reviews || 0);
             art.setAttribute('data-rating', p.rating || 0);
             art.setAttribute('data-catlabel', p.cat || '');
+            art.setAttribute('data-priority', p.priority ? 'yes' : 'no');
             if (p.createdAt) art.setAttribute('data-created', p.createdAt);
             if (p.resell) {
               art.setAttribute('data-resell', 'yes');
@@ -1208,6 +1210,13 @@
         // whatever they're currently looking at (that's related()'s job,
         // on the product page).
         function conversionScore(el) {
+          // Manual admin override (product edit form's "Priority" checkbox) -
+          // large enough to reliably clear the real signals below (a
+          // realistic ceiling there is roughly rating*2*10 + sale + recency,
+          // well under 200), but still just an addend, not a hijack: two
+          // priority products still rank against each other and everything
+          // else by the real signals underneath it.
+          var priorityBoost = el.getAttribute('data-priority') === 'yes' ? 200 : 0;
           var rating = parseFloat(el.getAttribute('data-rating')) || 0;
           var reviews = parseFloat(el.getAttribute('data-reviews')) || 0;
           var price = parseFloat(el.getAttribute('data-price')) || 0;
@@ -1228,7 +1237,7 @@
             recencyBoost = Math.max(0, 20 - daysOld / 3);
           }
 
-          return social + saleBoost + recencyBoost;
+          return priorityBoost + social + saleBoost + recencyBoost;
         }
         function sortMatches(arr) {
           const mode = sortMode || 'recommended';

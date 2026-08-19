@@ -3986,7 +3986,14 @@
         window.coldAuth.invokeFn('verify-robux-order', { orderId: robuxOrderId }).then(function (data) {
           if (data.verified) {
             stopRobuxPolling();
-            location.href = '/success?order_id=' + encodeURIComponent(robuxOrderId);
+            var paidOrderId = robuxOrderId;
+            // Belt-and-suspenders alongside removing the reuse shortcut
+            // above: clear it the moment we know it's paid, so nothing
+            // left in memory could point back at an already-owned pass if
+            // this script instance somehow runs again (bfcache restore)
+            // before actually navigating away.
+            robuxOrderId = null; robuxOrderItems = null; robuxOrderSignature = null; robuxOrderGamePassId = null; robuxOrderPriceRobux = null;
+            location.href = '/success?order_id=' + encodeURIComponent(paidOrderId);
             return;
           }
           if (data.code === 'PASS_SWITCHED') {
@@ -4108,14 +4115,21 @@
             if (msg) { msg.className = 'co-msg err show'; msg.textContent = 'Your cart has nothing that can be bought with Robux.'; }
             return;
           }
-          // Reuse the still-valid lease from a previous Place order click
-          // (e.g. the buyer closed the modal and reopened it) instead of
-          // leasing a second pass for the same cart.
+          // Used to reuse robuxOrderId here instead of leasing fresh on
+          // every click - but that trusted in-memory state indefinitely,
+          // with nothing marking it stale once the order it pointed to
+          // was actually paid. Browser back/forward can restore a
+          // checkout tab's JS state (bfcache) without re-running this
+          // script, so landing back here right after a successful
+          // purchase could reopen the modal on the SAME gamepass the
+          // buyer had just bought - the one thing the live pre-check in
+          // create-robux-order exists to prevent, bypassed entirely
+          // because this shortcut never called it again. Always leasing
+          // fresh costs one extra pool lease (self-expires in 15 minutes
+          // if unused) in exchange for the pre-check running every time,
+          // which is the only thing actually worth optimizing away that
+          // risk for.
           var signature = robuxItemsSignature(robuxItems);
-          if (robuxOrderId && robuxOrderSignature === signature) {
-            openRobuxModal();
-            return;
-          }
           var prevText = placeBtn.textContent;
           placeBtn.setAttribute('data-busy', '1');
           placeBtn.disabled = true; placeBtn.textContent = 'Preparing your order…';

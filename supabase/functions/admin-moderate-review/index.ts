@@ -5,7 +5,13 @@
 //
 // Same auth/is_admin gate as the other admin-* functions.
 //
-// Body: { id, action: 'approve'|'hide'|'reply', reply? }
+// Reviews publish immediately on submit - there's no approval queue, so
+// 'approve' isn't a real action anymore. Moderation is hide/reply, plus
+// an internal 'seen' the admin panel fires when staff open the Reviews
+// panel, which just clears the new-review flag without changing anything
+// else - not a user-facing button of its own.
+//
+// Body: { id, action: 'hide'|'reply'|'seen', reply? }
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { notifyUser } from "../_shared/notify.ts";
@@ -54,14 +60,16 @@ Deno.serve(async (req: Request) => {
     const body = await req.json().catch(() => ({}));
     const id = String(body.id || "");
     const action = body.action;
-    if (!id || !["approve", "hide", "reply"].includes(action)) return json({ ok: false, error: "Invalid request." }, 400);
+    if (!id || !["hide", "reply", "seen"].includes(action)) return json({ ok: false, error: "Invalid request." }, 400);
 
     let update: Record<string, unknown> = { updated_at: new Date().toISOString() };
-    if (action === "approve") update.status = "approved";
-    else if (action === "hide") update.status = "hidden";
+    if (action === "hide") { update.status = "hidden"; update.admin_reviewed_at = new Date().toISOString(); }
     else if (action === "reply") {
       update.reply = body.reply ? String(body.reply).trim().slice(0, 2000) || null : null;
       update.reply_at = new Date().toISOString();
+      update.admin_reviewed_at = new Date().toISOString();
+    } else if (action === "seen") {
+      update = { admin_reviewed_at: new Date().toISOString() };
     }
 
     const { data: updated, error: updateErr } = await admin.from("reviews").update(update)

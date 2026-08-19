@@ -5,8 +5,10 @@
 //
 // Requires the caller to actually own the product (a paid order
 // containing it) - same ownership-check pattern as get-download-url.
-// Upserts on (product_id, user_id) so editing a review just re-submits
-// it for moderation rather than creating a duplicate.
+// Upserts on (product_id, user_id) so editing a review updates it in
+// place rather than creating a duplicate. Reviews are live immediately -
+// no approval queue - but an edit resets admin_reviewed_at to null so it
+// re-surfaces on staff's radar rather than silently changing unnoticed.
 //
 // Body: { slug, stars, text }
 
@@ -78,7 +80,11 @@ Deno.serve(async (req: Request) => {
         user_id: userData.user.id,
         stars,
         text,
-        status: "pending",
+        // Live immediately - no approval gate. Moderation is now
+        // hide/reply only; a bad review gets hidden after the fact rather
+        // than every review waiting on staff before anyone sees it.
+        status: "approved",
+        admin_reviewed_at: null,
         user_name: userName,
         updated_at: new Date().toISOString(),
       },

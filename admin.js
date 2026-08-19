@@ -483,7 +483,7 @@
   }
 
   // Real data from public.reviews, read via the signed-in admin's own
-  // session (RLS: reviews_select_admin). Writes (approve/hide/reply) go
+  // session (RLS: reviews_select_admin). Writes (hide/reply/seen) go
   // through admin-moderate-review (service role).
   var REVIEWS = [];
   function mapReviewRow(row, profile) {
@@ -497,6 +497,7 @@
       text: row.text,
       date: row.created_at,
       status: row.status,
+      adminReviewedAt: row.admin_reviewed_at,
       reply: row.reply ? { text: row.reply, date: row.reply_at } : null
     };
   }
@@ -1118,8 +1119,8 @@
     ].join('');
 
     var todo = [];
-    var pendingReviews = REVIEWS.filter(function (r) { return r.status === 'pending'; }).length;
-    if (pendingReviews) todo.push({ text: pendingReviews + ' review' + (pendingReviews > 1 ? 's' : '') + ' awaiting moderation', panel: 'reviews', badge: 'warn' });
+    var newReviews = REVIEWS.filter(function (r) { return !r.adminReviewedAt; }).length;
+    if (newReviews) todo.push({ text: newReviews + ' new review' + (newReviews > 1 ? 's' : '') + ' to look at', panel: 'reviews', badge: 'warn' });
     var pendingPayouts = PAYOUTS.filter(function (p) { return p.status === 'requested'; }).length;
     if (pendingPayouts) todo.push({ text: pendingPayouts + ' referral payout request' + (pendingPayouts > 1 ? 's' : '') + ' pending', panel: 'analytics', badge: 'warn' });
     if (UNRELEASED_FILES.length) todo.push({ text: 'You have ' + UNRELEASED_FILES.length + ' product' + (UNRELEASED_FILES.length > 1 ? 's' : '') + ' to release', panel: 'unreleased', badge: 'warn' });
@@ -3012,19 +3013,20 @@
     onChange: function () { renderReviews(); }
   });
   reviewFilterDropdown.setOptions([
-    { value: 'pending', label: 'Pending' },
-    { value: 'approved', label: 'Approved' },
+    { value: 'new', label: 'New' },
+    { value: 'approved', label: 'Visible' },
     { value: 'hidden', label: 'Hidden' },
     { value: 'all', label: 'All' }
-  ], 'pending');
+  ], 'new');
   function renderReviews() {
-    var f = reviewFilterDropdown.getValue() || 'pending';
-    var rows = REVIEWS.filter(function (r) { return f === 'all' || r.status === f; }).sort(function (a, b) { return new Date(b.date) - new Date(a.date); });
+    var f = reviewFilterDropdown.getValue() || 'new';
+    var rows = REVIEWS.filter(function (r) { return f === 'all' || (f === 'new' ? !r.adminReviewedAt : r.status === f); }).sort(function (a, b) { return new Date(b.date) - new Date(a.date); });
     $('admReviewsList').innerHTML = rows.map(function (r) {
       var stars = '';
       for (var i = 0; i < 5; i++) stars += '<span class="pd-star ' + (i < r.stars ? 'on' : '') + '">' + (i < r.stars ? '★' : '☆') + '</span>';
       return '<div class="dash-card glass adm-review" data-id="' + r.id + '">' +
-        '<div class="adm-review-head"><strong>' + esc(r.user) + '</strong><span class="adm-sub">on ' + esc(r.productTitle) + '</span><span class="adm-sub">' + fmtDate(new Date(r.date)) + '</span>' + statusBadge(r.status === 'approved' ? 'completed' : (r.status === 'hidden' ? 'refunded' : 'pending')) + '</div>' +
+        '<div class="adm-review-head"><strong>' + esc(r.user) + '</strong><span class="adm-sub">on ' + esc(r.productTitle) + '</span><span class="adm-sub">' + fmtDate(new Date(r.date)) + '</span>' +
+          (!r.adminReviewedAt ? statusBadge('pending') : statusBadge(r.status === 'hidden' ? 'refunded' : 'completed')) + '</div>' +
         '<div class="pd-rev-stars">' + stars + '</div>' +
         '<p class="adm-review-text">' + esc(r.text) + '</p>' +
         (r.reply ? '<div class="adm-review-reply"><strong>Your reply</strong><p>' + esc(r.reply.text) + '</p></div>' : '') +
@@ -3033,24 +3035,29 @@
           '<button type="button" class="btn btn-primary adm-btn-sm adm-rev-reply-save">Save reply</button>' +
         '</div>' +
         '<div class="adm-row-actions">' +
-          (r.status !== 'approved' ? '<button class="btn btn-ghost adm-btn-sm adm-rev-approve" type="button">Approve</button>' : '') +
           (r.status !== 'hidden' ? '<button class="btn btn-ghost adm-btn-sm adm-rev-hide" type="button">Hide</button>' : '') +
           '<button class="btn btn-ghost adm-btn-sm adm-rev-reply-toggle" type="button">' + (r.reply ? 'Edit reply' : 'Reply') + '</button>' +
           '<button class="btn btn-ghost adm-btn-sm adm-rev-goto" type="button">Go to product</button>' +
         '</div></div>';
     }).join('') || '<p class="adm-empty">Nothing here.</p>';
+
+    // Reviews are public the moment they're submitted now - there's no
+    // approval step for this panel to gate. Opening it is what clears the
+    // "new review" flag driving the dashboard to-do, same as reading an
+    // inbox marks it read.
+    var unseen = rows.filter(function (r) { return !r.adminReviewedAt; });
+    if (unseen.length) {
+      Promise.all(unseen.map(function (r) { return callModerateReview(r.dbId, 'seen'); }))
+        .then(refreshReviews)
+        .catch(function () {});
+    }
   }
   var reviewsList = $('admReviewsList');
   if (reviewsList) reviewsList.addEventListener('click', function (e) {
     var card = e.target.closest('.adm-review'); if (!card) return;
     var id = card.getAttribute('data-id');
     var r = REVIEWS.filter(function (x) { return x.id === id; })[0]; if (!r) return;
-    if (e.target.classList.contains('adm-rev-approve')) {
-      callModerateReview(r.dbId, 'approve').then(function () {
-        logAudit('Approved review by ' + r.user + ' on "' + r.productTitle + '"');
-        return refreshReviews();
-      }).catch(function (err) { alert(err.message || 'Could not approve review.'); });
-    } else if (e.target.classList.contains('adm-rev-hide')) {
+    if (e.target.classList.contains('adm-rev-hide')) {
       callModerateReview(r.dbId, 'hide').then(function () {
         logAudit('Hid review by ' + r.user + ' on "' + r.productTitle + '"');
         return refreshReviews();

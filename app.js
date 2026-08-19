@@ -1640,8 +1640,14 @@
 
     (function () {
       var KEY = 'coldd_cart_v1';
+      // Every product is a digital download - there's no notion of buying
+      // "2 of" one, since a licence isn't consumed by quantity. qty stays
+      // in the item shape (checkout/order-item code elsewhere still reads
+      // it) but is always forced to 1, including for carts saved by an
+      // older version of this file that still had the +/- stepper.
+      function normalizeCart(arr) { return (arr || []).map(function (i) { i.qty = 1; return i; }); }
       var cart = [];
-      try { cart = JSON.parse(localStorage.getItem(KEY) || '[]') || []; } catch (_) { cart = []; }
+      try { cart = normalizeCart(JSON.parse(localStorage.getItem(KEY) || '[]')); } catch (_) { cart = []; }
 
       var countEl = document.getElementById('cartCount');
       var headCount = document.getElementById('cartHeadCount');
@@ -1664,7 +1670,7 @@
       }
       window.addEventListener('coldd:cart-sync', function (e) {
         if (e.detail && e.detail.source === 'drawer') return;
-        try { cart = JSON.parse(localStorage.getItem(KEY) || '[]') || []; } catch (_) { cart = []; }
+        try { cart = normalizeCart(JSON.parse(localStorage.getItem(KEY) || '[]')); } catch (_) { cart = []; }
         updateBadge(); renderCart();
       });
       function money(n) { return window.__money ? window.__money(n) : ('$' + n); }
@@ -1739,14 +1745,15 @@
         var lic = item.licence || 'standard';
         var id = item.id + (lic === 'resell' ? '--resell' : '');
         var found = cart.filter(function (i) { return i.id === id; })[0];
-        if (found) found.qty += 1;
-        else cart.push({ id: id, title: item.title, price: item.price, image: item.image, tag: item.tag || '', licence: lic, qty: 1 });
+        // Already in the cart - a digital licence isn't a quantity, so
+        // clicking Add to cart again on the same item is a no-op rather
+        // than stacking a second copy.
+        if (!found) cart.push({ id: id, title: item.title, price: item.price, image: item.image, tag: item.tag || '', licence: lic, qty: 1 });
         save(); updateBadge(); renderCart();
       }
       window.__cartAdd = add;
-      function setQty(id, q) {
-        cart = cart.map(function (i) { return i.id === id ? Object.assign(i, { qty: q }) : i; })
-                   .filter(function (i) { return i.qty > 0; });
+      function removeItem(id) {
+        cart = cart.filter(function (i) { return i.id !== id; });
         save(); updateBadge(); renderCart();
       }
       function esc(s) { return String(s).replace(/[&<>"']/g, function (c) {
@@ -1762,12 +1769,8 @@
             '<span class="ci-thumb" style="background-image:url(\'' + i.image + '\')"></span>' +
             '<div class="ci-info"><div class="ci-title">' + esc(i.title) + (i.licence === 'resell' ? ' <span style="color:var(--accent);font-size:11px;font-weight:700;">· RESELL</span>' : '') + '</div>' +
             '<div class="ci-price">' + itemUnitMoney(i) + '</div></div>' +
-            '<div class="ci-qty"><button type="button" data-act="dec" aria-label="Decrease">−</button>' +
-            '<span>' + i.qty + '</span><button type="button" data-act="inc" aria-label="Increase">+</button></div>' +
             '<button class="ci-remove" type="button" data-act="rm" aria-label="Remove">×</button>';
-          row.querySelector('[data-act="dec"]').addEventListener('click', function () { setQty(i.id, i.qty - 1); });
-          row.querySelector('[data-act="inc"]').addEventListener('click', function () { setQty(i.id, i.qty + 1); });
-          row.querySelector('[data-act="rm"]').addEventListener('click', function () { setQty(i.id, 0); });
+          row.querySelector('[data-act="rm"]').addEventListener('click', function () { removeItem(i.id); });
 
           // Opens the real product page in a new tab, like every other route
           // to a product. This was the last caller of the retired quick-view
@@ -3498,7 +3501,10 @@
 
       var CART_KEY = 'coldd_cart_v1';
       var money = function (n) { return window.__money ? window.__money(n) : ('$' + n); };
-      function load() { try { return JSON.parse(localStorage.getItem(CART_KEY) || '[]') || []; } catch (e) { return []; } }
+      // Digital licences aren't a quantity - forced to 1 here too so a cart
+      // saved by an older version of this file (back when the drawer's
+      // +/- stepper existed) can't still check out at qty > 1.
+      function load() { try { return (JSON.parse(localStorage.getItem(CART_KEY) || '[]') || []).map(function (i) { i.qty = 1; return i; }); } catch (e) { return []; } }
       function save(c) {
         try { localStorage.setItem(CART_KEY, JSON.stringify(c)); } catch (e) {}
         scheduleCartSnapshot();
@@ -3631,9 +3637,11 @@
         syncPlaceButtonToCart();
         cart.forEach(function (i) {
           var row = document.createElement('div'); row.className = 'co-item';
-          var lic = i.licence === 'resell' ? ' · Resell licence' : '';
+          // No "Qty" shown - every product is a single digital licence, not
+          // a quantity, so there is never anything to count.
+          var lic = i.licence === 'resell' ? '<div class="co-item-sub">Resell licence</div>' : '';
           row.innerHTML = '<span class="co-item-thumb" style="background-image:url(\'' + i.image + '\')"></span>' +
-            '<div class="co-item-info"><div class="co-item-title">' + esc(i.title) + '</div><div class="co-item-sub">Qty ' + i.qty + lic + '</div></div>' +
+            '<div class="co-item-info"><div class="co-item-title">' + esc(i.title) + '</div>' + lic + '</div>' +
             '<span class="co-item-price">' + lineMoney(i) + '</span>';
           itemsEl.appendChild(row);
         });
@@ -3669,8 +3677,6 @@
       function renderPayAmounts(total) {
         var usd = window.__usd ? window.__usd(total) : ('$' + total);
         var fiat = window.__fiat ? window.__fiat(total) : usd;
-        var code = window.__fiatCode ? window.__fiatCode() : 'USD';
-        var onUsd = code === 'USD';
 
         function set(key, v) {
           var el = document.querySelector('[data-pay-amt="' + key + '"]');
@@ -3707,11 +3713,16 @@
         });
         set('robux', 'R$ ' + Math.round(robuxRow).toLocaleString('en-US'));
 
+        // Card and PayPal both settle in USD at a rate their own processor
+        // fixes at the moment of charge - crypto and Robux settle in
+        // whatever the buyer actually sent/bought, converted well before
+        // checkout, so this line's "what actually leaves your account"
+        // framing only applies to the first two.
         var settle = document.getElementById('coPaySettle');
         if (!settle) return;
-        settle.textContent = onUsd
-          ? 'Every method settles the same ' + usd + ' USD. Robux and crypto are converted at the time you pay.'
-          : 'Shown in ' + code + ' for reference only. Every method settles the same ' + usd + ' USD, and your bank sets the final ' + code + ' rate.';
+        var showSettle = payMethod === 'stripe' || payMethod === 'paypal';
+        settle.hidden = !showSettle;
+        if (showSettle) settle.textContent = 'Every payment method settles in USD price (' + usd + ').';
       }
       function render() {
         renderItems(); renderTotals(); updateResell();
@@ -3878,7 +3889,7 @@
           if (rbx == null) rbx = Math.round(i.price * ROBUX_PER_USD_FALLBACK);
           total += rbx * i.qty;
           return '<div class="co-item"><div class="co-item-info"><div class="co-item-title">' + esc(i.title) + '</div>' +
-            '<div class="co-item-sub">Qty ' + i.qty + ' · R$ ' + rbx.toLocaleString('en-US') + ' each</div></div></div>';
+            '<div class="co-item-sub">R$ ' + rbx.toLocaleString('en-US') + '</div></div></div>';
         }).join('');
         if (totalEl) totalEl.textContent = 'R$ ' + Math.round(total).toLocaleString('en-US');
       }
@@ -4054,6 +4065,10 @@
           }
         }
         if (method === 'robux') renderRobuxPanel();
+        // The settle line under the payment methods only applies to card/
+        // PayPal - re-run so it shows/hides for the method just picked
+        // instead of only reflecting whatever was selected on page load.
+        renderTotals();
         // Selection is exposed to assistive tech, not just painted. The row
         // group is a radiogroup, so each row has to carry its own state.
         document.querySelectorAll('.co-pay-btn').forEach(function (b) {
@@ -4265,10 +4280,12 @@
           card.className = 'dash-card glass dl-item';
           card.innerHTML =
             '<div class="dl-top"><div class="dl-info"><div class="dl-name"></div><div class="dl-meta"></div></div>' +
-            '<button class="btn btn-primary dl-get" type="button">Download</button></div>';
+            '<div class="dl-actions"><a class="btn btn-ghost dl-review" href="/product?id=' + encodeURIComponent(it.product_slug) + '&tab=reviews">Leave a review</a>' +
+            '<button class="btn btn-primary dl-get" type="button">Download</button></div></div>';
           card.querySelector('.dl-name').textContent = it.title;
-          card.querySelector('.dl-meta').textContent =
-            (it.licence === 'resell' ? 'Resell licence' : 'Standard licence') + ' · Qty ' + it.qty;
+          // No "Qty" - every product is a single digital licence, never a
+          // quantity.
+          card.querySelector('.dl-meta').textContent = it.licence === 'resell' ? 'Resell licence' : 'Standard licence';
           var btn = card.querySelector('.dl-get');
           btn.addEventListener('click', function () {
             var prev = btn.textContent;

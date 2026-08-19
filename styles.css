@@ -1976,6 +1976,8 @@ button.dt-badge:disabled { cursor: default; opacity: 0.6; }
 .dl-meta { font-size: 13px; color: var(--fg-3); margin-top: 4px; }
 .dl-meta strong { color: var(--fg-2); }
 .dl-get { min-height: 40px; padding: 9px 18px; font-size: 13px; }
+.dl-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.dl-review { min-height: 40px; padding: 9px 16px; font-size: 13px; white-space: nowrap; }
 .dl-history { margin-top: 14px; border-top: 1px solid var(--hairline); padding-top: 12px; }
 .dl-history summary { cursor: pointer; font-size: 13px; font-weight: 600; color: var(--fg-2); list-style: none; }
 .dl-history summary::-webkit-details-marker { display: none; }
@@ -2189,6 +2191,9 @@ html.js .ref-method-btn:focus-visible { outline: 2px solid var(--accent); outlin
 .ty-steps code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 12.5px; padding: 1px 5px; border-radius: var(--r-xs);
   background: rgba(255,255,255,0.07); color: var(--fg-1); }
+.ty-substeps { list-style: none; margin: 8px 0 10px; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.ty-substeps li { padding: 8px 12px; border-radius: var(--r-sm); background: rgba(255,255,255,0.04); border: 1px solid var(--hairline); }
+.ty-substeps strong { display: inline; color: var(--fg); }
 
 .ty-link-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .ty-link { display: flex; flex-direction: column; gap: 4px; padding: 16px 18px;
@@ -2206,7 +2211,7 @@ html.js .ref-method-btn:focus-visible { outline: 2px solid var(--accent); outlin
 
 .co-sec { padding: 22px 24px; margin-bottom: 16px;
   background: var(--bg-2); }
-.co-sec-head { display: flex; align-items: center; justify-content: space-between; }
+.co-sec-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
 .co-sec h2 { font-size: 17px; font-weight: 700; margin-bottom: 14px; }
 .co-sec-head h2 { margin-bottom: 0; }
 .co-guest-tag { font-size: 11px; font-weight: 600; color: var(--fg-2); padding: 4px 10px; border-radius: 999px; background: rgba(255,255,255,0.05); border: 1px solid var(--hairline); }

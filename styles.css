@@ -1972,6 +1972,9 @@ button.dt-badge:disabled { cursor: default; opacity: 0.6; }
 
 .dl-item { padding: 18px 22px; }
 .dl-top { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.dl-thumb { flex: 0 0 52px; width: 52px; height: 52px; border-radius: 10px; background: #0f1014 center / cover no-repeat;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08); }
+.dl-info { flex: 1 1 auto; min-width: 0; }
 .dl-name { font-size: 16px; font-weight: 700; }
 .dl-meta { font-size: 13px; color: var(--fg-3); margin-top: 4px; }
 .dl-meta strong { color: var(--fg-2); }
@@ -2179,9 +2182,16 @@ html.js .ref-method-btn:focus-visible { outline: 2px solid var(--accent); outlin
 .ty-next, .ty-links { margin-top: 34px; }
 .ty-next h2, .ty-links h2 { font-size: 17px; font-weight: 700; margin-bottom: 14px; }
 .ty-steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 14px; counter-reset: ty; }
-.ty-steps li { counter-increment: ty; position: relative; padding-left: 38px;
+/* > (direct child), not a bare descendant selector - .ty-substeps nests its
+   own <li> elements inside a .ty-steps <li>, and a descendant selector was
+   matching those too: the numbered-badge counter climbed through every
+   substep as well, so "Install them" (step 2) numbered its three file-type
+   rows 3/4/5 and "Updates are free, forever" ended up labelled 6 instead of
+   3. Scoping to direct children keeps the counter (and the badge) on the
+   top-level steps only. */
+.ty-steps > li { counter-increment: ty; position: relative; padding-left: 38px;
   font-size: 14px; line-height: 1.6; color: var(--fg-2); }
-.ty-steps li::before { content: counter(ty); position: absolute; left: 0; top: 1px;
+.ty-steps > li::before { content: counter(ty); position: absolute; left: 0; top: 1px;
   display: grid; place-items: center; width: 24px; height: 24px; border-radius: var(--r-pill);
   font-size: 12px; font-weight: 700; color: var(--fg-1);
   background: rgba(255,255,255,0.06); border: 1px solid var(--hairline); }

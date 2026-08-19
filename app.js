@@ -4276,10 +4276,16 @@
         if (!itemsEl) return;
         itemsEl.innerHTML = '';
         items.forEach(function (it) {
+          // order_items only stores slug/title/qty/licence, not an image -
+          // the catalog (already loaded for pricing elsewhere on the site)
+          // is the source of truth for that, matched by slug.
+          var catEntry = (window.__CATALOG || []).filter(function (c) { return c.id === it.product_slug; })[0];
+          var thumb = catEntry && catEntry.image ? catEntry.image : '';
           var card = document.createElement('div');
           card.className = 'dash-card glass dl-item';
           card.innerHTML =
-            '<div class="dl-top"><div class="dl-info"><div class="dl-name"></div><div class="dl-meta"></div></div>' +
+            '<div class="dl-top"><span class="dl-thumb" style="background-image:url(\'' + thumb + '\')"></span>' +
+            '<div class="dl-info"><div class="dl-name"></div><div class="dl-meta"></div></div>' +
             '<div class="dl-actions"><a class="btn btn-ghost dl-review" href="/product?id=' + encodeURIComponent(it.product_slug) + '&tab=reviews">Leave a review</a>' +
             '<button class="btn btn-primary dl-get" type="button">Download</button></div></div>';
           card.querySelector('.dl-name').textContent = it.title;

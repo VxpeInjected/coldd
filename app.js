@@ -834,9 +834,11 @@
         }
         if (mega.classList.contains('open')) position();
       }
+      // Click only, not hover - a hover-triggered switch meant just passing
+      // the mouse over "Minecraft" on the way to a Roblox category silently
+      // swapped the whole panel out from under the cursor.
       tabs.forEach(function (t) {
         t.addEventListener('click', function () { setPlatform(t.getAttribute('data-platform')); });
-        t.addEventListener('mouseenter', function () { setPlatform(t.getAttribute('data-platform')); });
       });
     })();
 
@@ -1378,6 +1380,15 @@
         const initial = new URLSearchParams(location.search).get('cat');
         const hasInit = initial && ((chips && chips.querySelector('.chip[data-cat="' + initial + '"]')) || (sideCats && sideCats.querySelector('.fc-cat[data-cat="' + initial + '"]')));
         setCat(hasInit ? initial : 'all');
+
+        // Lets a link (the Shop mega-menu's New Releases tile, currently the
+        // only user of this) land pre-sorted instead of on Recommended.
+        const initialSort = new URLSearchParams(location.search).get('sort');
+        const initialSortOpt = initialSort && sortOpts.filter(function (o) { return o.getAttribute('data-sort') === initialSort; })[0];
+        if (initialSortOpt) {
+          var initialSortLabel = initialSortOpt.querySelector('span') ? initialSortOpt.querySelector('span').textContent : initialSortOpt.textContent;
+          setSort(initialSort, initialSortLabel);
+        }
       });
     })();
 

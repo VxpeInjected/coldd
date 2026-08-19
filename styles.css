@@ -845,11 +845,11 @@
 .shop { padding: 16px 0 70px; }
 .shop-notitle { padding-top: 132px; }
 .shop > .wrap { max-width: 1760px; padding: 0 40px; }
-.free-section > .wrap { max-width: 1760px; padding: 0 40px; }
-.free-section-inner { display: grid; grid-template-columns: 280px 1fr; column-gap: 32px; }
-.free-section-inner .sec-head { grid-column: 2; }
-.free-section-inner .free-grid { grid-column: 2; }
-@media (max-width: 1040px) { .free-section-inner { grid-template-columns: 1fr; } .free-section-inner .sec-head, .free-section-inner .free-grid { grid-column: 1; } }
+/* Not the shop grid's 280px-sidebar + content layout - this section has no
+   sidebar of its own, so reserving that column (like an earlier version
+   here did) just shifted the whole heading+grid right instead of centering
+   it on the page. */
+.free-section > .wrap { max-width: 1180px; padding: 0 40px; }
 .shop-toolbar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; max-width: 900px; margin: 0 auto 28px; }
 .shop-toolbar .shop-searchbar { flex: 1; min-width: 220px; margin: 0; max-width: none; }
 .plat-select { position: relative; flex: 0 0 auto; }
@@ -1055,10 +1055,11 @@
 .pr-slider { position: relative; height: 22px; }
 .pr-rail { position: absolute; top: 50%; left: 2px; right: 2px; height: 4px; transform: translateY(-50%);
   background: rgba(255,255,255,0.11); border-radius: 999px; }
-/* Was a solid ember bar across the panel — the one hard red line on the whole
-   catalog page. The selected span now reads as light on dark; ember stays on
-   the thumbs, where it marks the thing you actually drag. */
-.pr-fill { position: absolute; top: 0; bottom: 0; background: rgba(255,255,255,0.5); border-radius: 999px; }
+/* A flat white fill read as washed-out and disconnected from the rest of
+   the panel's palette - everything else here (thumbs, checkboxes, focus
+   rings) ties back to the accent. A soft ember tint keeps the same "not
+   one hard red line" goal from reading grey instead of branded. */
+.pr-fill { position: absolute; top: 0; bottom: 0; background: rgba(255,77,68,0.38); border-radius: 999px; }
 .pr-slider input[type="range"] { position: absolute; top: 0; left: 0; width: 100%; height: 22px; margin: 0;
   background: transparent; pointer-events: none; -webkit-appearance: none; appearance: none; }
 .pr-slider input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; pointer-events: auto;
@@ -1542,9 +1543,6 @@ body.no-scroll { overflow: hidden; }
    reads as a small data table (real figures) rather than the generated
    landing page's default gradient-card proof block. */
 .about-stat-panel { padding: 44px 50px 40px; }
-.asp-head { max-width: 520px; margin: 0 0 32px; }
-.asp-head h2 { font-size: var(--t-h2); margin: 0; letter-spacing: -0.035em; line-height: 1.08; }
-.asp-head p { color: var(--fg-2); font-size: 15px; margin: 10px 0 0; }
 .about-stat-grid {
   display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px;
   background: var(--hairline); border: 1px solid var(--hairline);
@@ -3177,27 +3175,38 @@ input[type="checkbox"]:focus-visible { outline: 2px solid var(--accent); outline
    tray as groups, not to space out one icon within that tray. Pulled
    back to match .nav-cta's own internal gap (4px) instead, so the bell
    reads as one of that tray's icons rather than sitting off on its own. */
-.nav-notif { position: relative; margin-left: -14px; }
+.nav-notif { position: relative; margin-left: -14px; transition: margin-left .55s cubic-bezier(0.6,0,0.2,1); }
+/* .nav-inner's gap itself shrinks to 7px while searching (see
+   .nav-inner:has(.nav-links.searching) above) so the bell has room to sit
+   next to the growing search input - the -14px above is calibrated against
+   the normal 18px gap alone, so left uncorrected here it overshoots by the
+   same 11px the gap just lost, pulling the bell noticeably too far left. */
+.nav-inner:has(.nav-links.searching) .nav-notif { margin-left: -3px; }
 .nav-notif[hidden] { display: none; }
 .notif-badge { position: absolute; top: 2px; right: 2px; min-width: 15px; height: 15px; padding: 0 3px; border-radius: 999px;
   background: var(--accent); color: #fff; font-size: 10px; font-weight: 700; line-height: 15px; text-align: center; pointer-events: none; }
 .notif-badge[hidden] { display: none; }
+/* Matches every other popover on the site (.cur-menu, .adm-row-menu-list):
+   same charcoal-not-pure-black fill, hairline border, soft drop shadow. This
+   used to be a flat #0b0b0b box with no shadow at all - the only popover on
+   the site without one, which is exactly what read as out of place. */
 .notif-panel { position: absolute; top: calc(100% + 10px); right: 0; width: 320px; max-width: calc(100vw - 32px);
-  max-height: 420px; overflow-y: auto; z-index: 250; background: #0b0b0b; border: 1px solid var(--hairline);
-  border-radius: 12px; padding: 8px; }
+  max-height: 420px; overflow-y: auto; z-index: 250; background: rgba(19,20,26,0.99); border: 1px solid var(--hairline);
+  border-radius: 16px; padding: 8px; box-shadow: 0 26px 64px -24px var(--ink-85); }
 .notif-panel[hidden] { display: none; }
-.notif-panel-head { display: flex; align-items: center; justify-content: space-between; padding: 6px 8px 10px; }
-.notif-panel-head h3 { font-size: 14px; margin: 0; }
-.notif-mark-all { font-size: 11px; color: var(--fg-3); background: none; border: none; cursor: pointer; padding: 0; font-family: inherit; }
+.notif-panel-head { display: flex; align-items: center; justify-content: space-between; padding: 8px 10px 10px; }
+.notif-panel-head h3 { font-size: 14px; font-weight: 700; margin: 0; }
+.notif-mark-all { font-size: 11px; font-weight: 600; color: var(--fg-3); background: none; border: none; cursor: pointer; padding: 0; font-family: inherit; }
 .notif-mark-all:hover { color: var(--fg); }
-.notif-list { display: flex; flex-direction: column; gap: 2px; }
-.notif-item { display: block; padding: 10px 8px; border-radius: 10px; text-decoration: none; color: var(--fg); cursor: pointer; }
-.notif-item:hover { background: rgba(255,255,255,0.05); }
-.notif-item.unread { background: rgba(255,77,68,0.06); }
+.notif-list { display: flex; flex-direction: column; gap: 1px; }
+.notif-item { display: block; padding: 10px; border-radius: 10px; text-decoration: none; color: var(--fg); cursor: pointer; transition: background .15s var(--ease); }
+.notif-item:hover { background: rgba(255,255,255,0.06); }
+.notif-item.unread { background: rgba(255,77,68,0.08); }
+.notif-item.unread:hover { background: rgba(255,77,68,0.12); }
 .notif-item-title { font-size: 13px; font-weight: 600; }
-.notif-item-body { font-size: 12px; color: var(--fg-2); margin-top: 2px; }
+.notif-item-body { font-size: 12px; color: var(--fg-2); margin-top: 2px; line-height: 1.45; }
 .notif-item-date { font-size: 11px; color: var(--fg-3); margin-top: 4px; }
-.notif-empty { padding: 26px 8px; text-align: center; font-size: 13px; color: var(--fg-3); }
+.notif-empty { padding: 30px 8px; text-align: center; font-size: 13px; color: var(--fg-3); }
 @media (max-width: 480px) { .notif-panel { position: fixed; top: 64px; right: 16px; left: 16px; width: auto; } }
 
 /* Identity fields ship empty rather than carrying a fabricated "Kaden R. /

@@ -162,6 +162,15 @@ export async function priceRobuxItems(
   return { ok: true, lines, totalRobux };
 }
 
+// The one scope Robux checkout's ownership fallback actually depends on.
+// A space-separated OAuth scope string ("openid profile
+// user.inventory-item:read") is checked by substring, not exact match -
+// Roblox may grant scopes in any order or alongside others.
+export const ROBLOX_INVENTORY_SCOPE = "user.inventory-item:read";
+export function hasInventoryScope(scope: string | null | undefined): boolean {
+  return !!scope && scope.split(/\s+/).includes(ROBLOX_INVENTORY_SCOPE);
+}
+
 export type RobloxTokenSet = { accessToken: string; robloxId: string };
 
 // Loads the caller's linked Roblox account, refreshing the OAuth token if

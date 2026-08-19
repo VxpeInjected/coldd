@@ -17,7 +17,7 @@
 // linked a Roblox account, before an order can even be created.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { priceRobuxItems } from "../_shared/roblox.ts";
+import { priceRobuxItems, getValidRobloxToken, hasInventoryScope } from "../_shared/roblox.ts";
 import { leasePassForOrder } from "../_shared/roblox_pool.ts";
 import { resolveCampaignCode } from "../_shared/campaign.ts";
 
@@ -57,11 +57,33 @@ Deno.serve(async (req: Request) => {
 
     const { data: robloxAcct } = await admin
       .from("roblox_accounts")
-      .select("roblox_id")
+      .select("roblox_id, scope")
       .eq("user_id", userData.user.id)
       .maybeSingle();
     if (!robloxAcct) {
       return json({ ok: false, error: "Link your Roblox account first.", code: "NOT_LINKED" }, 400);
+    }
+    // Hard requirement, not a soft one: the already-owned defense below
+    // (both the live pre-check in leasePassForOrder and verify-robux-order's
+    // switch fallback) only works if we can read the buyer's own Roblox
+    // inventory, which needs user.inventory-item:read. An account linked
+    // before that scope was requested passes the "linked" check above but
+    // can't actually be checked - so Robux checkout is blocked, not
+    // silently degraded, until the buyer re-links with the current scope.
+    if (!hasInventoryScope(robloxAcct.scope)) {
+      return json({
+        ok: false,
+        error: "Your Roblox link needs to be renewed to allow inventory checks for Robux checkout. Please re-link your account.",
+        code: "INVENTORY_SCOPE_REQUIRED",
+      }, 400);
+    }
+    const robloxToken = await getValidRobloxToken(admin, userData.user.id);
+    if (!robloxToken) {
+      return json({
+        ok: false,
+        error: "Your Roblox link has expired. Please re-link your account.",
+        code: "INVENTORY_SCOPE_REQUIRED",
+      }, 400);
     }
 
     const body = await req.json().catch(() => ({}));
@@ -109,7 +131,7 @@ Deno.serve(async (req: Request) => {
     // One pass for the whole order, priced to the exact total - not one pass
     // per product. The buyer makes a single Roblox purchase regardless of how
     // many items are in the cart.
-    const leased = await leasePassForOrder(admin, order.id, totalRobux, robloxAcct.roblox_id);
+    const leased = await leasePassForOrder(admin, order.id, totalRobux, robloxAcct.roblox_id, robloxToken.accessToken);
     if (!leased.ok) {
       await admin.from("orders").update({ status: "canceled" }).eq("id", order.id);
       return json({ ok: false, error: leased.error, code: leased.code }, 503);

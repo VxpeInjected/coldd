@@ -3824,10 +3824,33 @@
         }
 
         window.coldAuth.robloxLinkStatus().then(function (res) {
-          if (!res || !res.linked) { linkBlock.hidden = false; return; }
+          // Robux checkout hard-requires inventory-read permission (see
+          // create-robux-order) - a linked account without it is treated
+          // the same as not linked at all, not shown the buy block only to
+          // have Place order fail a moment later.
+          if (!res || !res.linked || !res.hasInventoryScope) {
+            linkBlock.hidden = false;
+            updateRobuxLinkCopy(!!(res && res.linked && !res.hasInventoryScope));
+            return;
+          }
           buyBlock.hidden = false;
           renderRobuxEstimate(robuxCartItems);
-        }).catch(function () { linkBlock.hidden = false; });
+        }).catch(function () { linkBlock.hidden = false; updateRobuxLinkCopy(false); });
+      }
+      // Same link block, two reasons to show it: never linked at all, vs
+      // linked before we started requiring inventory-read permission (or
+      // Roblox otherwise granted less than asked). Both need the buyer to
+      // go through Roblox's OAuth screen again - re-linking always
+      // overwrites the stored scope with whatever was granted this time.
+      function updateRobuxLinkCopy(needsRelink) {
+        var hint = document.getElementById('coRobuxLinkHint');
+        var btn = document.getElementById('coRobuxLinkBtn');
+        if (hint) {
+          hint.textContent = needsRelink
+            ? "Robux checkout needs permission to check your Roblox inventory, which your current link doesn't have. Re-link your account to grant it - you'll sign in on roblox.com and come straight back here."
+            : "Link your Roblox account to pay with Robux; we verify your purchase against the Roblox account you link. You'll sign in on roblox.com and come straight back here; if you're signed out of Roblox it will ask you to log in first.";
+        }
+        if (btn) btn.textContent = needsRelink ? 'Re-link Roblox account' : 'Continue to Roblox';
       }
       // Client-side estimate shown before an order exists, using each
       // product's real robux_price the same way the payment-method row
@@ -4044,8 +4067,14 @@
       function startRobuxOrder() {
         if (!window.coldAuth) return;
         window.coldAuth.robloxLinkStatus().then(function (res) {
-          if (!res || !res.linked) {
-            if (msg) { msg.className = 'co-msg err show'; msg.textContent = 'Link your Roblox account first.'; }
+          if (!res || !res.linked || !res.hasInventoryScope) {
+            renderRobuxPanel();
+            if (msg) {
+              msg.className = 'co-msg err show';
+              msg.textContent = (res && res.linked && !res.hasInventoryScope)
+                ? "Your Roblox link needs to be renewed to allow inventory checks - re-link your account above."
+                : 'Link your Roblox account first.';
+            }
             return;
           }
           var robuxItems = cartToItems().filter(function (i) { return i.licence !== 'resell'; });
@@ -4085,6 +4114,11 @@
             placeBtn.removeAttribute('data-busy');
             placeBtn.disabled = false; placeBtn.textContent = prevText;
             if (msg) { msg.className = 'co-msg err show'; msg.textContent = (err && err.message) || 'Could not start Robux checkout.'; }
+            // Covers the rare race where the link/scope was fine a moment
+            // ago (renderRobuxPanel's check) but create-robux-order's own
+            // check failed anyway - resync the panel so the buyer sees the
+            // link block instead of a buy block that will fail again.
+            renderRobuxPanel();
           });
         }).catch(function () {
           if (msg) { msg.className = 'co-msg err show'; msg.textContent = 'Could not check your Roblox account link.'; }

@@ -9,6 +9,7 @@
 // never reach the browser.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { hasInventoryScope } from "../_shared/roblox.ts";
 
 const ALLOWED_ORIGIN = "https://coldd.dev";
 
@@ -45,12 +46,20 @@ Deno.serve(async (req: Request) => {
     const admin = createClient(supabaseUrl, serviceKey);
     const { data, error } = await admin
       .from("roblox_accounts")
-      .select("roblox_username")
+      .select("roblox_username, scope")
       .eq("user_id", userData.user.id)
       .maybeSingle();
     if (error) return json({ ok: false, error: "Could not check link status." }, 500);
 
-    return json({ ok: true, linked: !!data, robloxUsername: data ? data.roblox_username : null });
+    return json({
+      ok: true,
+      linked: !!data,
+      robloxUsername: data ? data.roblox_username : null,
+      // Robux checkout hard-requires this (see create-robux-order) - exposed
+      // here too so the frontend can prompt a re-link before Place order
+      // instead of only after a failed order-create call.
+      hasInventoryScope: data ? hasInventoryScope(data.scope) : false,
+    });
   } catch (err) {
     console.error("[roblox-link-status] error:", err);
     return json({ ok: false, error: "Server error." }, 500);

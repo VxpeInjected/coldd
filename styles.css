@@ -3395,7 +3395,8 @@ input[type="checkbox"]:focus-visible { outline: 2px solid var(--accent); outline
 .robux-overlay { position: fixed; inset: 0; z-index: 400; background: rgba(6,7,10,0.6);
   display: none; align-items: center; justify-content: center; padding: 24px; }
 .robux-overlay:not([hidden]) { display: flex; }
-.robux-modal { position: relative; width: 460px; max-width: 96vw; max-height: 88vh; overflow-y: auto;
+.robux-modal { position: relative; width: 420px; min-height: 420px; max-width: 92vw; max-height: 88vh; overflow-y: auto;
+  display: flex; flex-direction: column; justify-content: center;
   background: rgba(19,20,26,0.99); border: 1px solid var(--hairline); border-radius: 20px;
   box-shadow: 0 30px 70px -22px var(--ink-85); padding: 32px 30px 28px; }
 .robux-modal-x { position: absolute; top: 16px; right: 16px; }
@@ -3403,6 +3404,9 @@ input[type="checkbox"]:focus-visible { outline: 2px solid var(--accent); outline
 .robux-steps { margin: 0 0 20px; padding-left: 22px; display: flex; flex-direction: column; gap: 12px; }
 .robux-steps li { font-size: 14px; line-height: 1.55; color: var(--fg-2); }
 .robux-steps li strong { color: var(--fg); }
+.robux-modal-owned-note { font-size: 12.5px; line-height: 1.5; color: var(--fg-3);
+  margin: 0 0 22px; padding-top: 16px; border-top: 1px solid var(--hairline); }
+.robux-modal-owned-note strong { color: var(--fg-2); }
 .robux-modal-total { font-size: 14.5px; color: var(--fg-2); margin: 0 0 18px; }
 .robux-modal-total strong { color: var(--fg); font-weight: 700; }
 .robux-modal-actions { display: flex; gap: 10px; flex-wrap: wrap; }

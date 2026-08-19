@@ -152,6 +152,7 @@ Deno.serve(async (req: Request) => {
               String(pass.gamepass_id),
               expectedRobux,
               String(buyerId),
+              tokenSet.accessToken,
             );
             if (switched.ok) {
               await admin.from("orders").update({ roblox_gamepass_id: switched.pass.gamepassId }).eq("id", orderId);

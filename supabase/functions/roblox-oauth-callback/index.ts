@@ -91,6 +91,13 @@ Deno.serve(async (req: Request) => {
     }
 
     const expiresAt = new Date(Date.now() + (Number(tokenData.expires_in) || 3600) * 1000).toISOString();
+    // Roblox returns the scope it actually granted (space-separated), which
+    // can be a subset of what was requested - stored so Robux checkout can
+    // hard-require user.inventory-item:read instead of assuming a linked
+    // account has it. A relink (this same upsert path) always overwrites it
+    // with what was granted THIS time, so re-authorizing after adding a
+    // scope correctly clears a stale insufficient-scope state.
+    const scope = String(tokenData.scope || "");
 
     const { error: upsertErr } = await admin.from("roblox_accounts").upsert({
       user_id: userData.user.id,
@@ -100,6 +107,7 @@ Deno.serve(async (req: Request) => {
       refresh_token: tokenData.refresh_token || "",
       expires_at: expiresAt,
       linked_at: new Date().toISOString(),
+      scope,
     });
     if (upsertErr) {
       // roblox_id carries its own UNIQUE constraint (one Roblox account

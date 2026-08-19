@@ -1221,31 +1221,20 @@
         // they're currently looking at (that's related()'s job, on the
         // product page).
         var userCategories = null; // Set of "platform|cat", null until the async fetch below resolves (or resolves to signed-out)
-        var userGenres = null; // Set of genre strings, from get_user_genres
         var catalogRevenue = null; // Map slug -> total real revenue, from get_catalog_revenue
 
-        // Same keyword list as product_genres() in the DB (20260819_genre_
-        // and_revenue_signals.sql) - kept in sync by hand since this side
-        // needs to score every card already in the DOM against a user's
-        // interests without a round trip per card, while the DB side needs
-        // it to aggregate a user's actual purchase history. No catalog
-        // field currently tags products by genre, so both derive it the
-        // same way: matching this list against title+description+
-        // category+subcategory text.
-        var GENRE_KEYWORDS = [
-          'simulator', 'tycoon', 'obby', 'fighting', 'survival', 'roleplay', 'horror',
-          'racing', 'sandbox', 'shooter', 'rpg', 'battle royale', 'parkour', 'clicker',
-          'idle', 'hub', 'lobby', 'pvp', 'adventure', 'puzzle', 'building', 'sports',
-          'stealth', 'tower defense', 'minigame', 'anime', 'zombie', 'escape'
-        ];
-        var genreCache = {}; // slug -> genre[], memoized since it's the same text every re-sort
-        function genresFor(p) {
-          if (genreCache[p.id]) return genreCache[p.id];
-          var text = ((p.title || '') + ' ' + (p.desc || '') + ' ' + (p.cat || '') + ' ' + (p.subcat || '')).toLowerCase();
-          var found = GENRE_KEYWORDS.filter(function (g) { return text.indexOf(g) >= 0; });
-          genreCache[p.id] = found;
-          return found;
-        }
+        // Replaces a fixed genre-keyword list (which needed a human to
+        // notice a new recurring theme in the catalog - "brainrot",
+        // whatever comes after it - and go add it by hand) with terms the
+        // catalog itself surfaces: catalog_signal_terms() (see
+        // 20260819_dynamic_signal_terms.sql) extracts every meaningful
+        // word/phrase from each product's title+description and keeps only
+        // the ones that recur across a real slice of the catalog - not one
+        // product's own flavor text, not near-universal noise like
+        // "roblox". That's computed once, server-side, for the whole
+        // catalog and fetched here as slug -> terms.
+        var catalogTerms = null; // Map slug -> term[], from catalog_signal_terms()
+        var userTerms = null; // Set of terms, from get_user_signal_terms
 
         function conversionScore(el) {
           // Manual admin override (product edit form's "Priority" checkbox) -
@@ -1293,13 +1282,9 @@
           // "same category", this covers "same kind of game, different
           // category label".
           var genreBoost = 0;
-          if (userGenres && userGenres.size) {
-            var slug = el.getAttribute('data-id');
-            var product = slug && (window.__CATALOG || []).filter(function (x) { return x.id === slug; })[0];
-            if (product) {
-              var matched = genresFor(product).some(function (g) { return userGenres.has(g); });
-              if (matched) genreBoost = 25;
-            }
+          if (userTerms && userTerms.size && catalogTerms) {
+            var terms = catalogTerms[el.getAttribute('data-id')];
+            if (terms && terms.some(function (t) { return userTerms.has(t); })) genreBoost = 25;
           }
 
           // Real revenue this exact product has generated from actual paid
@@ -1340,20 +1325,32 @@
           }).catch(function () {});
         }
         loadUserCategories();
-        function loadUserGenres() {
+        function loadCatalogTerms() {
+          if (!window.coldSupabase) return;
+          window.coldSupabase.rpc('catalog_signal_terms', {}).then(function (r) {
+            var rows = r.data || [];
+            if (!rows.length) return;
+            var map = {};
+            rows.forEach(function (row) { map[row.product_slug] = row.terms || []; });
+            catalogTerms = map;
+            if ((sortMode || 'recommended') === 'recommended') refilter(false);
+          }).catch(function () {});
+        }
+        loadCatalogTerms();
+        function loadUserTerms() {
           if (!window.coldSupabase) return;
           window.coldSupabase.auth.getSession().then(function (res) {
             var session = res && res.data && res.data.session;
             if (!session) return;
-            return window.coldSupabase.rpc('get_user_genres', { p_user_id: session.user.id }).then(function (r) {
-              var genres = r.data || [];
-              if (!genres.length) return;
-              userGenres = new Set(genres);
+            return window.coldSupabase.rpc('get_user_signal_terms', { p_user_id: session.user.id }).then(function (r) {
+              var terms = r.data || [];
+              if (!terms.length) return;
+              userTerms = new Set(terms);
               if ((sortMode || 'recommended') === 'recommended') refilter(false);
             });
           }).catch(function () {});
         }
-        loadUserGenres();
+        loadUserTerms();
         function loadCatalogRevenue() {
           if (!window.coldSupabase) return;
           window.coldSupabase.rpc('get_catalog_revenue', {}).then(function (r) {

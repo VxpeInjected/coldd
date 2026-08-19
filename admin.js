@@ -2166,6 +2166,7 @@
     $('admEditResellPriceWrap').hidden = !p.resell;
     $('admEditReleased').checked = !!p.visible;
     $('admEditDeleteBtn').hidden = false;
+    if ($('admLegalDownloadBtn')) $('admLegalDownloadBtn').hidden = false;
     $('admEditHeading').textContent = 'Edit: ' + p.title;
     $('admEditSaveBtn').textContent = 'Save changes';
     $('admEditMsg').textContent = '';
@@ -2424,6 +2425,7 @@
     $('admEditResellPriceWrap').hidden = true;
     $('admEditReleased').checked = false;
     $('admEditDeleteBtn').hidden = true;
+    if ($('admLegalDownloadBtn')) $('admLegalDownloadBtn').hidden = true;
     $('admEditHeading').textContent = 'Create new product';
     $('admEditSaveBtn').textContent = 'Create product';
     $('admEditMsg').textContent = '';
@@ -2578,6 +2580,55 @@
     }).catch(function (err) {
       editDeleteBtn.disabled = false;
       alert(err.message || 'Could not remove product.');
+    });
+  });
+  var legalDownloadBtn = $('admLegalDownloadBtn');
+  if (legalDownloadBtn) legalDownloadBtn.addEventListener('click', function () {
+    var id = $('admEditId').value;
+    var p = findProduct(id); if (!p || !window.coldSupabase) return;
+    var btnLabel = legalDownloadBtn.querySelector('.btn-label');
+    var btnSpinner = legalDownloadBtn.querySelector('.btn-spinner');
+    legalDownloadBtn.disabled = true;
+    if (btnSpinner) btnSpinner.hidden = false;
+    window.coldSupabase.auth.getSession().then(function (res) {
+      var token = res && res.data && res.data.session && res.data.session.access_token;
+      if (!token) throw new Error('Please sign in.');
+      // Returns a real .docx binary, not JSON - can't go through
+      // invokeAdminFn (which always parses the response as JSON), so this
+      // is a plain authenticated fetch straight to the function.
+      // Same publishable anon key every other client-side Supabase call on
+      // this site already ships (supabase-init.js, lock/index.html) - it's
+      // meant to be public, the is_admin gate server-side is what actually
+      // protects this endpoint, not keeping this value secret.
+      return fetch('https://ekinmytmudjwfaqaqswp.supabase.co/functions/v1/admin-generate-legal-docx', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': 'sb_publishable_q5JwjFnMT_0Uhu5rAlAkQA_DEGnhwV7',
+          'Authorization': 'Bearer ' + token
+        },
+        body: JSON.stringify({ productId: p.dbId })
+      });
+    }).then(function (res) {
+      if (!res.ok) return res.json().catch(function () { return {}; }).then(function (data) {
+        throw new Error(data.error || 'Could not generate document.');
+      });
+      return res.blob();
+    }).then(function (blob) {
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url;
+      a.download = p.id + '-legal-record.docx';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(function () { URL.revokeObjectURL(url); }, 4000);
+      logAudit('Downloaded legal record for "' + p.title + '"');
+    }).catch(function (err) {
+      alert(err.message || 'Could not generate document.');
+    }).then(function () {
+      legalDownloadBtn.disabled = false;
+      if (btnSpinner) btnSpinner.hidden = true;
     });
   });
 

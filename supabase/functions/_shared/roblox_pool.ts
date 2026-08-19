@@ -17,7 +17,7 @@
 // If step 2 fails the lease is released immediately - holding a pass we could
 // not price would shrink the pool for nothing.
 
-import { createGamepass, updateGamepass, pickContainer, findOwnedGamePasses } from "./roblox.ts";
+import { createGamepass, updateGamepass, pickContainer, findOwnedGamePasses, RobloxInsufficientScopeError } from "./roblox.ts";
 
 export type LeasedPass = {
   gamepassId: string;
@@ -155,10 +155,15 @@ export async function leasePassForOrder(
         owned = Array.from(new Set([...owned, ...liveOwned]));
       }
     } catch (err) {
+      if (err instanceof RobloxInsufficientScopeError) {
+        return {
+          ok: false,
+          code: "INVENTORY_SCOPE_REQUIRED",
+          error: "Your Roblox link needs to be renewed to allow inventory checks for Robux checkout. Please re-link your account.",
+        };
+      }
       // A transient Roblox error here must not silently fall back to
-      // serving an unchecked pass - fail the lease instead. Insufficient
-      // scope shouldn't reach this point at all (callers hard-require it
-      // upstream), so this is realistically a network/API hiccup.
+      // serving an unchecked pass - fail the lease instead.
       console.error("[roblox_pool] live ownership pre-check failed:", err instanceof Error ? err.message : err);
       return {
         ok: false,

@@ -17,7 +17,7 @@
 // linked a Roblox account, before an order can even be created.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { priceRobuxItems, getValidRobloxToken, hasInventoryScope } from "../_shared/roblox.ts";
+import { priceRobuxItems, getValidRobloxToken } from "../_shared/roblox.ts";
 import { leasePassForOrder } from "../_shared/roblox_pool.ts";
 import { resolveCampaignCode } from "../_shared/campaign.ts";
 
@@ -57,34 +57,30 @@ Deno.serve(async (req: Request) => {
 
     const { data: robloxAcct } = await admin
       .from("roblox_accounts")
-      .select("roblox_id, scope")
+      .select("roblox_id")
       .eq("user_id", userData.user.id)
       .maybeSingle();
     if (!robloxAcct) {
       return json({ ok: false, error: "Link your Roblox account first.", code: "NOT_LINKED" }, 400);
-    }
-    // Hard requirement, not a soft one: the already-owned defense below
-    // (both the live pre-check in leasePassForOrder and verify-robux-order's
-    // switch fallback) only works if we can read the buyer's own Roblox
-    // inventory, which needs user.inventory-item:read. An account linked
-    // before that scope was requested passes the "linked" check above but
-    // can't actually be checked - so Robux checkout is blocked, not
-    // silently degraded, until the buyer re-links with the current scope.
-    if (!hasInventoryScope(robloxAcct.scope)) {
-      return json({
-        ok: false,
-        error: "Your Roblox link needs to be renewed to allow inventory checks for Robux checkout. Please re-link your account.",
-        code: "INVENTORY_SCOPE_REQUIRED",
-      }, 400);
     }
     const robloxToken = await getValidRobloxToken(admin, userData.user.id);
     if (!robloxToken) {
       return json({
         ok: false,
         error: "Your Roblox link has expired. Please re-link your account.",
-        code: "INVENTORY_SCOPE_REQUIRED",
+        code: "NOT_LINKED",
       }, 400);
     }
+    // Whether that token actually carries user.inventory-item:read is NOT
+    // pre-checked against the stored roblox_accounts.scope here - that
+    // column only exists from the point it started being captured, so it
+    // reads empty for every account linked before that (a real, common
+    // case, not an edge case), which would wrongly block accounts that
+    // already have the scope but never had it recorded. leasePassForOrder
+    // below does a LIVE inventory check instead, which is authoritative
+    // regardless of what's stored - if that fails with insufficient scope,
+    // it returns a distinct INVENTORY_SCOPE_REQUIRED below, and only then
+    // is the buyer actually asked to re-link.
 
     const body = await req.json().catch(() => ({}));
     const priced = await priceRobuxItems(admin, Array.isArray(body.items) ? body.items : []);

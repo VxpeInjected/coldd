@@ -93,13 +93,17 @@
         return parsed.then(function (data) {
           var msg = (data && data.error) || res.error.message || 'Request failed.';
           logClientError('edge_function', msg, null, { fnName: name, context: { status: ctx && ctx.status } });
-          throw new Error(msg);
+          var err = new Error(msg);
+          if (data && data.code) err.code = data.code;
+          throw err;
         });
       }
       if (!res.data || !res.data.ok) {
         var failMsg = (res.data && res.data.error) || 'Request failed.';
         logClientError('edge_function', failMsg, null, { fnName: name });
-        throw new Error(failMsg);
+        var failErr = new Error(failMsg);
+        if (res.data && res.data.code) failErr.code = res.data.code;
+        throw failErr;
       }
       return res.data;
     });

@@ -3803,7 +3803,14 @@
         // product.html) - resell items just aren't part of the Robux
         // order, not a hard block on the whole cart. Only fully block if
         // EVERY item in the cart is resell (nothing left to buy via Robux).
-        var robuxCartItems = cart.filter(function (i) { return i.licence !== 'resell'; });
+        // Derived from the id suffix, same as cartToItems() below, NOT
+        // trusted off item.licence directly - a cart hydrated from an
+        // older localStorage snapshot can have items whose id already
+        // carries the --resell suffix but whose licence field was never
+        // set, which would have let a resell item slip into the Robux
+        // estimate and (had cartToItems used the same shortcut) the order.
+        var isRobuxEligible = function (i) { return i.id.indexOf('--resell') === -1; };
+        var robuxCartItems = cart.filter(isRobuxEligible);
         var robuxItems = cartToItems().filter(function (i) { return i.licence !== 'resell'; });
         var hasResell = robuxItems.length !== cart.length;
         resellBlock.hidden = !hasResell;
@@ -3824,13 +3831,18 @@
         }
 
         window.coldAuth.robloxLinkStatus().then(function (res) {
-          // Robux checkout hard-requires inventory-read permission (see
-          // create-robux-order) - a linked account without it is treated
-          // the same as not linked at all, not shown the buy block only to
-          // have Place order fail a moment later.
-          if (!res || !res.linked || !res.hasInventoryScope) {
+          // Only gates on "linked" here, NOT hasInventoryScope. That flag
+          // reads false for any account linked before scope tracking
+          // existed (which is most of them), even though their token
+          // almost certainly already has the permission - Roblox's OAuth
+          // consent is all-or-nothing, so anyone who got through it at all
+          // has whatever was being requested at the time. The real check
+          // happens server-side against the buyer's live inventory when
+          // Place order is clicked; only THAT failing (see startRobuxOrder)
+          // means a re-link is actually necessary.
+          if (!res || !res.linked) {
             linkBlock.hidden = false;
-            updateRobuxLinkCopy(!!(res && res.linked && !res.hasInventoryScope));
+            updateRobuxLinkCopy(false);
             return;
           }
           buyBlock.hidden = false;
@@ -3838,10 +3850,10 @@
         }).catch(function () { linkBlock.hidden = false; updateRobuxLinkCopy(false); });
       }
       // Same link block, two reasons to show it: never linked at all, vs
-      // linked before we started requiring inventory-read permission (or
-      // Roblox otherwise granted less than asked). Both need the buyer to
-      // go through Roblox's OAuth screen again - re-linking always
-      // overwrites the stored scope with whatever was granted this time.
+      // linked but the live inventory check at order-creation time came
+      // back insufficient-scope. Both need the buyer to go through
+      // Roblox's OAuth screen again - re-linking always overwrites the
+      // stored scope with whatever was granted this time.
       function updateRobuxLinkCopy(needsRelink) {
         var hint = document.getElementById('coRobuxLinkHint');
         var btn = document.getElementById('coRobuxLinkBtn');
@@ -4067,14 +4079,13 @@
       function startRobuxOrder() {
         if (!window.coldAuth) return;
         window.coldAuth.robloxLinkStatus().then(function (res) {
-          if (!res || !res.linked || !res.hasInventoryScope) {
+          // Only "linked" gates here - see renderRobuxPanel for why
+          // hasInventoryScope isn't trusted as a hard requirement
+          // client-side. create-robux-order's own live check is what
+          // actually enforces this, below.
+          if (!res || !res.linked) {
             renderRobuxPanel();
-            if (msg) {
-              msg.className = 'co-msg err show';
-              msg.textContent = (res && res.linked && !res.hasInventoryScope)
-                ? "Your Roblox link needs to be renewed to allow inventory checks - re-link your account above."
-                : 'Link your Roblox account first.';
-            }
+            if (msg) { msg.className = 'co-msg err show'; msg.textContent = 'Link your Roblox account first.'; }
             return;
           }
           var robuxItems = cartToItems().filter(function (i) { return i.licence !== 'resell'; });
@@ -4114,11 +4125,18 @@
             placeBtn.removeAttribute('data-busy');
             placeBtn.disabled = false; placeBtn.textContent = prevText;
             if (msg) { msg.className = 'co-msg err show'; msg.textContent = (err && err.message) || 'Could not start Robux checkout.'; }
-            // Covers the rare race where the link/scope was fine a moment
-            // ago (renderRobuxPanel's check) but create-robux-order's own
-            // check failed anyway - resync the panel so the buyer sees the
-            // link block instead of a buy block that will fail again.
-            renderRobuxPanel();
+            // create-robux-order's own live inventory check is the actual
+            // authority on whether a re-link is needed (see its comments) -
+            // only switch to the link block when THAT specifically failed,
+            // not on every error, so a transient/unrelated failure doesn't
+            // yank the buy block out from under someone who was fine.
+            if (err && (err.code === 'INVENTORY_SCOPE_REQUIRED' || err.code === 'NOT_LINKED')) {
+              var linkBlockEl = document.getElementById('coRobuxLinkBlock');
+              var buyBlockEl = document.getElementById('coRobuxBuyBlock');
+              if (linkBlockEl) linkBlockEl.hidden = false;
+              if (buyBlockEl) buyBlockEl.hidden = true;
+              updateRobuxLinkCopy(err.code === 'INVENTORY_SCOPE_REQUIRED');
+            }
           });
         }).catch(function () {
           if (msg) { msg.className = 'co-msg err show'; msg.textContent = 'Could not check your Roblox account link.'; }

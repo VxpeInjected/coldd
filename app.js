@@ -54,6 +54,31 @@
       };
     })();
 
+    (function () {
+      // Best-effort mirror of a wishlist add/remove into wishlist_items, so
+      // it's visible to anything running outside the buyer's own browser
+      // (a sale-price update deciding who to notify, say) - localStorage
+      // stays the instant-read source of truth the UI itself uses, this is
+      // purely a write-behind copy. Silently no-ops signed out, since
+      // there's no user_id to attach it to and the wishlist already works
+      // fine locally without an account.
+      window.__wishSync = function (slug, added) {
+        if (!window.coldSupabase) return;
+        window.coldSupabase.auth.getSession().then(function (res) {
+          var session = res && res.data && res.data.session;
+          if (!session) return;
+          return window.coldSupabase.from('products').select('id').eq('slug', slug).maybeSingle().then(function (r) {
+            var productId = r && r.data && r.data.id;
+            if (!productId) return;
+            if (added) {
+              return window.coldSupabase.from('wishlist_items').upsert({ user_id: session.user.id, product_id: productId }, { onConflict: 'user_id,product_id' });
+            }
+            return window.coldSupabase.from('wishlist_items').delete().eq('user_id', session.user.id).eq('product_id', productId);
+          });
+        }).catch(function () {});
+      };
+    })();
+
     // Light mode toggle (dashboard > Appearance). The actual theme
     // application happens in an early inline <head> script on every page
     // (reads localStorage before paint, sets data-theme on <html>) so there
@@ -1875,6 +1900,30 @@
           return cat.slice(0, 4);
         }
 
+        // Real "customers who bought this also bought" signal from actual
+        // paid orders - related() above is pure content similarity (same
+        // category/subcat/title-word-overlap), which knows nothing about
+        // what people actually buy together. Needs a round trip the
+        // initial render above shouldn't block on, so it's fetched async
+        // and the also-bought results are put first once they land -
+        // real behavioral signal outranks a content-similarity guess.
+        function fetchAlsoBought(p) {
+          if (!window.coldSupabase || !pdRelated) return;
+          window.coldSupabase.rpc('get_also_bought', { p_slug: p.id, p_limit: 8 }).then(function (res) {
+            if (!cur || cur.id !== p.id) return; // navigated away before this resolved
+            var slugs = (res.data || []).map(function (row) { return row.product_slug; });
+            if (!slugs.length) return;
+            var bySlug = {};
+            (window.__CATALOG || []).forEach(function (x) { bySlug[x.id] = x; });
+            var alsoBought = slugs.map(function (s) { return bySlug[s]; }).filter(Boolean);
+            if (!alsoBought.length) return;
+            var already = {}; alsoBought.forEach(function (x) { already[x.id] = true; });
+            var blended = alsoBought.concat(related(p).filter(function (x) { return !already[x.id]; })).slice(0, 4);
+            pdRelated.innerHTML = blended.map(relatedCard).join('');
+            if (pdRelatedWrap) pdRelatedWrap.hidden = blended.length === 0;
+          }).catch(function () {});
+        }
+
         var curTab = 'overview';
         function showTab(t) {
           curTab = t;
@@ -2067,6 +2116,7 @@
             var rel = related(p);
             pdRelated.innerHTML = rel.map(relatedCard).join('');
             if (pdRelatedWrap) pdRelatedWrap.hidden = rel.length === 0;
+            fetchAlsoBought(p);
           }
           if (pdFaqList) {
             pdFaqList.innerHTML = faqFor(p).map(function (q, idx) {
@@ -2140,8 +2190,10 @@
         });
         if (pdWish) pdWish.addEventListener('click', function () {
           if (!cur) return; var w = lsGet(WISH), i = w.indexOf(cur.id);
+          var adding = i < 0;
           if (i >= 0) w.splice(i, 1); else w.push(cur.id);
           lsSet(WISH, w); syncWish();
+          if (window.__wishSync) window.__wishSync(cur.id, adding);
         });
         if (pdUpgrade) pdUpgrade.addEventListener('click', function () { if (cur) { setLic('resell'); add(cur); openCart(); } });
         if ($('pdDownload')) $('pdDownload').addEventListener('click', function () { showTab('updates'); });
@@ -2465,6 +2517,12 @@
       function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
       function wishIds() { try { return JSON.parse(localStorage.getItem(WISH_KEY) || '[]') || []; } catch (e) { return []; } }
       function saveWishIds(ids) { try { localStorage.setItem(WISH_KEY, JSON.stringify(ids)); } catch (e) {} }
+      // One-time backfill: anything wishlisted before wishlist_items existed
+      // (or added on a device that was never signed in yet) was never
+      // synced - dashboard load is the one place guaranteed to run for a
+      // signed-in user with the full id list already in hand, so it's the
+      // natural place to catch it up.
+      if (window.__wishSync) wishIds().forEach(function (id) { window.__wishSync(id, true); });
       function wishPriceText(p) {
         var robuxMode = window.__currencyMode ? window.__currencyMode() === 'robux' : false;
         var rbx = robuxMode && p.robuxPrice > 0 ? p.robuxPrice : null;
@@ -2497,6 +2555,37 @@
             '<div class="dr-actions"><a class="btn btn-ghost dr-btn" href="/product?id=' + encodeURIComponent(p.id) + '">' + window.msym('visibility') + 'View</a></div></div>';
         }).join('') : '<p class="dash-empty-note">Nothing saved yet - tap the heart on any product to add it here.</p>';
       }
+      // Real purchase-history-based recommendations (get_recommended_for_user:
+      // other products in categories the signed-in user has actually bought
+      // from before, weighted toward higher-rated/more-reviewed ones,
+      // excluding anything they already own) - not shown at all for a buyer
+      // with no purchase history yet, since there's nothing real to base it
+      // on and an empty or random-looking "recommended" card is worse than
+      // no card.
+      function renderRecommended() {
+        var card = document.getElementById('dashRecommendedCard');
+        var el = document.getElementById('dashRecommended');
+        if (!card || !el || !window.coldSupabase) return;
+        window.coldSupabase.auth.getSession().then(function (res) {
+          var session = res && res.data && res.data.session;
+          if (!session) return;
+          return window.coldSupabase.rpc('get_recommended_for_user', { p_user_id: session.user.id, p_limit: 3 }).then(function (r) {
+            var slugs = (r.data || []).map(function (row) { return row.product_slug; });
+            if (!slugs.length) return;
+            var cat = window.__CATALOG || [];
+            var items = slugs.map(function (s) { return cat.filter(function (p) { return p.id === s; })[0]; }).filter(Boolean);
+            if (!items.length) return;
+            el.innerHTML = items.map(function (p) {
+              return '<div class="dash-row"><span class="dr-thumb" style="background-image:url(\'' + p.image + '\')"></span>' +
+                '<div class="dr-main"><div class="dr-title">' + esc(p.title) + '</div><div class="dr-sub"><span class="p-price" data-usd="' + p.priceNum + '">' + wishPriceText(p) + '</span></div></div>' +
+                '<div class="dr-actions"><a class="btn btn-ghost dr-btn" href="/product?id=' + encodeURIComponent(p.id) + '">' + window.msym('visibility') + 'View</a></div></div>';
+            }).join('');
+            card.hidden = false;
+          });
+        }).catch(function () {});
+      }
+      renderRecommended();
+
       window.addEventListener('currencychange', function () {
         if (document.getElementById('dashWishlistRows')) renderWishlist();
         if (document.getElementById('dashWishlistPreview')) renderWishlistPreview();
@@ -2509,6 +2598,7 @@
         if (e.target.closest('.wl-remove')) {
           saveWishIds(wishIds().filter(function (x) { return x !== id; }));
           renderWishlist();
+          if (window.__wishSync) window.__wishSync(id, false);
         } else if (e.target.closest('.dr-cart') && p) {
           if (window.__cartAdd) window.__cartAdd({ id: p.id, title: p.title, price: p.priceNum, image: p.image, tag: p.cat || '' });
           var btn = e.target.closest('.dr-cart');

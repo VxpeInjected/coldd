@@ -415,6 +415,11 @@
                     <input type="number" min="0" step="1" id="admEditRobuxPrice" class="adm-input" />
                     <span class="adm-hint" id="admEditDevexHint"></span>
                   </label>
+                  <label class="adm-field">
+                    <span>Sale price (was)</span>
+                    <input type="number" min="0" step="0.01" id="admEditWasPrice" class="adm-input" placeholder="Leave blank for no sale" />
+                    <span class="adm-hint">Shown crossed out next to the real price. Must be higher than Price (USD) to count as a sale - anyone with this product wishlisted gets notified the first time it goes on sale.</span>
+                  </label>
                 </div>
 
                 <label class="adm-field-check" style="margin-top:20px;"><input type="checkbox" id="admEditResell" /> <span>Resell licence available</span></label>
@@ -1178,6 +1183,6 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.2/dist/umd/supabase.min.js" integrity="sha384-B2duOBIryCXbX4eDE4BdJwtNkQMRQde3o6IsjfPW28E6aH1CYE96hHeZRG3zY56O" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script src="/supabase-init.js?v=20260816c"></script>
   <script src="/site-gate.js?v=20260818b"></script>
-  <script src="/catalog.js?v=20260810a" data-then="/app.js?v=20260819b,/blog.js?v=20260812a,/reviews.js?v=20260729a,/admin.js?v=20260817e"></script>
+  <script src="/catalog.js?v=20260810a" data-then="/app.js?v=20260819c,/blog.js?v=20260812a,/reviews.js?v=20260729a,/admin.js?v=20260817f"></script>
 </body>
 </html>

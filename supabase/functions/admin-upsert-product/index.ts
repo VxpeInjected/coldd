@@ -13,6 +13,7 @@
 // supabase-init.js can't provide on its own.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { notifyUser } from "../_shared/notify.ts";
 
 const ALLOWED_ORIGIN = "https://coldd.dev";
 
@@ -125,12 +126,16 @@ Deno.serve(async (req: Request) => {
 
     const platform = body.platform === "Minecraft" ? "Minecraft" : "Roblox";
     const price = Math.max(0, Number(body.price) || 0);
+    // Only a real "was" price if it's actually higher than the current one -
+    // otherwise this isn't a sale, it's just a number sitting in a field.
+    const wasPrice = body.wasPrice != null && Number(body.wasPrice) > price ? Number(body.wasPrice) : null;
 
     const productFields: Record<string, unknown> = {
       title,
       platform,
       page: platform === "Minecraft" ? "/minecraft" : "/assets",
       price_usd: price,
+      was_price: wasPrice,
       cat: body.cat != null ? String(body.cat) : null,
       subcat: body.subcat != null ? String(body.subcat) : null,
       description: body.desc != null ? String(body.desc) : "",
@@ -148,11 +153,11 @@ Deno.serve(async (req: Request) => {
     if (typeof body.storagePath === "string" && body.storagePath) productFields.storage_path = body.storagePath;
 
     // deno-lint-ignore no-explicit-any
-    let existingProduct: { versions: any[] | null; slug: string } | null = null;
+    let existingProduct: { versions: any[] | null; slug: string; was_price: number | null } | null = null;
     if (id) {
       const { data } = await admin
         .from("products")
-        .select("versions, slug")
+        .select("versions, slug, was_price")
         .eq("id", id)
         .maybeSingle();
       existingProduct = data;
@@ -167,6 +172,25 @@ Deno.serve(async (req: Request) => {
         .select()
         .single();
       if (updateErr || !updated) return json({ ok: false, error: "Could not update product." }, 500);
+
+      // Newly on sale (wasn't before, is now) - not "still on sale" or
+      // "price nudged while already on sale", just the actual transition,
+      // so editing an already-discounted product doesn't re-notify anyone
+      // on every unrelated save.
+      const wasOnSaleBefore = !!(existingProduct && Number(existingProduct.was_price) > 0);
+      if (!wasOnSaleBefore && wasPrice != null) {
+        const { data: wishlisters } = await admin.from("wishlist_items").select("user_id").eq("product_id", id);
+        const pct = Math.round((1 - price / wasPrice) * 100);
+        for (const w of wishlisters ?? []) {
+          await notifyUser(
+            admin,
+            w.user_id,
+            "An item on your wishlist is on sale",
+            `${title} is now ${pct}% off.`,
+            `/product?id=${existingProduct?.slug ?? id}`,
+          );
+        }
+      }
     } else {
       const slug = await uniqueSlug(admin, slugify(title));
       const { data: created, error: insertErr } = await admin

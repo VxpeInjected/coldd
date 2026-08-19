@@ -129,7 +129,16 @@
     var listW = list.offsetWidth || 180;
     var left = Math.max(8, Math.min(r.right - listW, window.innerWidth - listW - 8));
     var top = Math.min(r.bottom + 6, window.innerHeight - list.offsetHeight - 8);
-    list.style.cssText = 'position:fixed; z-index:250; top:' + top + 'px; left:' + left + 'px;';
+    // right:auto is required, not decorative - .adm-row-menu-list's own CSS
+    // sets right:0 for its normal (non-portaled) absolute position, and this
+    // cssText assignment only overrides position/top/left. Left unset, that
+    // leftover right:0 stretches the fixed-position box all the way to the
+    // viewport's right edge with no explicit width - it becomes enormous
+    // (looks like a plain rectangle) and, since it's real and clickable, ANY
+    // "outside" click still lands inside .adm-row-menu-list and the
+    // click-outside handler's closest() check sees it as an inside click
+    // and never closes the menu.
+    list.style.cssText = 'position:fixed; z-index:250; top:' + top + 'px; left:' + left + 'px; right:auto;';
     menu.classList.add('open');
   }
 

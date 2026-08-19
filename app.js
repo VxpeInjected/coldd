@@ -2402,6 +2402,19 @@
       document.addEventListener('keydown', function (e) { if (e.key === 'Escape') panel.hidden = true; });
 
       loadNotifs();
+
+      // Was load-once: a notification created while someone sat on a page
+      // never appeared until they navigated or refreshed. Polling instead
+      // of a realtime subscription - simplest fix that matches how the
+      // rest of the site already works (no websocket/channel setup
+      // anywhere else), at a low enough interval nobody perceives the
+      // 60s-old-at-worst gap as "not live". Paused in background tabs so
+      // it isn't hammering Supabase for every idle tab a visitor forgets
+      // open, and reconciled instantly on return instead of waiting out
+      // whatever was left of the interval.
+      var pollId = setInterval(function () { if (!document.hidden) loadNotifs(); }, 60000);
+      document.addEventListener('visibilitychange', function () { if (!document.hidden) loadNotifs(); });
+      window.addEventListener('beforeunload', function () { clearInterval(pollId); });
     })();
 
     (function () {

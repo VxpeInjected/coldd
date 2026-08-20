@@ -141,6 +141,17 @@
     list.style.cssText = 'position:fixed; z-index:250; top:' + top + 'px; left:' + left + 'px; right:auto;';
     menu.classList.add('open');
   }
+  // Every panel's own click listener (orders/users/careers rows) only ever
+  // reacts to clicks that land on ITS menu's trigger or items, then returns
+  // without touching anything else - there was no handler anywhere that
+  // closed an open menu on a genuine click elsewhere on the page, so once
+  // opened it stayed open (and, since the list is portaled to <body> while
+  // open, kept intercepting clicks) until something else happened to call
+  // closeAllRowMenus. One global listener for the actual "outside" case.
+  document.addEventListener('click', function (e) {
+    if (e.target.closest('.adm-row-menu-btn') || e.target.closest('.adm-row-menu-list')) return;
+    closeAllRowMenus();
+  });
 
   // supabase-js's functions.invoke() does NOT put the parsed JSON body
   // into res.data on a non-2xx response - res.data is null and res.error
@@ -3209,7 +3220,13 @@
   function userSpend(userId) {
     return ORDERS.filter(function (o) { return o.userId === userId && o.status === 'completed'; }).reduce(function (s, o) { return s + o.total; }, 0);
   }
-  function userOrderCount(userId) { return ORDERS.filter(function (o) { return o.userId === userId; }).length; }
+  // Completed only, matching userSpend above - counting every attempt
+  // (including abandoned/pending ones that were never actually paid) made
+  // this column contradict Spent right next to it: an account could show
+  // "11 orders, $0.00 spent", which reads as broken/fake data even though
+  // each number was individually accurate. The full total/pending/completed
+  // breakdown is still available in the View more detail modal.
+  function userOrderCount(userId) { return ORDERS.filter(function (o) { return o.userId === userId && o.status === 'completed'; }).length; }
   var grantUserDropdown = makeDropdown($('admGrantUserDD'), { valueInput: $('admGrantUser'), placeholder: 'Select user' });
   var grantProductDropdown = makeDropdown($('admGrantProductDD'), { valueInput: $('admGrantProduct'), placeholder: 'Select product' });
   function userRowMenuHtml(u) {

@@ -2718,6 +2718,15 @@ a.adm-sub[href] { color: var(--fg-1); cursor: pointer; text-decoration: underlin
   color: var(--fg-2); background: var(--ink-25); border: 1px solid var(--hairline); border-radius: var(--r-ctl);
   padding: 12px 14px; max-height: 220px; overflow: auto; white-space: pre-wrap; word-break: break-word; margin: 0 0 16px; }
 @media (max-width: 560px) { .adm-err-detail-grid { grid-template-columns: 1fr; } }
+/* Account details has ~5x the fields the error-report modal (this grid's
+   other user) ever shows - at the shared 2-column layout that ran 8 rows
+   tall in a 640px-wide box, closer to a scroll than a "square" popup. 3
+   columns at a wider modal cuts it to 5 rows without touching the error
+   modal's own layout. min-width guard keeps mobile on the shared 1-column
+   fallback above instead of fighting it on specificity. */
+@media (min-width: 561px) {
+  #admUserDetailOverlay .adm-err-detail-grid { grid-template-columns: 1fr 1fr 1fr; }
+}
 .adm-rank { flex: 0 0 auto; width: 26px; color: var(--fg-3); font-weight: 700; font-size: 13px; }
 
 /* align-items defaults to stretch on a flex row - .adm-tabs (a padded pill

@@ -2320,7 +2320,6 @@ html.js .ref-method-btn:focus-visible { outline: 2px solid var(--accent); outlin
 .co-pay-soon { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--warn);
   background: var(--warn-tint); border: 1px solid var(--warn-line); border-radius: 10px; padding: 12px 14px; }
 .co-pay-soon[hidden] { display: none; }
-.co-pay-robux-ic { font-size: 13px; font-weight: 800; letter-spacing: -0.02em; }
 @media (max-width: 460px) {
   /* The descriptor is the first thing to go when the row gets tight - the
      name and the amount are what the choice actually turns on. */

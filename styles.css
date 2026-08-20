@@ -2315,7 +2315,11 @@ html.js .ref-method-btn:focus-visible { outline: 2px solid var(--accent); outlin
 .co-empty { padding: 24px 0; text-align: center; color: var(--fg-3); font-size: 14px; }
 .co-empty a { color: var(--accent); text-decoration: none; }
 .co-coupon { display: flex; gap: 8px; margin: 16px 0 4px; }
-.co-coupon input { flex: 1; min-height: 44px; padding: 11px 13px; border-radius: 10px; border: 1px solid var(--hairline); background: var(--ink-25); color: var(--fg); font-family: inherit; font-size: 13px; }
+/* Was border-radius: 10px - the Apply button right beside it (.btn, used
+   site-wide) is a full pill (var(--r-pill)), so the two sat with visibly
+   different corner rounding in the same row. Matching the pill here reads
+   as one cohesive control instead of two conflicting shapes. */
+.co-coupon input { flex: 1; min-height: 44px; padding: 11px 18px; border-radius: var(--r-pill); border: 1px solid var(--hairline); background: var(--ink-25); color: var(--fg); font-family: inherit; font-size: 13px; }
 .co-coupon .btn { min-height: 44px; }
 .co-coupon-msg { font-size: 12px; margin-top: 8px; min-height: 0; }
 .co-coupon-msg.ok { color: var(--price); }

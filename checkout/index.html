@@ -16,7 +16,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
 
-  <link rel="stylesheet" href="/styles.css?v=20260820b" />
+  <link rel="stylesheet" href="/styles.css?v=20260820c" />
 </head>
 <body>
   <div class="backdrop"></div>
@@ -190,7 +190,6 @@
             </div>
             <div id="coRobuxBuyBlock" hidden>
               <p class="co-hint">Robux payments are handled entirely by Roblox - we never see your Robux balance. Click Place order below to get your gamepass link and instructions.</p>
-              <div id="coRobuxItems"></div>
               <p class="co-hint">Total: <strong id="coRobuxTotal"></strong></p>
             </div>
           </div>
@@ -235,6 +234,13 @@
                  actually charged, in context and next to the choice it affects.
                  Repeating it here said the same thing twice. -->
           </div>
+          <!-- Mirrors #coPlace (disabled state, label, visibility) via a
+               MutationObserver in app.js and forwards clicks to it - the
+               real button lives at the bottom of a long left column (past
+               payment method details), while this sits in the sticky
+               summary card that's already on screen no matter how far
+               down that column the buyer has scrolled. -->
+          <button class="btn btn-primary co-place" id="coPlaceSide" type="button">Place order</button>
         </div>
       </aside>
     </div>
@@ -434,6 +440,6 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.2/dist/umd/supabase.min.js" integrity="sha384-B2duOBIryCXbX4eDE4BdJwtNkQMRQde3o6IsjfPW28E6aH1CYE96hHeZRG3zY56O" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script src="/supabase-init.js?v=20260820a"></script>
   <script src="/site-gate.js?v=20260818b"></script>
-  <script src="/catalog.js?v=20260819a" data-then="/app.js?v=20260820a"></script>
+  <script src="/catalog.js?v=20260819a" data-then="/app.js?v=20260820b"></script>
 </body>
 </html>

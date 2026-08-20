@@ -3581,15 +3581,23 @@
         }
         return money(item.price * item.qty);
       }
+      // Raw number, not a display string - shared by subtotalMoney() below
+      // and renderTotals()'s discount/total math, so a coupon's Robux
+      // figures stay proportional to the REAL per-item Robux subtotal
+      // shown here instead of being computed some other way.
+      function robuxSubtotalRaw() {
+        var total = 0, allPriced = true;
+        cart.forEach(function (i) {
+          var rbx = i.licence !== 'resell' ? catalogRobuxPrice(i.id) : null;
+          if (rbx == null) { allPriced = false; return; }
+          total += rbx * i.qty;
+        });
+        return allPriced ? total : null;
+      }
       function subtotalMoney() {
         if (window.__currencyMode && window.__currencyMode() === 'robux') {
-          var total = 0, allPriced = true;
-          cart.forEach(function (i) {
-            var rbx = i.licence !== 'resell' ? catalogRobuxPrice(i.id) : null;
-            if (rbx == null) { allPriced = false; return; }
-            total += rbx * i.qty;
-          });
-          if (allPriced) return 'R$ ' + Math.round(total).toLocaleString('en-US');
+          var rbxTotal = robuxSubtotalRaw();
+          if (rbxTotal != null) return 'R$ ' + Math.round(rbxTotal).toLocaleString('en-US');
         }
         return money(subtotal());
       }
@@ -3652,12 +3660,28 @@
         var total = Math.max(0, sub - disc);
         var set = function (id, v) { var el = document.getElementById(id); if (el) el.textContent = v; };
         set('coSubtotal', subtotalMoney());
+        // A coupon's discountUsd is a flat USD figure, no matter the display
+        // currency - converting it (and the total) through money()'s generic
+        // flat exchange rate produced a Robux discount with no relationship
+        // to the REAL, per-item Robux subtotal already on screen (each
+        // product's actual robux_price is set independently by an admin,
+        // often nowhere near what a flat USD conversion would suggest) -
+        // a $24 discount at the flat rate could show as -R$1,944 sitting
+        // under a R$13 subtotal. Scaling the discount by the same fraction
+        // of the REAL Robux subtotal keeps every figure on this page
+        // proportionally consistent with each other, in Robux mode.
+        var robuxMode = window.__currencyMode && window.__currencyMode() === 'robux';
+        var rbxSub = robuxMode ? robuxSubtotalRaw() : null;
         var discLine = document.getElementById('coDiscLine');
         if (discLine) {
           discLine.hidden = disc <= 0;
           if (disc > 0) {
             set('coDiscLabel', 'Discount (' + appliedCoupon.code + ')');
-            set('coDiscAmt', '-' + money(disc));
+            if (rbxSub != null && sub > 0) {
+              set('coDiscAmt', '-R$ ' + Math.round(rbxSub * (disc / sub)).toLocaleString('en-US'));
+            } else {
+              set('coDiscAmt', '-' + money(disc));
+            }
           }
         }
         // Tax is not currently charged on any order. The row stays hidden
@@ -3666,7 +3690,12 @@
         var taxLine = document.getElementById('coTaxLine');
         if (taxLine) taxLine.hidden = true;
         set('coTax', money(0));
-        set('coTotal', disc > 0 ? money(total) : subtotalMoney());
+        if (rbxSub != null) {
+          var rbxTotal = disc > 0 && sub > 0 ? Math.max(0, rbxSub - rbxSub * (disc / sub)) : rbxSub;
+          set('coTotal', 'R$ ' + Math.round(rbxTotal).toLocaleString('en-US'));
+        } else {
+          set('coTotal', disc > 0 ? money(total) : subtotalMoney());
+        }
         renderPayAmounts(total);
         return total;
       }
@@ -3879,18 +3908,21 @@
       // product's real robux_price the same way the payment-method row
       // above does - so this number and the modal's later real total agree
       // whenever nothing about the cart's pricing is in flux.
+      //
+      // Only the total - this used to also re-list every item with its own
+      // Robux price, right below the Order summary sidebar that's already
+      // listing the exact same items (in Robux too, whenever that's the
+      // active display currency, which anyone paying in Robux almost
+      // always has selected). Two identical item lists stacked on one page
+      // read as a bug, not as two different pieces of information.
       function renderRobuxEstimate(robuxCartItems) {
-        var itemsEl = document.getElementById('coRobuxItems');
         var totalEl = document.getElementById('coRobuxTotal');
-        if (!itemsEl) return;
         var total = 0;
-        itemsEl.innerHTML = robuxCartItems.map(function (i) {
+        robuxCartItems.forEach(function (i) {
           var rbx = catalogRobuxPrice(i.id);
           if (rbx == null) rbx = Math.round(i.price * ROBUX_PER_USD_FALLBACK);
           total += rbx * i.qty;
-          return '<div class="co-item"><div class="co-item-info"><div class="co-item-title">' + esc(i.title) + '</div>' +
-            '<div class="co-item-sub">R$ ' + rbx.toLocaleString('en-US') + '</div></div></div>';
-        }).join('');
+        });
         if (totalEl) totalEl.textContent = 'R$ ' + Math.round(total).toLocaleString('en-US');
       }
       var robuxLinkBtn = document.getElementById('coRobuxLinkBtn');
@@ -4236,6 +4268,31 @@
             if (msg) { msg.className = 'co-msg err show'; msg.textContent = (err && err.message) || 'Something went wrong. Please try again.'; }
           });
       });
+
+      // The real Place order button sits at the end of a long left column
+      // (Contact -> Payment -> Before you pay), often a full scroll away
+      // from where the buyer actually is once they're reading through
+      // payment method details. The sticky Order summary card is already
+      // on screen regardless of scroll position, so it gets its own copy
+      // of the button that just mirrors and forwards to the real one -
+      // this observes disabled/text/hidden instead of duplicating every
+      // place those are set (busy states, method switches, validation
+      // errors, etc.) so it can never silently drift out of sync with the
+      // button it's standing in for.
+      var placeBtnSide = document.getElementById('coPlaceSide');
+      if (placeBtnSide && placeBtn) {
+        var syncSideBtn = function () {
+          placeBtnSide.disabled = placeBtn.disabled;
+          placeBtnSide.textContent = placeBtn.textContent;
+          placeBtnSide.hidden = placeBtn.hidden;
+        };
+        syncSideBtn();
+        new MutationObserver(syncSideBtn).observe(placeBtn, {
+          attributes: true, attributeFilter: ['disabled', 'hidden'],
+          childList: true, characterData: true, subtree: true
+        });
+        placeBtnSide.addEventListener('click', function () { placeBtn.click(); });
+      }
 
       window.addEventListener('currencychange', function () { renderTotals(); renderItems(); });
       if (cart.length) scheduleCartSnapshot();

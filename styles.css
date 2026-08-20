@@ -26,6 +26,15 @@
          thing in two different colours. */
       --star: #ffc24b;
 
+      /* Referenced by .co-pay-btn--* svg in the checkout payment-method
+         list but never actually defined here, so every mark silently fell
+         back to inherited grey instead of its real brand colour. Values
+         are each brand's own documented hex (Stripe's brand page, PayPal's
+         and Bitcoin's Simple Icons entries). */
+      --brand-stripe: #635bff;
+      --brand-paypal: #002991;
+      --brand-crypto: #f7931a;
+
       /* Status. These existed only as scattered literals, with two different
          greens both meaning "success". One value per meaning, plus the tint
          each uses as a badge background. */

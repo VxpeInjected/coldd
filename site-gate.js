@@ -30,6 +30,7 @@
   }
 
   var PREVIEW_KEY = 'coldd_maint_preview';
+  var WHITELIST_DISMISS_KEY = 'coldd_whitelist_banner_dismissed';
 
   // adminPreview: true when a whitelisted staff member has opted to see
   // the public-facing screen rather than being auto-bypassed. Swaps the
@@ -118,10 +119,18 @@
       banner.remove();
       showMaintenanceOverlay(status, true);
     });
-    // Same as the site's other dismissible bar (the sale announcement) -
-    // clears for this page view only, not persisted, so it's back on the
-    // next navigation as a standing reminder rather than gone for good.
-    document.getElementById('siteMaintBannerX').addEventListener('click', function () { banner.remove(); });
+    // This is a static multi-page site, not an SPA - every click to a
+    // different page re-runs this whole script and re-creates the banner
+    // from nothing, so without remembering the dismissal a staff member
+    // had to close this same banner again on every single page they
+    // visited during maintenance ("why does this keep coming back").
+    // sessionStorage persists it across pages but clears when the tab
+    // closes, so it's a per-page-view choice, not a permanent opt-out of
+    // ever being reminded maintenance mode is on.
+    document.getElementById('siteMaintBannerX').addEventListener('click', function () {
+      try { sessionStorage.setItem(WHITELIST_DISMISS_KEY, '1'); } catch (e) {}
+      banner.remove();
+    });
   }
 
   window.coldSupabase.from('site_status').select('*').eq('id', true).maybeSingle().then(function (res) {
@@ -136,8 +145,10 @@
           if (!info.isAdmin) { showMaintenanceOverlay(status); return; }
           var previewing = false;
           try { previewing = sessionStorage.getItem(PREVIEW_KEY) === '1'; } catch (e) {}
+          var dismissed = false;
+          try { dismissed = sessionStorage.getItem(WHITELIST_DISMISS_KEY) === '1'; } catch (e) {}
           if (previewing) showMaintenanceOverlay(status, true);
-          else showWhitelistBanner(status);
+          else if (!dismissed) showWhitelistBanner(status);
         });
       }).catch(function () {});
     }

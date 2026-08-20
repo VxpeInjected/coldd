@@ -815,6 +815,12 @@
       robuxPrice: row.robux_price != null ? Number(row.robux_price) : null,
       wasPrice: row.was_price != null ? Number(row.was_price) : null,
       priority: !!row.priority,
+      featured: !!row.featured,
+      featuredOrder: Number(row.featured_order) || 0,
+      weeklyDeal: !!row.weekly_deal,
+      weeklyDealPct: row.weekly_deal_pct != null ? Number(row.weekly_deal_pct) : null,
+      weeklyDealAuto: !!row.weekly_deal_auto,
+      weeklyDealExcluded: !!row.weekly_deal_excluded,
       tech: Object.assign(defaultTech(), row.tech || {}),
       legal: Object.assign(defaultLegal(), {
         tos: legalRaw.tos, proofFiles: legalRaw.proof_files, devProofFiles: legalRaw.dev_proof_files,
@@ -865,6 +871,8 @@
       robuxPrice: p.robuxPrice,
       wasPrice: p.wasPrice,
       priority: p.priority,
+      featured: p.featured,
+      featuredOrder: p.featuredOrder,
       visible: p.visible,
       tech: p.tech,
       versions: p.versions,
@@ -2200,6 +2208,9 @@
     $('admEditRobuxPrice').value = p.robuxPrice != null ? p.robuxPrice : '';
     $('admEditWasPrice').value = p.wasPrice != null ? p.wasPrice : '';
     $('admEditPriority').checked = !!p.priority;
+    $('admEditFeatured').checked = !!p.featured;
+    $('admEditFeaturedOrder').value = p.featuredOrder || 0;
+    $('admEditFeaturedOrderWrap').hidden = !p.featured;
     setEditPlatform(p.platform, p.cat, p.subcat);
     document.querySelectorAll('#admEditPlatformToggle .adm-platform-btn').forEach(function (b) { b.disabled = false; });
     $('admEditSubtext').value = p.desc || '';
@@ -2390,6 +2401,8 @@
   if (editPriceInput) editPriceInput.addEventListener('input', updateDevexHint);
   var editResellBox = $('admEditResell');
   if (editResellBox) editResellBox.addEventListener('change', function () { $('admEditResellPriceWrap').hidden = !editResellBox.checked; });
+  var editFeaturedBox = $('admEditFeatured');
+  if (editFeaturedBox) editFeaturedBox.addEventListener('change', function () { $('admEditFeaturedOrderWrap').hidden = !editFeaturedBox.checked; });
 
   var contactAddBtn = $('admLegalContactAdd');
   if (contactAddBtn) contactAddBtn.addEventListener('click', function () { editContacts.push({ label: '', value: '' }); renderContactList(); });
@@ -2459,6 +2472,9 @@
     $('admEditRobuxPrice').value = '';
     $('admEditWasPrice').value = '';
     $('admEditPriority').checked = false;
+    $('admEditFeatured').checked = false;
+    $('admEditFeaturedOrder').value = 0;
+    $('admEditFeaturedOrderWrap').hidden = true;
     setEditPlatform('Roblox', null);
     document.querySelectorAll('#admEditPlatformToggle .adm-platform-btn').forEach(function (b) { b.disabled = false; });
     $('admEditSubtext').value = '';
@@ -2518,6 +2534,8 @@
         return Number.isFinite(v) && v > 0 ? v : null;
       })(),
       priority: $('admEditPriority').checked,
+      featured: $('admEditFeatured').checked,
+      featuredOrder: Math.max(0, parseInt($('admEditFeaturedOrder').value, 10) || 0),
       cat: $('admEditCat').value,
       subcat: $('admEditSubcat').value || null,
       desc: $('admEditSubtext').value.trim(),
@@ -3541,6 +3559,83 @@
     salesTypeToggle.querySelectorAll('.adm-sales-type-btn').forEach(function (b) { b.classList.toggle('active', b === btn); });
     $('admSalesEventsView').hidden = type !== 'events';
     $('admDiscountCodesView').hidden = type !== 'codes';
+    $('admHomepageView').hidden = type !== 'homepage';
+    if (type === 'homepage') renderHomepageTab();
+  });
+
+  function callWeeklyDeals(action, productId) {
+    var body = { action: action };
+    if (productId) body.productId = productId;
+    return invokeAdminFn('admin-weekly-deals', body, 'Request failed.');
+  }
+  function renderHomepageTab() {
+    var products = allProducts();
+
+    var featured = products.filter(function (p) { return p.featured; }).sort(function (a, b) { return a.featuredOrder - b.featuredOrder; });
+    $('admFeaturedBody').innerHTML = featured.length ? featured.map(function (p) {
+      return '<tr><td>' + p.featuredOrder + '</td><td>' + esc(p.title) + '</td><td>' + usd(p.price) + '</td>' +
+        '<td class="adm-row-actions"><button class="btn btn-ghost adm-btn-sm adm-featured-edit" type="button" data-id="' + esc(p.id) + '">Edit product</button></td></tr>';
+    }).join('') : '<tr><td colspan="4" class="adm-empty">No featured products yet - open a product and check "Featured".</td></tr>';
+
+    var deals = products.filter(function (p) { return p.weeklyDeal; });
+    $('admWeeklyDealsBody').innerHTML = deals.length ? deals.map(function (p) {
+      return '<tr data-id="' + esc(p.id) + '"><td>' + esc(p.title) + '</td><td>' + usd(p.wasPrice) + '</td><td>' + usd(p.price) + '</td>' +
+        '<td>-' + (p.weeklyDealPct != null ? p.weeklyDealPct : Math.round((1 - p.price / p.wasPrice) * 100)) + '%</td>' +
+        '<td>' + (p.weeklyDealAuto ? 'Algorithm' : 'Manual') + '</td>' +
+        '<td class="adm-row-actions">' +
+          (p.weeklyDealAuto ? '<button class="btn btn-ghost adm-btn-sm adm-weekly-revert" type="button" data-id="' + esc(p.id) + '">Revert</button>' : '') +
+          '<button class="btn btn-ghost adm-btn-sm adm-weekly-exclude" type="button" data-id="' + esc(p.id) + '">Exclude</button>' +
+        '</td></tr>';
+    }).join('') : '<tr><td colspan="6" class="adm-empty">No active weekly deals right now.</td></tr>';
+
+    var excluded = products.filter(function (p) { return p.weeklyDealExcluded; });
+    $('admWeeklyExcludedCard').hidden = !excluded.length;
+    $('admWeeklyExcludedBody').innerHTML = excluded.map(function (p) {
+      return '<tr><td>' + esc(p.title) + '</td><td>' + usd(p.price) + '</td>' +
+        '<td class="adm-row-actions"><button class="btn btn-ghost adm-btn-sm adm-weekly-include" type="button" data-id="' + esc(p.id) + '">Re-include</button></td></tr>';
+    }).join('');
+  }
+
+  var featuredBody = $('admFeaturedBody');
+  if (featuredBody) featuredBody.addEventListener('click', function (e) {
+    var btn = e.target.closest('.adm-featured-edit'); if (!btn) return;
+    if (can('admin')) openProductEdit(btn.getAttribute('data-id'));
+  });
+
+  function weeklyDealsAction(action, productId, btn) {
+    if (!can('admin')) return;
+    var msg = $('admWeeklyDealsMsg');
+    var label = btn ? btn.querySelector('.btn-label') : null, spinner = btn ? btn.querySelector('.btn-spinner') : null;
+    if (btn) { btn.disabled = true; if (label) label.hidden = true; if (spinner) spinner.hidden = false; }
+    callWeeklyDeals(action, productId).then(function (res) {
+      if (msg) msg.textContent = action === 'run' ? (res.picks && res.picks.length ? 'Picked: ' + res.picks.map(function (p) { return p.title + ' (-' + p.pct + '%)'; }).join(', ') : 'No eligible products found.') : 'Done.';
+      return refreshProducts();
+    }).then(function () {
+      renderHomepageTab();
+    }).catch(function (err) {
+      if (msg) msg.textContent = err.message || 'Something went wrong.';
+    }).then(function () {
+      if (btn) { btn.disabled = false; if (label) label.hidden = false; if (spinner) spinner.hidden = true; }
+    });
+  }
+  var weeklyDealsBody = $('admWeeklyDealsBody');
+  if (weeklyDealsBody) weeklyDealsBody.addEventListener('click', function (e) {
+    var revertBtn = e.target.closest('.adm-weekly-revert');
+    var excludeBtn = e.target.closest('.adm-weekly-exclude');
+    if (revertBtn) weeklyDealsAction('revert', revertBtn.getAttribute('data-id'), revertBtn);
+    else if (excludeBtn) weeklyDealsAction('exclude', excludeBtn.getAttribute('data-id'), excludeBtn);
+  });
+  var weeklyExcludedBody = $('admWeeklyExcludedBody');
+  if (weeklyExcludedBody) weeklyExcludedBody.addEventListener('click', function (e) {
+    var includeBtn = e.target.closest('.adm-weekly-include'); if (!includeBtn) return;
+    weeklyDealsAction('include', includeBtn.getAttribute('data-id'), includeBtn);
+  });
+  var runNowBtn = $('admWeeklyDealsRunNow');
+  if (runNowBtn) runNowBtn.addEventListener('click', function () { weeklyDealsAction('run', null, runNowBtn); });
+  var revertAllBtn = $('admWeeklyDealsRevertAll');
+  if (revertAllBtn) revertAllBtn.addEventListener('click', function () {
+    if (!confirm('Revert every algorithm-picked weekly deal back to normal price?')) return;
+    weeklyDealsAction('revertAll', null, revertAllBtn);
   });
 
   var contentTypeToggle = $('admContentTypeToggle');

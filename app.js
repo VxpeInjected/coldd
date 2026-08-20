@@ -304,9 +304,22 @@
     (function () {
       const bar = document.getElementById('announce');
       if (!bar) return;
+      var DISMISS_KEY = 'coldd_ann_dismissed';
       function hide() { document.documentElement.setAttribute('data-ann', 'off'); window.dispatchEvent(new Event('resize')); }
       const x = document.getElementById('announceX');
-      if (x) x.addEventListener('click', hide);
+      // This is a static multi-page site, not an SPA - every click to a
+      // different page re-runs this whole script from scratch, so without
+      // remembering the dismissal a visitor had to close the same banner
+      // again on every single page they visited ("why does this keep
+      // coming back"). sessionStorage (not a cookie or localStorage) keyed
+      // on the specific sale's id: it survives normal browsing but clears
+      // when the tab closes, and a NEW sale event still gets shown once
+      // even if an old one was dismissed earlier.
+      if (x) x.addEventListener('click', function () {
+        var sale = window.__ACTIVE_SALE;
+        if (sale && sale.id) { try { sessionStorage.setItem(DISMISS_KEY, sale.id); } catch (e) {} }
+        hide();
+      });
 
       // Starts hidden (see the <html> tag - data-ann has no "on" baked in
       // by default anymore) so there's nothing to flash. This branch is the
@@ -317,6 +330,9 @@
       // hid it again.
       const sale = window.__ACTIVE_SALE;
       if (!sale) { hide(); return; }
+      var dismissed = null;
+      try { dismissed = sessionStorage.getItem(DISMISS_KEY); } catch (e) {}
+      if (sale.id && dismissed === sale.id) { hide(); return; }
       const msg = bar.querySelector('.announce-msg');
       if (msg) {
         const link = msg.querySelector('.announce-link');
@@ -909,6 +925,44 @@
         if (priceRow) priceRow.insertAdjacentHTML('afterend', html);
       }
       return { slugOf: slugOf, starsHtmlFor: starsHtmlFor, applyRating: applyRating };
+    })();
+
+    (function () {
+      // Featured products and This week's deals used to be hand-written
+      // HTML the admin had to edit by hand and keep in sync with real
+      // catalog data. Now they're driven by products.featured (admin-set,
+      // see the admin panel's product editor) and products.weekly_deal
+      // (set automatically by the weekly-deals algorithm, see
+      // admin-weekly-deals) - real DB rows replace the static markup
+      // below when there are any; the original static cards stay as a
+      // no-JS/no-picks-yet fallback rather than leaving the section empty.
+      function escHtml(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+      function fmtPriceStr(n) { return '$' + (n % 1 === 0 ? n : n.toFixed(2)); }
+      function homeCardHtml(p) {
+        var onSale = p.was > p.priceNum;
+        var offPct = onSale ? Math.round((1 - p.priceNum / p.was) * 100) : 0;
+        var resell = p.resell ? ' data-resell="yes" data-resell-price="' + (p.resellPrice != null ? p.resellPrice : Math.round(p.priceNum * 3)) + '"' : '';
+        return '<article class="product" data-id="' + escHtml(p.id) + '" data-cat="' + escHtml(p.cat || '') + '" data-price="' + p.priceNum + '" data-catlabel="' + escHtml(p.cat || '') + '"' + resell + (onSale ? ' data-was="' + p.was + '"' : '') + '>' +
+          '<div class="p-thumb" style="background-image:url(\'' + p.image + '\')">' + (onSale ? '<span class="p-off">-' + offPct + '%</span>' : '') + '</div>' +
+          '<div class="p-body">' +
+            '<h3 class="p-name">' + escHtml(p.title) + '</h3>' +
+            '<div class="p-price-row">' + (onSale ? '<span class="p-was">' + fmtPriceStr(p.was) + '</span>' : '') + '<span class="p-price">' + p.price + '</span></div>' +
+            '<p class="p-sum">' + escHtml(p.desc || '') + '</p>' +
+            '<div class="p-actions"><button class="p-buy" type="button">Buy now</button><button class="p-add" type="button">Add to cart</button></div>' +
+          '</div>' +
+        '</article>';
+      }
+      var catalog = window.__CATALOG || [];
+      var featuredGrid = document.getElementById('homeFeaturedGrid');
+      if (featuredGrid) {
+        var featuredPicks = catalog.filter(function (p) { return p.featured; }).sort(function (a, b) { return a.featuredOrder - b.featuredOrder; }).slice(0, 4);
+        if (featuredPicks.length) featuredGrid.innerHTML = featuredPicks.map(homeCardHtml).join('');
+      }
+      var dealsGrid = document.getElementById('homeDealsGrid');
+      if (dealsGrid) {
+        var dealPicks = catalog.filter(function (p) { return p.weeklyDeal; }).slice(0, 4);
+        if (dealPicks.length) dealsGrid.innerHTML = dealPicks.map(homeCardHtml).join('');
+      }
     })();
 
     (function () {

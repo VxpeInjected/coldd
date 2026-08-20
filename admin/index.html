@@ -429,6 +429,10 @@
                 </label>
                 <label class="adm-field-check"><input type="checkbox" id="admEditReleased" /> <span>Released (visible on storefront)</span></label>
                 <label class="adm-field-check"><input type="checkbox" id="admEditPriority" /> <span>Priority (boost in the catalog's Recommended sort)</span></label>
+                <label class="adm-field-check"><input type="checkbox" id="admEditFeatured" /> <span>Featured (shown in the homepage "Featured products" section)</span></label>
+                <label class="adm-field" id="admEditFeaturedOrderWrap" hidden style="margin-top:12px;max-width:180px;">
+                  <span>Featured order</span><input type="number" min="0" step="1" id="admEditFeaturedOrder" class="adm-input" />
+                </label>
 
                 <label class="adm-field adm-field-wide" style="margin-top:20px;"><span>Subtext (shown on catalog cards)</span><input type="text" id="admEditSubtext" class="adm-input" maxlength="140" /></label>
                 <label class="adm-field adm-field-wide" style="margin-top:16px;"><span>Description (shown on the product page)</span><textarea id="admEditLongDesc" class="adm-input adm-textarea" rows="4"></textarea></label>
@@ -738,6 +742,7 @@
             <div class="adm-tabs" id="admSalesTypeToggle" style="margin-bottom:22px;">
               <button type="button" class="adm-tab adm-sales-type-btn active" data-type="events">Sale Events</button>
               <button type="button" class="adm-tab adm-sales-type-btn" data-type="codes">Discount Codes</button>
+              <button type="button" class="adm-tab adm-sales-type-btn" data-type="homepage">Homepage</button>
             </div>
 
             <div id="admSalesEventsView">
@@ -805,6 +810,45 @@
                   <button class="btn btn-ghost adm-btn-sm" type="button" id="admCouponCancelBtn" hidden>Cancel edit</button>
                 </form>
               </div>
+            </div>
+
+            <div id="admHomepageView" hidden>
+              <div class="dash-card glass dash-tablewrap">
+                <div class="dash-card-head"><h2>Featured products</h2><span class="adm-sub">Shown on the homepage's "Featured products" section. Pick which products appear and their order from each product's edit page (Featured checkbox).</span></div>
+                <table class="dash-table">
+                  <thead><tr><th>Order</th><th>Title</th><th>Price</th><th></th></tr></thead>
+                  <tbody id="admFeaturedBody"></tbody>
+                </table>
+              </div>
+              <div class="dash-card glass dash-tablewrap">
+                <div class="dash-card-head">
+                  <div><h2>This week's deals</h2><span class="adm-sub">Picked automatically every Monday by a revenue-maximizing algorithm - never above 40% off, never below a product's minimum sale price. See "How this works" below.</span></div>
+                  <div style="display:flex;gap:8px;">
+                    <button class="btn btn-ghost adm-btn-sm" id="admWeeklyDealsRunNow" type="button"><span class="btn-label">Run now</span><span class="btn-spinner" hidden></span></button>
+                    <button class="btn btn-ghost adm-btn-sm" id="admWeeklyDealsRevertAll" type="button">Revert all</button>
+                  </div>
+                </div>
+                <div class="adm-edit-msg" id="admWeeklyDealsMsg"></div>
+                <table class="dash-table">
+                  <thead><tr><th>Title</th><th>Was</th><th>Now</th><th>Off</th><th>Source</th><th>Actions</th></tr></thead>
+                  <tbody id="admWeeklyDealsBody"></tbody>
+                </table>
+              </div>
+              <div class="dash-card glass dash-tablewrap" id="admWeeklyExcludedCard" hidden>
+                <div class="dash-card-head"><h2>Excluded from weekly deals</h2></div>
+                <table class="dash-table">
+                  <thead><tr><th>Title</th><th>Price</th><th></th></tr></thead>
+                  <tbody id="admWeeklyExcludedBody"></tbody>
+                </table>
+              </div>
+              <details class="adm-collapse" style="margin-top:20px;">
+                <summary class="dash-card-head"><h2>How this works</h2><svg class="adm-collapse-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></summary>
+                <div class="adm-collapse-body">
+                  <p class="adm-note">Every Monday at 00:00 UTC, a scheduled job scores every active, sellable product (skipping anything marked "Disallow from all sales" or individually excluded below) using its real sales over the last 30 days: <code>units sold ÷ 30</code>. Products with zero recent sales aren't picked - there's no revenue signal to size a discount against.</p>
+                  <p class="adm-note" style="margin-top:10px;">For each eligible product, it tries every discount from 5% up to the lower of 40% or whatever your product's minimum sale price allows, and keeps whichever discount maximizes <code>discounted price &times; recent sales rate &times; (1 + discount % &times; 1.5)</code> - a deliberately mild assumption that a deeper discount converts better, so a big discount can still lose to a smaller one if the smaller one keeps more revenue per sale. The 4 highest-scoring products across the whole catalog get picked.</p>
+                  <p class="adm-note" style="margin-top:10px;">It writes the discount using the same "Was price" field the product editor already uses for a manual sale, so it never conflicts with a sale you set by hand - it only ever touches products it discounted itself, and always restores the exact original price on revert or before recomputing.</p>
+                </div>
+              </details>
             </div>
           </section>
 
@@ -1234,7 +1278,7 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.2/dist/umd/supabase.min.js" integrity="sha384-B2duOBIryCXbX4eDE4BdJwtNkQMRQde3o6IsjfPW28E6aH1CYE96hHeZRG3zY56O" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script src="/supabase-init.js?v=20260820e"></script>
-  <script src="/site-gate.js?v=20260818b"></script>
-  <script src="/catalog.js?v=20260819a" data-then="/app.js?v=20260820c,/blog.js?v=20260812a,/reviews.js?v=20260729a,/admin.js?v=20260820e"></script>
+  <script src="/site-gate.js?v=20260820a"></script>
+  <script src="/catalog.js?v=20260820a" data-then="/app.js?v=20260820f,/blog.js?v=20260812a,/reviews.js?v=20260729a,/admin.js?v=20260820f"></script>
 </body>
 </html>

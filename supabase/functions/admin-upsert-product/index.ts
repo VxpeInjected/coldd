@@ -137,6 +137,8 @@ Deno.serve(async (req: Request) => {
       price_usd: price,
       was_price: wasPrice,
       priority: !!body.priority,
+      featured: !!body.featured,
+      featured_order: Math.max(0, Number(body.featuredOrder) || 0),
       cat: body.cat != null ? String(body.cat) : null,
       subcat: body.subcat != null ? String(body.subcat) : null,
       description: body.desc != null ? String(body.desc) : "",

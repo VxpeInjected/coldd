@@ -105,13 +105,31 @@
   // puts it back exactly where it came from on close - same technique the
   // mobile shop filter sheet already uses for the same class of problem.
   function closeAllRowMenus() {
-    document.querySelectorAll('.adm-row-menu.open').forEach(function (m) {
-      var list = m.querySelector('.adm-row-menu-list');
-      m.classList.remove('open');
-      if (list) {
-        list.hidden = true;
-        list.removeAttribute('style');
-        if (m.__rmHome) { m.__rmHome.insertBefore(list, m.__rmHomeNext); m.__rmHome = null; m.__rmHomeNext = null; }
+    document.querySelectorAll('.adm-row-menu.open').forEach(function (m) { m.classList.remove('open'); });
+    // NOT m.querySelector('.adm-row-menu-list') per menu - while open, the
+    // list has been moved (portaled) to <body> by openRowMenu below, so
+    // it's no longer a descendant of its .adm-row-menu wrapper at all.
+    // Querying for it as a child silently found nothing, so the
+    // hide/restore step below never ran on ANY close attempt once a menu
+    // had been portaled even once - only the wrapper's 'open' class (a
+    // cosmetic hover-state thing) actually came off. The list itself
+    // stayed visible at its fixed screen position forever, which is what
+    // "can't click off it, stays stuck open" actually was: every call to
+    // this function, from every close path (outside click, action taken,
+    // opening a different row), looked like it worked but silently did
+    // nothing to the thing actually on screen. Iterating every currently-
+    // visible list directly (wherever it now lives) and restoring it via
+    // its own __ownerMenu back-reference (set in openRowMenu) instead of
+    // trying to find it as a child fixes every one of those paths at once.
+    document.querySelectorAll('.adm-row-menu-list').forEach(function (list) {
+      if (list.hidden) return;
+      list.hidden = true;
+      list.removeAttribute('style');
+      var owner = list.__ownerMenu;
+      if (owner && owner.__rmHome) {
+        owner.__rmHome.insertBefore(list, owner.__rmHomeNext);
+        owner.__rmHome = null;
+        owner.__rmHomeNext = null;
       }
     });
   }

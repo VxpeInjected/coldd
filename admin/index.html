@@ -1181,6 +1181,31 @@
     </div>
   </div>
 
+  <div class="pay-overlay" id="admUserDetailOverlay" hidden>
+    <div class="pay-modal glass" role="dialog" aria-modal="true" aria-labelledby="admUserDetailTitle" style="max-width:640px;">
+      <button class="pm-x" id="admUserDetailClose" type="button" aria-label="Close"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+      <h3 class="pay-title" id="admUserDetailTitle">Account details</h3>
+      <p class="pay-sub" id="admUserDetailSub"></p>
+      <div class="adm-err-detail-grid">
+        <div><span class="adm-err-detail-label">Account ID</span><p class="adm-err-detail-val" id="admUdId"></p></div>
+        <div><span class="adm-err-detail-label">Email</span><p class="adm-err-detail-val" id="admUdEmail"></p></div>
+        <div><span class="adm-err-detail-label">Joined</span><p class="adm-err-detail-val" id="admUdJoined"></p></div>
+        <div><span class="adm-err-detail-label">Role</span><p class="adm-err-detail-val" id="admUdRole"></p></div>
+        <div><span class="adm-err-detail-label">Status</span><p class="adm-err-detail-val" id="admUdStatus"></p></div>
+        <div><span class="adm-err-detail-label">Email verified</span><p class="adm-err-detail-val" id="admUdVerified"></p></div>
+        <div><span class="adm-err-detail-label">Discord</span><p class="adm-err-detail-val" id="admUdDiscord"></p></div>
+        <div><span class="adm-err-detail-label">Roblox</span><p class="adm-err-detail-val" id="admUdRoblox"></p></div>
+        <div><span class="adm-err-detail-label">Marketing emails</span><p class="adm-err-detail-val" id="admUdMarketing"></p></div>
+        <div><span class="adm-err-detail-label">Referral code</span><p class="adm-err-detail-val" id="admUdRefCode"></p></div>
+        <div><span class="adm-err-detail-label">Referred by</span><p class="adm-err-detail-val" id="admUdReferredBy"></p></div>
+        <div><span class="adm-err-detail-label">Total orders</span><p class="adm-err-detail-val" id="admUdOrdersTotal"></p></div>
+        <div><span class="adm-err-detail-label">Completed orders</span><p class="adm-err-detail-val" id="admUdOrdersPaid"></p></div>
+        <div><span class="adm-err-detail-label">Pending orders</span><p class="adm-err-detail-val" id="admUdOrdersPending"></p></div>
+        <div><span class="adm-err-detail-label">Total spent</span><p class="adm-err-detail-val" id="admUdSpent"></p></div>
+      </div>
+    </div>
+  </div>
+
   <div class="pay-overlay" id="admRemoveAcctOverlay" hidden>
     <div class="pay-modal glass" role="dialog" aria-modal="true" aria-labelledby="admRemoveAcctTitle" style="max-width:440px;">
       <button class="pm-x" id="admRemoveAcctClose" type="button" aria-label="Close"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
@@ -1199,8 +1224,8 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.2/dist/umd/supabase.min.js" integrity="sha384-B2duOBIryCXbX4eDE4BdJwtNkQMRQde3o6IsjfPW28E6aH1CYE96hHeZRG3zY56O" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-  <script src="/supabase-init.js?v=20260819a"></script>
+  <script src="/supabase-init.js?v=20260820a"></script>
   <script src="/site-gate.js?v=20260818b"></script>
-  <script src="/catalog.js?v=20260819a" data-then="/app.js?v=20260820a,/blog.js?v=20260812a,/reviews.js?v=20260729a,/admin.js?v=20260820a"></script>
+  <script src="/catalog.js?v=20260819a" data-then="/app.js?v=20260820a,/blog.js?v=20260812a,/reviews.js?v=20260729a,/admin.js?v=20260820b"></script>
 </body>
 </html>

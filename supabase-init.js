@@ -210,17 +210,43 @@
     document.querySelectorAll('#dashName, #coUserName').forEach(function (el) { el.textContent = displayName; });
     document.querySelectorAll('#dashEmail, #coUserEmail').forEach(function (el) { el.textContent = p.email || ''; });
 
-    document.querySelectorAll('#dashAvatar, #coAvatar').forEach(function (el) {
-      var avatarUrl = avatarUrlFor(p);
-      if (avatarUrl) {
-        el.style.backgroundImage = 'url(' + avatarUrl + ')';
-        el.style.backgroundSize = 'cover';
-        el.style.backgroundPosition = 'center';
-        el.textContent = '';
-      } else {
-        el.textContent = initials(displayName);
-      }
-    });
+    function paintAvatar(url) {
+      document.querySelectorAll('#dashAvatar, #coAvatar').forEach(function (el) {
+        if (url) {
+          el.style.backgroundImage = 'url(' + url + ')';
+          el.style.backgroundSize = 'cover';
+          el.style.backgroundPosition = 'center';
+          // NOT '' - the CSS skeleton-loading pulse is keyed off :empty,
+          // which this element only ever satisfies BEFORE a real avatar
+          // loads (a background-image doesn't count as content). Leaving
+          // it truly empty here made it look "loaded" to the eye but
+          // still match :empty forever, so the placeholder pulse never
+          // actually turned off - a zero-width space is invisible but is
+          // real text content, which is enough to stop matching :empty.
+          el.textContent = '​';
+        } else {
+          el.style.backgroundImage = '';
+          el.textContent = initials(displayName);
+        }
+      });
+    }
+    paintAvatar(avatarUrlFor(p));
+
+    // A Discord identity's avatar_url/discord_id persist on the profiles
+    // row from whenever it was linked, regardless of which provider the
+    // CURRENT session used to sign in - p above only reflects this
+    // session's provider, so a user who originally connected Discord but
+    // is now signed in via email/Google/Roblox would otherwise never see
+    // it. Discord wins whenever it's on record, painted over the
+    // synchronous default above once this resolves.
+    if (client && p.id) {
+      client.from('profiles').select('discord_id, avatar_url').eq('id', p.id).maybeSingle()
+        .then(function (res) {
+          var row = res && res.data;
+          if (row && row.discord_id && row.avatar_url) paintAvatar(row.avatar_url);
+        })
+        .catch(function () {});
+    }
 
     // The separator lives here, not in the markup: the heading ships as
     // "Welcome back." with an empty span, so a profile that never loads reads

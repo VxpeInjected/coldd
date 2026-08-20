@@ -213,7 +213,12 @@
       banReason: row.ban_reason || null,
       isAdmin: !!row.is_admin,
       discordId: row.discord_id || null,
-      robloxId: row.roblox_id || null
+      robloxId: row.roblox_id || null,
+      role: row.role || (row.is_admin ? 'admin' : 'customer'),
+      emailVerified: !!row.email_verified,
+      marketingUnsubscribed: !!row.marketing_unsubscribed,
+      referralCode: row.referral_code || null,
+      referredBy: row.referred_by || null
     };
   }
   function refreshUsers() {
@@ -3208,9 +3213,12 @@
   var grantUserDropdown = makeDropdown($('admGrantUserDD'), { valueInput: $('admGrantUser'), placeholder: 'Select user' });
   var grantProductDropdown = makeDropdown($('admGrantProductDD'), { valueInput: $('admGrantProduct'), placeholder: 'Select product' });
   function userRowMenuHtml(u) {
-    if (!can('admin') || u.isAdmin) return '';
-    var items = ['<button type="button" class="adm-row-menu-item" data-action="' + (u.status === 'active' ? 'ban' : 'unban') + '">' + (u.status === 'active' ? 'Ban' : 'Unban') + '</button>'];
-    items.push('<button type="button" class="adm-row-menu-item danger" data-action="remove">Remove account</button>');
+    if (!can('admin')) return '';
+    var items = ['<button type="button" class="adm-row-menu-item" data-action="view">View more</button>'];
+    if (!u.isAdmin) {
+      items.push('<button type="button" class="adm-row-menu-item" data-action="' + (u.status === 'active' ? 'ban' : 'unban') + '">' + (u.status === 'active' ? 'Ban' : 'Unban') + '</button>');
+      items.push('<button type="button" class="adm-row-menu-item danger" data-action="remove">Remove account</button>');
+    }
     return '<div class="adm-row-menu" data-id="' + esc(u.id) + '">' +
       '<button type="button" class="adm-row-menu-btn" aria-haspopup="true" aria-expanded="false" aria-label="User actions">' +
       '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="12" cy="19" r="1.7"/></svg></button>' +
@@ -3252,7 +3260,9 @@
     var action = actionBtn.getAttribute('data-action');
 
     if (!can('admin')) return;
-    if (action === 'ban' || action === 'unban') {
+    if (action === 'view') {
+      openUserDetailModal(u);
+    } else if (action === 'ban' || action === 'unban') {
       var willBan = action === 'ban';
       var reason = null;
       if (willBan) {
@@ -3269,6 +3279,39 @@
   });
   var userSearch = $('admUserSearch');
   if (userSearch) userSearch.addEventListener('input', renderUsers);
+
+  // Full account record for support/legal requests ("what do we have on
+  // this person") - everything mapProfileRow carries, plus the order
+  // breakdown by status, all in one place instead of scattered across the
+  // row's summary columns (which only ever showed completed orders/spend,
+  // with no way to see pending/total from the table itself).
+  var userDetailOverlay = $('admUserDetailOverlay');
+  function closeUserDetailModal() { if (userDetailOverlay) userDetailOverlay.hidden = true; }
+  if ($('admUserDetailClose')) $('admUserDetailClose').addEventListener('click', closeUserDetailModal);
+  if (userDetailOverlay) userDetailOverlay.addEventListener('click', function (e) { if (e.target === userDetailOverlay) closeUserDetailModal(); });
+  function openUserDetailModal(u) {
+    if (!userDetailOverlay) return;
+    var set = function (id, v) { var el = $(id); if (el) el.textContent = v; };
+    if ($('admUserDetailSub')) $('admUserDetailSub').textContent = u.name;
+    set('admUdId', u.id);
+    set('admUdEmail', u.email || '—');
+    set('admUdJoined', fmtDate(new Date(u.joined)));
+    set('admUdRole', u.isAdmin ? 'Admin' : (u.role || 'customer'));
+    set('admUdStatus', u.status === 'banned' ? ('Banned' + (u.banReason ? ' — ' + u.banReason : '')) : 'Active');
+    set('admUdVerified', u.emailVerified ? 'Yes' : 'No');
+    set('admUdDiscord', u.discordId ? ('Linked (' + u.discordId + ')') : 'Not linked');
+    set('admUdRoblox', u.robloxId ? ('Linked (' + u.robloxId + ')') : 'Not linked');
+    set('admUdMarketing', u.marketingUnsubscribed ? 'Unsubscribed' : 'Subscribed');
+    set('admUdRefCode', u.referralCode || '—');
+    var referrer = u.referredBy ? USERS.filter(function (x) { return x.id === u.referredBy; })[0] : null;
+    set('admUdReferredBy', referrer ? referrer.name : (u.referredBy || '—'));
+    var userOrders = ORDERS.filter(function (o) { return o.userId === u.id; });
+    set('admUdOrdersTotal', String(userOrders.length));
+    set('admUdOrdersPaid', String(userOrders.filter(function (o) { return o.status === 'completed'; }).length));
+    set('admUdOrdersPending', String(userOrders.filter(function (o) { return o.status === 'pending'; }).length));
+    set('admUdSpent', usd(userSpend(u.id)));
+    userDetailOverlay.hidden = false;
+  }
 
   // Replaces the stacked native confirm()+prompt() pair this used to be -
   // a plain browser prompt for a "type REMOVE to confirm" step reads as

@@ -144,15 +144,22 @@
 
     <section class="section-pad" style="padding-top: 6px;">
       <div class="wrap">
-        <div class="filters" id="reviewFilters" role="group" aria-label="Filter reviews">
-          <button type="button" class="chip active" data-filter="all">All</button>
-          <button type="button" class="chip" data-filter="positive">Positive</button>
-          <button type="button" class="chip" data-filter="negative">Negative</button>
-          <button type="button" class="chip" data-filter="5">5 star</button>
-          <button type="button" class="chip" data-filter="4">4 star</button>
-          <button type="button" class="chip" data-filter="3">3 star</button>
-          <button type="button" class="chip" data-filter="2">2 star</button>
-          <button type="button" class="chip" data-filter="1">1 star</button>
+        <div class="sort-field" id="reviewFilterField" style="margin: 0 0 24px;">
+          <button type="button" class="sort-btn" id="reviewFilterBtn" aria-haspopup="listbox" aria-expanded="false">
+            <span class="sf-label">Filter</span>
+            <span class="sort-btn-val" id="reviewFilterVal">All</span>
+            <svg class="sort-chev" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+          </button>
+          <div class="sort-menu" id="reviewFilterMenu" role="listbox" aria-label="Filter reviews" hidden>
+            <button type="button" class="sort-opt active" data-filter="all" role="option" aria-selected="true"><span>All</span><span class="sort-radio"></span></button>
+            <button type="button" class="sort-opt" data-filter="positive" role="option" aria-selected="false"><span>Positive</span><span class="sort-radio"></span></button>
+            <button type="button" class="sort-opt" data-filter="negative" role="option" aria-selected="false"><span>Negative</span><span class="sort-radio"></span></button>
+            <button type="button" class="sort-opt" data-filter="5" role="option" aria-selected="false"><span>5 star</span><span class="sort-radio"></span></button>
+            <button type="button" class="sort-opt" data-filter="4" role="option" aria-selected="false"><span>4 star</span><span class="sort-radio"></span></button>
+            <button type="button" class="sort-opt" data-filter="3" role="option" aria-selected="false"><span>3 star</span><span class="sort-radio"></span></button>
+            <button type="button" class="sort-opt" data-filter="2" role="option" aria-selected="false"><span>2 star</span><span class="sort-radio"></span></button>
+            <button type="button" class="sort-opt" data-filter="1" role="option" aria-selected="false"><span>1 star</span><span class="sort-radio"></span></button>
+          </div>
         </div>
         <div class="reviews" id="allReviewsGrid">
           <p class="pd-empty">Loading reviews…</p>

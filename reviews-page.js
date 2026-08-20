@@ -16,8 +16,47 @@
     return h;
   }
 
-  var filtersEl = document.getElementById('reviewFilters');
+  // Same dropdown pattern as the catalog's sort control (.sort-field/
+  // .sort-btn/.sort-menu/.sort-opt), reused rather than the plain chip
+  // row this started as - one consistent "click button, pick from a
+  // list" control instead of two different filter idioms on the site.
+  var filterField = document.getElementById('reviewFilterField');
+  var filterBtn = document.getElementById('reviewFilterBtn');
+  var filterMenu = document.getElementById('reviewFilterMenu');
+  var filterVal = document.getElementById('reviewFilterVal');
+  var filterOpts = filterMenu ? Array.prototype.slice.call(filterMenu.querySelectorAll('.sort-opt')) : [];
   var activeFilter = 'all';
+
+  function closeFilterMenu() {
+    if (filterField) filterField.classList.remove('open');
+    if (filterMenu) filterMenu.hidden = true;
+    if (filterBtn) filterBtn.setAttribute('aria-expanded', 'false');
+  }
+  function openFilterMenu() {
+    if (filterField) filterField.classList.add('open');
+    if (filterMenu) filterMenu.hidden = false;
+    if (filterBtn) filterBtn.setAttribute('aria-expanded', 'true');
+  }
+  if (filterBtn) filterBtn.addEventListener('click', function (e) {
+    e.stopPropagation();
+    if (filterMenu && filterMenu.hidden) openFilterMenu(); else closeFilterMenu();
+  });
+  filterOpts.forEach(function (o) {
+    o.addEventListener('click', function () {
+      activeFilter = o.getAttribute('data-filter');
+      if (filterVal) filterVal.textContent = o.querySelector('span') ? o.querySelector('span').textContent : o.textContent;
+      filterOpts.forEach(function (opt) {
+        var active = opt === o;
+        opt.classList.toggle('active', active);
+        opt.setAttribute('aria-selected', active ? 'true' : 'false');
+      });
+      closeFilterMenu();
+      render();
+    });
+  });
+  document.addEventListener('click', function (e) { if (filterField && !filterField.contains(e.target)) closeFilterMenu(); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeFilterMenu(); });
+
   // Positive/negative are convenience buckets on top of the exact star
   // filters, not a separate rating scale - 4-5 stars reads as a positive
   // review, 1-3 doesn't (splitting negative from a 3-star "it's fine"
@@ -56,14 +95,6 @@
     // fully rendered, real content, permanently invisible. See app.js.
     if (window.__scanReveal) window.__scanReveal(grid);
   }
-
-  if (filtersEl) filtersEl.addEventListener('click', function (e) {
-    var btn = e.target.closest('.chip');
-    if (!btn) return;
-    activeFilter = btn.getAttribute('data-filter');
-    filtersEl.querySelectorAll('.chip').forEach(function (c) { c.classList.toggle('active', c === btn); });
-    render();
-  });
 
   // catalog.js has already resolved window.__REVIEWS/__CATALOG by the time
   // this script runs (it's loaded via catalog.js's own data-then chain,

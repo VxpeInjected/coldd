@@ -4322,6 +4322,7 @@
         });
       }
 
+      var tyRetryBtn = document.getElementById('tyRetryBtn');
       function poll(triesLeft) {
         if (!sessionId && !robuxOrderIdParam) { if (subEl) subEl.textContent = 'No order found.'; return; }
         if (!window.coldSupabase) { if (subEl) subEl.textContent = 'Could not connect. Please refresh.'; return; }
@@ -4335,12 +4336,23 @@
             var data = res && res.data;
             if (!data || !data.ok) {
               if (triesLeft > 0) { setTimeout(function () { poll(triesLeft - 1); }, 1500); return; }
+              // A real "declined" state and "we just haven't found the row
+              // yet" (a brief lookup hiccup, cold start, whatever) look
+              // identical from here, but they are NOT the same claim to
+              // make to someone who may have genuinely paid - a red X and
+              // a dead end is exactly wrong if the charge went through and
+              // this is only a lookup delay. Softer copy, plus a manual
+              // retry that costs nothing to offer, instead of asserting
+              // failure on a payment that might be completely fine.
               mark('fail');
-              if (subEl) subEl.textContent = "We couldn't find that order.";
+              if (titleEl) titleEl.textContent = "Still confirming…";
+              if (subEl) subEl.textContent = "We haven't been able to find this order yet. If you completed payment, it may just be taking a moment to show up here - try checking again, or check your dashboard.";
+              if (tyRetryBtn) tyRetryBtn.hidden = false;
               return;
             }
             if (data.status === 'paid') {
               mark('ok');
+              if (tyRetryBtn) tyRetryBtn.hidden = true;
               if (titleEl) titleEl.textContent = 'Payment confirmed!';
               if (subEl) subEl.textContent = 'Your files are ready below.';
               renderItems(data.items || []);
@@ -4412,6 +4424,24 @@
       // poll: the order may already have been captured by an earlier attempt,
       // and the poll is what tells the buyer the truth either way. The function
       // is idempotent, so a retry here is always safe.
+      // 10 tries (15s) used to be the whole budget, including for the
+      // "order not found at all" case - a lookup hiccup or a moment of
+      // replication/propagation lag on a real, successful payment had no
+      // more patience than a genuinely nonexistent order, and no recovery
+      // once that ran out. 30 tries (~45s) up front, plus the manual retry
+      // wired below, instead of asserting failure on a fresh time budget.
+      var INITIAL_POLL_TRIES = 30;
+      if (tyRetryBtn) tyRetryBtn.addEventListener('click', function () {
+        tyRetryBtn.hidden = true;
+        tyRetryBtn.disabled = true;
+        if (titleEl) titleEl.textContent = 'Confirming your payment…';
+        if (subEl) subEl.textContent = 'Hang tight, this only takes a moment.';
+        if (markEl) markEl.setAttribute('data-state', 'pending');
+        if (tyRoot) tyRoot.setAttribute('data-state', 'pending');
+        poll(INITIAL_POLL_TRIES);
+        tyRetryBtn.disabled = false;
+      });
+
       if (paypalOrderIdParam && window.coldSupabase) {
         if (titleEl) titleEl.textContent = 'Completing your payment…';
         if (subEl) subEl.textContent = 'Confirming with PayPal. Please do not close this page.';
@@ -4427,8 +4457,8 @@
             }
           })
           .catch(function () {})
-          .then(function () { poll(10); });
+          .then(function () { poll(INITIAL_POLL_TRIES); });
       } else {
-        poll(10);
+        poll(INITIAL_POLL_TRIES);
       }
     })();

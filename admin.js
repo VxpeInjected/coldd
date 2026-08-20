@@ -664,7 +664,16 @@
         var items = row.items || [];
         var first = items[0] || {};
         var title = items.length > 1 ? ((first.title || 'Item') + ' +' + (items.length - 1) + ' more') : (first.title || 'Unknown item');
-        return { id: row.session_id, date: row.updated_at, title: title, image: first.image || '', value: Number(row.value_usd) || 0, email: row.email || null };
+        return {
+          id: row.session_id, date: row.updated_at, title: title, image: first.image || '', value: Number(row.value_usd) || 0, email: row.email || null,
+          // Added for the account-detail modal's cart activity section -
+          // existing callers only ever read the fields above, so this is
+          // purely additive.
+          userId: row.user_id || null,
+          items: items,
+          abandonedStep: row.abandoned_step_sent != null ? row.abandoned_step_sent : null,
+          recoveryEmailSentAt: row.abandoned_email_sent_at || null
+        };
       });
       if (curPanel === 'analytics') renderAnalytics();
     if (curPanel === 'marketing') renderMarketing();
@@ -3322,11 +3331,56 @@
     set('admUdRefCode', u.referralCode || '—');
     var referrer = u.referredBy ? USERS.filter(function (x) { return x.id === u.referredBy; })[0] : null;
     set('admUdReferredBy', referrer ? referrer.name : (u.referredBy || '—'));
-    var userOrders = ORDERS.filter(function (o) { return o.userId === u.id; });
+    var userOrders = ORDERS.filter(function (o) { return o.userId === u.id; })
+      .slice().sort(function (a, b) { return new Date(b.date) - new Date(a.date); });
     set('admUdOrdersTotal', String(userOrders.length));
     set('admUdOrdersPaid', String(userOrders.filter(function (o) { return o.status === 'completed'; }).length));
     set('admUdOrdersPending', String(userOrders.filter(function (o) { return o.status === 'pending'; }).length));
     set('admUdSpent', usd(userSpend(u.id)));
+
+    // The pop-out this replaces only ever showed counts - this is the
+    // actual per-order record (what, when, how much, whether it went
+    // through) behind "11 pending orders", so support/ops can see what's
+    // really happening for this customer instead of guessing from a number.
+    var ordersListEl = $('admUdOrdersList');
+    if (ordersListEl) {
+      ordersListEl.innerHTML = userOrders.length ? userOrders.map(function (o) {
+        var badgeClass = o.status === 'completed' ? 'ok' : o.status === 'pending' ? 'warn' : 'err';
+        var amount = o.currency === 'robux' ? (o.totalRobux ? o.totalRobux.toLocaleString('en-US') + ' R$' : usd(o.total)) : usd(o.total);
+        return '<div class="adm-ud-order-row">' +
+          '<span class="adm-ud-order-date">' + fmtDate(new Date(o.date)) + '</span>' +
+          '<span class="adm-ud-order-title">' + esc(o.title) + '</span>' +
+          '<span class="adm-ud-order-total">' + esc(amount) + '</span>' +
+          '<span class="dt-badge ' + badgeClass + '">' + esc(o.status) + '</span>' +
+          '</div>';
+      }).join('') : '<p class="adm-empty">No orders yet.</p>';
+    }
+
+    // Same already-collected data the abandoned-cart recovery emails run
+    // on (public.cart_snapshots) - not a new tracking surface, just
+    // surfacing it here too instead of only in the separate Marketing
+    // panel. Matched by user_id first (reliable for anyone signed in when
+    // they left items in cart); email is a fallback for the rare case a
+    // snapshot was written before the row picked up a user_id.
+    var cartSection = $('admUdCartSection');
+    var cart = ABANDONED.filter(function (c) { return c.userId === u.id || (u.email && c.email === u.email); })
+      .sort(function (a, b) { return new Date(b.date) - new Date(a.date); })[0];
+    if (cartSection) {
+      if (cart) {
+        cartSection.hidden = false;
+        var cartHtml = '<div class="adm-ud-cart-row">' +
+          (cart.image ? '<img src="' + esc(cart.image) + '" alt="" />' : '') +
+          '<div class="adm-ud-cart-info"><div class="adm-ud-cart-title">' + esc(cart.title) + '</div>' +
+          '<div class="adm-ud-cart-meta">Last active ' + fmtDate(new Date(cart.date)) +
+          (cart.abandonedStep != null ? ' · left at checkout step ' + cart.abandonedStep : '') +
+          (cart.recoveryEmailSentAt ? ' · recovery email sent ' + fmtDate(new Date(cart.recoveryEmailSentAt)) : ' · no recovery email sent yet') +
+          '</div></div><span class="adm-ud-cart-value">' + usd(cart.value) + '</span></div>';
+        cartSection.querySelector('#admUdCartActivity').innerHTML = cartHtml;
+      } else {
+        cartSection.hidden = true;
+      }
+    }
+
     userDetailOverlay.hidden = false;
   }
 

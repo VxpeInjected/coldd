@@ -16,7 +16,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
 
-  <link rel="stylesheet" href="/styles.css?v=20260820a" />
+  <link rel="stylesheet" href="/styles.css?v=20260820b" />
 </head>
 <body class="adm-body">
   <div class="backdrop"></div>
@@ -1203,6 +1203,14 @@
         <div><span class="adm-err-detail-label">Pending orders</span><p class="adm-err-detail-val" id="admUdOrdersPending"></p></div>
         <div><span class="adm-err-detail-label">Total spent</span><p class="adm-err-detail-val" id="admUdSpent"></p></div>
       </div>
+      <div class="adm-ud-section">
+        <span class="adm-err-detail-label">Order history</span>
+        <div class="adm-ud-orders" id="admUdOrdersList"></div>
+      </div>
+      <div class="adm-ud-section" id="admUdCartSection" hidden>
+        <span class="adm-err-detail-label">Cart activity</span>
+        <div id="admUdCartActivity"></div>
+      </div>
     </div>
   </div>
 
@@ -1226,6 +1234,6 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.2/dist/umd/supabase.min.js" integrity="sha384-B2duOBIryCXbX4eDE4BdJwtNkQMRQde3o6IsjfPW28E6aH1CYE96hHeZRG3zY56O" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script src="/supabase-init.js?v=20260820a"></script>
   <script src="/site-gate.js?v=20260818b"></script>
-  <script src="/catalog.js?v=20260819a" data-then="/app.js?v=20260820a,/blog.js?v=20260812a,/reviews.js?v=20260729a,/admin.js?v=20260820c"></script>
+  <script src="/catalog.js?v=20260819a" data-then="/app.js?v=20260820a,/blog.js?v=20260812a,/reviews.js?v=20260729a,/admin.js?v=20260820d"></script>
 </body>
 </html>

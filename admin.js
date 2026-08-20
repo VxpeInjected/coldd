@@ -2369,9 +2369,30 @@
       return '<div class="adm-file-item" data-id="' + esc(f.id) + '">' +
         '<input type="text" class="adm-file-rename" value="' + esc(f.display_name) + '" />' +
         (f.size_bytes ? '<span class="adm-file-meta">' + formatFileSize(f.size_bytes) + '</span>' : '') +
+        '<button type="button" class="btn btn-ghost adm-btn-sm adm-unreleased-download" title="Download this file">Download</button>' +
+        '<button type="button" class="btn btn-ghost adm-btn-sm adm-unreleased-create" ' + (can('admin') ? '' : 'disabled ') + 'title="Create a product from this file">Create product</button>' +
         '<button type="button" class="adm-icon-btn adm-unreleased-remove" title="Delete" aria-label="Delete">' + ADM_ICON_TRASH + '</button>' +
         '</div>';
     }).join('') || '<p class="adm-empty" style="padding:8px 0;">Nothing staged right now — drop a file above to keep track of it.</p>';
+  }
+  // Acquiring a product -> uploading the file -> uploading it to the store
+  // used to be three disconnected steps: drop the file here to hold onto
+  // it, then separately open Create Product and upload the SAME file again
+  // from scratch. Reuses the file already sitting in Storage (product
+  // downloads read products.storage_path directly with no prefix
+  // requirement - see get-download-url - so there's nothing to move) and
+  // opens Create Product with it already attached, one step instead of two.
+  var pendingUnreleasedFileId = null;
+  function startProductFromUnreleased(file) {
+    openProductCreate();
+    pendingStoragePath = file.storage_path;
+    pendingUnreleasedFileId = file.id;
+    setFileNote($('admEditFileNote'), null, file.display_name);
+    // Best-effort starting point, not a real title - strip the extension
+    // and turn separators into spaces so there's something to edit instead
+    // of a blank field, admin still reviews/renames before saving either way.
+    var guess = file.display_name.replace(/\.[a-z0-9]+$/i, '').replace(/[_-]+/g, ' ').trim();
+    if (guess) $('admEditTitleInput').value = guess;
   }
   wireDropzone($('admUnreleasedDrop'), $('admUnreleasedInput'), function (files) {
     Array.prototype.slice.call(files).forEach(function (f) {
@@ -2385,6 +2406,29 @@
   var unreleasedList = $('admUnreleasedList');
   if (unreleasedList) {
     unreleasedList.addEventListener('click', function (e) {
+      var createBtn = e.target.closest('.adm-unreleased-create');
+      if (createBtn) {
+        if (!can('admin')) return;
+        var createRow = e.target.closest('.adm-file-item'); if (!createRow) return;
+        var file = UNRELEASED_FILES.filter(function (f) { return f.id === createRow.getAttribute('data-id'); })[0];
+        if (file) startProductFromUnreleased(file);
+        return;
+      }
+      var dlBtn = e.target.closest('.adm-unreleased-download');
+      if (dlBtn) {
+        var dlRow = e.target.closest('.adm-file-item'); if (!dlRow) return;
+        var dlId = dlRow.getAttribute('data-id');
+        var prevText = dlBtn.textContent;
+        dlBtn.disabled = true; dlBtn.textContent = 'Opening…';
+        invokeAdminFn('admin-unreleased-files', { action: 'download', id: dlId }, 'Could not open file.').then(function (d) {
+          dlBtn.disabled = false; dlBtn.textContent = prevText;
+          window.open(d.url, '_blank', 'noopener');
+        }).catch(function (err) {
+          dlBtn.disabled = false; dlBtn.textContent = prevText;
+          alert(err.message || 'Could not open file.');
+        });
+        return;
+      }
       var btn = e.target.closest('.adm-unreleased-remove'); if (!btn) return;
       var row = e.target.closest('.adm-file-item'); if (!row) return;
       var id = row.getAttribute('data-id');
@@ -2518,6 +2562,7 @@
 
   function openProductCreate() {
     pendingStoragePath = null;
+    pendingUnreleasedFileId = null;
     $('admEditId').value = '';
     $('admEditTitleInput').value = '';
     $('admEditPrice').value = 0;
@@ -2644,11 +2689,21 @@
       // placeholder. openProductEdit() runs straight after this and clears
       // pendingStoragePath, so there was no second chance to save it either.
       if (pendingStoragePath) fields.storagePath = pendingStoragePath;
+      var unreleasedIdToRelease = pendingUnreleasedFileId;
       if (saveBtn) saveBtn.disabled = true;
       if (msg) msg.textContent = 'Creating…';
       callUpsertProduct(fields).then(function (res) {
         logAudit('Created product "' + title + '"');
-        return refreshProducts().then(function () {
+        // The staged file now belongs to a real product - clear the
+        // staging row (not the file itself, see admin-unreleased-files'
+        // "release" action) so it stops showing up as still-unreleased.
+        // Best-effort: a failure here just leaves a stale-but-harmless
+        // staging entry, never worth blocking the product creation over.
+        pendingUnreleasedFileId = null;
+        var releaseP = unreleasedIdToRelease
+          ? invokeAdminFn('admin-unreleased-files', { action: 'release', id: unreleasedIdToRelease }).then(loadUnreleasedFiles).catch(function () {})
+          : Promise.resolve();
+        return releaseP.then(function () { return refreshProducts(); }).then(function () {
           if (saveBtn) saveBtn.disabled = false;
           var created = allProducts().filter(function (p) { return p.dbId === res.id; })[0];
           if (created) openProductEdit(created.id);

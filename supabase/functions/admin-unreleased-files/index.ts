@@ -13,11 +13,15 @@
 //       { action: "create", storagePath, displayName, sizeBytes }
 //       { action: "rename", id, displayName }
 //       { action: "delete", id }
+//       { action: "download", id }
+//       { action: "release", id }
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { downloadName, publicSignedUrl } from "../_shared/download.ts";
 
 const ALLOWED_ORIGIN = "https://coldd.dev";
 const FILES_BUCKET = "product-files";
+const SIGNED_URL_TTL_SECONDS = 120;
 
 function corsHeaders() {
   return {
@@ -90,6 +94,36 @@ Deno.serve(async (req: Request) => {
       if (!id || !displayName) return json({ ok: false, error: "Missing id or displayName." }, 400);
 
       const { error } = await admin.from("unreleased_files").update({ display_name: displayName }).eq("id", id);
+      if (error) return json({ ok: false, error: error.message }, 500);
+      return json({ ok: true });
+    }
+
+    if (action === "download") {
+      const id = String(body.id || "");
+      if (!id) return json({ ok: false, error: "Missing id." }, 400);
+
+      const { data: row } = await admin.from("unreleased_files").select("storage_path, display_name").eq("id", id).maybeSingle();
+      if (!row?.storage_path) return json({ ok: false, error: "File not found." }, 404);
+
+      const { data: signed, error: signErr } = await admin.storage
+        .from(FILES_BUCKET)
+        .createSignedUrl(row.storage_path, SIGNED_URL_TTL_SECONDS, {
+          download: downloadName(row.storage_path, row.display_name),
+        });
+      if (signErr || !signed) return json({ ok: false, error: "Could not generate download link." }, 500);
+      return json({ ok: true, url: publicSignedUrl(signed.signedUrl) });
+    }
+
+    // Fires once a staged file has actually become a real product (see
+    // admin.js's startProductFromUnreleased) - the file itself is now
+    // owned by that product's storage_path, only the staging row (and its
+    // "you have N files to release" reminder on the dashboard) is stale.
+    // Deliberately does NOT touch Storage, unlike "delete" below.
+    if (action === "release") {
+      const id = String(body.id || "");
+      if (!id) return json({ ok: false, error: "Missing id." }, 400);
+
+      const { error } = await admin.from("unreleased_files").delete().eq("id", id);
       if (error) return json({ ok: false, error: error.message }, 500);
       return json({ ok: true });
     }

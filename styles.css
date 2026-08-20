@@ -918,6 +918,12 @@
 .shop-layout { display: grid; grid-template-columns: 280px 1fr; gap: 32px; align-items: start; }
 .product-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; align-items: stretch; }
 @media (min-width: 1400px) { .product-grid { grid-template-columns: repeat(4, 1fr); } }
+/* [hidden]'s default display:none comes from the browser's UA stylesheet,
+   which loses to the equal-specificity .product-grid rule above (author
+   styles always win a specificity tie) - #grid never actually visually
+   hid, it just carried the attribute uselessly while every unsorted
+   product sat there fully visible underneath the spinner. */
+.product-grid[hidden] { display: none; }
 /* Shown while #grid ships [hidden] - the static markup is every product in
    build-time order, unsorted and unpaginated; app.js hides that raw dump
    until it's applied the real sort/filter/pagination pass, since revealing

@@ -33,15 +33,25 @@
           if (!session) { cache = {}; return cache; }
           return window.coldSupabase
             .from('orders')
-            .select('status, order_items(product_slug)')
+            .select('status, order_items(product_slug, licence)')
             .eq('user_id', session.user.id)
             .eq('status', 'paid')
             .then(function (r) {
-              var slugs = {};
+              // Keyed by slug + licence, same composite key the cart itself
+              // uses (see add() below) - a resell licence is a materially
+              // different, separately-purchasable sale from the personal
+              // one, not a quantity of the same thing. Keying purely by
+              // slug marked a product "Owned" (and disabled Buy/Add) for
+              // EVERY licence once a buyer owned any one of them, including
+              // blocking someone who only owns the personal licence from
+              // ever buying the resell licence on the same product.
+              var owned = {};
               ((r && r.data) || []).forEach(function (o) {
-                (o.order_items || []).forEach(function (i) { slugs[i.product_slug] = true; });
+                (o.order_items || []).forEach(function (i) {
+                  owned[i.product_slug + (i.licence === 'resell' ? '--resell' : '')] = true;
+                });
               });
-              cache = slugs;
+              cache = owned;
               return cache;
             });
         });
@@ -49,7 +59,7 @@
       }
       window.__coldOwned = {
         load: load,
-        has: function (slug) { return !!(cache && cache[slug]); },
+        has: function (slug, licence) { return !!(cache && cache[slug + (licence === 'resell' ? '--resell' : '')]); },
         ready: function () { return !!cache; }
       };
     })();
@@ -955,7 +965,12 @@
 
         function markOwned() {
           products.forEach(function (card) {
-            var owned = window.__coldOwned.has(card.getAttribute('data-id'));
+            // A card showing the Resell License filter's pricing needs to
+            // check resell ownership, not personal - see __coldOwned's own
+            // comment. Owning the personal licence must never block buying
+            // the resell one for the same product.
+            var showingResell = curCat === 'resell' && card.getAttribute('data-resell') === 'yes';
+            var owned = window.__coldOwned.has(card.getAttribute('data-id'), showingResell ? 'resell' : 'standard');
             card.classList.toggle('owned', owned);
             var addBtn = card.querySelector('.p-add');
             if (addBtn) {
@@ -1374,6 +1389,10 @@
           const visible = matched.slice(start, start + PER_PAGE);
           products.forEach(function (p) { p.style.display = 'none'; });
           visible.forEach(function (p) { p.style.display = ''; grid.appendChild(p); syncCardPricing(p); });
+          // Re-check ownership per card - it's licence-aware (see markOwned),
+          // and which licence a card is showing can change on every
+          // refilter (switching in or out of the Resell License filter).
+          if (window.__coldOwned.ready()) markOwned();
           if (empty) empty.hidden = matched.length > 0;
           renderPager(pages);
           if (countEl) {

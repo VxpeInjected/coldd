@@ -3264,16 +3264,62 @@
         return refreshUsers();
       }).catch(function (err) { alert(err.message || 'Could not update user.'); });
     } else if (action === 'remove') {
-      if (!confirm('Permanently remove ' + u.name + '\'s account? This deletes their login, profile, and everything tied to it - it cannot be undone. Their past orders stay on record.')) return;
-      if (prompt('Type REMOVE to confirm:') !== 'REMOVE') return;
-      invokeAdminFn('admin-delete-user', { userId: u.id }, 'Could not remove the account.').then(function () {
-        logAudit('Removed account for ' + u.name + ' (' + u.email + ')');
-        return refreshUsers();
-      }).catch(function (err) { alert(err.message || 'Could not remove the account.'); });
+      openRemoveAccountModal(u);
     }
   });
   var userSearch = $('admUserSearch');
   if (userSearch) userSearch.addEventListener('input', renderUsers);
+
+  // Replaces the stacked native confirm()+prompt() pair this used to be -
+  // a plain browser prompt for a "type REMOVE to confirm" step reads as
+  // broken/unstyled next to the rest of the panel, and stacking two
+  // native dialogs for one destructive action was clunky regardless.
+  var removeAcctOverlay = $('admRemoveAcctOverlay');
+  var removeAcctSub = $('admRemoveAcctSub');
+  var removeAcctInput = $('admRemoveAcctInput');
+  var removeAcctMsg = $('admRemoveAcctMsg');
+  var removeAcctConfirm = $('admRemoveAcctConfirm');
+  var removeAcctCancel = $('admRemoveAcctCancel');
+  var removeAcctClose = $('admRemoveAcctClose');
+  var removeAcctTarget = null;
+  function closeRemoveAcctModal() {
+    if (removeAcctOverlay) removeAcctOverlay.hidden = true;
+    removeAcctTarget = null;
+    if (removeAcctInput) removeAcctInput.value = '';
+    if (removeAcctMsg) removeAcctMsg.textContent = '';
+    if (removeAcctConfirm) { removeAcctConfirm.disabled = true; removeAcctConfirm.textContent = 'Remove account'; }
+  }
+  function openRemoveAccountModal(u) {
+    if (!removeAcctOverlay) return;
+    removeAcctTarget = u;
+    if (removeAcctSub) removeAcctSub.textContent = 'Permanently remove ' + u.name + '\'s account? This deletes their login, profile, and everything tied to it - it cannot be undone. Their past orders stay on record.';
+    if (removeAcctInput) removeAcctInput.value = '';
+    if (removeAcctMsg) removeAcctMsg.textContent = '';
+    if (removeAcctConfirm) removeAcctConfirm.disabled = true;
+    removeAcctOverlay.hidden = false;
+    if (removeAcctInput) removeAcctInput.focus();
+  }
+  if (removeAcctInput) removeAcctInput.addEventListener('input', function () {
+    if (removeAcctConfirm) removeAcctConfirm.disabled = removeAcctInput.value !== 'REMOVE';
+  });
+  if (removeAcctCancel) removeAcctCancel.addEventListener('click', closeRemoveAcctModal);
+  if (removeAcctClose) removeAcctClose.addEventListener('click', closeRemoveAcctModal);
+  if (removeAcctOverlay) removeAcctOverlay.addEventListener('click', function (e) { if (e.target === removeAcctOverlay) closeRemoveAcctModal(); });
+  if (removeAcctConfirm) removeAcctConfirm.addEventListener('click', function () {
+    if (!removeAcctTarget || removeAcctInput.value !== 'REMOVE') return;
+    var u = removeAcctTarget;
+    removeAcctConfirm.disabled = true;
+    removeAcctConfirm.textContent = 'Removing…';
+    invokeAdminFn('admin-delete-user', { userId: u.id }, 'Could not remove the account.').then(function () {
+      logAudit('Removed account for ' + u.name + ' (' + u.email + ')');
+      closeRemoveAcctModal();
+      return refreshUsers();
+    }).catch(function (err) {
+      removeAcctConfirm.disabled = false;
+      removeAcctConfirm.textContent = 'Remove account';
+      if (removeAcctMsg) removeAcctMsg.textContent = err.message || 'Could not remove the account.';
+    });
+  });
 
   var grantForm = $('admGrantForm');
   if (grantForm) grantForm.addEventListener('submit', function (e) {

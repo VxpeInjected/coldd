@@ -1181,9 +1181,26 @@
     </div>
   </div>
 
+  <div class="pay-overlay" id="admRemoveAcctOverlay" hidden>
+    <div class="pay-modal glass" role="dialog" aria-modal="true" aria-labelledby="admRemoveAcctTitle" style="max-width:440px;">
+      <button class="pm-x" id="admRemoveAcctClose" type="button" aria-label="Close"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+      <h3 class="pay-title" id="admRemoveAcctTitle">Remove account</h3>
+      <p class="pay-sub" id="admRemoveAcctSub"></p>
+      <label class="adm-field">
+        <span>Type REMOVE to confirm</span>
+        <input class="adm-input" id="admRemoveAcctInput" type="text" autocomplete="off" placeholder="REMOVE" />
+      </label>
+      <span class="auth-err" id="admRemoveAcctMsg"></span>
+      <div class="adm-edit-actions" style="margin-top:18px;">
+        <button class="btn btn-primary adm-btn-sm" id="admRemoveAcctConfirm" type="button" disabled>Remove account</button>
+        <button class="btn btn-ghost adm-btn-sm" id="admRemoveAcctCancel" type="button">Cancel</button>
+      </div>
+    </div>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.2/dist/umd/supabase.min.js" integrity="sha384-B2duOBIryCXbX4eDE4BdJwtNkQMRQde3o6IsjfPW28E6aH1CYE96hHeZRG3zY56O" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script src="/supabase-init.js?v=20260819a"></script>
   <script src="/site-gate.js?v=20260818b"></script>
-  <script src="/catalog.js?v=20260819a" data-then="/app.js?v=20260820a,/blog.js?v=20260812a,/reviews.js?v=20260729a,/admin.js?v=20260817h"></script>
+  <script src="/catalog.js?v=20260819a" data-then="/app.js?v=20260820a,/blog.js?v=20260812a,/reviews.js?v=20260729a,/admin.js?v=20260820a"></script>
 </body>
 </html>

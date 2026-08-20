@@ -109,10 +109,26 @@ Deno.serve(async (req: Request) => {
 
     const campaignCode = await resolveCampaignCode(admin, body.campaignCode);
 
+    // Gifting: same server-side re-verification as the other three checkout
+    // functions - never trust the recipient id the client got from
+    // lookup-gift-recipient without a fresh existence check here. The
+    // BUYER's own linked Roblox account (roblox_buyer_id above) is
+    // completely unaffected by this - they're still who actually pays on
+    // Roblox's side regardless of who the order is gifted to.
+    let giftRecipientId: string | null = null;
+    if (body.giftRecipientUserId) {
+      const recipientId = String(body.giftRecipientUserId);
+      if (recipientId === userData.user.id) return json({ ok: false, error: "You can't gift an order to yourself." }, 400);
+      const { data: recipientProfile } = await admin.from("profiles").select("id").eq("id", recipientId).maybeSingle();
+      if (!recipientProfile) return json({ ok: false, error: "Gift recipient not found." }, 400);
+      giftRecipientId = recipientId;
+    }
+
     const { data: order, error: orderErr } = await admin
       .from("orders")
       .insert({
-        user_id: userData.user.id,
+        user_id: giftRecipientId || userData.user.id,
+        purchased_by_user_id: giftRecipientId ? userData.user.id : null,
         status: "pending",
         currency: "robux",
         subtotal_usd: subtotalUsd,

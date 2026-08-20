@@ -78,10 +78,23 @@ Deno.serve(async (req: Request) => {
     if (total <= 0) return json({ ok: false, error: "Order total must be greater than zero." }, 400);
     const campaignCode = await resolveCampaignCode(admin, body.campaignCode);
 
+    // Gifting: same server-side re-verification as create-checkout-session -
+    // never trust the recipient id the client got from lookup-gift-recipient
+    // without a fresh existence check here.
+    let giftRecipientId: string | null = null;
+    if (user && body.giftRecipientUserId) {
+      const recipientId = String(body.giftRecipientUserId);
+      if (recipientId === user.id) return json({ ok: false, error: "You can't gift an order to yourself." }, 400);
+      const { data: recipientProfile } = await admin.from("profiles").select("id").eq("id", recipientId).maybeSingle();
+      if (!recipientProfile) return json({ ok: false, error: "Gift recipient not found." }, 400);
+      giftRecipientId = recipientId;
+    }
+
     const { data: order, error: orderErr } = await admin
       .from("orders")
       .insert({
-        user_id: user ? user.id : null,
+        user_id: giftRecipientId || (user ? user.id : null),
+        purchased_by_user_id: giftRecipientId ? user!.id : null,
         status: "pending",
         subtotal_usd: subtotal,
         discount_usd: discount,

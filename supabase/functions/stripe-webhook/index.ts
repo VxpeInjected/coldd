@@ -19,6 +19,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import Stripe from "https://esm.sh/stripe@17?target=deno";
 import { sendOrderReceipt } from "../_shared/email.ts";
+import { resolveGiftReceipt } from "../_shared/gift.ts";
 
 const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY")!, {
   httpClient: Stripe.createFetchHttpClient(),
@@ -67,7 +68,7 @@ Deno.serve(async (req: Request) => {
           .update({ status: "paid", stripe_payment_intent_id: paymentIntentId, paid_at: new Date().toISOString() })
           .eq("id", orderId)
           .neq("status", "paid")
-          .select("coupon_code")
+          .select("coupon_code, user_id, purchased_by_user_id")
           .single();
         if (error && error.code !== "PGRST116") console.error("[stripe-webhook] failed to mark order paid:", error);
 
@@ -84,7 +85,13 @@ Deno.serve(async (req: Request) => {
           // Stripe Checkout always collects an email on its own hosted page,
           // even for guests, so this is present regardless of account status.
           const guestEmail = session.customer_details?.email || session.customer_email || null;
-          const receipt = await sendOrderReceipt(admin, orderId, guestEmail);
+          // For a gift order the buyer's own email (from Stripe's own
+          // hosted page) already IS the correct receipt address - but the
+          // gift lookup below also fires the recipient's "you received a
+          // gift" notification, so it always runs; its returned email only
+          // overrides guestEmail when actually present.
+          const giftEmail = await resolveGiftReceipt(admin, { id: orderId, user_id: updated.user_id, purchased_by_user_id: updated.purchased_by_user_id });
+          const receipt = await sendOrderReceipt(admin, orderId, giftEmail || guestEmail);
           if (!receipt.ok) console.error("[stripe-webhook] receipt email failed:", receipt.error);
         }
       }

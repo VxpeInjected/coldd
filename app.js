@@ -2763,11 +2763,21 @@
         return '$' + usd.toFixed(2).replace(/\.00$/, '');
       }
 
-      function renderPurchases(orders) {
+      function renderPurchases(orders, sentGiftOrders) {
         var body = document.getElementById('dashPurchasesBody');
         if (!body) return;
-        if (!orders.length) { body.innerHTML = '<tr><td colspan="5">No orders yet.</td></tr>'; return; }
-        body.innerHTML = orders.map(function (o) {
+        // Orders paid for as a gift for someone else don't match .eq('user_id',
+        // userId) any more under the gifting RLS policy (orders.user_id is the
+        // RECIPIENT, not the buyer) - merged in here from a second query so the
+        // buyer can still see what they paid for, tagged distinctly from
+        // "Gifted" below (that means "you received something for free"; this
+        // means "you paid for someone else").
+        var rows = orders.map(function (o) { return { order: o, sentAsGift: false }; })
+          .concat((sentGiftOrders || []).map(function (o) { return { order: o, sentAsGift: true }; }))
+          .sort(function (a, b) { return new Date(b.order.created_at) - new Date(a.order.created_at); });
+        if (!rows.length) { body.innerHTML = '<tr><td colspan="5">No orders yet.</td></tr>'; return; }
+        body.innerHTML = rows.map(function (r) {
+          var o = r.order;
           var items = o.order_items || [];
           var titles = esc(items.map(function (i) { return i.title; }).join(', ') || '—');
           // A manually-granted order (admin panel's "Manual product grant")
@@ -2777,8 +2787,8 @@
           // order history. source:'granted' distinguishes it without
           // touching the real payment status underneath.
           var gifted = o.source === 'granted';
-          var badge = gifted ? 'ok' : (o.status === 'paid' ? 'ok' : 'warn');
-          var label = gifted ? 'Gifted' : (o.status.charAt(0).toUpperCase() + o.status.slice(1));
+          var badge = r.sentAsGift ? 'warn' : gifted ? 'ok' : (o.status === 'paid' ? 'ok' : 'warn');
+          var label = r.sentAsGift ? 'Sent as gift' : gifted ? 'Gifted' : (o.status.charAt(0).toUpperCase() + o.status.slice(1));
           var priceCell = '<span class="p-price" data-fixed>' + orderMoney(o) + '</span>';
           return '<tr><td>' + fmtDate(o.created_at) + '</td><td>' + titles + '</td><td class="dt-mono">' + shortOrderId(o.id) + '</td>' +
             '<td>' + priceCell + '</td>' +
@@ -2879,21 +2889,26 @@
       });
 
       function loadRealData(userId) {
-        window.coldSupabase
-          .from('orders')
-          .select('id, created_at, status, source, currency, total_usd, total_robux, order_items(product_slug, title, qty, licence, products(image))')
-          .eq('user_id', userId)
-          .order('created_at', { ascending: false })
-          .then(function (res) {
-            // Purchase history should show purchases, not attempts. Every
-            // status short of 'paid' - abandoned Stripe/PayPal checkouts,
-            // still-confirming crypto/Robux, failed, canceled - is not a
-            // purchase yet, so none of it belongs here even briefly.
-            var orders = ((res && res.data) || []).filter(function (o) { return o.status === 'paid'; });
-            renderOverview(orders);
-            renderPurchases(orders);
-            renderOwnedAndDownloads(orders);
-          });
+        var ORDER_COLS = 'id, created_at, status, source, currency, total_usd, total_robux, order_items(product_slug, title, qty, licence, products(image))';
+        Promise.all([
+          window.coldSupabase.from('orders').select(ORDER_COLS).eq('user_id', userId).order('created_at', { ascending: false }),
+          // Gift orders paid for by this user, but owned by whoever they were
+          // gifted to (orders.user_id is the recipient) - RLS lets this user
+          // see them via purchased_by_user_id, but the primary query above
+          // never will. Purchase-history-only; deliberately not merged into
+          // owned/recent-purchases since this user doesn't own these.
+          window.coldSupabase.from('orders').select(ORDER_COLS).eq('purchased_by_user_id', userId).order('created_at', { ascending: false }),
+        ]).then(function (results) {
+          // Purchase history should show purchases, not attempts. Every
+          // status short of 'paid' - abandoned Stripe/PayPal checkouts,
+          // still-confirming crypto/Robux, failed, canceled - is not a
+          // purchase yet, so none of it belongs here even briefly.
+          var orders = ((results[0] && results[0].data) || []).filter(function (o) { return o.status === 'paid'; });
+          var sentGiftOrders = ((results[1] && results[1].data) || []).filter(function (o) { return o.status === 'paid'; });
+          renderOverview(orders);
+          renderPurchases(orders, sentGiftOrders);
+          renderOwnedAndDownloads(orders);
+        });
       }
 
       // Authoritative session check - redirects if the fast <head> pre-check
@@ -3717,6 +3732,7 @@
       function applySessionUI() {
         if (g) g.hidden = loggedIn;
         if (u) u.hidden = !loggedIn;
+        updateGiftSignInGate();
       }
       function refreshSession() {
         if (!window.coldSupabase) { loggedIn = false; applySessionUI(); return; }
@@ -3731,6 +3747,53 @@
 
       var coSigninBtn = document.getElementById('coSigninBtn');
       if (coSigninBtn) coSigninBtn.addEventListener('click', function () { location.href = '/signin'; });
+
+      // Gift this order to someone else - buyer picks a recipient at
+      // checkout and pays normally. lookup-gift-recipient only resolves who
+      // to show as "Gifting to X"; every order-creation function re-checks
+      // the id server-side, so trusting it here is fine.
+      var giftToggle = document.getElementById('coGiftToggle'), giftBlock = document.getElementById('coGiftBlock');
+      var giftInput = document.getElementById('coGiftInput'), giftVerifyBtn = document.getElementById('coGiftVerify');
+      var giftMsg = document.getElementById('coGiftMsg'), giftSignedOutHint = document.getElementById('coGiftSignedOutHint');
+      var giftLookupRow = document.getElementById('coGiftLookupRow');
+      var giftRecipientUserId = null, giftRecipientName = null;
+      function updateGiftSignInGate() {
+        if (giftSignedOutHint) giftSignedOutHint.hidden = loggedIn;
+        if (giftLookupRow) giftLookupRow.hidden = !loggedIn;
+      }
+      function clearGiftRecipient() {
+        giftRecipientUserId = null; giftRecipientName = null;
+        if (giftMsg) { giftMsg.className = 'co-coupon-msg'; giftMsg.textContent = ''; }
+      }
+      if (giftToggle) giftToggle.addEventListener('change', function () {
+        if (giftBlock) giftBlock.hidden = !giftToggle.checked;
+        if (!giftToggle.checked) { clearGiftRecipient(); if (giftInput) giftInput.value = ''; }
+        updateGiftSignInGate();
+      });
+      if (giftVerifyBtn) giftVerifyBtn.addEventListener('click', function () {
+        var q = (giftInput && giftInput.value || '').trim();
+        clearGiftRecipient();
+        if (!q) { if (giftMsg) { giftMsg.className = 'co-coupon-msg no'; giftMsg.textContent = 'Enter an email or username.'; } return; }
+        if (!window.coldAuth) return;
+        giftVerifyBtn.disabled = true;
+        window.coldAuth.invokeFn('lookup-gift-recipient', { query: q }).then(function (data) {
+          giftVerifyBtn.disabled = false;
+          if (data && data.found) {
+            giftRecipientUserId = data.userId;
+            giftRecipientName = data.displayName;
+            if (giftMsg) { giftMsg.className = 'co-coupon-msg ok'; giftMsg.textContent = 'Gifting to ' + data.displayName + '.'; }
+          } else if (giftMsg) {
+            giftMsg.className = 'co-coupon-msg no'; giftMsg.textContent = 'No coldd account found with that email/username.';
+          }
+        }).catch(function (err) {
+          giftVerifyBtn.disabled = false;
+          if (giftMsg) { giftMsg.className = 'co-coupon-msg no'; giftMsg.textContent = (err && err.message) || 'Could not look that up. Please try again.'; }
+        });
+      });
+      // Editing the field after a successful lookup invalidates it - a
+      // buyer could otherwise verify one recipient, edit the field, and
+      // still have the order gifted to whoever was verified first.
+      if (giftInput) giftInput.addEventListener('input', function () { if (giftRecipientUserId) clearGiftRecipient(); });
 
       var couponInput = document.getElementById('coCouponInput'), couponApplyBtn = document.getElementById('coCouponApply'), couponMsg = document.getElementById('coCouponMsg');
       if (couponApplyBtn) couponApplyBtn.addEventListener('click', function () {
@@ -4121,6 +4184,7 @@
           // re-validates the code server-side the same way those do, this
           // just tells it which one to check.
           if (appliedCoupon) robuxOrderBody.couponCode = appliedCoupon.code;
+          if (giftToggle && giftToggle.checked && giftRecipientUserId) robuxOrderBody.giftRecipientUserId = giftRecipientUserId;
           window.coldAuth.invokeFn('create-robux-order', robuxOrderBody).then(function (data) {
             robuxOrderId = data.orderId;
             robuxOrderItems = data.items;
@@ -4177,6 +4241,13 @@
         if (agreeErr) agreeErr.textContent = agreeMsgs.length ? 'Please ' + agreeMsgs.join(' and ') + '.' : '';
         if (!ok) { if (msg) { msg.className = 'co-msg err show'; msg.textContent = 'Please fix the highlighted fields above.'; } return; }
 
+        // Gift toggle on but no verified recipient - never place an order
+        // gifted to nobody in particular.
+        if (giftToggle && giftToggle.checked && !giftRecipientUserId) {
+          if (msg) { msg.className = 'co-msg err show'; msg.textContent = 'Please verify a gift recipient above, or turn off "This is a gift".'; }
+          return;
+        }
+
         if (payMethod === 'robux') { startRobuxOrder(); return; }
 
         var prevText = placeBtn.textContent;
@@ -4187,6 +4258,7 @@
         var checkoutBody = { items: cartToItems() };
         if (appliedCoupon) checkoutBody.couponCode = appliedCoupon.code;
         if (window.coldAuth && window.coldAuth.getCampaignCode()) checkoutBody.campaignCode = window.coldAuth.getCampaignCode();
+        if (giftToggle && giftToggle.checked && giftRecipientUserId) checkoutBody.giftRecipientUserId = giftRecipientUserId;
 
         // Only slugs, quantities and a coupon code are ever sent. Both
         // functions re-price the whole cart from the database, so a tampered

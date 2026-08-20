@@ -24,6 +24,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { activeProvider } from "../_shared/crypto.ts";
 import { sendOrderReceipt } from "../_shared/email.ts";
+import { resolveGiftReceipt } from "../_shared/gift.ts";
 
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -106,8 +107,11 @@ Deno.serve(async (req: Request) => {
     // No guest email: nothing in the crypto checkout flow captures one
     // today (create-crypto-charge takes no email field). Signed-in buyers
     // still get a receipt via their account email; sendOrderReceipt no-ops
-    // cleanly for a guest order rather than erroring.
-    const receipt = await sendOrderReceipt(admin, order.id, null);
+    // cleanly for a guest order rather than erroring. Gift orders are the
+    // one exception - the buyer's email comes from their account via
+    // resolveGiftReceipt, same as every other payment path.
+    const giftEmail = await resolveGiftReceipt(admin, { id: order.id, user_id: updated.user_id, purchased_by_user_id: updated.purchased_by_user_id });
+    const receipt = await sendOrderReceipt(admin, order.id, giftEmail);
     if (!receipt.ok && receipt.code !== "NO_EMAIL") console.error("[crypto-webhook] receipt email failed:", receipt.error);
 
     return json({ ok: true, status: "paid" });

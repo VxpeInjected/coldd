@@ -20,6 +20,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { paypalToken, paypalFetch } from "../_shared/paypal.ts";
 import { sendOrderReceipt } from "../_shared/email.ts";
+import { resolveGiftReceipt } from "../_shared/gift.ts";
 
 const ALLOWED_ORIGIN = "https://coldd.dev";
 
@@ -147,7 +148,11 @@ Deno.serve(async (req: Request) => {
       // whether the buyer has a coldd account, so a guest checkout still
       // gets a receipt here (unlike crypto/Robux, which capture no email).
       const guestEmail = paypalOrder?.payer?.email_address || null;
-      const receipt = await sendOrderReceipt(admin, order.id, guestEmail);
+      // Gift orders: send the receipt to the buyer's account email instead
+      // of the recipient (order.user_id), and notify the recipient
+      // separately - see _shared/gift.ts.
+      const giftEmail = await resolveGiftReceipt(admin, { id: order.id, user_id: updated.user_id, purchased_by_user_id: updated.purchased_by_user_id });
+      const receipt = await sendOrderReceipt(admin, order.id, giftEmail || guestEmail);
       if (!receipt.ok) console.error("[capture-paypal-order] receipt email failed:", receipt.error);
     }
 

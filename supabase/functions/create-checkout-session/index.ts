@@ -99,13 +99,27 @@ Deno.serve(async (req: Request) => {
     const total = Math.max(0, Math.round((subtotal - discount) * 100) / 100);
     const campaignCode = await resolveCampaignCode(admin, body.campaignCode);
 
+    // Gifting: buyer must be signed in (a guest has no id to record as the
+    // payer), and the recipient is re-verified server-side rather than
+    // trusted from the client, same defense-in-depth as every other
+    // payment/admin function here that never trusts a client-supplied id.
+    let giftRecipientId: string | null = null;
+    if (user && body.giftRecipientUserId) {
+      const recipientId = String(body.giftRecipientUserId);
+      if (recipientId === user.id) return json({ ok: false, error: "You can't gift an order to yourself." }, 400);
+      const { data: recipientProfile } = await admin.from("profiles").select("id").eq("id", recipientId).maybeSingle();
+      if (!recipientProfile) return json({ ok: false, error: "Gift recipient not found." }, 400);
+      giftRecipientId = recipientId;
+    }
+
     // Create the order + order_items as 'pending' before talking to Stripe,
     // so we have an order_id to hand to Stripe as metadata and correlate on
     // the webhook / success page.
     const { data: order, error: orderErr } = await admin
       .from("orders")
       .insert({
-        user_id: user ? user.id : null,
+        user_id: giftRecipientId || (user ? user.id : null),
+        purchased_by_user_id: giftRecipientId ? user!.id : null,
         status: "pending",
         subtotal_usd: subtotal,
         discount_usd: discount,

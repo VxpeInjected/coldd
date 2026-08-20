@@ -1,0 +1,48 @@
+// supabase/functions/_shared/gift.ts
+//
+// Every payment-completion path (stripe-webhook, capture-paypal-order,
+// crypto-webhook, verify-robux-order) calls sendOrderReceipt(admin, orderId,
+// guestEmail?) once an order is confirmed paid. For a gift order
+// (purchased_by_user_id set), orders.user_id is the RECIPIENT, not the
+// buyer - so sendOrderReceipt's default "look up user_id's email" behaviour
+// would otherwise send the payment receipt to whoever received the gift
+// instead of whoever paid for it.
+//
+// Called once per paid order, right after it's loaded, before
+// sendOrderReceipt. Returns the guestEmail override to pass into
+// sendOrderReceipt (null for a non-gift order, so every call site's
+// existing guest-email logic - Stripe's collected email, PayPal's payer
+// email, etc. - is completely unaffected). Also fires the recipient-facing
+// "you received a gift" notification here, since both need the exact same
+// purchased_by_user_id check and the caller already has the order loaded.
+
+import { notifyUser } from "./notify.ts";
+
+// deno-lint-ignore no-explicit-any
+export async function resolveGiftReceipt(
+  // deno-lint-ignore no-explicit-any
+  admin: any,
+  order: { id: string; user_id: string | null; purchased_by_user_id?: string | null },
+): Promise<string | null> {
+  if (!order.purchased_by_user_id) return null;
+
+  const { data: buyerRes } = await admin.auth.admin.getUserById(order.purchased_by_user_id);
+  const buyerEmail: string | null = buyerRes?.user?.email || null;
+
+  // Best-effort, same as every other notifyUser call site - a notification
+  // failing to insert must never block or fail the receipt email above it.
+  if (order.user_id) {
+    // deno-lint-ignore no-explicit-any
+    const { data: items } = await admin.from("order_items").select("title").eq("order_id", order.id) as { data: any[] | null };
+    const titles = (items || []).map((i) => i.title).join(", ") || "a gift";
+    await notifyUser(
+      admin,
+      order.user_id,
+      "You received a gift!",
+      `Someone sent you ${titles} on coldd.`,
+      "/dashboard?panel=owned",
+    );
+  }
+
+  return buyerEmail;
+}

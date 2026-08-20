@@ -483,6 +483,11 @@
       robloxBuyerId: row.roblox_buyer_id || null,
       robloxVerificationMethod: row.roblox_verification_method || null,
       source: row.source || 'website',
+      // Real customer-to-customer gift (buyer paid, order was assigned to a
+      // different user_id) - not to be confused with source:'granted' above,
+      // which is the admin-tool free comp. purchased_by_user_id is only
+      // ever set for a genuine paid gift order.
+      purchasedByUserId: row.purchased_by_user_id || null,
       items: items
     };
   }
@@ -2895,7 +2900,11 @@
         '<td>' + esc(o.userName) + '</td>' +
         '<td>' + o.currency.toUpperCase() + '</td>' +
         '<td>' + orderAmount(o) + '</td>' +
-        '<td>' + (o.source === 'granted' ? '<span class="dt-badge ok">Gifted</span>' : statusBadge(o.status)) + '</td>' +
+        '<td>' + (o.source === 'granted' ? '<span class="dt-badge ok">Gifted</span>' : statusBadge(o.status)) +
+        // A real, currently-paying gift order - distinct from the "Gifted"
+        // free-comp badge above, so shown alongside it rather than in place
+        // of it.
+        (o.purchasedByUserId ? ' <span class="dt-badge warn" title="Bought as a gift for a different account">Gift</span>' : '') + '</td>' +
         '<td class="adm-row-actions">' + orderRowMenuHtml(o) + '</td></tr>';
     }).join('') || '<tr><td colspan="8" class="adm-empty">No orders match.</td></tr>';
   }

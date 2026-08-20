@@ -27,6 +27,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { findPoolSale, getValidRobloxToken } from "../_shared/roblox.ts";
 import { getLeasedPass, releasePass } from "../_shared/roblox_pool.ts";
 import { sendOrderReceipt } from "../_shared/email.ts";
+import { resolveGiftReceipt } from "../_shared/gift.ts";
 
 const ALLOWED_ORIGIN = "https://coldd.dev";
 
@@ -68,7 +69,13 @@ Deno.serve(async (req: Request) => {
     const { data: order, error: orderErr } = await admin
       .from("orders").select("*").eq("id", orderId).single();
     if (orderErr || !order) return json({ ok: false, error: "Order not found." }, 404);
-    if (order.user_id !== userData.user.id) return json({ ok: false, error: "This isn't your order." }, 403);
+    // A gift order's user_id is the recipient, not the buyer - but it's
+    // still the buyer who goes to Roblox and pays, so the buyer is who
+    // calls verify. purchased_by_user_id is only ever set for gift orders,
+    // so this doesn't loosen the check for a normal (non-gift) order.
+    if (order.user_id !== userData.user.id && order.purchased_by_user_id !== userData.user.id) {
+      return json({ ok: false, error: "This isn't your order." }, 403);
+    }
     if (order.currency !== "robux") return json({ ok: false, error: "Not a Robux order." }, 400);
 
     if (order.status === "paid") return json({ ok: true, verified: true, status: "paid" });
@@ -168,9 +175,13 @@ Deno.serve(async (req: Request) => {
     await releasePass(admin, orderId, String(pass.universe_id), String(pass.gamepass_id));
 
     // Robux checkout requires a linked (signed-in) Roblox account, so this
-    // always has a user_id - no guest path to worry about here.
+    // always has a user_id - no guest path to worry about here. For a gift
+    // order, order.user_id is the recipient, not the buyer who actually
+    // paid on Roblox's side - resolveGiftReceipt redirects the receipt to
+    // the buyer's account email and notifies the recipient separately.
     if (updated) {
-      const receipt = await sendOrderReceipt(admin, orderId, null);
+      const giftEmail = await resolveGiftReceipt(admin, { id: orderId, user_id: order.user_id, purchased_by_user_id: order.purchased_by_user_id });
+      const receipt = await sendOrderReceipt(admin, orderId, giftEmail);
       if (!receipt.ok) console.error("[verify-robux-order] receipt email failed:", receipt.error);
     }
 

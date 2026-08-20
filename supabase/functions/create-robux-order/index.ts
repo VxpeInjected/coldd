@@ -20,6 +20,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { priceRobuxItems } from "../_shared/roblox.ts";
 import { leasePassForOrder } from "../_shared/roblox_pool.ts";
 import { resolveCampaignCode } from "../_shared/campaign.ts";
+import { priceItems, resolveCoupon } from "../_shared/coupon.ts";
 
 const ALLOWED_ORIGIN = "https://coldd.dev";
 
@@ -65,12 +66,47 @@ Deno.serve(async (req: Request) => {
     }
 
     const body = await req.json().catch(() => ({}));
-    const priced = await priceRobuxItems(admin, Array.isArray(body.items) ? body.items : []);
+    const items = Array.isArray(body.items) ? body.items : [];
+    const priced = await priceRobuxItems(admin, items);
     if (!priced.ok) return json({ ok: false, error: priced.error }, 400);
     const { lines, totalRobux } = priced;
     if (totalRobux <= 0) return json({ ok: false, error: "Order total must be greater than zero." }, 400);
 
     const subtotalUsd = lines.reduce((sum, li) => sum + li.unitPriceUsd * li.qty, 0);
+
+    // Coupons are validated in USD (resolveCoupon needs platform/category
+    // scope data priceRobuxItems' lines don't carry) via the exact same
+    // shared logic every other checkout path trusts, then the resulting
+    // discount is applied to the Robux total as the same PROPORTION of
+    // the USD subtotal it discounts - not a flat USD->Robux conversion,
+    // since each product's real robux_price is independently admin-set
+    // and often has no fixed ratio to its USD price (see the checkout
+    // page's own display-side fix for the identical reasoning). This is
+    // what actually makes the gamepass price reflect the order total -
+    // current prices/sales already did, via priceRobuxItems reading
+    // products fresh on every call, but a coupon was never applied here
+    // at all before this.
+    let discountUsd = 0;
+    let appliedCouponCode: string | null = null;
+    let finalTotalRobux = totalRobux;
+    let finalTotalUsd = subtotalUsd;
+    if (body.couponCode) {
+      const usdPriced = await priceItems(admin, items);
+      if (usdPriced.ok) {
+        const couponResult = await resolveCoupon(admin, String(body.couponCode), usdPriced.lines);
+        // Same as create-checkout-session: a coupon that no longer
+        // resolves (expired/deactivated/limit hit since the buyer applied
+        // it) just quietly doesn't apply rather than blocking checkout.
+        if (couponResult.ok && usdPriced.subtotal > 0) {
+          discountUsd = couponResult.discount;
+          appliedCouponCode = couponResult.code;
+          const fractionOff = discountUsd / usdPriced.subtotal;
+          finalTotalRobux = Math.round(totalRobux * (1 - fractionOff));
+          finalTotalUsd = Math.max(0, Math.round((subtotalUsd - discountUsd) * 100) / 100);
+        }
+      }
+    }
+
     const campaignCode = await resolveCampaignCode(admin, body.campaignCode);
 
     const { data: order, error: orderErr } = await admin
@@ -80,9 +116,10 @@ Deno.serve(async (req: Request) => {
         status: "pending",
         currency: "robux",
         subtotal_usd: subtotalUsd,
-        discount_usd: 0,
-        total_usd: subtotalUsd,
-        total_robux: totalRobux,
+        discount_usd: discountUsd,
+        total_usd: finalTotalUsd,
+        total_robux: finalTotalRobux,
+        coupon_code: appliedCouponCode,
         roblox_buyer_id: robloxAcct.roblox_id,
         campaign_code: campaignCode,
       })
@@ -106,10 +143,10 @@ Deno.serve(async (req: Request) => {
       return json({ ok: false, error: "Could not create order items." }, 500);
     }
 
-    // One pass for the whole order, priced to the exact total - not one pass
-    // per product. The buyer makes a single Roblox purchase regardless of how
-    // many items are in the cart.
-    const leased = await leasePassForOrder(admin, order.id, totalRobux, robloxAcct.roblox_id);
+    // One pass for the whole order, priced to the exact (post-discount)
+    // total - not one pass per product. The buyer makes a single Roblox
+    // purchase regardless of how many items are in the cart.
+    const leased = await leasePassForOrder(admin, order.id, finalTotalRobux, robloxAcct.roblox_id);
     if (!leased.ok) {
       await admin.from("orders").update({ status: "canceled" }).eq("id", order.id);
       return json({ ok: false, error: leased.error, code: leased.code }, 503);
@@ -122,7 +159,7 @@ Deno.serve(async (req: Request) => {
     return json({
       ok: true,
       orderId: order.id,
-      totalRobux,
+      totalRobux: finalTotalRobux,
       // The single pass to buy. priceRobux is what we actually set on Roblox,
       // which verification checks against - it is not merely the display total.
       gamePassId: leased.pass.gamepassId,

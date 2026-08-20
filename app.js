@@ -4168,6 +4168,10 @@
           if (msg) { msg.className = 'co-msg'; msg.textContent = ''; }
           var robuxOrderBody = { items: robuxItems };
           if (window.coldAuth.getCampaignCode()) robuxOrderBody.campaignCode = window.coldAuth.getCampaignCode();
+          // Matches the Stripe/PayPal/crypto path - create-robux-order
+          // re-validates the code server-side the same way those do, this
+          // just tells it which one to check.
+          if (appliedCoupon) robuxOrderBody.couponCode = appliedCoupon.code;
           window.coldAuth.invokeFn('create-robux-order', robuxOrderBody).then(function (data) {
             robuxOrderId = data.orderId;
             robuxOrderItems = data.items;

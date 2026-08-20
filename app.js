@@ -2770,8 +2770,15 @@
         body.innerHTML = orders.map(function (o) {
           var items = o.order_items || [];
           var titles = esc(items.map(function (i) { return i.title; }).join(', ') || '—');
-          var badge = o.status === 'paid' ? 'ok' : 'warn';
-          var label = o.status.charAt(0).toUpperCase() + o.status.slice(1);
+          // A manually-granted order (admin panel's "Manual product grant")
+          // writes status:'paid' like any real purchase - correct for
+          // download/ownership access, but "Paid" reads as if the customer
+          // actually paid $0 for something, which is confusing on their own
+          // order history. source:'granted' distinguishes it without
+          // touching the real payment status underneath.
+          var gifted = o.source === 'granted';
+          var badge = gifted ? 'ok' : (o.status === 'paid' ? 'ok' : 'warn');
+          var label = gifted ? 'Gifted' : (o.status.charAt(0).toUpperCase() + o.status.slice(1));
           var priceCell = '<span class="p-price" data-fixed>' + orderMoney(o) + '</span>';
           return '<tr><td>' + fmtDate(o.created_at) + '</td><td>' + titles + '</td><td class="dt-mono">' + shortOrderId(o.id) + '</td>' +
             '<td>' + priceCell + '</td>' +
@@ -2874,7 +2881,7 @@
       function loadRealData(userId) {
         window.coldSupabase
           .from('orders')
-          .select('id, created_at, status, currency, total_usd, total_robux, order_items(product_slug, title, qty, licence, products(image))')
+          .select('id, created_at, status, source, currency, total_usd, total_robux, order_items(product_slug, title, qty, licence, products(image))')
           .eq('user_id', userId)
           .order('created_at', { ascending: false })
           .then(function (res) {

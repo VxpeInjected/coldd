@@ -2642,6 +2642,16 @@ body.dash-body .backdrop, body.dash-body .scrim { display: none; }
 .adm-dd-radio { width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--hairline); flex: 0 0 auto; position: relative; }
 .adm-dd-opt.active .adm-dd-radio { border-color: var(--accent); }
 .adm-dd-opt.active .adm-dd-radio::after { content: ""; position: absolute; inset: 3px; border-radius: 50%; background: var(--accent); }
+/* Multi-select variant (product picker in the grant form) - square instead
+   of round, otherwise identical states, so it reads as "checkbox" not
+   "radio" without a second set of active/checked styles to maintain. */
+.adm-dd-check { border-radius: var(--r-xs); }
+.adm-dd-opt.active .adm-dd-check::after { border-radius: 3px; inset: 3px; }
+/* Filter input injected at the top of a searchable dropdown's menu (see
+   makeDropdown's opts.searchable) - a long, unsorted user/product list was
+   flagged as unusable to scroll through by hand. */
+.adm-dd-search { width: 100%; margin-bottom: 6px; padding: 9px 12px; font-size: 13px; }
+.adm-dd-opt[hidden] { display: none; }
 /* Per-row kebab action menu (order rows: view details / refund / revoke
    license / mark completed) - same open/close-on-outside-click pattern as
    .adm-staff-role-dd, just lighter since each row needs its own instance

@@ -2029,7 +2029,16 @@
 
   /* ---- Reusable custom dropdown (replaces native <select> everywhere in admin) ----
      root must contain .adm-dd-btn (with .adm-dd-val + chevron) and .adm-dd-menu,
-     matching the markup already used for the product category picker. */
+     matching the markup already used for the product category picker.
+
+     opts.searchable: injects a filter input at the top of the menu - for the
+     user/product pickers (grant form, reseller product), which can run to
+     hundreds of unsorted rows otherwise (a tester flagged scrolling a long,
+     non-alphabetical user list to find one person as unusable).
+     opts.multi: value becomes a comma-joined list of selected values instead
+     of one, checkboxes instead of radio dots, clicking an option toggles it
+     without closing the menu. Only the product picker in the grant form
+     needs this (granting several products to one user at once). */
   function makeDropdown(root, opts) {
     opts = opts || {};
     if (!root) return { setOptions: function () {}, setValue: function () {}, getValue: function () { return ''; }, close: function () {} };
@@ -2038,36 +2047,74 @@
     var menu = root.querySelector('.adm-dd-menu');
     var valueInput = opts.valueInput || null;
     var placeholder = opts.placeholder || 'Select…';
-    var current = '';
+    var multi = !!opts.multi;
+    var current = multi ? [] : '';
     var optionList = [];
 
     function close() { root.classList.remove('open'); if (menu) menu.hidden = true; if (btn) btn.setAttribute('aria-expanded', 'false'); }
-    function open() { root.classList.add('open'); if (menu) menu.hidden = false; if (btn) btn.setAttribute('aria-expanded', 'true'); }
+    function open() {
+      root.classList.add('open'); if (menu) menu.hidden = false; if (btn) btn.setAttribute('aria-expanded', 'true');
+      var search = menu ? menu.querySelector('.adm-dd-search') : null;
+      if (search) { search.value = ''; filterOptions(''); setTimeout(function () { search.focus(); }, 30); }
+    }
     function labelFor(value) {
       var found = optionList.filter(function (o) { return o.value === value; })[0];
       return found ? found.label : value;
     }
+    function filterOptions(q) {
+      q = (q || '').trim().toLowerCase();
+      if (!menu) return;
+      Array.prototype.forEach.call(menu.querySelectorAll('.adm-dd-opt'), function (o) {
+        var label = (o.getAttribute('data-label') || '').toLowerCase();
+        o.hidden = !!q && label.indexOf(q) < 0;
+      });
+    }
+    function syncButtonLabel() {
+      if (!valEl) return;
+      var empty = multi ? current.length === 0 : !current;
+      var text;
+      if (empty) text = placeholder;
+      else if (!multi) text = labelFor(current);
+      else if (current.length === 1) text = labelFor(current[0]);
+      else text = current.length + ' selected';
+      valEl.textContent = text;
+      valEl.classList.toggle('placeholder', empty);
+    }
     function setValue(value, silent) {
-      current = value || '';
-      if (valEl) { valEl.textContent = current ? labelFor(current) : placeholder; valEl.classList.toggle('placeholder', !current); }
-      if (valueInput) valueInput.value = current;
+      current = multi ? (Array.isArray(value) ? value.slice() : (value ? String(value).split(',').filter(Boolean) : [])) : (value || '');
+      syncButtonLabel();
+      if (valueInput) valueInput.value = multi ? current.join(',') : current;
       if (menu) Array.prototype.forEach.call(menu.querySelectorAll('.adm-dd-opt'), function (o) {
-        o.classList.toggle('active', o.getAttribute('data-value') === current);
+        var v = o.getAttribute('data-value');
+        var isActive = multi ? current.indexOf(v) >= 0 : v === current;
+        o.classList.toggle('active', isActive);
+        o.setAttribute('aria-selected', isActive ? 'true' : 'false');
       });
       if (!silent && typeof opts.onChange === 'function') opts.onChange(current);
+    }
+    function toggleValue(v) {
+      var i = current.indexOf(v);
+      var next = current.slice();
+      if (i >= 0) next.splice(i, 1); else next.push(v);
+      setValue(next);
     }
     function setOptions(list, selected) {
       optionList = list.map(function (o) { return typeof o === 'string' ? { value: o, label: o } : o; });
       if (menu) {
-        menu.innerHTML = optionList.map(function (o) {
-          var isActive = o.value === selected;
-          return '<button type="button" class="adm-dd-opt' + (isActive ? ' active' : '') + '" data-value="' + esc(o.value) + '" role="option" aria-selected="' + (isActive ? 'true' : 'false') + '"><span>' + esc(o.label) + '</span><span class="adm-dd-radio"></span></button>';
+        var searchHtml = opts.searchable ? '<input type="text" class="adm-dd-search adm-input" placeholder="Search…" />' : '';
+        menu.innerHTML = searchHtml + optionList.map(function (o) {
+          return '<button type="button" class="adm-dd-opt" data-value="' + esc(o.value) + '" data-label="' + esc(o.label) + '" role="option" aria-selected="false"><span>' + esc(o.label) + '</span><span class="adm-dd-radio' + (multi ? ' adm-dd-check' : '') + '"></span></button>';
         }).join('');
         Array.prototype.forEach.call(menu.querySelectorAll('.adm-dd-opt'), function (o) {
-          o.addEventListener('click', function () { setValue(o.getAttribute('data-value')); close(); });
+          o.addEventListener('click', function () {
+            if (multi) toggleValue(o.getAttribute('data-value'));
+            else { setValue(o.getAttribute('data-value')); close(); }
+          });
         });
+        var search = menu.querySelector('.adm-dd-search');
+        if (search) search.addEventListener('input', function () { filterOptions(search.value); });
       }
-      setValue(selected != null ? selected : current, true);
+      setValue((selected != null ? selected : current), true);
     }
     if (btn) btn.addEventListener('click', function (e) {
       e.stopPropagation();
@@ -2848,7 +2895,7 @@
         '<td>' + esc(o.userName) + '</td>' +
         '<td>' + o.currency.toUpperCase() + '</td>' +
         '<td>' + orderAmount(o) + '</td>' +
-        '<td>' + statusBadge(o.status) + '</td>' +
+        '<td>' + (o.source === 'granted' ? '<span class="dt-badge ok">Gifted</span>' : statusBadge(o.status)) + '</td>' +
         '<td class="adm-row-actions">' + orderRowMenuHtml(o) + '</td></tr>';
     }).join('') || '<tr><td colspan="8" class="adm-empty">No orders match.</td></tr>';
   }
@@ -3069,13 +3116,13 @@
   var resellerSearchEl = $('admResellerSearch');
   if (resellerSearchEl) resellerSearchEl.addEventListener('input', renderResellers);
 
-  var resellerProductDropdown = makeDropdown($('admResellerProductDD'), { valueInput: $('admResellerProductId'), placeholder: 'None' });
+  var resellerProductDropdown = makeDropdown($('admResellerProductDD'), { valueInput: $('admResellerProductId'), placeholder: 'None', searchable: true });
   var resellerStatusDropdown = makeDropdown($('admResellerStatusDD'), { valueInput: $('admResellerStatus') });
   resellerStatusDropdown.setOptions([{ value: 'active', label: 'Active' }, { value: 'inactive', label: 'Inactive' }], 'active');
 
   function openResellerEditor(reseller) {
     resellerProductDropdown.setOptions([{ value: '', label: 'None' }].concat(
-      allProducts().filter(function (p) { return p.resell; }).map(function (p) { return { value: p.id, label: p.title }; })
+      allProducts().filter(function (p) { return p.resell; }).map(function (p) { return { value: p.id, label: p.title }; }).sort(function (a, b) { return a.label.localeCompare(b.label); })
     ), (reseller && reseller.productId) || '');
     resellerStatusDropdown.setValue((reseller && reseller.status) || 'active', true);
     $('admResellerId').value = (reseller && reseller.id) || '';
@@ -3272,8 +3319,28 @@
   // each number was individually accurate. The full total/pending/completed
   // breakdown is still available in the View more detail modal.
   function userOrderCount(userId) { return ORDERS.filter(function (o) { return o.userId === userId && o.status === 'completed'; }).length; }
-  var grantUserDropdown = makeDropdown($('admGrantUserDD'), { valueInput: $('admGrantUser'), placeholder: 'Select user' });
-  var grantProductDropdown = makeDropdown($('admGrantProductDD'), { valueInput: $('admGrantProduct'), placeholder: 'Select product' });
+  // Cross-references the grant form's current user+product picks against
+  // real paid orders, so an admin granting a duplicate finds out before
+  // clicking Grant rather than after - flagged directly ("make a little
+  // warning saying they already own it") rather than blocking the submit,
+  // since re-granting is occasionally legitimate (account merges, a
+  // support fix).
+  function renderGrantOwnershipWarning() {
+    var warn = $('admGrantOwnedWarn'); if (!warn) return;
+    var userId = grantUserDropdown.getValue();
+    var productIds = grantProductDropdown.getValue();
+    if (!userId || !productIds.length) { warn.hidden = true; return; }
+    var owned = productIds.filter(function (slug) {
+      return ORDERS.some(function (o) {
+        return o.userId === userId && o.status === 'completed' &&
+          (o.items || []).some(function (it) { return it.product_slug === slug; });
+      });
+    }).map(function (slug) { var p = findProduct(slug); return p ? p.title : slug; });
+    warn.hidden = !owned.length;
+    if (owned.length) warn.textContent = (owned.length === 1 ? owned[0] + ' is' : owned.join(', ') + ' are') + ' already owned by this user.';
+  }
+  var grantUserDropdown = makeDropdown($('admGrantUserDD'), { valueInput: $('admGrantUser'), placeholder: 'Select user', searchable: true, onChange: renderGrantOwnershipWarning });
+  var grantProductDropdown = makeDropdown($('admGrantProductDD'), { valueInput: $('admGrantProduct'), placeholder: 'Select product(s)', searchable: true, multi: true, onChange: renderGrantOwnershipWarning });
   function userRowMenuHtml(u) {
     if (!can('admin')) return '';
     var items = ['<button type="button" class="adm-row-menu-item" data-action="view">View more</button>'];
@@ -3295,8 +3362,8 @@
         '<td class="adm-row-actions">' + userRowMenuHtml(u) + '</td></tr>';
     }).join('') || '<tr><td colspan="7" class="adm-empty">No users match.</td></tr>';
 
-    grantUserDropdown.setOptions(USERS.map(function (u) { return { value: u.id, label: u.name }; }), grantUserDropdown.getValue());
-    grantProductDropdown.setOptions(allProducts().map(function (p) { return { value: p.id, label: p.title }; }), grantProductDropdown.getValue());
+    grantUserDropdown.setOptions(USERS.map(function (u) { return { value: u.id, label: u.name }; }).sort(function (a, b) { return a.label.localeCompare(b.label); }), grantUserDropdown.getValue());
+    grantProductDropdown.setOptions(allProducts().map(function (p) { return { value: p.id, label: p.title }; }).sort(function (a, b) { return a.label.localeCompare(b.label); }), grantProductDropdown.getValue());
   }
   var usersBody = $('admUsersBody');
   // See the matching comment on the orders row-menu listener above - same
@@ -3475,21 +3542,33 @@
   if (grantForm) grantForm.addEventListener('submit', function (e) {
     e.preventDefault();
     if (!can('support')) return;
-    var userId = $('admGrantUser').value, prodId = $('admGrantProduct').value;
+    var userId = $('admGrantUser').value;
+    var products = grantProductDropdown.getValue().map(findProduct).filter(Boolean);
     var u = USERS.filter(function (x) { return x.id === userId; })[0];
-    var p = findProduct(prodId);
-    if (!u || !p) return;
+    if (!u || !products.length) return;
     var msg = $('admGrantMsg');
     var submitBtn = grantForm.querySelector('[type="submit"]');
     if (submitBtn) submitBtn.disabled = true;
-    invokeAdminFn('admin-grant-product', { userId: u.id, productId: p.dbId }, 'Could not grant the product.').then(function () {
-      logAudit('Manually granted "' + p.title + '" to ' + u.name);
-      if (msg) { msg.textContent = 'Granted "' + p.title + '" to ' + u.name + '.'; setTimeout(function () { msg.textContent = ''; }, 3000); }
+    // One grant call per product - admin-grant-product only ever writes a
+    // single order+order_item (mirroring one real checkout), and granting
+    // several products still needs to show up as several distinct
+    // purchase-history rows, not one row claiming multiple items.
+    var chain = products.reduce(function (p, product) {
+      return p.then(function () {
+        return invokeAdminFn('admin-grant-product', { userId: u.id, productId: product.dbId }, 'Could not grant "' + product.title + '".');
+      });
+    }, Promise.resolve());
+    chain.then(function () {
+      var names = products.map(function (p) { return p.title; }).join(', ');
+      logAudit('Manually granted ' + names + ' to ' + u.name);
+      if (msg) { msg.textContent = 'Granted ' + names + ' to ' + u.name + '.'; setTimeout(function () { msg.textContent = ''; }, 3000); }
       if (submitBtn) submitBtn.disabled = false;
+      grantProductDropdown.setValue([]);
+      renderGrantOwnershipWarning();
       return refreshOrders();
     }).catch(function (err) {
       if (submitBtn) submitBtn.disabled = false;
-      if (msg) msg.textContent = err.message || 'Could not grant the product.';
+      if (msg) msg.textContent = err.message || 'Could not grant the product(s).';
     });
   });
 

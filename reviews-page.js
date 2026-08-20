@@ -16,65 +16,58 @@
     return h;
   }
 
-  // Same dropdown pattern as the catalog's sort control (.sort-field/
-  // .sort-btn/.sort-menu/.sort-opt), reused rather than the plain chip
-  // row this started as - one consistent "click button, pick from a
-  // list" control instead of two different filter idioms on the site.
-  var filterField = document.getElementById('reviewFilterField');
-  var filterBtn = document.getElementById('reviewFilterBtn');
-  var filterMenu = document.getElementById('reviewFilterMenu');
-  var filterVal = document.getElementById('reviewFilterVal');
-  var filterOpts = filterMenu ? Array.prototype.slice.call(filterMenu.querySelectorAll('.sort-opt')) : [];
-  var activeFilter = 'all';
+  // Same dropdown pattern as the catalog's own sort control (.sort-field/
+  // .sort-btn/.sort-menu/.sort-opt) - a sort, not a filter (matches what
+  // that control actually is on the catalog page: Recommended/Featured/
+  // Lowest Price/etc, never a way to hide products).
+  var sortField = document.getElementById('reviewFilterField');
+  var sortBtn = document.getElementById('reviewFilterBtn');
+  var sortMenu = document.getElementById('reviewFilterMenu');
+  var sortVal = document.getElementById('reviewFilterVal');
+  var sortOpts = sortMenu ? Array.prototype.slice.call(sortMenu.querySelectorAll('.sort-opt')) : [];
+  var activeSort = 'newest';
 
-  function closeFilterMenu() {
-    if (filterField) filterField.classList.remove('open');
-    if (filterMenu) filterMenu.hidden = true;
-    if (filterBtn) filterBtn.setAttribute('aria-expanded', 'false');
+  function closeSortMenu() {
+    if (sortField) sortField.classList.remove('open');
+    if (sortMenu) sortMenu.hidden = true;
+    if (sortBtn) sortBtn.setAttribute('aria-expanded', 'false');
   }
-  function openFilterMenu() {
-    if (filterField) filterField.classList.add('open');
-    if (filterMenu) filterMenu.hidden = false;
-    if (filterBtn) filterBtn.setAttribute('aria-expanded', 'true');
+  function openSortMenu() {
+    if (sortField) sortField.classList.add('open');
+    if (sortMenu) sortMenu.hidden = false;
+    if (sortBtn) sortBtn.setAttribute('aria-expanded', 'true');
   }
-  if (filterBtn) filterBtn.addEventListener('click', function (e) {
+  if (sortBtn) sortBtn.addEventListener('click', function (e) {
     e.stopPropagation();
-    if (filterMenu && filterMenu.hidden) openFilterMenu(); else closeFilterMenu();
+    if (sortMenu && sortMenu.hidden) openSortMenu(); else closeSortMenu();
   });
-  filterOpts.forEach(function (o) {
+  sortOpts.forEach(function (o) {
     o.addEventListener('click', function () {
-      activeFilter = o.getAttribute('data-filter');
-      if (filterVal) filterVal.textContent = o.querySelector('span') ? o.querySelector('span').textContent : o.textContent;
-      filterOpts.forEach(function (opt) {
+      activeSort = o.getAttribute('data-filter');
+      if (sortVal) sortVal.textContent = o.querySelector('span') ? o.querySelector('span').textContent : o.textContent;
+      sortOpts.forEach(function (opt) {
         var active = opt === o;
         opt.classList.toggle('active', active);
         opt.setAttribute('aria-selected', active ? 'true' : 'false');
       });
-      closeFilterMenu();
+      closeSortMenu();
       render();
     });
   });
-  document.addEventListener('click', function (e) { if (filterField && !filterField.contains(e.target)) closeFilterMenu(); });
-  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeFilterMenu(); });
+  document.addEventListener('click', function (e) { if (sortField && !sortField.contains(e.target)) closeSortMenu(); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeSortMenu(); });
 
-  // Positive/negative are convenience buckets on top of the exact star
-  // filters, not a separate rating scale - 4-5 stars reads as a positive
-  // review, 1-3 doesn't (splitting negative from a 3-star "it's fine"
-  // would be reading sentiment into a middling rating that isn't there).
-  function matchesFilter(r) {
-    var stars = r.stars || 0;
-    if (activeFilter === 'all') return true;
-    if (activeFilter === 'positive') return stars >= 4;
-    if (activeFilter === 'negative') return stars > 0 && stars <= 3;
-    return stars === Number(activeFilter);
+  function sortReviews(list) {
+    var sorted = list.slice();
+    if (activeSort === 'highest') sorted.sort(function (a, b) { return (b.stars || 0) - (a.stars || 0); });
+    else if (activeSort === 'lowest') sorted.sort(function (a, b) { return (a.stars || 0) - (b.stars || 0); });
+    else sorted.sort(function (a, b) { return new Date(b.date) - new Date(a.date); });
+    return sorted;
   }
 
   function render() {
-    var all = (window.__REVIEWS || []).slice().sort(function (a, b) { return new Date(b.date) - new Date(a.date); });
-    if (!all.length) { grid.innerHTML = '<p class="pd-empty">No reviews yet.</p>'; return; }
-
-    var reviews = all.filter(matchesFilter);
-    if (!reviews.length) { grid.innerHTML = '<p class="pd-empty">No reviews match this filter.</p>'; return; }
+    var reviews = sortReviews(window.__REVIEWS || []);
+    if (!reviews.length) { grid.innerHTML = '<p class="pd-empty">No reviews yet.</p>'; return; }
 
     var catalogById = {};
     (window.__CATALOG || []).forEach(function (p) { catalogById[p.id] = p; });

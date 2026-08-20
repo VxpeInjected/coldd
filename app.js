@@ -4267,6 +4267,62 @@
         // until then rather than instructing the buyer to click nothing.
         if (tyRoot) tyRoot.setAttribute('data-state', state);
       }
+
+      // A one-shot burst of the site's own palette, not a generic rainbow -
+      // canvas over DOM nodes since a hundred-plus animating elements is
+      // heavier on layout than one canvas repainting itself. Self-removes
+      // once every piece has fallen off-screen (or after 4s regardless, so
+      // a stray piece stuck bouncing near the ceiling can't linger forever).
+      var confettiPlayed = false;
+      function confettiBurst() {
+        if (confettiPlayed) return;
+        confettiPlayed = true;
+        if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+        var colors = ['#ff4d44', '#e2382f', '#ff8079', '#34e08a', '#f4f6f9'];
+        var canvas = document.createElement('canvas');
+        canvas.setAttribute('aria-hidden', 'true');
+        canvas.style.cssText = 'position:fixed;inset:0;width:100vw;height:100vh;pointer-events:none;z-index:9999;';
+        var dpr = window.devicePixelRatio || 1;
+        canvas.width = window.innerWidth * dpr;
+        canvas.height = window.innerHeight * dpr;
+        document.body.appendChild(canvas);
+        var ctx = canvas.getContext('2d');
+        ctx.scale(dpr, dpr);
+        var w = window.innerWidth, h = window.innerHeight;
+        var pieces = [];
+        for (var i = 0; i < 140; i++) {
+          pieces.push({
+            x: w / 2 + (Math.random() - 0.5) * 260,
+            y: h * 0.28 + (Math.random() - 0.5) * 40,
+            vx: (Math.random() - 0.5) * 11,
+            vy: Math.random() * -11 - 3,
+            size: Math.random() * 6 + 4,
+            color: colors[Math.floor(Math.random() * colors.length)],
+            rot: Math.random() * 360,
+            vrot: (Math.random() - 0.5) * 22,
+            gravity: 0.22 + Math.random() * 0.14
+          });
+        }
+        var start = null;
+        function frame(ts) {
+          if (!start) start = ts;
+          ctx.clearRect(0, 0, w, h);
+          var alive = false;
+          pieces.forEach(function (p) {
+            p.vy += p.gravity; p.x += p.vx; p.y += p.vy; p.rot += p.vrot;
+            if (p.y < h + 20) alive = true;
+            ctx.save();
+            ctx.translate(p.x, p.y);
+            ctx.rotate(p.rot * Math.PI / 180);
+            ctx.fillStyle = p.color;
+            ctx.fillRect(-p.size / 2, -p.size * 0.3, p.size, p.size * 0.6);
+            ctx.restore();
+          });
+          if (alive && ts - start < 4000) requestAnimationFrame(frame);
+          else canvas.remove();
+        }
+        requestAnimationFrame(frame);
+      }
       var sessionId = new URLSearchParams(location.search).get('session_id');
       var robuxOrderIdParam = new URLSearchParams(location.search).get('order_id');
       // PayPal returns here after approval. Approval is NOT payment - the
@@ -4356,8 +4412,9 @@
             if (data.status === 'paid') {
               mark('ok');
               if (tyRetryBtn) tyRetryBtn.hidden = true;
-              if (titleEl) titleEl.textContent = 'Payment confirmed!';
-              if (subEl) subEl.textContent = 'Your files are ready below.';
+              if (titleEl) titleEl.textContent = 'Thank you for your order!';
+              if (subEl) subEl.textContent = 'Payment confirmed - your files are ready below.';
+              confettiBurst();
               renderItems(data.items || []);
               maybeShowResellerPopup(data.items || []);
             } else if (triesLeft > 0) {

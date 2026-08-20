@@ -293,6 +293,15 @@
           }).catch(function () {})
         : Promise.resolve();
 
+      // Reveal the numbers (see styles.css's .hs-loading, which keeps them
+      // invisibility:hidden but laid out) the moment both real figures are
+      // known, independent of the count-up animation's own scroll-gated
+      // timing below - a visitor who never scrolls the hero into view
+      // (unlikely, it's above the fold, but the animation code already
+      // treats that as possible) shouldn't be stuck looking at a
+      // permanently blanked-out stat forever.
+      discordReady.then(function () { wrap.classList.remove('hs-loading'); });
+
       function setFinal(el) {
         var target = Number(el.getAttribute('data-target')) || 0;
         el.textContent = target.toLocaleString('en-US') + (el.getAttribute('data-suffix') || '');
@@ -1496,6 +1505,15 @@
           var initialSortLabel = initialSortOpt.querySelector('span') ? initialSortOpt.querySelector('span').textContent : initialSortOpt.textContent;
           setSort(initialSort, initialSortLabel);
         }
+
+        // #grid ships [hidden] (static markup is every product in raw
+        // build-time order, unsorted and unpaginated - see styles.css's
+        // .grid-loading comment). setCat/setSort above already ran the
+        // real sort+filter+pagination pass synchronously, so the grid is
+        // correct now - reveal it and drop the spinner in its place.
+        grid.hidden = false;
+        var gridLoading = document.getElementById('gridLoading');
+        if (gridLoading) gridLoading.hidden = true;
       });
     })();
 

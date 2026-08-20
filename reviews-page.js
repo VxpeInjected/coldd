@@ -16,9 +16,26 @@
     return h;
   }
 
+  var filtersEl = document.getElementById('reviewFilters');
+  var activeFilter = 'all';
+  // Positive/negative are convenience buckets on top of the exact star
+  // filters, not a separate rating scale - 4-5 stars reads as a positive
+  // review, 1-3 doesn't (splitting negative from a 3-star "it's fine"
+  // would be reading sentiment into a middling rating that isn't there).
+  function matchesFilter(r) {
+    var stars = r.stars || 0;
+    if (activeFilter === 'all') return true;
+    if (activeFilter === 'positive') return stars >= 4;
+    if (activeFilter === 'negative') return stars > 0 && stars <= 3;
+    return stars === Number(activeFilter);
+  }
+
   function render() {
-    var reviews = (window.__REVIEWS || []).slice().sort(function (a, b) { return new Date(b.date) - new Date(a.date); });
-    if (!reviews.length) { grid.innerHTML = '<p class="pd-empty">No reviews yet.</p>'; return; }
+    var all = (window.__REVIEWS || []).slice().sort(function (a, b) { return new Date(b.date) - new Date(a.date); });
+    if (!all.length) { grid.innerHTML = '<p class="pd-empty">No reviews yet.</p>'; return; }
+
+    var reviews = all.filter(matchesFilter);
+    if (!reviews.length) { grid.innerHTML = '<p class="pd-empty">No reviews match this filter.</p>'; return; }
 
     var catalogById = {};
     (window.__CATALOG || []).forEach(function (p) { catalogById[p.id] = p; });
@@ -39,6 +56,14 @@
     // fully rendered, real content, permanently invisible. See app.js.
     if (window.__scanReveal) window.__scanReveal(grid);
   }
+
+  if (filtersEl) filtersEl.addEventListener('click', function (e) {
+    var btn = e.target.closest('.chip');
+    if (!btn) return;
+    activeFilter = btn.getAttribute('data-filter');
+    filtersEl.querySelectorAll('.chip').forEach(function (c) { c.classList.toggle('active', c === btn); });
+    render();
+  });
 
   // catalog.js has already resolved window.__REVIEWS/__CATALOG by the time
   // this script runs (it's loaded via catalog.js's own data-then chain,

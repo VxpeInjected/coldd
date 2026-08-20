@@ -144,6 +144,16 @@
 
     <section class="section-pad" style="padding-top: 6px;">
       <div class="wrap">
+        <div class="filters" id="reviewFilters" role="group" aria-label="Filter reviews">
+          <button type="button" class="chip active" data-filter="all">All</button>
+          <button type="button" class="chip" data-filter="positive">Positive</button>
+          <button type="button" class="chip" data-filter="negative">Negative</button>
+          <button type="button" class="chip" data-filter="5">5 star</button>
+          <button type="button" class="chip" data-filter="4">4 star</button>
+          <button type="button" class="chip" data-filter="3">3 star</button>
+          <button type="button" class="chip" data-filter="2">2 star</button>
+          <button type="button" class="chip" data-filter="1">1 star</button>
+        </div>
         <div class="reviews" id="allReviewsGrid">
           <p class="pd-empty">Loading reviews…</p>
         </div>
@@ -312,6 +322,6 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.2/dist/umd/supabase.min.js" integrity="sha384-B2duOBIryCXbX4eDE4BdJwtNkQMRQde3o6IsjfPW28E6aH1CYE96hHeZRG3zY56O" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script src="/supabase-init.js?v=20260819a"></script>
   <script src="/site-gate.js?v=20260818b"></script>
-  <script src="/catalog.js?v=20260819a" data-then="/app.js?v=20260820a,/reviews-page.js?v=20260816a"></script>
+  <script src="/catalog.js?v=20260819a" data-then="/app.js?v=20260820a,/reviews-page.js?v=20260820a"></script>
 </body>
 </html>

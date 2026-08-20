@@ -324,6 +324,33 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.2/dist/umd/supabase.min.js" integrity="sha384-B2duOBIryCXbX4eDE4BdJwtNkQMRQde3o6IsjfPW28E6aH1CYE96hHeZRG3zY56O" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script src="/supabase-init.js?v=20260820e"></script>
   <script src="/site-gate.js?v=20260820a"></script>
-  <script src="/catalog.js?v=20260820a" data-then="/app.js?v=20260820f,/reviews-page.js?v=20260820d"></script>
+  <script src="/catalog.js?v=20260820b" data-then="/app.js?v=20260820g,/reviews-page.js?v=20260820d"></script>
+  <script>
+    // Cart badge/total sync from localStorage, ahead of app.js. The fab
+    // markup above ships hardcoded at "0"/"$0", and the cart module that
+    // reads the real localStorage cart lives in app.js, which only loads
+    // once catalog.js's Supabase fetch resolves (see catalog.js's
+    // loadDependents/data-then) - a couple seconds on a cold load. A
+    // signed-in visitor with items already in their cart saw 0/$0 flash for
+    // that whole stretch, then snap to the real count/total. The cart itself
+    // is pure localStorage (see app.js's cart module), so it doesn't need to
+    // wait on that fetch at all - just on catalog.js (loaded just above,
+    // synchronously) having already defined window.__money.
+    (function () {
+      try {
+        var cart = JSON.parse(localStorage.getItem('coldd_cart_v1') || '[]') || [];
+        var count = cart.length;
+        var countEl = document.getElementById('cartCount');
+        if (countEl) countEl.textContent = count > 99 ? '99+' : count;
+        var fab = document.getElementById('cartFab');
+        if (fab) fab.classList.toggle('has-items', count > 0);
+        var totalEl = document.getElementById('cartFabTotal');
+        if (totalEl && window.__money) {
+          var subtotal = cart.reduce(function (s, i) { return s + (Number(i.price) || 0); }, 0);
+          totalEl.textContent = window.__money(subtotal);
+        }
+      } catch (e) {}
+    })();
+  </script>
 </body>
 </html>

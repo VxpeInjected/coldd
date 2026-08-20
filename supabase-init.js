@@ -205,7 +205,17 @@
   function applyProfile() {
     var p = getProfile();
     if (!p) return;
-    var displayName = (p.provider === 'email' ? capitalizeEmailPrefix(p.email) : p.name) || p.name;
+    // p.name already IS the right value here - upsertBasicProfile only
+    // ever derives it from the email prefix as a fallback for brand-new
+    // signups (see its own comment), and keeps whatever the user set via
+    // Account Settings from then on. Unconditionally recomputing it from
+    // the email here for every email-provider user threw that custom name
+    // away everywhere applyProfile paints it (nav, dashboard header) even
+    // though Account Settings itself (which reads p.name directly) showed
+    // it saved correctly - "I changed my name and nothing changed."
+    // capitalizeEmailPrefix is now only a last-resort fallback if p.name
+    // is somehow empty.
+    var displayName = p.name || (p.provider === 'email' ? capitalizeEmailPrefix(p.email) : '') || 'Member';
 
     document.querySelectorAll('#dashName, #coUserName').forEach(function (el) { el.textContent = displayName; });
     document.querySelectorAll('#dashEmail, #coUserEmail').forEach(function (el) { el.textContent = p.email || ''; });

@@ -2245,7 +2245,19 @@ html.js .ref-method-btn:focus-visible { outline: 2px solid var(--accent); outlin
    how the resell-licence agreement was showing on carts with no resell item.
    Same defect previously hit the tutorials/releases tabs. */
 .co-check[hidden] { display: none; }
-.co-check input { margin-top: 2px; width: 16px; height: 16px; accent-color: var(--accent); flex: 0 0 auto; cursor: pointer; }
+/* accent-color alone tints the browser's OWN checkbox rendering, corners
+   and all - shape and rounding stay whatever that browser/OS draws by
+   default, unrelated to anything else on the page. A custom checkbox
+   (appearance:none + our own box/checkmark) puts it on the same var(--r-xs)
+   radius the rest of the site's small ticks/badges/chips use, instead of
+   an unstyled native control sitting in an otherwise fully custom UI. */
+.co-check input { -webkit-appearance: none; appearance: none; margin-top: 1px; width: 17px; height: 17px; flex: 0 0 auto; cursor: pointer;
+  border: 1.5px solid var(--hairline-strong); border-radius: var(--r-xs); background: var(--ink-25);
+  display: inline-grid; place-items: center; transition: background .15s var(--ease), border-color .15s var(--ease); }
+.co-check input:hover { border-color: var(--accent); }
+.co-check input:checked { background: var(--accent); border-color: var(--accent); }
+.co-check input:checked::after { content: ''; width: 5px; height: 9px; margin-bottom: 1px;
+  border: solid #fff; border-width: 0 2px 2px 0; transform: rotate(45deg); }
 .co-check a { color: var(--accent); text-decoration: none; }
 .co-place { width: 100%; justify-content: center; min-height: 52px; font-size: 15px; }
 .co-msg { margin-top: 14px; padding: 13px 16px; border-radius: 16px; font-size: 14px; line-height: 1.5; display: none;
@@ -3439,7 +3451,12 @@ input[type="checkbox"]:focus-visible { outline: 2px solid var(--accent); outline
 .robux-overlay:not([hidden]) { display: flex; }
 .robux-modal { position: relative; width: 420px; min-height: 420px; max-width: 92vw; max-height: 88vh; overflow-y: auto;
   display: flex; flex-direction: column; justify-content: center;
-  background: rgba(19,20,26,0.99); border: 1px solid var(--hairline); border-radius: 20px;
+  background: rgba(19,20,26,0.99); border: 1px solid var(--hairline);
+  /* Was a one-off 20px - matched neither var(--r) (24px, what every other
+     card in checkout - Contact/Payment/Before you pay/Order summary -
+     actually uses) nor var(--r-sm) (16px, the inner-panel token). This is
+     a standalone card in the same flow, so it gets the same card radius. */
+  border-radius: var(--r);
   box-shadow: 0 30px 70px -22px var(--ink-85); padding: 32px 30px 28px; }
 .robux-modal-x { position: absolute; top: 16px; right: 16px; }
 .robux-modal h2 { font-size: 21px; font-weight: 800; letter-spacing: -0.02em; margin: 0 0 18px; padding-right: 30px; }

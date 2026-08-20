@@ -117,7 +117,18 @@
         try { sessionStorage.setItem('coldd_unlocked', '1'); } catch (err2) {}
         var params = new URLSearchParams(location.search);
         var dest = params.get('r');
-        location.replace(dest ? decodeURIComponent(dest) : '/');
+        // Re-validated here rather than trusted, since it becomes a redirect
+        // target - same rule roblox-callback.html applies to returnTo: must
+        // be an on-site path, never an absolute/protocol-relative URL an
+        // attacker could plant in a shared unlock link (?r=https://evil...).
+        var safeDest = '/';
+        if (dest) {
+          try {
+            var decoded = decodeURIComponent(dest);
+            if (decoded.charAt(0) === '/' && decoded.charAt(1) !== '/') safeDest = decoded;
+          } catch (e2) {}
+        }
+        location.replace(safeDest);
       } else {
         err.hidden = false;
         document.getElementById('lockPw').select();

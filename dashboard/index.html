@@ -32,7 +32,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
 
-  <link rel="stylesheet" href="/styles.css?v=20260820m" />
+  <link rel="stylesheet" href="/styles.css?v=20260820n" />
 </head>
 <body class="dash-body">
   <div class="backdrop"></div>
@@ -271,6 +271,18 @@
         <div class="dash-head"><h1>Account settings</h1><p>Update your details, manage security, or close your account.</p></div>
         <div class="dash-card glass"><div class="dash-card-head"><h2>Appearance</h2></div>
           <div class="ntf-row"><div class="ntf-text"><div class="ntf-label">Light mode</div><div class="ntf-sub">coldd is dark by default - turn this on for a light theme instead. Only affects your own browser.</div></div><label class="switch"><input type="checkbox" id="themeLightToggle" /><span class="track"></span></label></div>
+        </div>
+        <div class="dash-card glass"><div class="dash-card-head"><h2>Profile picture</h2></div>
+          <div class="ac-avatar-row">
+            <span class="dash-av dash-av-lg" id="acAvatarPreview"></span>
+            <div class="ac-avatar-actions">
+              <button class="btn btn-tinted" id="acAvatarBtn" type="button">Change picture</button>
+              <button class="btn btn-ghost" id="acAvatarRemove" type="button">Remove</button>
+              <input type="file" id="acAvatarInput" accept="image/jpeg,image/png,image/webp,image/gif" hidden />
+              <p class="auth-hint">JPG, PNG, WEBP, or GIF. Square images look best.</p>
+              <div class="auth-msg" id="acAvatarMsg"></div>
+            </div>
+          </div>
         </div>
         <div class="dash-card glass"><div class="dash-card-head"><h2>Change account details</h2></div>
           <form class="auth-form" id="acctForm" novalidate style="max-width:420px;">
@@ -511,16 +523,16 @@
     <div class="confirm-modal">
       <p>Sign out of coldd?</p>
       <div class="confirm-actions">
-        <button class="btn" id="signoutCancel" type="button">Cancel</button>
         <button class="btn btn-primary" id="signoutConfirm" type="button">Sign out</button>
+        <button class="btn" id="signoutCancel" type="button">Cancel</button>
       </div>
     </div>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.2/dist/umd/supabase.min.js" integrity="sha384-B2duOBIryCXbX4eDE4BdJwtNkQMRQde3o6IsjfPW28E6aH1CYE96hHeZRG3zY56O" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-  <script src="/supabase-init.js?v=20260820e"></script>
+  <script src="/supabase-init.js?v=20260820f"></script>
   <script src="/site-gate.js?v=20260820b"></script>
-  <script src="/catalog.js?v=20260820b" data-then="/app.js?v=20260820o"></script>
+  <script src="/catalog.js?v=20260820b" data-then="/app.js?v=20260820p"></script>
   <script>
     // Cart badge/total sync from localStorage, ahead of app.js. The fab
     // markup above ships hardcoded at "0"/"$0", and the cart module that

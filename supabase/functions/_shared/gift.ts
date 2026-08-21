@@ -12,9 +12,12 @@
 // sendOrderReceipt. Returns the guestEmail override to pass into
 // sendOrderReceipt (null for a non-gift order, so every call site's
 // existing guest-email logic - Stripe's collected email, PayPal's payer
-// email, etc. - is completely unaffected). Also fires the recipient-facing
-// "you received a gift" notification here, since both need the exact same
-// purchased_by_user_id check and the caller already has the order loaded.
+// email, etc. - is completely unaffected). Also fires the in-site bell
+// notification here for whoever actually has an account on this order -
+// the recipient on a gift, or the buyer on an ordinary self-purchase -
+// since a receipt email is not the same as something showing up in the
+// nav bell, and until this existed neither a real purchase nor a granted
+// product ever produced one ("bought 5 things, got no notifications").
 
 import { notifyUser } from "./notify.ts";
 
@@ -24,17 +27,23 @@ export async function resolveGiftReceipt(
   admin: any,
   order: { id: string; user_id: string | null; purchased_by_user_id?: string | null },
 ): Promise<string | null> {
-  if (!order.purchased_by_user_id) return null;
+  // Best-effort, same as every other notifyUser call site - a notification
+  // failing to insert must never block or fail the receipt email above it.
+  // deno-lint-ignore no-explicit-any
+  const { data: items } = await admin.from("order_items").select("title").eq("order_id", order.id) as { data: any[] | null };
+  const titles = (items || []).map((i) => i.title).join(", ") || "your order";
+
+  if (!order.purchased_by_user_id) {
+    if (order.user_id) {
+      await notifyUser(admin, order.user_id, "Purchase confirmed", `${titles} is now in your Licenses.`, "/dashboard?panel=owned");
+    }
+    return null;
+  }
 
   const { data: buyerRes } = await admin.auth.admin.getUserById(order.purchased_by_user_id);
   const buyerEmail: string | null = buyerRes?.user?.email || null;
 
-  // Best-effort, same as every other notifyUser call site - a notification
-  // failing to insert must never block or fail the receipt email above it.
   if (order.user_id) {
-    // deno-lint-ignore no-explicit-any
-    const { data: items } = await admin.from("order_items").select("title").eq("order_id", order.id) as { data: any[] | null };
-    const titles = (items || []).map((i) => i.title).join(", ") || "a gift";
     await notifyUser(
       admin,
       order.user_id,
@@ -43,6 +52,7 @@ export async function resolveGiftReceipt(
       "/dashboard?panel=owned",
     );
   }
+  await notifyUser(admin, order.purchased_by_user_id, "Gift sent", `Your gift order for ${titles} is confirmed.`, "/dashboard?panel=purchases");
 
   return buyerEmail;
 }

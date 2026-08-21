@@ -1884,6 +1884,10 @@ body.auth-page { min-height: 100vh; min-height: 100dvh; }
 .dash-user { display: flex; align-items: center; gap: 12px; padding: 8px 8px 16px; border-bottom: 1px solid var(--hairline); margin-bottom: 8px; }
 .dash-av { flex: 0 0 auto; width: 42px; height: 42px; border-radius: 50%; display: grid; place-items: center; font-weight: 700; color: #fff;
   background: linear-gradient(160deg, #ff5247, #e23229); }
+.dash-av-lg { width: 84px; height: 84px; font-size: 28px; }
+.ac-avatar-row { display: flex; align-items: center; gap: 22px; flex-wrap: wrap; }
+.ac-avatar-actions { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
+.ac-avatar-actions .btn { min-height: 36px; padding: 8px 16px; font-size: 13px; }
 .dash-user-info { min-width: 0; }
 .dash-name { font-size: 14px; font-weight: 700; }
 .dash-email { font-size: 12px; color: var(--fg-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -1972,21 +1976,6 @@ body.auth-page { min-height: 100vh; min-height: 100dvh; }
 .dash-filter-field select { color-scheme: dark; }
 .dash-filter-field input[type="date"], .dash-filter-field input[type="number"] { width: 140px; }
 .dash-filter-clear { align-self: flex-end; }
-
-/* Persistent confirmation that a referral link's code actually stuck
-   (it's in localStorage the whole time, but nothing on screen ever said
-   so once the ?ref= query param scrolled out of the address bar) - shown
-   on every page, not just the landing page, since the code itself is
-   sitewide for the length of the visit. */
-.ref-active-pill { position: fixed; left: 16px; bottom: 16px; z-index: 200;
-  display: flex; align-items: center; gap: 10px; padding: 10px 10px 10px 16px; border-radius: 999px;
-  background: rgba(19,20,26,0.96); border: 1px solid var(--hairline); box-shadow: 0 16px 40px -16px var(--ink-75);
-  font-size: 13px; font-weight: 600; color: var(--fg); animation: refPillIn .3s var(--ease) both; }
-@keyframes refPillIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
-.ref-active-pill button { width: 24px; height: 24px; flex: 0 0 auto; border-radius: 50%; border: none;
-  background: rgba(255,255,255,0.08); color: var(--fg-3); font-size: 16px; line-height: 1; cursor: pointer; }
-.ref-active-pill button:hover { color: var(--fg); background: rgba(255,255,255,0.16); }
-@media (max-width: 640px) { .ref-active-pill { left: 12px; right: 12px; bottom: 84px; } }
 
 /* Collapsible dash-card sections (AdBlox top-servers / activity log) -
    native <details>/<summary> so open/closed state needs no JS, capped at a
@@ -3303,13 +3292,19 @@ body.auth-page .backdrop, body.auth-page .scrim { position: fixed; inset: 0; hei
 .auth-status { margin: 8px 0 0; font-size: 12px; color: #ff4d44; }
 .auth-status[hidden] { display: none; }
 
-/* sign-out confirm modal */
-.confirm-overlay { position: fixed; inset: 0; z-index: 400; background: rgba(6,7,10,0.6);
+/* Confirm popup (sign-out, and any other Cancel/primary-action pair using
+   these same classes) - was a flat #0b0b0b box with a sharp 10px corner
+   and no entrance at all, standing out as the one dated-looking overlay
+   next to every other modal on the site (.pay-modal, quick-view, etc.),
+   which all get the blurred-backdrop-plus-pop-in treatment already. */
+.confirm-overlay { position: fixed; inset: 0; z-index: 400; background: rgba(6,7,10,0.62);
+  backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px);
   display: none; align-items: center; justify-content: center; padding: 24px; }
-.confirm-overlay:not([hidden]) { display: flex; }
-.confirm-modal { width: 380px; max-width: 96vw; background: #0b0b0b; border: 1px solid var(--hairline);
-  border-radius: 10px; padding: 28px; text-align: center; }
-.confirm-modal p { margin: 0 0 20px; font-size: 14px; color: var(--fg); }
+.confirm-overlay:not([hidden]) { display: flex; animation: ovIn .2s var(--ease); }
+.confirm-modal { width: 380px; max-width: 96vw; background: var(--bg-3); border: 1px solid var(--hairline);
+  border-radius: var(--r-sm); padding: 30px; text-align: center; box-shadow: var(--e-3);
+  animation: pmIn .3s var(--ease); }
+.confirm-modal p { margin: 0 0 22px; font-size: 15px; font-weight: 600; color: var(--fg); }
 .confirm-actions { display: flex; gap: 10px; }
 .confirm-actions .btn { flex: 1; justify-content: center; }
 

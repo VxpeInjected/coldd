@@ -10,6 +10,7 @@
 // previous client-only fake row that vanished on the next refresh.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { notifyUser } from "../_shared/notify.ts";
 
 const ALLOWED_ORIGIN = "https://coldd.dev";
 
@@ -97,6 +98,8 @@ Deno.serve(async (req: Request) => {
       await admin.from("orders").delete().eq("id", order.id);
       return json({ ok: false, error: "Could not grant the product." }, 500);
     }
+
+    notifyUser(admin, targetUserId, "You've been granted a product", product.title + " is now in your Licenses.", "/dashboard?panel=owned");
 
     return json({ ok: true, orderId: order.id });
   } catch (err) {

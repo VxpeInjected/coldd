@@ -221,7 +221,7 @@
     document.querySelectorAll('#dashEmail, #coUserEmail').forEach(function (el) { el.textContent = p.email || ''; });
 
     function paintAvatar(url) {
-      document.querySelectorAll('#dashAvatar, #coAvatar').forEach(function (el) {
+      document.querySelectorAll('#dashAvatar, #coAvatar, #acAvatarPreview').forEach(function (el) {
         if (url) {
           el.style.backgroundImage = 'url(' + url + ')';
           el.style.backgroundSize = 'cover';
@@ -242,18 +242,19 @@
     }
     paintAvatar(avatarUrlFor(p));
 
-    // A Discord identity's avatar_url/discord_id persist on the profiles
-    // row from whenever it was linked, regardless of which provider the
-    // CURRENT session used to sign in - p above only reflects this
-    // session's provider, so a user who originally connected Discord but
-    // is now signed in via email/Google/Roblox would otherwise never see
-    // it. Discord wins whenever it's on record, painted over the
-    // synchronous default above once this resolves.
+    // profiles.avatar_url persists server-side regardless of which provider
+    // the CURRENT session used to sign in - p above only reflects this
+    // session's provider, so a user who linked Discord (or uploaded a
+    // custom picture via Account Settings) but is now signed in via email/
+    // Google/Roblox would otherwise never see it. Whatever's on record wins
+    // over the synchronous provider/identicon default above, once this
+    // resolves - a self-uploaded avatar is exactly as durable as a linked
+    // Discord one, same column, same "always wins" rule.
     if (client && p.id) {
-      client.from('profiles').select('discord_id, avatar_url').eq('id', p.id).maybeSingle()
+      client.from('profiles').select('avatar_url').eq('id', p.id).maybeSingle()
         .then(function (res) {
           var row = res && res.data;
-          if (row && row.discord_id && row.avatar_url) paintAvatar(row.avatar_url);
+          if (row && row.avatar_url) paintAvatar(row.avatar_url);
         })
         .catch(function () {});
     }

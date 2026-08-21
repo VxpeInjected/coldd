@@ -11,7 +11,7 @@
 // fulfilment belongs exclusively to the signed webhook.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
-import { priceItems, resolveCoupon } from "../_shared/coupon.ts";
+import { priceItems, resolveCoupon, flatPctDiscount, clampCombinedDiscount } from "../_shared/coupon.ts";
 import { resolveCampaignCode } from "../_shared/campaign.ts";
 import { activeProvider } from "../_shared/crypto.ts";
 import { isSiteInMaintenance } from "../_shared/maintenance.ts";
@@ -80,6 +80,10 @@ Deno.serve(async (req: Request) => {
         appliedCouponCode = couponResult.code;
       }
     }
+    const marketingOptIn = !!body.marketingOptIn;
+    if (marketingOptIn) {
+      discount = clampCombinedDiscount(lines, discount + flatPctDiscount(lines, 10).discount);
+    }
     const total = Math.max(0, Math.round((subtotal - discount) * 100) / 100);
     if (total <= 0) return json({ ok: false, error: "Order total must be greater than zero." }, 400);
 
@@ -111,6 +115,7 @@ Deno.serve(async (req: Request) => {
         payment_provider: "crypto",
         crypto_provider: provider.name,
         campaign_code: campaignCode,
+        marketing_opt_in: marketingOptIn,
       })
       .select()
       .single();

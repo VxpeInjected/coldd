@@ -80,6 +80,7 @@ Deno.serve(async (req: Request) => {
       discountUsd: result.discount,
       subtotalUsd: priced.subtotal,
       totalUsd: Math.max(0, Math.round((priced.subtotal - result.discount) * 100) / 100),
+      note: result.note,
     });
   } catch (err) {
     console.error("[validate-coupon] error:", err);

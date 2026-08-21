@@ -28,6 +28,7 @@ import { findPoolSale, getValidRobloxToken } from "../_shared/roblox.ts";
 import { getLeasedPass, releasePass } from "../_shared/roblox_pool.ts";
 import { sendOrderReceipt } from "../_shared/email.ts";
 import { resolveGiftReceipt } from "../_shared/gift.ts";
+import { recordMarketingOptIn } from "../_shared/marketing.ts";
 
 const ALLOWED_ORIGIN = "https://coldd.dev";
 
@@ -183,6 +184,7 @@ Deno.serve(async (req: Request) => {
       const giftEmail = await resolveGiftReceipt(admin, { id: orderId, user_id: order.user_id, purchased_by_user_id: order.purchased_by_user_id });
       const receipt = await sendOrderReceipt(admin, orderId, giftEmail);
       if (!receipt.ok) console.error("[verify-robux-order] receipt email failed:", receipt.error);
+      if (order.marketing_opt_in) await recordMarketingOptIn(admin, giftEmail, order.user_id);
     }
 
     return json({ ok: true, verified: true, status: "paid" });

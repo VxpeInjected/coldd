@@ -20,7 +20,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { priceRobuxItems } from "../_shared/roblox.ts";
 import { leasePassForOrder } from "../_shared/roblox_pool.ts";
 import { resolveCampaignCode } from "../_shared/campaign.ts";
-import { priceItems, resolveCoupon } from "../_shared/coupon.ts";
+import { priceItems, resolveCoupon, flatPctDiscount, clampCombinedDiscount } from "../_shared/coupon.ts";
 import { isSiteInMaintenance } from "../_shared/maintenance.ts";
 
 const ALLOWED_ORIGIN = "https://coldd.dev";
@@ -98,16 +98,27 @@ Deno.serve(async (req: Request) => {
     let appliedCouponCode: string | null = null;
     let finalTotalRobux = totalRobux;
     let finalTotalUsd = subtotalUsd;
-    if (body.couponCode) {
+    const marketingOptIn = !!body.marketingOptIn;
+    if (body.couponCode || marketingOptIn) {
       const usdPriced = await priceItems(admin, items);
-      if (usdPriced.ok) {
-        const couponResult = await resolveCoupon(admin, String(body.couponCode), usdPriced.lines);
-        // Same as create-checkout-session: a coupon that no longer
-        // resolves (expired/deactivated/limit hit since the buyer applied
-        // it) just quietly doesn't apply rather than blocking checkout.
-        if (couponResult.ok && usdPriced.subtotal > 0) {
-          discountUsd = couponResult.discount;
-          appliedCouponCode = couponResult.code;
+      if (usdPriced.ok && usdPriced.subtotal > 0) {
+        let rawDiscountUsd = 0;
+        if (body.couponCode) {
+          const couponResult = await resolveCoupon(admin, String(body.couponCode), usdPriced.lines);
+          // Same as create-checkout-session: a coupon that no longer
+          // resolves (expired/deactivated/limit hit since the buyer
+          // applied it) just quietly doesn't apply rather than blocking
+          // checkout.
+          if (couponResult.ok) {
+            rawDiscountUsd = couponResult.discount;
+            appliedCouponCode = couponResult.code;
+          }
+        }
+        if (marketingOptIn) {
+          rawDiscountUsd = clampCombinedDiscount(usdPriced.lines, rawDiscountUsd + flatPctDiscount(usdPriced.lines, 10).discount);
+        }
+        if (rawDiscountUsd > 0) {
+          discountUsd = rawDiscountUsd;
           const fractionOff = discountUsd / usdPriced.subtotal;
           finalTotalRobux = Math.round(totalRobux * (1 - fractionOff));
           finalTotalUsd = Math.max(0, Math.round((subtotalUsd - discountUsd) * 100) / 100);
@@ -146,6 +157,7 @@ Deno.serve(async (req: Request) => {
         coupon_code: appliedCouponCode,
         roblox_buyer_id: robloxAcct.roblox_id,
         campaign_code: campaignCode,
+        marketing_opt_in: marketingOptIn,
       })
       .select()
       .single();

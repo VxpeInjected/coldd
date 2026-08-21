@@ -25,6 +25,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { activeProvider } from "../_shared/crypto.ts";
 import { sendOrderReceipt } from "../_shared/email.ts";
 import { resolveGiftReceipt } from "../_shared/gift.ts";
+import { recordMarketingOptIn } from "../_shared/marketing.ts";
 
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -113,6 +114,7 @@ Deno.serve(async (req: Request) => {
     const giftEmail = await resolveGiftReceipt(admin, { id: order.id, user_id: updated.user_id, purchased_by_user_id: updated.purchased_by_user_id });
     const receipt = await sendOrderReceipt(admin, order.id, giftEmail);
     if (!receipt.ok && receipt.code !== "NO_EMAIL") console.error("[crypto-webhook] receipt email failed:", receipt.error);
+    if (updated.marketing_opt_in) await recordMarketingOptIn(admin, giftEmail, updated.user_id);
 
     return json({ ok: true, status: "paid" });
   } catch (e) {

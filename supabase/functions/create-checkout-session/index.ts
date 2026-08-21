@@ -32,7 +32,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import Stripe from "https://esm.sh/stripe@17?target=deno";
-import { priceItems, resolveCoupon } from "../_shared/coupon.ts";
+import { priceItems, resolveCoupon, flatPctDiscount, clampCombinedDiscount } from "../_shared/coupon.ts";
 import { resolveCampaignCode } from "../_shared/campaign.ts";
 import { isSiteInMaintenance } from "../_shared/maintenance.ts";
 
@@ -112,6 +112,15 @@ Deno.serve(async (req: Request) => {
         appliedCouponCode = couponResult.code;
       }
     }
+    // Checkout's "Email me deals, drops, and product updates" box carries
+    // a flat 10% incentive - stacks with a coupon, but the combined total
+    // is re-clamped to the same legal floor either one alone already
+    // respects, so stacking two independently-capped discounts can never
+    // add up to more than a product is allowed to give up.
+    const marketingOptIn = !!body.marketingOptIn;
+    if (marketingOptIn) {
+      discount = clampCombinedDiscount(lines, discount + flatPctDiscount(lines, 10).discount);
+    }
     const total = Math.max(0, Math.round((subtotal - discount) * 100) / 100);
     const campaignCode = await resolveCampaignCode(admin, body.campaignCode);
 
@@ -142,6 +151,7 @@ Deno.serve(async (req: Request) => {
         total_usd: total,
         coupon_code: appliedCouponCode,
         campaign_code: campaignCode,
+        marketing_opt_in: marketingOptIn,
       })
       .select()
       .single();

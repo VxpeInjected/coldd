@@ -20,6 +20,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import Stripe from "https://esm.sh/stripe@17?target=deno";
 import { sendOrderReceipt } from "../_shared/email.ts";
 import { resolveGiftReceipt } from "../_shared/gift.ts";
+import { recordMarketingOptIn } from "../_shared/marketing.ts";
 
 const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY")!, {
   httpClient: Stripe.createFetchHttpClient(),
@@ -68,7 +69,7 @@ Deno.serve(async (req: Request) => {
           .update({ status: "paid", stripe_payment_intent_id: paymentIntentId, paid_at: new Date().toISOString() })
           .eq("id", orderId)
           .neq("status", "paid")
-          .select("coupon_code, user_id, purchased_by_user_id")
+          .select("coupon_code, user_id, purchased_by_user_id, marketing_opt_in")
           .single();
         if (error && error.code !== "PGRST116") console.error("[stripe-webhook] failed to mark order paid:", error);
 
@@ -93,6 +94,7 @@ Deno.serve(async (req: Request) => {
           const giftEmail = await resolveGiftReceipt(admin, { id: orderId, user_id: updated.user_id, purchased_by_user_id: updated.purchased_by_user_id });
           const receipt = await sendOrderReceipt(admin, orderId, giftEmail || guestEmail);
           if (!receipt.ok) console.error("[stripe-webhook] receipt email failed:", receipt.error);
+          if (updated.marketing_opt_in) await recordMarketingOptIn(admin, guestEmail, updated.user_id);
         }
       }
     } else if (event.type === "checkout.session.async_payment_failed" || event.type === "checkout.session.expired") {

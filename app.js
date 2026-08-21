@@ -3832,8 +3832,14 @@
       function cartToItems() {
         return cart.map(function (i) {
           var licence = i.id.indexOf('--resell') !== -1 ? 'resell' : 'standard';
-          var slug = i.id.replace(/--resell$/, '').replace(/--bundle$/, '');
-          return { slug: slug, qty: i.qty, licence: licence };
+          var slug = i.crossSellSlug || i.id.replace(/--resell$/, '').replace(/--bundle$/, '').replace(/--crosssell$/, '');
+          var out = { slug: slug, qty: i.qty, licence: licence };
+          // Tells priceItems (server-side, floor-checked) to apply the
+          // cross-sell discount to this specific line - the client-shown
+          // price above is a preview, this flag is what actually makes it
+          // real at checkout.
+          if (i.crossSellSlug) out.crossSell = true;
+          return out;
         });
       }
 
@@ -3841,8 +3847,19 @@
       // validate-coupon - never computed client-side, so what's shown here
       // always matches what create-checkout-session actually charges.
       var appliedCoupon = null;
+      // The marketing-optin 10% is an ESTIMATE for this summary only - the
+      // real, floor-respecting amount is computed server-side the moment
+      // the order is actually created (same "capped without failing the
+      // whole checkout" rule a coupon gets), and Stripe/PayPal's own hosted
+      // page (or the Robux order confirmation screen) always shows the
+      // real final figure before anything is charged, so a same-ballpark
+      // preview here is enough.
       function computeDiscount() {
-        return appliedCoupon ? appliedCoupon.discountUsd : 0;
+        var sub = subtotal();
+        var d = appliedCoupon ? appliedCoupon.discountUsd : 0;
+        var mktToggle = document.getElementById('coMkt');
+        if (mktToggle && mktToggle.checked) d += Math.round(sub * 0.10 * 100) / 100;
+        return Math.min(d, sub);
       }
 
       function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
@@ -3903,7 +3920,9 @@
         if (discLine) {
           discLine.hidden = disc <= 0;
           if (disc > 0) {
-            set('coDiscLabel', 'Discount (' + appliedCoupon.code + ')');
+            var mktChecked = document.getElementById('coMkt') && document.getElementById('coMkt').checked;
+            var discLabel = appliedCoupon ? ('Discount (' + appliedCoupon.code + (mktChecked ? ' + 10%' : '') + ')') : 'Discount (10%)';
+            set('coDiscLabel', discLabel);
             if (rbxSub != null && sub > 0) {
               set('coDiscAmt', '-R$ ' + Math.round(rbxSub * (disc / sub)).toLocaleString('en-US'));
             } else {
@@ -3982,12 +4001,114 @@
       }
       function render() {
         renderItems(); renderTotals(); updateResell();
+        renderResellUpsell(); renderCrossSell();
         if (typeof payMethod !== 'undefined' && payMethod === 'robux') renderRobuxPanel();
       }
 
       function updateResell() {
         var wrap = document.getElementById('coResellWrap');
         if (wrap) wrap.hidden = !cart.some(function (i) { return i.licence === 'resell'; });
+      }
+
+      // Resell-license upgrade offer: any cart item that offers a resell
+      // licence but was added as standard gets a one-click "upgrade" row.
+      // Removes the standard line and re-adds the same product as
+      // licence:'resell' - real price change, not a display trick, so it
+      // flows through the exact same total/coupon/place-order path a
+      // resell item added from the product page would.
+      function renderResellUpsell() {
+        var box = document.getElementById('coResellUpsell');
+        if (!box) return;
+        var cat = window.__CATALOG || [];
+        var candidates = cart.filter(function (i) {
+          if (i.licence === 'resell') return false;
+          var p = cat.filter(function (x) { return x.id === i.id; })[0];
+          return p && p.resell;
+        });
+        if (!candidates.length) { box.hidden = true; box.innerHTML = ''; return; }
+        box.hidden = false;
+        box.innerHTML = candidates.map(function (i) {
+          var p = cat.filter(function (x) { return x.id === i.id; })[0];
+          var resellPrice = p.resellPrice != null ? p.resellPrice : Math.round(p.priceNum * 3);
+          return '<div class="co-upsell-row" data-slug="' + esc(i.id) + '">' +
+            '<span class="co-upsell-thumb" style="background-image:url(\'' + i.image + '\')"></span>' +
+            '<div class="co-upsell-text"><div class="co-upsell-title">Add resell rights to ' + esc(i.title) + '</div>' +
+            '<div class="co-upsell-sub">Upgrade for ' + money(resellPrice - i.price) + ' more</div></div>' +
+            '<button class="btn btn-tinted co-upsell-btn" type="button" data-act="resell-upgrade">Upgrade</button></div>';
+        }).join('');
+      }
+      if (document.getElementById('coResellUpsell')) {
+        document.getElementById('coResellUpsell').addEventListener('click', function (e) {
+          var row = e.target.closest('.co-upsell-row'); if (!row) return;
+          var slug = row.getAttribute('data-slug');
+          var cat = window.__CATALOG || [];
+          var p = cat.filter(function (x) { return x.id === slug; })[0];
+          if (!p) return;
+          var resellPrice = p.resellPrice != null ? p.resellPrice : Math.round(p.priceNum * 3);
+          // This page's own cart instance (checkout's `cart`/`save` are
+          // separate from the nav drawer's - see the coldd:cart-sync
+          // listener above), so the swap is done directly on it rather
+          // than through the drawer's add()/removeItem(), which aren't in
+          // scope here.
+          cart = cart.filter(function (i) { return i.id !== slug; });
+          cart.push({ id: slug + '--resell', title: p.title, price: resellPrice, image: p.image, tag: p.cat || '', licence: 'resell', qty: 1 });
+          save(cart);
+          render();
+        });
+      }
+
+      // Genre cross-sell: "people also get this" based on the genres
+      // actually in the cart right now (get_checkout_cross_sell, same
+      // dynamic genre detection the dashboard's Recommended for you uses),
+      // not purchase history - works for a guest checkout with none. Added
+      // items carry crossSell:true so priceItems bakes in the discount
+      // server-side (floor-checked the same way every other discount path
+      // here is), instead of trusting a client-computed price.
+      var crossSellCache = null; // slug -> {title, image, price, cat}, refreshed whenever the cart's slug set changes
+      var crossSellCartKey = null;
+      function renderCrossSell() {
+        var box = document.getElementById('coCrossSell');
+        if (!box || !window.coldSupabase) return;
+        var slugs = Array.from(new Set(cart.map(function (i) { return i.id.replace(/--resell$/, '').replace(/--bundle$/, ''); })));
+        if (!slugs.length) { box.hidden = true; box.innerHTML = ''; return; }
+        var key = slugs.slice().sort().join(',');
+        if (key === crossSellCartKey) { paintCrossSell(); return; }
+        crossSellCartKey = key;
+        window.coldSupabase.rpc('get_checkout_cross_sell', { p_slugs: slugs, p_limit: 3 }).then(function (res) {
+          if (key !== crossSellCartKey) return; // cart changed again before this resolved
+          var cat = window.__CATALOG || [];
+          var rows = (res.data || []).map(function (r) { return cat.filter(function (x) { return x.id === r.product_slug; })[0]; }).filter(Boolean);
+          // Never suggest something already sitting in the cart.
+          var cartIds = {}; cart.forEach(function (i) { cartIds[i.id.replace(/--resell$/, '').replace(/--bundle$/, '')] = true; });
+          crossSellCache = rows.filter(function (p) { return !cartIds[p.id]; });
+          paintCrossSell();
+        }).catch(function () { crossSellCache = []; paintCrossSell(); });
+      }
+      function paintCrossSell() {
+        var box = document.getElementById('coCrossSell');
+        if (!box) return;
+        if (!crossSellCache || !crossSellCache.length) { box.hidden = true; box.innerHTML = ''; return; }
+        box.hidden = false;
+        box.innerHTML = crossSellCache.map(function (p) {
+          var discounted = Math.round(p.priceNum * 0.9 * 100) / 100;
+          return '<div class="co-upsell-row" data-slug="' + esc(p.id) + '">' +
+            '<span class="co-upsell-thumb" style="background-image:url(\'' + p.image + '\')"></span>' +
+            '<div class="co-upsell-text"><div class="co-upsell-title">' + esc(p.title) + '</div>' +
+            '<div class="co-upsell-sub"><span class="co-upsell-was">' + money(p.priceNum) + '</span>' + money(discounted) + ' - add it now</div></div>' +
+            '<button class="btn btn-tinted co-upsell-btn" type="button" data-act="cross-sell-add">Add</button></div>';
+        }).join('');
+      }
+      if (document.getElementById('coCrossSell')) {
+        document.getElementById('coCrossSell').addEventListener('click', function (e) {
+          var row = e.target.closest('.co-upsell-row'); if (!row) return;
+          var slug = row.getAttribute('data-slug');
+          var p = (crossSellCache || []).filter(function (x) { return x.id === slug; })[0];
+          if (!p) return;
+          var discounted = Math.round(p.priceNum * 0.9 * 100) / 100;
+          cart.push({ id: p.id + '--crosssell', crossSellSlug: p.id, title: p.title, price: discounted, image: p.image, tag: p.cat || '', licence: 'standard', qty: 1 });
+          save(cart);
+          render();
+        });
       }
 
       var loggedIn = false;
@@ -4072,7 +4193,7 @@
               if (couponMsg) { couponMsg.className = 'co-coupon-msg no'; couponMsg.textContent = (data && data.error) || 'That code is invalid or no longer active.'; }
             } else {
               appliedCoupon = { code: data.code, discountUsd: data.discountUsd };
-              if (couponMsg) { couponMsg.className = 'co-coupon-msg ok'; couponMsg.textContent = 'Code "' + data.code + '" applied!'; }
+              if (couponMsg) { couponMsg.className = 'co-coupon-msg ok'; couponMsg.textContent = data.note ? ('Code "' + data.code + '" applied - ' + data.note) : ('Code "' + data.code + '" applied!'); }
             }
             renderTotals();
           })
@@ -4083,6 +4204,9 @@
             renderTotals();
           });
       });
+
+      var coMktToggle = document.getElementById('coMkt');
+      if (coMktToggle) coMktToggle.addEventListener('change', renderTotals);
 
       // Robux checkout never goes through Stripe - Roblox handles the
       // actual payment when the buyer purchases each gamepass on
@@ -4448,6 +4572,7 @@
           // just tells it which one to check.
           if (appliedCoupon) robuxOrderBody.couponCode = appliedCoupon.code;
           if (giftToggle && giftToggle.checked && giftRecipientUserId) robuxOrderBody.giftRecipientUserId = giftRecipientUserId;
+          if (coMktToggle && coMktToggle.checked) robuxOrderBody.marketingOptIn = true;
           window.coldAuth.invokeFn('create-robux-order', robuxOrderBody).then(function (data) {
             robuxOrderId = data.orderId;
             robuxOrderItems = data.items;
@@ -4522,6 +4647,7 @@
         if (appliedCoupon) checkoutBody.couponCode = appliedCoupon.code;
         if (window.coldAuth && window.coldAuth.getCampaignCode()) checkoutBody.campaignCode = window.coldAuth.getCampaignCode();
         if (giftToggle && giftToggle.checked && giftRecipientUserId) checkoutBody.giftRecipientUserId = giftRecipientUserId;
+        if (coMktToggle && coMktToggle.checked) checkoutBody.marketingOptIn = true;
 
         // Only slugs, quantities and a coupon code are ever sent. Both
         // functions re-price the whole cart from the database, so a tampered

@@ -21,6 +21,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { paypalToken, paypalFetch } from "../_shared/paypal.ts";
 import { sendOrderReceipt } from "../_shared/email.ts";
 import { resolveGiftReceipt } from "../_shared/gift.ts";
+import { recordMarketingOptIn } from "../_shared/marketing.ts";
 
 const ALLOWED_ORIGIN = "https://coldd.dev";
 
@@ -154,6 +155,7 @@ Deno.serve(async (req: Request) => {
       const giftEmail = await resolveGiftReceipt(admin, { id: order.id, user_id: updated.user_id, purchased_by_user_id: updated.purchased_by_user_id });
       const receipt = await sendOrderReceipt(admin, order.id, giftEmail || guestEmail);
       if (!receipt.ok) console.error("[capture-paypal-order] receipt email failed:", receipt.error);
+      if (updated.marketing_opt_in) await recordMarketingOptIn(admin, guestEmail, updated.user_id);
     }
 
     return json({ ok: true, status: "paid", orderId: order.id });

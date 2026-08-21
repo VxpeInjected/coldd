@@ -2422,6 +2422,17 @@ html.js .ref-method-btn:focus-visible { outline: 2px solid var(--accent); outlin
 .co-item-sub { font-size: 12px; color: var(--fg-3); margin-top: 2px; }
 .co-item-price { font-size: 13px; font-weight: 700; color: var(--price); white-space: nowrap; }
 .co-empty { padding: 24px 0; text-align: center; color: var(--fg-3); font-size: 14px; }
+/* Resell-license upgrade and genre cross-sell offers - both live-priced
+   and floor-checked server-side the moment either gets added (same path
+   real cart items go through), this is just the invitation. */
+.co-upsell { display: flex; flex-direction: column; gap: 10px; padding: 14px 0; border-top: 1px solid var(--hairline); }
+.co-upsell-row { display: flex; align-items: center; gap: 12px; }
+.co-upsell-thumb { flex: 0 0 40px; width: 40px; height: 40px; border-radius: 9px; background: #0f1014 center / cover no-repeat; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08); }
+.co-upsell-text { flex: 1; min-width: 0; }
+.co-upsell-title { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.co-upsell-sub { font-size: 12px; color: var(--fg-3); margin-top: 1px; }
+.co-upsell-sub .co-upsell-was { text-decoration: line-through; opacity: 0.7; margin-right: 5px; }
+.co-upsell-btn { flex: 0 0 auto; min-height: 34px; padding: 0 14px; font-size: 12px; }
 .co-empty a { color: var(--accent); text-decoration: none; }
 .co-coupon { display: flex; gap: 8px; margin: 16px 0 4px; }
 /* Was border-radius: 10px - the Apply button right beside it (.btn, used

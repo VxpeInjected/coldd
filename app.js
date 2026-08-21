@@ -1,4 +1,4 @@
-﻿    // Google Material Symbols (Outlined, 24dp) shipped as inline SVG geometry
+    // Google Material Symbols (Outlined, 24dp) shipped as inline SVG geometry
     // rather than the icon webfont. The font renders icons as ligature TEXT,
     // which DESIGN.md's "draw every icon" rule exists specifically to prevent -
     // and it would add a render-blocking external request that fails closed to
@@ -532,7 +532,7 @@
         a.innerHTML =
           '<span class="sresult-cicon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v16H4z"/><path d="M4 9h16"/><path d="M9 9v11"/></svg></span>' +
           '<span class="sresult-info"><span class="sresult-title">' + highlight(label, q) + '</span></span>' +
-          '<span class="sresult-go">â†’</span>';
+          '<span class="sresult-go">→</span>';
         a.addEventListener('mousedown', function (e) { e.preventDefault(); });
         a.addEventListener('click', function () { close(); });
         return a;
@@ -570,7 +570,7 @@
             a.innerHTML =
               '<span class="sresult-cicon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></span>' +
               '<span class="sresult-info"><span class="sresult-title">' + highlight(c.label, q) + '</span></span>' +
-              '<span class="sresult-go">â†’</span>';
+              '<span class="sresult-go">→</span>';
             a.addEventListener('mousedown', function (e) { e.preventDefault(); });
             a.addEventListener('click', function () { close(); });
             list.appendChild(a);
@@ -1342,9 +1342,9 @@
             });
             return b;
           }
-          pager.appendChild(btn('â€¹', page - 1, { disabled: page === 1 }));
+          pager.appendChild(btn('‹', page - 1, { disabled: page === 1 }));
           for (let i = 1; i <= pages; i++) pager.appendChild(btn(String(i), i, { active: i === page }));
-          pager.appendChild(btn('â€º', page + 1, { disabled: page === pages }));
+          pager.appendChild(btn('›', page + 1, { disabled: page === pages }));
         }
         // The Resell filter shows the same cards as their real category
         // (resell is cross-cutting, not its own set of products - see
@@ -1717,9 +1717,9 @@
           row.className = 'cart-item';
           row.innerHTML =
             '<span class="ci-thumb" style="background-image:url(\'' + i.image + '\')"></span>' +
-            '<div class="ci-info"><div class="ci-title">' + esc(i.title) + (i.licence === 'resell' ? ' <span style="color:var(--accent);font-size:11px;font-weight:700;">Â· RESELL</span>' : '') + '</div>' +
+            '<div class="ci-info"><div class="ci-title">' + esc(i.title) + (i.licence === 'resell' ? ' <span style="color:var(--accent);font-size:11px;font-weight:700;">· RESELL</span>' : '') + '</div>' +
             '<div class="ci-price">' + itemUnitMoney(i) + '</div></div>' +
-            '<button class="ci-remove" type="button" data-act="rm" aria-label="Remove">Ã—</button>';
+            '<button class="ci-remove" type="button" data-act="rm" aria-label="Remove">×</button>';
           row.querySelector('[data-act="rm"]').addEventListener('click', function () { removeItem(i.id); });
 
           // Opens the real product page in a new tab, like every other route
@@ -2141,7 +2141,7 @@
            always what you get by slugifying the label: "Finished Games &
            Templates" is `game-templates`, "Scripts & UI" is `scripts-ui`. Four
            of the twelve Roblox categories differ, so deriving the slug from the
-           label produced breadcrumb links that silently fell back to "all" â€”
+           label produced breadcrumb links that silently fell back to "all" —
            and now feeds those URLs to crawlers via BreadcrumbList. Look the
            real slug up, and only slugify as a last resort. */
         function catSlugFor(p) {
@@ -2166,10 +2166,10 @@
                   resellPrice: p.resellPrice != null ? p.resellPrice : null };
 
           var catSlug = catSlugFor(p);
-          var crumb = '<a href="/">Home</a><span>â€º</span>' +
-            '<a href="' + (p.page || '/assets') + '">' + esc(p.platform) + '</a><span>â€º</span>' +
+          var crumb = '<a href="/">Home</a><span>›</span>' +
+            '<a href="' + (p.page || '/assets') + '">' + esc(p.platform) + '</a><span>›</span>' +
             '<a href="' + (p.page || '/assets') + '?cat=' + catSlug + '">' + esc(p.cat) + '</a>';
-          if (p.subcat) crumb += '<span>â€º</span><span class="pd-crumb-cur">' + esc(humanize(p.subcat)) + '</span>';
+          if (p.subcat) crumb += '<span>›</span><span class="pd-crumb-cur">' + esc(humanize(p.subcat)) + '</span>';
           else crumb = crumb.replace('<a href="' + (p.page || '/assets') + '?cat=' + catSlug + '">' + esc(p.cat) + '</a>', '<span class="pd-crumb-cur">' + esc(p.cat) + '</span>');
           if (pdCrumb) pdCrumb.innerHTML = crumb;
 
@@ -2225,8 +2225,8 @@
             pdPaneReviews.innerHTML = revFormHtml + (revs.length ? revs.map(function (r) {
               var reply = r.reply ? '<div class="pd-rev-reply"><div class="pd-rev-reply-head">coldd team replied</div><p>' + esc(r.reply.text) + '</p></div>' : '';
               return '<div class="pd-rev"><div class="pd-rev-head"><span class="pd-rev-name">' + esc(r.user) + '</span>' +
-                '<span class="pd-rev-dot">Â·</span><span class="pd-rev-stars">' + starRow(r.stars) + '</span>' +
-                '<span class="pd-rev-dot">Â·</span><span class="pd-rev-meta">' + esc(fmtRevDate(r.date)) + '</span></div>' +
+                '<span class="pd-rev-dot">·</span><span class="pd-rev-stars">' + starRow(r.stars) + '</span>' +
+                '<span class="pd-rev-dot">·</span><span class="pd-rev-meta">' + esc(fmtRevDate(r.date)) + '</span></div>' +
                 '<p class="pd-rev-body">' + esc(r.text) + '</p>' + reply + '</div>';
             }).join('') : '<p class="pd-empty">No reviews yet. Be the first to review this product.</p>');
           }
@@ -2357,7 +2357,7 @@
             if (!revSelectedStars) { showMsg('Please select a star rating.'); return; }
             if (!text) { showMsg('Please write a short review.'); return; }
             if (!window.coldAuth) return;
-            if (btn) { btn.disabled = true; btn.textContent = 'Submittingâ€¦'; }
+            if (btn) { btn.disabled = true; btn.textContent = 'Submitting…'; }
             window.coldAuth.invokeFn('submit-review', { slug: cur.id, stars: revSelectedStars, text: text })
               .then(function () {
                 showMsg('Thanks! Your review is pending approval.');
@@ -2673,7 +2673,7 @@
         el.innerHTML = items.map(function (p) {
           var href = '/product?id=' + encodeURIComponent(p.id);
           return '<div class="dash-prod" data-id="' + esc(p.id) + '">' +
-            '<div class="dp-thumb" style="background-image:url(\'' + p.image + '\')"><button class="dp-remove wl-remove" type="button" aria-label="Remove from wishlist">Ã—</button></div>' +
+            '<div class="dp-thumb" style="background-image:url(\'' + p.image + '\')"><button class="dp-remove wl-remove" type="button" aria-label="Remove from wishlist">×</button></div>' +
             '<div class="dp-body"><a class="dp-name dr-title-link" href="' + href + '">' + esc(p.title) + '</a>' +
             '<span class="dp-price" data-usd="' + p.priceNum + '">' + wishPriceText(p) + '</span>' +
             '<div class="dp-actions"><button class="p-add wl-add" type="button">Add to cart</button><button class="p-buy wl-buy" type="button">Buy now</button></div></div></div>';
@@ -2745,7 +2745,7 @@
         } else if (e.target.closest('.wl-add') && p) {
           if (window.__cartAdd) window.__cartAdd({ id: p.id, title: p.title, price: p.priceNum, image: p.image, tag: p.cat || '' });
           var btn = e.target.closest('.wl-add');
-          var t = btn.textContent; btn.textContent = 'Added âœ“'; btn.disabled = true;
+          var t = btn.textContent; btn.textContent = 'Added ✓'; btn.disabled = true;
           setTimeout(function () { btn.textContent = t; btn.disabled = false; }, 1400);
         }
       }
@@ -2837,7 +2837,7 @@
         body.innerHTML = rows.map(function (r) {
           var o = r.order;
           var items = o.order_items || [];
-          var titles = esc(items.map(function (i) { return i.title; }).join(', ') || 'â€”');
+          var titles = esc(items.map(function (i) { return i.title; }).join(', ') || '—');
           // A manually-granted order (admin panel's "Manual product grant")
           // writes status:'paid' like any real purchase - correct for
           // download/ownership access, but "Paid" reads as if the customer
@@ -2884,14 +2884,14 @@
             var first = items[0];
             var slug = first ? first.product_slug : '';
             var img = (first && first.products && first.products.image) ? window.imgUrl(first.products.image) : '/banner.jpg';
-            var titles = esc(items.map(function (i) { return i.title; }).join(', ') || 'â€”');
+            var titles = esc(items.map(function (i) { return i.title; }).join(', ') || '—');
             var actions = slug ? '<a class="btn btn-ghost dr-btn" href="/product?id=' + encodeURIComponent(slug) + '">' + window.msym('visibility') + 'View</a>' : '';
             if (slug && o.status === 'paid') {
               actions += '<button class="btn btn-ghost dr-btn dr-download" type="button" data-slug="' + slug + '">' + window.msym('download') + 'Download</button>' +
                 '<a class="btn btn-ghost dr-btn" href="/product?id=' + encodeURIComponent(slug) + '&tab=reviews">' + window.msym('reviews') + 'Review</a>';
             }
             return '<div class="dash-row"><span class="dr-thumb" style="background-image:url(\'' + img + '\')"></span>' +
-              '<div class="dr-main"><div class="dr-title">' + titles + '</div><div class="dr-sub">' + fmtDate(o.created_at) + ' Â· ' + shortOrderId(o.id) + '</div></div>' +
+              '<div class="dr-main"><div class="dr-title">' + titles + '</div><div class="dr-sub">' + fmtDate(o.created_at) + ' · ' + shortOrderId(o.id) + '</div></div>' +
               '<span class="p-price" data-fixed>' + orderMoney(o) + '</span>' +
               '<div class="dr-actions">' + actions + '</div></div>';
           }).join('') : '<p class="dash-empty-note">No purchases yet.</p>';
@@ -2919,7 +2919,7 @@
         // overwriting the whole button with textContent.
         var labelEl = btn.querySelector('span') || btn;
         var prev = labelEl.textContent;
-        btn.disabled = true; labelEl.textContent = 'Preparingâ€¦';
+        btn.disabled = true; labelEl.textContent = 'Preparing…';
         (window.coldAuth ? window.coldAuth.invokeFn('get-download-url', { slug: slug }) :
           window.coldSupabase.functions.invoke('get-download-url', { body: { slug: slug } }).then(function (res) {
             if (res.error || !res.data || !res.data.ok) throw new Error((res.data && res.data.error) || 'Unavailable');
@@ -3220,7 +3220,7 @@
         x.addEventListener('click', function () { var row = x.closest('.dash-row'); if (row) row.remove(); });
       });
       dash.querySelectorAll('.dr-cart').forEach(function (b) {
-        b.addEventListener('click', function () { var t = b.textContent; b.textContent = 'Added âœ“'; b.disabled = true; setTimeout(function () { b.textContent = t; b.disabled = false; }, 1400); });
+        b.addEventListener('click', function () { var t = b.textContent; b.textContent = 'Added ✓'; b.disabled = true; setTimeout(function () { b.textContent = t; b.disabled = false; }, 1400); });
       });
 
       var acct = document.getElementById('acctForm');
@@ -3347,7 +3347,7 @@
         if (fin) fin.addEventListener('click', function () {
           var typed = inp ? inp.value.trim() : '';
           if (typed !== delCode) {
-            if (delErr) delErr.textContent = 'That doesnâ€™t match the code above.';
+            if (delErr) delErr.textContent = 'That doesn’t match the code above.';
             if (inp) { inp.style.borderColor = 'var(--accent)'; inp.focus(); }
             return;
           }
@@ -3729,7 +3729,7 @@
       function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
       // The place-order button used to stay fully enabled and styled as the
       // primary action on an empty cart, while its handler bailed out on
-      // `if (!cart.length) return;` â€” so clicking it did nothing at all and
+      // `if (!cart.length) return;` — so clicking it did nothing at all and
       // said nothing about why. The empty cart is now reflected in the control.
       function syncPlaceButtonToCart() {
         var btn = document.getElementById('coPlace');
@@ -4110,7 +4110,7 @@
       var ROBUX_POLL_TIMEOUT_MS = 6 * 60 * 1000; // 6 minutes of continuous checking before asking the buyer to retry manually
 
       function updateRobuxModalBuyLink() {
-        if (robuxModalTotal) robuxModalTotal.textContent = robuxOrderPriceRobux != null ? 'R$ ' + robuxOrderPriceRobux.toLocaleString('en-US') : 'â€”';
+        if (robuxModalTotal) robuxModalTotal.textContent = robuxOrderPriceRobux != null ? 'R$ ' + robuxOrderPriceRobux.toLocaleString('en-US') : '—';
         if (robuxModalBuyBtn) {
           if (robuxOrderGamePassId) {
             robuxModalBuyBtn.href = 'https://www.roblox.com/game-pass/' + robuxOrderGamePassId + '/';
@@ -4204,7 +4204,7 @@
             return;
           }
           // Ledger just doesn't show it yet - keep checking.
-          if (robuxModalStatusText) robuxModalStatusText.textContent = 'Still checkingâ€¦';
+          if (robuxModalStatusText) robuxModalStatusText.textContent = 'Still checking…';
           scheduleRobuxPoll();
         }).catch(function (err) {
           // Every thrown case here (NOT_LINKED, order not found/not yours,
@@ -4219,7 +4219,7 @@
       }
       if (robuxModalConfirmBtn) robuxModalConfirmBtn.addEventListener('click', function () {
         showRobuxModalPane('waiting');
-        if (robuxModalStatusText) robuxModalStatusText.textContent = 'Checking for your purchaseâ€¦';
+        if (robuxModalStatusText) robuxModalStatusText.textContent = 'Checking for your purchase…';
         if (robuxModalHint) robuxModalHint.textContent = "This can take a minute or two - we're checking automatically, you don't need to do anything else.";
         robuxPollDeadline = Date.now() + ROBUX_POLL_TIMEOUT_MS;
         pollRobuxOrder();
@@ -4320,7 +4320,7 @@
           var signature = robuxItemsSignature(robuxItems);
           var prevText = placeBtn.textContent;
           placeBtn.setAttribute('data-busy', '1');
-          placeBtn.disabled = true; placeBtn.textContent = 'Preparing your orderâ€¦';
+          placeBtn.disabled = true; placeBtn.textContent = 'Preparing your order…';
           if (msg) { msg.className = 'co-msg'; msg.textContent = ''; }
           var robuxOrderBody = { items: robuxItems };
           if (window.coldAuth.getCampaignCode()) robuxOrderBody.campaignCode = window.coldAuth.getCampaignCode();
@@ -4396,7 +4396,7 @@
 
         var prevText = placeBtn.textContent;
         placeBtn.setAttribute('data-busy', '1');
-        placeBtn.disabled = true; placeBtn.textContent = 'Redirecting to secure checkoutâ€¦';
+        placeBtn.disabled = true; placeBtn.textContent = 'Redirecting to secure checkout…';
         if (msg) { msg.className = 'co-msg'; msg.textContent = ''; }
 
         var checkoutBody = { items: cartToItems() };
@@ -4591,7 +4591,7 @@
           var btn = card.querySelector('.dl-get');
           btn.addEventListener('click', function () {
             var prev = btn.textContent;
-            btn.disabled = true; btn.textContent = 'Preparingâ€¦';
+            btn.disabled = true; btn.textContent = 'Preparing…';
             window.coldSupabase.functions.invoke('get-download-url', { body: { slug: it.product_slug, sessionId: sessionId } })
               .then(function (res) {
                 var data = res && res.data;
@@ -4643,7 +4643,7 @@
               // retry that costs nothing to offer, instead of asserting
               // failure on a payment that might be completely fine.
               mark('fail');
-              if (titleEl) titleEl.textContent = "Still confirmingâ€¦";
+              if (titleEl) titleEl.textContent = "Still confirming…";
               if (subEl) subEl.textContent = "We haven't been able to find this order yet. If you completed payment, it may just be taking a moment to show up here - try checking again, or check your dashboard.";
               if (tyRetryBtn) tyRetryBtn.hidden = false;
               return;
@@ -4701,7 +4701,7 @@
             sellingNotes: document.getElementById('resellerNotes').value.trim() || null
           };
           if (sessionId) payload.sessionId = sessionId; else payload.orderId = robuxOrderIdParam;
-          submitBtn.disabled = true; submitBtn.textContent = 'Submittingâ€¦';
+          submitBtn.disabled = true; submitBtn.textContent = 'Submitting…';
           window.coldSupabase.functions.invoke('submit-reseller-info', { body: payload })
             .then(function (res) {
               var data = res && res.data;
@@ -4733,7 +4733,7 @@
       if (tyRetryBtn) tyRetryBtn.addEventListener('click', function () {
         tyRetryBtn.hidden = true;
         tyRetryBtn.disabled = true;
-        if (titleEl) titleEl.textContent = 'Confirming your paymentâ€¦';
+        if (titleEl) titleEl.textContent = 'Confirming your payment…';
         if (subEl) subEl.textContent = 'Hang tight, this only takes a moment.';
         if (markEl) markEl.setAttribute('data-state', 'pending');
         if (tyRoot) tyRoot.setAttribute('data-state', 'pending');
@@ -4742,7 +4742,7 @@
       });
 
       if (paypalOrderIdParam && window.coldSupabase) {
-        if (titleEl) titleEl.textContent = 'Completing your paymentâ€¦';
+        if (titleEl) titleEl.textContent = 'Completing your payment…';
         if (subEl) subEl.textContent = 'Confirming with PayPal. Please do not close this page.';
         window.coldSupabase.functions
           .invoke('capture-paypal-order', { body: { orderId: paypalOrderIdParam } })

@@ -335,6 +335,10 @@
     .nav-links.searching .nav-search-input { width: 190px; opacity: 1; padding: 6px 11px; background: rgba(255,255,255,0.05); }
     .nav-search-input::placeholder { color: var(--fg-3); }
     .nav-cta { display: flex; align-items: center; gap: 4px; }
+    /* .btn's base radius is a full 999px pill, but this button sits inside
+       .nav-inner's own much shallower 16px-rounded bar - a full pill next
+       to a 16px corner reads as mismatched, not "rounded to match". */
+    .nav-cta > a.btn-primary { border-radius: var(--r-sm); }
     /* Mobile-only nav-links stand-in - see the 1100px block below. Desktop
        already has "Shop" as a real nav-links item (this stays hidden
        there), so it's styled to match that plain-text link exactly rather
@@ -893,6 +897,11 @@
   cursor: pointer; transition: border-color .18s var(--ease); }
 .sort-btn:hover { border-color: rgba(255,255,255,0.2); }
 .sf-label { font-size: 13px; color: var(--fg-3); white-space: nowrap; }
+/* "Sort by Recommended" alone was wide enough to force the Filters button
+   (now living right beside it, see app.js) onto its own line below rather
+   than sharing Sort's line - "Recommended" on its own reads fine without
+   the redundant label at this width. */
+@media (max-width: 480px) { .sf-label { display: none; } }
 .sort-btn-val { font-size: 13px; font-weight: 600; white-space: nowrap; }
 .sort-chev { color: var(--fg-3); transition: transform .18s var(--ease); flex: 0 0 auto; }
 .sort-field.open .sort-chev { transform: rotate(180deg); }
@@ -1150,7 +1159,7 @@
 .shop-filters-done { display: none; }
 @media (max-width: 1040px) {
   html.js .shop-filters-btn {
-    display: inline-flex; align-items: center; gap: 8px; margin-left: auto;
+    display: inline-flex; align-items: center; gap: 8px; flex: 0 0 auto;
     min-height: 40px; padding: 0 15px; font-family: inherit; font-size: 13px; font-weight: 600;
     color: var(--fg); background: rgba(255,255,255,0.06); border: 1px solid var(--hairline);
     border-radius: 10px; cursor: pointer;

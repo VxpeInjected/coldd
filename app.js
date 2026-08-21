@@ -1107,7 +1107,14 @@
           filtersBtn.addEventListener('click', function () {
             side.classList.contains('open') ? closeSheet() : openSheet();
           });
-          resultsBar.appendChild(filtersBtn);
+          // Lives in .shop-toolbar, right after Sort, not .shop-resultsbar -
+          // it's invisible above 1040px either way (display:none until the
+          // mobile breakpoint), so this only changes the mobile flex-wrap
+          // flow: Sort and Filters land in the same row instead of Sort
+          // wrapping onto the toolbar's line and Filters landing alone on
+          // the results bar's line below the search field.
+          if (sortField && sortField.parentNode) sortField.parentNode.insertBefore(filtersBtn, sortField.nextSibling);
+          else resultsBar.appendChild(filtersBtn);
 
           doneBtn = document.createElement('button');
           doneBtn.type = 'button';
@@ -4459,6 +4466,22 @@
           itemsEl.appendChild(card);
         });
       }
+
+      // Crypto is the one case where leaving really is fine (the network
+      // confirmation happens regardless of whether this tab stays open -
+      // see the "you can close this page" copy a few lines below), so it's
+      // deliberately excluded here. Everything else (Stripe, PayPal, and
+      // Robux - which has already sent the buyer to Roblox and back by the
+      // time it's on this page) only sits in 'pending' for the length of a
+      // real verification round trip, seconds not minutes, and there's no
+      // legitimate reason to navigate away mid-poll - only to lose track of
+      // whether the order actually went through.
+      window.addEventListener('beforeunload', function (e) {
+        if (cryptoOrderIdParam) return;
+        if (!tyRoot || tyRoot.getAttribute('data-state') !== 'pending') return;
+        e.preventDefault();
+        e.returnValue = '';
+      });
 
       var tyRetryBtn = document.getElementById('tyRetryBtn');
       function poll(triesLeft) {

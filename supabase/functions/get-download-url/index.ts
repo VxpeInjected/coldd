@@ -14,9 +14,16 @@
 // Guest checkout support: a guest has no session, so ownership can't be
 // proven via auth.uid(). If the caller passes the Stripe checkout session id
 // instead (which success.html has, from the success_url redirect), that's
-// accepted as equivalent proof - same trust model as get-order-by-session.
-// A signed-in caller can still omit it and use their normal owned-orders
-// lookup (e.g. redownloading later from the dashboard).
+// accepted as proof ONLY for a genuinely guest order (orders.user_id null) -
+// for an order tied to a real account, the session id is just a lookup key,
+// not a bearer token: the caller still has to be signed in as that account.
+// Without that, a buyer forwarding their own success-page link (say, to
+// prove a purchase, or by accident) would hand whoever they sent it to a
+// permanent, no-account-needed download - the session id doesn't expire on
+// coldd's side and was never meant to double as "anyone holding this link
+// owns the file forever." A signed-in caller can still omit it entirely and
+// use their normal owned-orders lookup (e.g. redownloading later from the
+// dashboard).
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { downloadName, publicSignedUrl } from "../_shared/download.ts";
@@ -57,15 +64,34 @@ Deno.serve(async (req: Request) => {
 
     let owned = false;
     if (sessionId) {
-      // Guest (or just-paid) path: the Stripe checkout session id is the proof.
       const { data: order, error: orderErr } = await admin
         .from("orders")
-        .select("status, order_items(product_slug)")
+        .select("status, user_id, order_items(product_slug)")
         .eq("stripe_checkout_session_id", sessionId)
         .maybeSingle();
       if (orderErr) return json({ ok: false, error: "Could not verify ownership." }, 500);
-      owned = !!order && order.status === "paid" &&
+      const matchesOrder = !!order && order.status === "paid" &&
         (order.order_items || []).some((i: { product_slug: string }) => i.product_slug === slug);
+
+      if (order?.user_id) {
+        // Not a guest order - the session id alone can no longer be trusted
+        // as proof by itself. It's meant to be a short-lived convenience for
+        // the person who just paid (the success page has it right there in
+        // the URL), not a permanent bearer token - anyone the buyer forwards
+        // that link to would otherwise get the same download forever, no
+        // account needed. A real account exists on this order, so require
+        // the caller to actually be signed in as that account; a genuinely
+        // guest order (no user_id) has no account to check against, so the
+        // session id stays the only possible proof for that case.
+        if (!authHeader) return json({ ok: false, error: "Please sign in to download this." }, 401);
+        const sessionUserClient = createClient(supabaseUrl, anonKey, {
+          global: { headers: { Authorization: authHeader } },
+        });
+        const { data: sessionUserData } = await sessionUserClient.auth.getUser();
+        owned = matchesOrder && sessionUserData?.user?.id === order.user_id;
+      } else {
+        owned = matchesOrder;
+      }
     } else {
       if (!authHeader) return json({ ok: false, error: "Please sign in." }, 401);
       const userClient = createClient(supabaseUrl, anonKey, {

@@ -270,6 +270,23 @@
         }, { threshold: 0.5 });
         nums.forEach(function (el) { io2.observe(el); });
       }
+
+      // About page's "Discord members" stat - same live proxied count the
+      // homepage hero uses, swapped in before this figure ever gets
+      // observed/animated (whichever happens first: the fetch resolving,
+      // or the user scrolling it into view - both read data-count only
+      // at animation time, so updating the attribute any time before
+      // that is safe). Falls back to the static number above on failure.
+      var aboutDiscordEl = document.getElementById('aboutStatDiscord');
+      if (aboutDiscordEl && window.coldSupabase) {
+        window.coldSupabase.functions.invoke('public-site-stats', { body: {} }).then(function (res) {
+          var count = res && res.data && res.data.discordMemberCount;
+          if (typeof count === 'number') {
+            aboutDiscordEl.setAttribute('data-count', count);
+            aboutDiscordEl.setAttribute('data-suffix', '');
+          }
+        }).catch(function () {});
+      }
     })();
 
     (function () {

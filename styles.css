@@ -1567,7 +1567,7 @@ body.no-scroll { overflow: hidden; }
    body instead - same paragraph count reads in roughly half the height. */
 .about-story { grid-template-columns: 1fr; gap: 6px; position: relative; overflow: hidden; }
 .about-story .about-info-head h2 { margin-top: 0; }
-.about-story .about-info-body { column-count: 2; column-gap: 48px; margin-top: 18px; }
+.about-story .about-info-body { column-count: 2; column-gap: 48px; margin-top: 18px; column-rule: 1px solid var(--hairline); }
 .about-story .about-info-body p, .about-story .about-founder { break-inside: avoid; }
 .about-story .about-info-body p { font-size: 15px; line-height: 1.66; margin: 0 0 15px; }
 /* A wall of body text with nothing else on the card read as flat -

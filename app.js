@@ -2679,6 +2679,11 @@
         var rbx = robuxMode && p.robuxPrice > 0 ? p.robuxPrice : null;
         return rbx != null ? ('R$ ' + Math.round(rbx).toLocaleString('en-US')) : (window.__money ? window.__money(p.priceNum) : ('$' + p.priceNum));
       }
+      // Card-grid layout, matching Licenses (.dash-prod/.dp-thumb/.dp-body)
+      // rather than the old compact row list - a wishlist entry is a product
+      // you haven't bought yet, so it gets the same visual weight as one you
+      // have, plus the Buy now/Add to cart pair a still-to-buy item actually
+      // needs (Licenses' equivalent slot is Download/Review instead).
       function renderWishlist() {
         var el = document.getElementById('dashWishlistRows');
         if (!el) return;
@@ -2688,13 +2693,17 @@
         if (!items.length) { el.innerHTML = '<p class="dash-empty-note">Nothing saved yet - tap the heart on any product to add it here.</p>'; return; }
         el.innerHTML = items.map(function (p) {
           var href = '/product?id=' + encodeURIComponent(p.id);
-          return '<div class="dash-row" data-id="' + esc(p.id) + '"><span class="dr-thumb" style="background-image:url(\'' + p.image + '\')"></span>' +
-            '<div class="dr-main"><a class="dr-title-link" href="' + href + '">' + esc(p.title) + '</a><div class="dr-sub"><span class="p-price" data-usd="' + p.priceNum + '">' + wishPriceText(p) + '</span></div></div>' +
-            '<div class="dr-actions"><button class="btn btn-ghost dr-cart" type="button">Add to cart</button><button class="wl-remove" type="button" aria-label="Remove">×</button></div></div>';
+          return '<div class="dash-prod" data-id="' + esc(p.id) + '">' +
+            '<div class="dp-thumb" style="background-image:url(\'' + p.image + '\')"><button class="dp-remove wl-remove" type="button" aria-label="Remove from wishlist">×</button></div>' +
+            '<div class="dp-body"><a class="dp-name dr-title-link" href="' + href + '">' + esc(p.title) + '</a>' +
+            '<span class="dp-price" data-usd="' + p.priceNum + '">' + wishPriceText(p) + '</span>' +
+            '<div class="dp-actions"><button class="p-add wl-add" type="button">Add to cart</button><button class="p-buy wl-buy" type="button">Buy now</button></div></div></div>';
         }).join('');
       }
-      // Overview-page preview box (capped, view-only) - mirrors the
-      // "Recent purchases" card's look for the initial dashboard page.
+      // Overview-page preview box (capped) - mirrors "Recent purchases"'
+      // compact row look, but gets the same Add to cart/Buy now pair as the
+      // full Wishlist panel so a saved item can be bought straight from the
+      // dashboard home without a trip to the full Wishlist tab first.
       function renderWishlistPreview() {
         var el = document.getElementById('dashWishlistPreview');
         if (!el) return;
@@ -2702,9 +2711,9 @@
         var cat = window.__CATALOG || [];
         var items = ids.map(function (id) { return cat.filter(function (p) { return p.id === id; })[0]; }).filter(Boolean);
         el.innerHTML = items.length ? items.map(function (p) {
-          return '<div class="dash-row"><span class="dr-thumb" style="background-image:url(\'' + p.image + '\')"></span>' +
-            '<div class="dr-main"><div class="dr-title">' + esc(p.title) + '</div><div class="dr-sub"><span class="p-price" data-usd="' + p.priceNum + '">' + wishPriceText(p) + '</span></div></div>' +
-            '<div class="dr-actions"><a class="btn btn-ghost dr-btn" href="/product?id=' + encodeURIComponent(p.id) + '">' + window.msym('visibility') + 'View</a></div></div>';
+          return '<div class="dash-row" data-id="' + esc(p.id) + '"><span class="dr-thumb" style="background-image:url(\'' + p.image + '\')"></span>' +
+            '<div class="dr-main"><a class="dr-title-link" href="/product?id=' + encodeURIComponent(p.id) + '">' + esc(p.title) + '</a><div class="dr-sub"><span class="p-price" data-usd="' + p.priceNum + '">' + wishPriceText(p) + '</span></div></div>' +
+            '<div class="dr-actions"><button class="p-add wl-add" type="button">Add to cart</button><button class="p-buy wl-buy" type="button">Buy now</button></div></div>';
         }).join('') : '<p class="dash-empty-note">Nothing saved yet - tap the heart on any product to add it here.</p>';
       }
       // Real purchase-history-based recommendations (get_recommended_for_user:
@@ -2742,22 +2751,29 @@
         if (document.getElementById('dashWishlistRows')) renderWishlist();
         if (document.getElementById('dashWishlistPreview')) renderWishlistPreview();
       });
-      var wishlistRows = document.getElementById('dashWishlistRows');
-      if (wishlistRows) wishlistRows.addEventListener('click', function (e) {
-        var row = e.target.closest('.dash-row'); if (!row) return;
+      function wishCardClick(e) {
+        var row = e.target.closest('.dash-prod, .dash-row'); if (!row) return;
         var id = row.getAttribute('data-id');
         var p = (window.__CATALOG || []).filter(function (x) { return x.id === id; })[0];
         if (e.target.closest('.wl-remove')) {
           saveWishIds(wishIds().filter(function (x) { return x !== id; }));
           renderWishlist();
+          renderWishlistPreview();
           if (window.__wishSync) window.__wishSync(id, false);
-        } else if (e.target.closest('.dr-cart') && p) {
+        } else if (e.target.closest('.wl-buy') && p) {
           if (window.__cartAdd) window.__cartAdd({ id: p.id, title: p.title, price: p.priceNum, image: p.image, tag: p.cat || '' });
-          var btn = e.target.closest('.dr-cart');
+          location.href = '/checkout';
+        } else if (e.target.closest('.wl-add') && p) {
+          if (window.__cartAdd) window.__cartAdd({ id: p.id, title: p.title, price: p.priceNum, image: p.image, tag: p.cat || '' });
+          var btn = e.target.closest('.wl-add');
           var t = btn.textContent; btn.textContent = 'Added ✓'; btn.disabled = true;
           setTimeout(function () { btn.textContent = t; btn.disabled = false; }, 1400);
         }
-      });
+      }
+      var wishlistRows = document.getElementById('dashWishlistRows');
+      if (wishlistRows) wishlistRows.addEventListener('click', wishCardClick);
+      var wishlistPreview = document.getElementById('dashWishlistPreview');
+      if (wishlistPreview) wishlistPreview.addEventListener('click', wishCardClick);
 
       // Real purchase/ownership data, read live from Supabase (RLS already
       // scopes orders/order_items to the signed-in user).
@@ -2971,9 +2987,9 @@
           var actions = card.querySelector('.dp-actions');
           actions.appendChild(downloadBtn(item, 'btn btn-tinted dp-btn'));
           var reviewLink = document.createElement('a');
-          reviewLink.className = 'btn btn-ghost dp-review-btn';
+          reviewLink.className = 'btn btn-tinted dp-btn dp-review-btn';
           reviewLink.href = '/product?id=' + encodeURIComponent(item.product_slug) + '&tab=reviews';
-          reviewLink.textContent = 'Review';
+          reviewLink.innerHTML = window.msym('reviews', 15) + '<span>Review</span>';
           actions.appendChild(reviewLink);
           grid.appendChild(card);
         });

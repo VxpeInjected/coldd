@@ -4977,5 +4977,12 @@
     });
   });
   setInterval(refreshLiveSessions, 30000);
+  // AdBlox stats used to only load once on boot, or on the manual Refresh
+  // button - same polling pattern as refreshLiveSessions above (an
+  // unconditional interval; the function itself already only re-renders
+  // when the Marketing panel is the one currently showing), so the numbers
+  // stay current without anyone having to remember to hit Refresh. The
+  // button stays wired exactly as before for an on-demand pull.
+  setInterval(refreshAdbloxStats, 30000);
   } // end boot()
 })();

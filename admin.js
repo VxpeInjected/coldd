@@ -192,13 +192,21 @@
         return parsed.then(function (data) {
           var msg = (data && data.error) || res.error.message || fallback || 'Request failed.';
           logFnError(name, msg, ctx && ctx.status);
-          throw new Error(msg);
+          var e = new Error(msg);
+          // Some functions (admin-adblox-stats) flag a 429 from the
+          // upstream API explicitly, distinct from any other failure, so
+          // a caller polling on an interval can back off instead of
+          // hammering an API that just told it to slow down.
+          if (data && data.rateLimited) e.rateLimited = true;
+          throw e;
         });
       }
       if (!res.data || !res.data.ok) {
         var failMsg = (res.data && res.data.error) || fallback || 'Request failed.';
         logFnError(name, failMsg);
-        throw new Error(failMsg);
+        var e2 = new Error(failMsg);
+        if (res.data && res.data.rateLimited) e2.rateLimited = true;
+        throw e2;
       }
       return res.data;
     });
@@ -642,6 +650,16 @@
   var ADBLOX_SERVERS = [];
   var ADBLOX_LOGS = [];
   var ADBLOX_NEXT_CURSOR = null;
+  // AdBlox's documented budget is 60 requests/minute per API key
+  // (docs.adblox.xyz/errors-and-rate-limits), shared across every
+  // endpoint - this one call already spends 3 of that (stats+servers+
+  // logs via Promise.all server-side). ADBLOX_COOLDOWN_UNTIL backs the
+  // auto-refresh interval off for a minute if AdBlox ever actually
+  // returns a 429 (e.g. a second admin tab polling at the same time),
+  // instead of wiping the last-good numbers or immediately retrying
+  // into the same limit.
+  var ADBLOX_COOLDOWN_UNTIL = 0;
+  var ADBLOX_STAT_PREV = null; // {today,last7d,last30d,allTime} from the last render, or null before the first one
   function refreshAdbloxStats() {
     return invokeAdminFn('admin-adblox-stats', {}, 'Could not load AdBlox stats.').then(function (data) {
       ADBLOX_STATS = data; ADBLOX_ERROR = null;
@@ -650,8 +668,13 @@
       ADBLOX_NEXT_CURSOR = data.nextLogCursor || null;
       if (curPanel === 'marketing') renderMarketing();
     }).catch(function (err) {
-      ADBLOX_STATS = null; ADBLOX_ERROR = err.message;
-      ADBLOX_SERVERS = []; ADBLOX_LOGS = []; ADBLOX_NEXT_CURSOR = null;
+      if (err.rateLimited) {
+        ADBLOX_COOLDOWN_UNTIL = Date.now() + 60000;
+        ADBLOX_ERROR = 'AdBlox rate limit hit - showing the last numbers pulled, will retry automatically.';
+      } else {
+        ADBLOX_STATS = null; ADBLOX_ERROR = err.message;
+        ADBLOX_SERVERS = []; ADBLOX_LOGS = []; ADBLOX_NEXT_CURSOR = null;
+      }
       if (curPanel === 'marketing') renderMarketing();
     });
   }
@@ -1145,7 +1168,12 @@
     opts = opts || {};
     var attrs = opts.panel ? ' data-panel="' + esc(opts.panel) + '" style="cursor:pointer;"' : '';
     var title = opts.title ? ' title="' + esc(opts.title) + '"' : '';
-    return '<div class="dash-stat glass"' + attrs + title + '><span class="ds-label">' + esc(label) + '</span><span class="ds-num">' + main + '</span>' +
+    // opts.flash plays a brief "just updated" pulse on the number - only
+    // ever passed true by a caller that already diffed against the
+    // previous value, so a stat that hasn't actually changed (which is
+    // most of them, most 10s ticks) never animates.
+    var numClass = opts.flash ? ' ds-num-flash' : '';
+    return '<div class="dash-stat glass"' + attrs + title + '><span class="ds-label">' + esc(label) + '</span><span class="ds-num' + numClass + '">' + main + '</span>' +
       (sub ? '<span class="ds-sub">' + sub + '</span>' : '') + (deltaHtml || '') + '</div>';
   }
   function renderHome() {
@@ -1494,12 +1522,18 @@
       if (ADBLOX_STATS) {
         if (adMsg) adMsg.textContent = '';
         var s = ADBLOX_STATS.sent;
+        // Auto-refreshing every 10s means most ticks change nothing - only
+        // flash the tiles whose number actually moved since the last
+        // render, not all four every time regardless.
+        var adNow = { today: s ? s.today : 0, last7d: s ? s.last_7d : 0, last30d: s ? s.last_30d : 0, allTime: s ? s.all_time : 0 };
+        var adPrev = ADBLOX_STAT_PREV;
         $('admAdbloxStats').innerHTML = [
-          statTile('Ads sent today', (s ? s.today : 0).toLocaleString('en-US'), s ? (s.yesterday.toLocaleString('en-US') + ' yesterday') : null, ''),
-          statTile('Ads sent (7d)', (s ? s.last_7d : 0).toLocaleString('en-US'), null, ''),
-          statTile('Ads sent (30d)', (s ? s.last_30d : 0).toLocaleString('en-US'), null, ''),
-          statTile('Ads sent (all-time)', (s ? s.all_time : 0).toLocaleString('en-US'), null, '')
+          statTile('Ads sent today', adNow.today.toLocaleString('en-US'), s ? (s.yesterday.toLocaleString('en-US') + ' yesterday') : null, '', { flash: adPrev && adPrev.today !== adNow.today }),
+          statTile('Ads sent (7d)', adNow.last7d.toLocaleString('en-US'), null, '', { flash: adPrev && adPrev.last7d !== adNow.last7d }),
+          statTile('Ads sent (30d)', adNow.last30d.toLocaleString('en-US'), null, '', { flash: adPrev && adPrev.last30d !== adNow.last30d }),
+          statTile('Ads sent (all-time)', adNow.allTime.toLocaleString('en-US'), null, '', { flash: adPrev && adPrev.allTime !== adNow.allTime })
         ].join('');
+        ADBLOX_STAT_PREV = adNow;
       } else {
         $('admAdbloxStats').innerHTML = '';
         if (adMsg) adMsg.textContent = ADBLOX_ERROR || 'Loading…';
@@ -4983,6 +5017,18 @@
   // when the Marketing panel is the one currently showing), so the numbers
   // stay current without anyone having to remember to hit Refresh. The
   // button stays wired exactly as before for an on-demand pull.
-  setInterval(refreshAdbloxStats, 30000);
+  //
+  // 10s, not 30s: AdBlox's documented budget is 60 requests/minute per API
+  // key (docs.adblox.xyz/errors-and-rate-limits) shared across every
+  // endpoint, and this one call already spends 3 of that per poll
+  // (stats+servers+logs). At 10s that's 18 req/min for a single admin
+  // tab - comfortable headroom under 60 even with the manual button
+  // clicked a few times or a second admin tab open, and refreshAdbloxStats
+  // backs the interval off for a minute on an actual 429 rather than
+  // assuming the budget is infinite.
+  setInterval(function () {
+    if (Date.now() < ADBLOX_COOLDOWN_UNTIL) return;
+    refreshAdbloxStats();
+  }, 10000);
   } // end boot()
 })();

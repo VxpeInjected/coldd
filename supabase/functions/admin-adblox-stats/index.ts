@@ -91,6 +91,12 @@ Deno.serve(async (req: Request) => {
     if (!statsRes.ok) {
       const bodyText = await statsRes.text().catch(() => "");
       console.error("[admin-adblox-stats] /stats returned", statsRes.status, bodyText.slice(0, 300));
+      // Surfaced distinctly so the client can back off its auto-refresh
+      // interval instead of treating this the same as any other failure
+      // and hammering the API again 15/30s later regardless.
+      if (statsRes.status === 429) {
+        return json({ ok: false, error: "AdBlox rate limit hit - will retry automatically.", rateLimited: true }, 429);
+      }
       return json({ ok: false, error: `AdBlox returned HTTP ${statsRes.status}.` }, 502);
     }
     const data = await statsRes.json().catch(() => null);

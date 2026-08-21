@@ -935,17 +935,26 @@
       // however long the catalog fetch above took, then get replaced by
       // whatever's actually true (or removed entirely if there are no
       // picks) - a textbook wrong-then-right flash, not a normal load state.
+      // Each grid's enclosing <section> (heading included) ships `hidden`
+      // too, not just the grid - a "Featured products" heading sitting
+      // over nothing, because no product happens to be marked featured
+      // right now, is exactly as wrong as the flash-of-fake-cards this
+      // whole block already exists to prevent.
       var featuredGrid = document.getElementById('homeFeaturedGrid');
+      var featuredSection = document.getElementById('homeFeaturedSection');
       if (featuredGrid) {
         var featuredPicks = catalog.filter(function (p) { return p.featured; }).sort(function (a, b) { return a.featuredOrder - b.featuredOrder; }).slice(0, 4);
         if (featuredPicks.length) featuredGrid.innerHTML = featuredPicks.map(homeCardHtml).join('');
         featuredGrid.hidden = !featuredPicks.length;
+        if (featuredSection) featuredSection.hidden = !featuredPicks.length;
       }
       var dealsGrid = document.getElementById('homeDealsGrid');
+      var dealsSection = document.getElementById('homeDealsSection');
       if (dealsGrid) {
         var dealPicks = catalog.filter(function (p) { return p.weeklyDeal; }).slice(0, 4);
         if (dealPicks.length) dealsGrid.innerHTML = dealPicks.map(homeCardHtml).join('');
         dealsGrid.hidden = !dealPicks.length;
+        if (dealsSection) dealsSection.hidden = !dealPicks.length;
       }
     })();
 

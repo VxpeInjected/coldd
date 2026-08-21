@@ -2456,22 +2456,53 @@ html.js .ref-method-btn:focus-visible { outline: 2px solid var(--accent); outlin
 /* Automatic spend-more tier progress - no code, the price just drops once
    the cart clears a threshold. Green/price-colored since it's a live
    savings signal, same idiom as .p-price elsewhere. */
-.co-tier { padding: 12px 14px; margin: 14px 0 0; border-radius: var(--r-ctl); background: rgba(52,224,138,0.08); border: 1px solid rgba(52,224,138,0.22); }
+.co-tier { padding: 14px 16px; margin: 14px 0 0; border-radius: var(--r-ctl); background: rgba(52,224,138,0.08); border: 1px solid rgba(52,224,138,0.22); }
 .co-tier-text { font-size: 13px; font-weight: 600; color: var(--price); }
-.co-tier-bar { height: 5px; border-radius: 4px; background: rgba(255,255,255,0.08); margin-top: 9px; overflow: hidden; }
+.co-tier-track { position: relative; margin-top: 14px; padding-bottom: 30px; }
+.co-tier-bar { height: 5px; border-radius: 4px; background: rgba(255,255,255,0.08); overflow: hidden; }
 .co-tier-fill { height: 100%; border-radius: 4px; background: var(--price); transition: width .25s var(--ease); }
 .co-tier.co-tier-unlocked { background: rgba(52,224,138,0.14); }
+.co-tier-marker { position: absolute; top: 0; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; }
+.co-tier-dot { width: 12px; height: 12px; margin-top: -3.5px; border-radius: 50%; background: var(--bg-2);
+  border: 2px solid var(--hairline-strong); display: flex; align-items: center; justify-content: center; color: #fff; }
+.co-tier-marker.done .co-tier-dot { background: var(--price); border-color: var(--price); }
+.co-tier-marker.next .co-tier-dot { border-color: var(--price); }
+.co-tier-marker-label { margin-top: 6px; font-size: 11px; font-weight: 600; line-height: 1.35; text-align: center; color: var(--fg-3); white-space: nowrap; }
+.co-tier-marker.done .co-tier-marker-label { color: var(--price); font-weight: 700; }
+.co-tier-marker.next .co-tier-marker-label { color: var(--fg); font-weight: 700; }
 /* Resell-license upgrade and genre cross-sell offers - both live-priced
    and floor-checked server-side the moment either gets added (same path
    real cart items go through), this is just the invitation. */
-.co-upsell { display: flex; flex-direction: column; gap: 10px; padding: 14px 0; border-top: 1px solid var(--hairline); }
-.co-upsell-row { display: flex; align-items: center; gap: 12px; }
-.co-upsell-thumb { flex: 0 0 40px; width: 40px; height: 40px; border-radius: 9px; background: #0f1014 center / cover no-repeat; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08); }
-.co-upsell-text { flex: 1; min-width: 0; }
-.co-upsell-title { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.co-upsell-sub { font-size: 12px; color: var(--fg-3); margin-top: 1px; }
-.co-upsell-sub .co-upsell-was { text-decoration: line-through; opacity: 0.7; margin-right: 5px; }
-.co-upsell-btn { flex: 0 0 auto; min-height: 34px; padding: 0 14px; font-size: 12px; }
+/* Genre cross-sell - real product cards (image, title, description,
+   price), not a compact link row, since the point is to actually show
+   what's being offered rather than just name-drop it. */
+.co-cross { display: flex; flex-direction: column; gap: 10px; padding: 16px 0; border-top: 1px solid var(--hairline); }
+.co-cross-head { font-size: 13px; font-weight: 700; color: var(--fg-2); margin-bottom: 2px; }
+.co-cross-card { display: flex; gap: 12px; padding: 12px; background: var(--bg-3); border: 1px solid var(--hairline); border-radius: var(--r-sm); }
+.co-cross-thumb { flex: 0 0 72px; width: 72px; height: 72px; border-radius: var(--r-ctl); background: #0f1014 center / cover no-repeat; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08); }
+.co-cross-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.co-cross-title { font-size: 14px; font-weight: 700; line-height: 1.3; }
+.co-cross-desc { font-size: 12px; color: var(--fg-3); line-height: 1.45; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.co-cross-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-top: 4px; }
+.co-cross-price { font-size: 14px; font-weight: 700; color: var(--price); }
+.co-cross-was { font-size: 12px; color: var(--fg-3); text-decoration: line-through; margin-right: 5px; font-weight: 400; }
+.co-cross-add { flex: 0 0 auto; min-height: 32px; padding: 0 14px; font-size: 12px; }
+
+/* Resell-rights popup: intercepts "Place order" instead of a passive
+   sidebar row, so the offer lands right when the buyer is already
+   committing. Reuses the mkt-popup-modal shell (close button, left-
+   aligned title/sub) and the ty-upsell-card grid the post-purchase
+   upsell already established, rather than inventing a third card style. */
+.co-resell-popup-modal { width: 480px; }
+.co-resell-popup-modal .ty-upsell-grid { margin-top: 20px; }
+/* This card's price line is an added cost (resell rights on top of the
+   licence already in the cart), not a discount - .ty-upsell-price is
+   Price Green everywhere else because it always signals savings there,
+   so it's overridden here rather than implying this makes the order
+   cheaper. */
+.co-resell-popup-modal .ty-upsell-price { color: var(--fg); font-weight: 700; }
+.co-resell-popup-actions { display: flex; gap: 10px; margin-top: 22px; }
+.co-resell-popup-actions .btn { flex: 1; justify-content: center; }
 .co-empty a { color: var(--accent); text-decoration: none; }
 .co-coupon { display: flex; gap: 8px; margin: 16px 0 4px; }
 /* Was border-radius: 10px - the Apply button right beside it (.btn, used

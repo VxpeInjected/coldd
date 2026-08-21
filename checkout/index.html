@@ -16,7 +16,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
 
-  <link rel="stylesheet" href="/styles.css?v=20260821f" />
+  <link rel="stylesheet" href="/styles.css?v=20260821g" />
 </head>
 <body>
   <div class="backdrop"></div>
@@ -244,8 +244,7 @@
           <div class="co-items" id="coItems"></div>
           <div class="co-empty" id="coEmpty" hidden>Your cart is empty. <a class="lnk-arrow" href="/assets">Browse products</a></div>
           <div class="co-tier" id="coTierBanner" hidden></div>
-          <div class="co-upsell" id="coResellUpsell" hidden></div>
-          <div class="co-upsell" id="coCrossSell" hidden></div>
+          <div class="co-cross" id="coCrossSell" hidden></div>
           <div class="co-coupon">
             <input type="text" id="coCouponInput" placeholder="Discount code" aria-label="Discount code" autocomplete="off" />
             <button type="button" class="btn btn-ghost" id="coCouponApply">Apply</button>
@@ -274,6 +273,19 @@
       </aside>
     </div>
   </main>
+
+  <div class="confirm-overlay" id="coResellPopup" hidden>
+    <div class="confirm-modal mkt-popup-modal co-resell-popup-modal">
+      <button class="mkt-popup-x" type="button" id="coResellPopupClose" aria-label="Close"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M5 5l14 14M19 5 5 19"/></svg></button>
+      <h3 class="mkt-popup-title">Add resell rights before you check out?</h3>
+      <p class="mkt-popup-sub">Sell what you're about to buy under your own storefront - upgrade now while it's still one click.</p>
+      <div class="ty-upsell-grid" id="coResellPopupGrid"></div>
+      <div class="co-resell-popup-actions">
+        <button class="btn btn-tinted" type="button" id="coResellPopupSkip">Continue without</button>
+        <button class="btn btn-primary" type="button" id="coResellPopupContinue">Continue</button>
+      </div>
+    </div>
+  </div>
 
   <div class="robux-overlay" id="robuxModalOverlay" hidden>
     <div class="robux-modal glass" id="robuxModal" role="dialog" aria-modal="true" aria-labelledby="robuxModalTitle">
@@ -469,7 +481,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.2/dist/umd/supabase.min.js" integrity="sha384-B2duOBIryCXbX4eDE4BdJwtNkQMRQde3o6IsjfPW28E6aH1CYE96hHeZRG3zY56O" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script src="/supabase-init.js?v=20260821a"></script>
   <script src="/site-gate.js?v=20260820b"></script>
-  <script src="/catalog.js?v=20260820b" data-then="/app.js?v=20260821f"></script>
+  <script src="/catalog.js?v=20260820b" data-then="/app.js?v=20260821g"></script>
   <script>
     // Cart badge/total sync from localStorage, ahead of app.js. The fab
     // markup above ships hardcoded at "0"/"$0", and the cart module that

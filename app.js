@@ -4050,17 +4050,30 @@
         var tier = currentSpendTier(sub);
         var next = nextSpendTier(sub);
         box.classList.toggle('co-tier-unlocked', !!tier);
-        if (next) {
-          var remaining = money(next.minSubtotal - sub);
-          var pctToNext = Math.min(100, Math.round((sub / next.minSubtotal) * 100));
-          box.innerHTML = '<div class="co-tier-text">' + (tier ? (tier.pct + '% off unlocked - spend ' + remaining + ' more for ' + next.pct + '% off') : ('Spend ' + remaining + ' more to unlock ' + next.pct + '% off')) + '</div>' +
-            '<div class="co-tier-bar"><div class="co-tier-fill" style="width:' + pctToNext + '%"></div></div>';
-        } else if (tier) {
-          box.innerHTML = '<div class="co-tier-text">' + tier.pct + '% off unlocked - the best tier in your cart right now.</div>' +
-            '<div class="co-tier-bar"><div class="co-tier-fill" style="width:100%"></div></div>';
-        } else {
-          box.hidden = true;
-        }
+        // Steps ascend by threshold, not the SPEND_TIERS declaration order
+        // (that array is written highest-first so currentSpendTier's first
+        // match wins correctly) - the ladder reads left to right as money
+        // goes up.
+        var ascending = SPEND_TIERS.slice().sort(function (a, b) { return a.minSubtotal - b.minSubtotal; });
+        var maxThreshold = ascending[ascending.length - 1].minSubtotal;
+        var pctToNext = Math.min(100, Math.round((sub / maxThreshold) * 100));
+        var headline = next
+          ? (tier ? (tier.pct + '% off unlocked - spend ' + money(next.minSubtotal - sub) + ' more for ' + next.pct + '% off') : ('Spend ' + money(next.minSubtotal - sub) + ' more to start saving'))
+          : (tier.pct + '% off unlocked - the best tier in your cart right now.');
+        var markers = ascending.map(function (t) {
+          var reached = sub >= t.minSubtotal;
+          var isNext = next && t.minSubtotal === next.minSubtotal;
+          var left = Math.min(100, Math.round((t.minSubtotal / maxThreshold) * 100));
+          return '<div class="co-tier-marker' + (reached ? ' done' : '') + (isNext ? ' next' : '') + '" style="left:' + left + '%">' +
+            '<span class="co-tier-dot">' + (reached ? '<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg>' : '') + '</span>' +
+            '<span class="co-tier-marker-label">' + t.pct + '%<br>' + money(t.minSubtotal) + '</span>' +
+            '</div>';
+        }).join('');
+        box.innerHTML = '<div class="co-tier-text">' + headline + '</div>' +
+          '<div class="co-tier-track">' +
+          '<div class="co-tier-bar"><div class="co-tier-fill" style="width:' + pctToNext + '%"></div></div>' +
+          markers +
+          '</div>';
       }
 
       function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
@@ -4204,70 +4217,13 @@
       }
       function render() {
         renderItems(); renderTotals(); updateResell();
-        renderTierBanner(); renderResellUpsell(); renderCrossSell();
+        renderTierBanner(); renderCrossSell();
         if (typeof payMethod !== 'undefined' && payMethod === 'robux') renderRobuxPanel();
       }
 
       function updateResell() {
         var wrap = document.getElementById('coResellWrap');
         if (wrap) wrap.hidden = !cart.some(function (i) { return i.licence === 'resell'; });
-      }
-
-      // Resell-license upgrade offer: any cart item that offers a resell
-      // licence but was added as standard gets a one-click "upgrade" row.
-      // Removes the standard line and re-adds the same product as
-      // licence:'resell' - real price change, not a display trick, so it
-      // flows through the exact same total/coupon/place-order path a
-      // resell item added from the product page would.
-      function renderResellUpsell() {
-        var box = document.getElementById('coResellUpsell');
-        if (!box) return;
-        // Resell licences are never sold via Robux at all (priceRobuxItems
-        // rejects the whole order outright if one's in the cart) - offering
-        // the upgrade while Robux is the selected method would just lead to
-        // "Place order" failing, so the box doesn't show at all in that case.
-        if (typeof payMethod !== 'undefined' && payMethod === 'robux') { box.hidden = true; box.innerHTML = ''; return; }
-        var cat = window.__CATALOG || [];
-        var candidates = cart.filter(function (i) {
-          if (i.licence === 'resell') return false;
-          var p = cat.filter(function (x) { return x.id === i.id; })[0];
-          return p && p.resell;
-        });
-        if (!candidates.length) { box.hidden = true; box.innerHTML = ''; return; }
-        box.hidden = false;
-        // Resell pricing is always USD, regardless of the header's currency
-        // toggle - matches product.html's own resell display (__usd, not
-        // __money, once Robux mode is active).
-        var robuxMode = window.__currencyMode && window.__currencyMode() === 'robux';
-        var resellMoney = function (n) { return robuxMode ? (window.__usd ? window.__usd(n) : ('$' + n)) : money(n); };
-        box.innerHTML = candidates.map(function (i) {
-          var p = cat.filter(function (x) { return x.id === i.id; })[0];
-          var resellPrice = p.resellPrice != null ? p.resellPrice : Math.round(p.priceNum * 3);
-          return '<div class="co-upsell-row" data-slug="' + esc(i.id) + '">' +
-            '<span class="co-upsell-thumb" style="background-image:url(\'' + i.image + '\')"></span>' +
-            '<div class="co-upsell-text"><div class="co-upsell-title">Add resell rights to ' + esc(i.title) + '</div>' +
-            '<div class="co-upsell-sub">Upgrade for ' + resellMoney(resellPrice - i.price) + ' more (USD only)</div></div>' +
-            '<button class="btn btn-tinted co-upsell-btn" type="button" data-act="resell-upgrade">Upgrade</button></div>';
-        }).join('');
-      }
-      if (document.getElementById('coResellUpsell')) {
-        document.getElementById('coResellUpsell').addEventListener('click', function (e) {
-          var row = e.target.closest('.co-upsell-row'); if (!row) return;
-          var slug = row.getAttribute('data-slug');
-          var cat = window.__CATALOG || [];
-          var p = cat.filter(function (x) { return x.id === slug; })[0];
-          if (!p) return;
-          var resellPrice = p.resellPrice != null ? p.resellPrice : Math.round(p.priceNum * 3);
-          // This page's own cart instance (checkout's `cart`/`save` are
-          // separate from the nav drawer's - see the coldd:cart-sync
-          // listener above), so the swap is done directly on it rather
-          // than through the drawer's add()/removeItem(), which aren't in
-          // scope here.
-          cart = cart.filter(function (i) { return i.id !== slug; });
-          cart.push({ id: slug + '--resell', title: p.title, price: resellPrice, image: p.image, tag: p.cat || '', licence: 'resell', qty: 1 });
-          save(cart);
-          render();
-        });
       }
 
       // Genre cross-sell: "people also get this" based on the genres
@@ -4302,18 +4258,22 @@
         if (!box) return;
         if (!crossSellCache || !crossSellCache.length) { box.hidden = true; box.innerHTML = ''; return; }
         box.hidden = false;
-        box.innerHTML = crossSellCache.map(function (p) {
-          var discounted = Math.round(p.priceNum * 0.9 * 100) / 100;
-          return '<div class="co-upsell-row" data-slug="' + esc(p.id) + '">' +
-            '<span class="co-upsell-thumb" style="background-image:url(\'' + p.image + '\')"></span>' +
-            '<div class="co-upsell-text"><div class="co-upsell-title">' + esc(p.title) + '</div>' +
-            '<div class="co-upsell-sub"><span class="co-upsell-was">' + money(p.priceNum) + '</span>' + money(discounted) + ' - add it now</div></div>' +
-            '<button class="btn btn-tinted co-upsell-btn" type="button" data-act="cross-sell-add">Add</button></div>';
-        }).join('');
+        box.innerHTML = '<div class="co-cross-head">Goes well with your order</div>' +
+          crossSellCache.map(function (p) {
+            var discounted = Math.round(p.priceNum * 0.9 * 100) / 100;
+            return '<div class="co-cross-card" data-slug="' + esc(p.id) + '">' +
+              '<span class="co-cross-thumb" style="background-image:url(\'' + p.image + '\')"></span>' +
+              '<div class="co-cross-body">' +
+              '<div class="co-cross-title">' + esc(p.title) + '</div>' +
+              (p.desc ? '<div class="co-cross-desc">' + esc(p.desc) + '</div>' : '') +
+              '<div class="co-cross-row"><span class="co-cross-price"><span class="co-cross-was">' + money(p.priceNum) + '</span>' + money(discounted) + '</span>' +
+              '<button class="btn btn-tinted co-cross-add" type="button" data-act="cross-sell-add">Add - 10% off</button></div>' +
+              '</div></div>';
+          }).join('');
       }
       if (document.getElementById('coCrossSell')) {
         document.getElementById('coCrossSell').addEventListener('click', function (e) {
-          var row = e.target.closest('.co-upsell-row'); if (!row) return;
+          var row = e.target.closest('.co-cross-card'); if (!row) return;
           var slug = row.getAttribute('data-slug');
           var p = (crossSellCache || []).filter(function (x) { return x.id === slug; })[0];
           if (!p) return;
@@ -4720,7 +4680,6 @@
         // PayPal - re-run so it shows/hides for the method just picked
         // instead of only reflecting whatever was selected on page load.
         renderTotals();
-        renderResellUpsell();
         // Selection is exposed to assistive tech, not just painted. The row
         // group is a radiogroup, so each row has to carry its own state.
         document.querySelectorAll('.co-pay-btn').forEach(function (b) {
@@ -4822,6 +4781,72 @@
           if (msg) { msg.className = 'co-msg err show'; msg.textContent = 'Could not check your Roblox account link.'; }
         });
       }
+      // Resell-rights upgrade moved from a passive sidebar row to a popup
+      // that intercepts the actual "Place order" click - a row buried in
+      // the summary column was easy to never notice; a popup right before
+      // the buyer commits is the moment they're already thinking "am I
+      // done adding things." Only ever interrupts once per eligible item:
+      // resellPopupSeen tracks which slugs have already been offered
+      // (upgraded OR skipped) so retrying a failed validation, or a second
+      // click after Continue, never re-shows it for the same item.
+      var resellPopupSeen = {};
+      function resellCandidates() {
+        if (typeof payMethod !== 'undefined' && payMethod === 'robux') return [];
+        var cat = window.__CATALOG || [];
+        return cart.filter(function (i) {
+          if (i.licence === 'resell' || resellPopupSeen[i.id]) return false;
+          var p = cat.filter(function (x) { return x.id === i.id; })[0];
+          return p && p.resell;
+        });
+      }
+      function openResellPopup(candidates, onDone) {
+        var overlay = document.getElementById('coResellPopup');
+        var grid = document.getElementById('coResellPopupGrid');
+        if (!overlay || !grid) { onDone(); return; }
+        var cat = window.__CATALOG || [];
+        var robuxMode = window.__currencyMode && window.__currencyMode() === 'robux';
+        var resellMoney = function (n) { return robuxMode ? (window.__usd ? window.__usd(n) : ('$' + n)) : money(n); };
+        var selected = {};
+        candidates.forEach(function (i) { selected[i.id] = true; });
+        function paint() {
+          grid.innerHTML = candidates.map(function (i) {
+            var p = cat.filter(function (x) { return x.id === i.id; })[0];
+            if (!p) return '';
+            var resellPrice = p.resellPrice != null ? p.resellPrice : Math.round(p.priceNum * 3);
+            return '<div class="ty-upsell-card' + (selected[i.id] ? ' checked' : '') + '" data-slug="' + esc(i.id) + '">' +
+              '<span class="ty-upsell-thumb" style="background-image:url(\'' + i.image + '\')"></span>' +
+              '<div class="ty-upsell-body"><div class="ty-upsell-name">' + esc(i.title) + '</div>' +
+              '<div class="ty-upsell-price">+' + resellMoney(resellPrice - i.price) + '</div>' +
+              '<label class="ty-upsell-check"><input type="checkbox" data-slug="' + esc(i.id) + '"' + (selected[i.id] ? ' checked' : '') + ' /> Add resell rights</label>' +
+              '</div></div>';
+          }).join('');
+        }
+        paint();
+        grid.onchange = function (e) {
+          var cb = e.target.closest('input[type="checkbox"]'); if (!cb) return;
+          selected[cb.getAttribute('data-slug')] = cb.checked;
+          paint();
+        };
+        function close() { overlay.hidden = true; candidates.forEach(function (i) { resellPopupSeen[i.id] = true; }); }
+        overlay.hidden = false;
+        document.getElementById('coResellPopupClose').onclick = function () { close(); onDone(); };
+        document.getElementById('coResellPopupSkip').onclick = function () { close(); onDone(); };
+        document.getElementById('coResellPopupContinue').onclick = function () {
+          candidates.forEach(function (i) {
+            if (!selected[i.id]) return;
+            var p = cat.filter(function (x) { return x.id === i.id; })[0];
+            if (!p) return;
+            var resellPrice = p.resellPrice != null ? p.resellPrice : Math.round(p.priceNum * 3);
+            cart = cart.filter(function (x) { return x.id !== i.id; });
+            cart.push({ id: i.id + '--resell', title: p.title, price: resellPrice, image: p.image, tag: p.cat || '', licence: 'resell', qty: 1 });
+          });
+          save(cart);
+          render();
+          close();
+          onDone();
+        };
+      }
+
       if (placeBtn) placeBtn.addEventListener('click', function () {
         if (!cart.length) return;
         // Card, PayPal and Robux all place an order from this button; they
@@ -4850,6 +4875,12 @@
           return;
         }
 
+        var candidates = resellCandidates();
+        if (candidates.length) { openResellPopup(candidates, proceedToOrder); return; }
+        proceedToOrder();
+      });
+
+      function proceedToOrder() {
         if (payMethod === 'robux') { startRobuxOrder(); return; }
 
         var prevText = placeBtn.textContent;
@@ -4900,7 +4931,7 @@
             placeBtn.disabled = false; placeBtn.textContent = prevText;
             if (msg) { msg.className = 'co-msg err show'; msg.textContent = (err && err.message) || 'Something went wrong. Please try again.'; }
           });
-      });
+      }
 
       // The real Place order button sits at the end of a long left column
       // (Contact -> Payment -> Before you pay), often a full scroll away

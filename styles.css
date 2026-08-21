@@ -863,7 +863,7 @@
 .page-head h1 { font-size: clamp(40px, 6vw, 66px); font-weight: 800; letter-spacing: -0.04em; }
 .page-head p { color: var(--fg-2); font-size: 17px; max-width: 560px; margin: 16px auto 0; }
 .about-head-row { display: flex; align-items: center; justify-content: center; gap: 18px; }
-.about-head-logo { height: 46px; width: auto; display: block; flex: 0 0 auto; }
+.about-head-logo { height: clamp(40px, 6vw, 66px); width: auto; display: block; flex: 0 0 auto; }
 @media (max-width: 560px) { .about-head-row { flex-direction: column; gap: 10px; } }
 .shop { padding: 16px 0 70px; }
 .shop-notitle { padding-top: 132px; }

@@ -174,6 +174,23 @@
     try { return localStorage.getItem(CAMPAIGN_KEY); } catch (e) { return null; }
   }
 
+  // Captures ?bundle=TOKEN the same way - a wishlist-reminder or
+  // post-purchase-upsell email links back with one, and checkout reads it
+  // from here (coldd_bundle_token) rather than the URL directly, since the
+  // buyer may click around (wishlist -> product page -> checkout) before
+  // actually placing the order. priceItems() silently ignores an
+  // expired/unknown one, so there's no harm in always carrying whatever
+  // was last captured.
+  (function captureBundleToken() {
+    try {
+      var m = /[?&]bundle=([^&]+)/.exec(location.search);
+      if (!m) return;
+      var token = decodeURIComponent(m[1]).trim();
+      if (!token) return;
+      localStorage.setItem('coldd_bundle_token', token);
+    } catch (e) {}
+  })();
+
   function saveProfile(p) { try { localStorage.setItem(PROFILE_KEY, JSON.stringify(p)); } catch (e) {} }
   function getProfile() { try { return JSON.parse(localStorage.getItem(PROFILE_KEY) || 'null'); } catch (e) { return null; } }
   function clearProfile() { try { localStorage.removeItem(PROFILE_KEY); } catch (e) {} }

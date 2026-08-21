@@ -69,7 +69,7 @@ Deno.serve(async (req: Request) => {
       if (!isStaff) return json({ ok: false, error: "coldd is temporarily down for maintenance. Please check back shortly." }, 503);
     }
 
-    const priced = await priceItems(admin, Array.isArray(body.items) ? body.items : []);
+    const priced = await priceItems(admin, Array.isArray(body.items) ? body.items : [], { bundleToken: body.bundleToken ? String(body.bundleToken) : undefined });
     if (!priced.ok) return json({ ok: false, error: priced.error }, 400);
     const { lines, subtotal } = priced;
     if (subtotal <= 0) return json({ ok: false, error: "Order total must be greater than zero." }, 400);

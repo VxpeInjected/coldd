@@ -89,6 +89,100 @@
       };
     })();
 
+    // Site-wide "get 10% off for your email" popup - the discount used to
+    // be tied to the checkout marketing checkbox, which wasn't the right
+    // place for it (a purchase already in progress isn't the moment to be
+    // asking for an email in exchange for a discount on that same order).
+    // This is the dedicated version: shows once, independent of checkout,
+    // and mints a real one-time code via marketing-signup rather than a
+    // discount that only ever existed as a checkbox label.
+    (function () {
+      var SEEN_KEY = 'coldd_mkt_popup_seen';
+      var CODE_KEY = 'coldd_mkt_popup_code';
+      var SNOOZE_DAYS = 30;
+      var SHOW_DELAY_MS = 20000;
+
+      // Never on checkout (mid-purchase is the wrong moment to interrupt
+      // with an unrelated offer) or any account/admin flow.
+      if (/^\/(checkout|dashboard|admin|signin|signup|forgot|reset|lock)(\/|$)/.test(location.pathname)) return;
+
+      try {
+        if (localStorage.getItem(CODE_KEY)) return; // already claimed a code, never ask again
+        var seenAt = parseInt(localStorage.getItem(SEEN_KEY) || '0', 10);
+        if (seenAt && (Date.now() - seenAt) / 86400000 < SNOOZE_DAYS) return;
+      } catch (e) {}
+
+      function markSeen() { try { localStorage.setItem(SEEN_KEY, String(Date.now())); } catch (e) {} }
+
+      function buildPopup() {
+        var overlay = document.createElement('div');
+        overlay.className = 'confirm-overlay';
+        overlay.innerHTML =
+          '<div class="confirm-modal mkt-popup-modal">' +
+          '<button class="mkt-popup-x" type="button" aria-label="Close">&times;</button>' +
+          '<h3 class="mkt-popup-title">Get 10% off</h3>' +
+          '<p class="mkt-popup-sub">Drop your email for deals, drops, and product updates - we\'ll send a one-time 10% code right now.</p>' +
+          '<form class="mkt-popup-form" id="mktPopupForm">' +
+          '<input type="email" id="mktPopupEmail" placeholder="you@example.com" aria-label="Email address" required />' +
+          '<button class="btn btn-primary" type="submit"><span class="btn-label">Get my code</span><span class="btn-spinner" hidden></span></button>' +
+          '</form>' +
+          '<p class="mkt-popup-msg" id="mktPopupMsg"></p>' +
+          '<p class="mkt-popup-fine">No spam, unsubscribe any time.</p>' +
+          '</div>';
+        document.body.appendChild(overlay);
+
+        function close() { overlay.remove(); markSeen(); }
+        overlay.addEventListener('click', function (e) { if (e.target === overlay) close(); });
+        overlay.querySelector('.mkt-popup-x').addEventListener('click', close);
+
+        var form = overlay.querySelector('#mktPopupForm');
+        var msgEl = overlay.querySelector('#mktPopupMsg');
+        form.addEventListener('submit', function (e) {
+          e.preventDefault();
+          var email = overlay.querySelector('#mktPopupEmail').value.trim();
+          if (!email || !window.coldSupabase) return;
+          var btn = form.querySelector('button[type="submit"]');
+          var spinner = btn.querySelector('.btn-spinner');
+          btn.disabled = true; if (spinner) spinner.hidden = false;
+          window.coldSupabase.functions.invoke('marketing-signup', { body: { email: email } }).then(function (res) {
+            btn.disabled = false; if (spinner) spinner.hidden = true;
+            var data = res && res.data;
+            if (res.error || !data || !data.ok) {
+              msgEl.className = 'mkt-popup-msg err';
+              msgEl.textContent = (data && data.error) || 'Could not generate a code. Please try again.';
+              return;
+            }
+            try { localStorage.setItem(CODE_KEY, data.code); } catch (err) {}
+            form.hidden = true;
+            msgEl.className = 'mkt-popup-msg ok';
+            msgEl.innerHTML = 'Your code: <strong class="mkt-popup-code">' + data.code + '</strong> - use it at checkout for 10% off. It\'s also saved to this browser.';
+          }).catch(function () {
+            btn.disabled = false; if (spinner) spinner.hidden = true;
+            msgEl.className = 'mkt-popup-msg err';
+            msgEl.textContent = 'Could not generate a code. Please try again.';
+          });
+        });
+      }
+
+      setTimeout(function () {
+        // A signed-in visitor who's already opted into promotions doesn't
+        // need to be asked again just because this browser hasn't seen the
+        // popup before.
+        if (window.coldSupabase) {
+          window.coldSupabase.auth.getSession().then(function (res) {
+            var session = res && res.data && res.data.session;
+            if (!session) { buildPopup(); return; }
+            window.coldSupabase.from('profiles').select('notification_prefs').eq('id', session.user.id).maybeSingle().then(function (r) {
+              var already = r && r.data && r.data.notification_prefs && r.data.notification_prefs.promotions;
+              if (already) { markSeen(); return; }
+              buildPopup();
+            }).catch(function () { buildPopup(); });
+          }).catch(function () { buildPopup(); });
+        } else {
+          buildPopup();
+        }
+      }, SHOW_DELAY_MS);
+    })();
 
     // Light mode toggle (dashboard > Appearance). The actual theme
     // application happens in an early inline <head> script on every page
@@ -4697,6 +4791,11 @@
         if (window.coldAuth && window.coldAuth.getCampaignCode()) checkoutBody.campaignCode = window.coldAuth.getCampaignCode();
         if (giftToggle && giftToggle.checked && giftRecipientUserId) checkoutBody.giftRecipientUserId = giftRecipientUserId;
         if (coMktToggle && coMktToggle.checked) checkoutBody.marketingOptIn = true;
+        // A "Build more for less" or wishlist-reminder token, if this cart
+        // came from either - priceItems() silently ignores it if it's
+        // expired, unknown, or none of its slugs are actually in this
+        // cart, so it's always safe to just always send whatever's saved.
+        try { var savedBundleToken = localStorage.getItem('coldd_bundle_token'); if (savedBundleToken) checkoutBody.bundleToken = savedBundleToken; } catch (e) {}
 
         // Only slugs, quantities and a coupon code are ever sent. Both
         // functions re-price the whole cart from the database, so a tampered
@@ -4950,6 +5049,7 @@
               confettiBurst();
               renderItems(data.items || []);
               maybeShowResellerPopup(data.items || []);
+              renderPostPurchaseUpsell();
             } else if (triesLeft > 0) {
               // Crypto sits in "pending" for real minutes while the network
               // confirms, so say that rather than leaving a blank wait.
@@ -4966,6 +5066,71 @@
           .catch(function () {
             if (triesLeft > 0) setTimeout(function () { poll(triesLeft - 1); }, 1500);
           });
+      }
+
+      // "Build more for less" - same genre-matched, floor-checked discount
+      // shape as the checkout cross-sell, but keyed off what was just
+      // bought instead of what's in the cart, and with a bundle_deals
+      // token instead of a per-line flag (this isn't the same checkout
+      // request any more - the buyer already paid once, adding these is a
+      // brand new order). Selecting/deselecting cards live-updates whether
+      // the bigger bundle discount is still on offer, since bundle_pct
+      // only applies server-side if EVERY offered slug ends up in the cart.
+      function renderPostPurchaseUpsell() {
+        var section = document.getElementById('upsellSection');
+        var grid = document.getElementById('upsellGrid');
+        if (!section || !grid || !window.coldSupabase) return;
+        window.coldSupabase.functions.invoke('get-post-purchase-upsell', { body: sessionId ? { sessionId: sessionId } : { orderId: robuxOrderIdParam } })
+          .then(function (res) {
+            var data = res && res.data;
+            if (!data || !data.ok || !data.items || !data.items.length) return;
+            section.hidden = false;
+            var selected = {}; data.items.forEach(function (it) { selected[it.slug] = true; });
+            function money2(n) { return window.__money ? window.__money(n) : ('$' + n.toFixed(2)); }
+            function paint() {
+              var selCount = Object.keys(selected).filter(function (s) { return selected[s]; }).length;
+              var allSelected = selCount === data.items.length;
+              grid.innerHTML = data.items.map(function (it) {
+                var checked = !!selected[it.slug];
+                var price = allSelected ? it.bundlePriceUsd : it.itemPriceUsd;
+                return '<div class="ty-upsell-card' + (checked ? ' checked' : '') + '" data-slug="' + it.slug + '">' +
+                  '<span class="ty-upsell-thumb" style="background-image:url(\'' + window.imgUrl(it.image) + '\')"></span>' +
+                  '<div class="ty-upsell-body"><div class="ty-upsell-name">' + it.title + '</div>' +
+                  '<div class="ty-upsell-price"><span class="ty-upsell-was">' + money2(it.priceUsd) + '</span>' + money2(price) + '</div>' +
+                  '<label class="ty-upsell-check"><input type="checkbox" data-slug="' + it.slug + '"' + (checked ? ' checked' : '') + ' /> Include this one</label>' +
+                  '</div></div>';
+              }).join('');
+              var noteEl = document.getElementById('upsellNote');
+              if (noteEl) {
+                noteEl.textContent = allSelected
+                  ? ('All ' + data.items.length + ' selected - ' + (data.itemPct + data.bundlePct) + '% off each.')
+                  : (selCount + ' of ' + data.items.length + ' selected - ' + data.itemPct + '% off each (select all ' + data.items.length + ' for ' + (data.itemPct + data.bundlePct) + '% off).');
+              }
+            }
+            paint();
+            grid.addEventListener('change', function (e) {
+              var cb = e.target.closest('input[type="checkbox"]'); if (!cb) return;
+              selected[cb.getAttribute('data-slug')] = cb.checked;
+              paint();
+            });
+            var addAllBtn = document.getElementById('upsellAddAll');
+            if (addAllBtn) addAllBtn.addEventListener('click', function () {
+              var chosen = data.items.filter(function (it) { return selected[it.slug]; });
+              if (!chosen.length) return;
+              try {
+                var cart = [];
+                try { cart = JSON.parse(localStorage.getItem('coldd_cart_v1') || '[]') || []; } catch (e) {}
+                chosen.forEach(function (it) {
+                  if (cart.some(function (c) { return c.id === it.slug; })) return;
+                  cart.push({ id: it.slug, title: it.title, price: it.priceUsd, image: window.imgUrl(it.image), tag: '', licence: 'standard', qty: 1 });
+                });
+                localStorage.setItem('coldd_cart_v1', JSON.stringify(cart));
+                localStorage.setItem('coldd_bundle_token', data.token);
+                window.dispatchEvent(new CustomEvent('coldd:cart-sync', { detail: { source: 'upsell' } }));
+              } catch (e) {}
+              location.href = '/checkout';
+            });
+          }).catch(function () {});
       }
 
       var resellerOverlay = document.getElementById('resellerOverlay');

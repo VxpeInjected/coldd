@@ -33,6 +33,7 @@ export type PricedLine = {
 export async function priceItems(
   admin: any,
   items: CartItem[],
+  opts?: { bundleToken?: string },
 ): Promise<{ ok: true; lines: PricedLine[]; subtotal: number } | { ok: false; error: string }> {
   if (!items.length) return { ok: false, error: "Your cart is empty." };
   if (items.length > 50) return { ok: false, error: "Too many items in one order." };
@@ -44,6 +45,25 @@ export async function priceItems(
     .in("slug", slugs)
     .eq("is_active", true);
   if (error) return { ok: false, error: "Could not load products." };
+
+  // A bundle deal ("Build more for less" on the success page, or a
+  // wishlist reminder email) is a hand-picked list of slugs at their own
+  // item_pct, plus bundle_pct MORE off those same lines if every slug in
+  // the deal is actually present in this cart - not just some of them.
+  // Expired/unknown tokens are silently ignored (same "quietly doesn't
+  // apply" rule a stale coupon code gets) rather than failing checkout.
+  let bundle: { slugs: string[]; item_pct: number; bundle_pct: number } | null = null;
+  if (opts?.bundleToken) {
+    const { data: row } = await admin
+      .from("bundle_deals")
+      .select("slugs, item_pct, bundle_pct, expires_at")
+      .eq("token", opts.bundleToken)
+      .maybeSingle();
+    if (row && (!row.expires_at || new Date(row.expires_at) > new Date())) {
+      bundle = row;
+    }
+  }
+  const bundleFullySatisfied = bundle ? bundle.slugs.every((s) => slugs.includes(s)) : false;
 
   const bySlug = new Map((products ?? []).map((p: any) => [p.slug, p]));
   const lines: PricedLine[] = [];
@@ -74,9 +94,18 @@ export async function priceItems(
       const floored = minSaleUsd > 0 ? Math.max(discounted, minSaleUsd) : discounted;
       if (floored < baseUnitPrice) { unitPrice = floored; isCrossSellDeal = true; }
     }
+    let bundlePctApplied = 0;
+    if (bundle && bundle.slugs.includes(slug) && !disallowSales && licence !== "resell") {
+      const pct = bundle.item_pct + (bundleFullySatisfied ? bundle.bundle_pct : 0);
+      const discounted = Math.round(baseUnitPrice * (1 - pct / 100) * 100) / 100;
+      const floored = minSaleUsd > 0 ? Math.max(discounted, minSaleUsd) : discounted;
+      if (floored < unitPrice) { unitPrice = floored; bundlePctApplied = pct; }
+    }
     lines.push({
       slug,
-      title: product.title + (licence === "resell" ? " (Resell licence)" : "") + (isCrossSellDeal ? ` (${CROSS_SELL_PCT}% off)` : ""),
+      title: product.title + (licence === "resell" ? " (Resell licence)" : "")
+        + (isCrossSellDeal ? ` (${CROSS_SELL_PCT}% off)` : "")
+        + (bundlePctApplied ? ` (${bundlePctApplied}% off)` : ""),
       unitPrice,
       qty,
       licence,

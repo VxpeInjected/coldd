@@ -34,6 +34,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { ctaButtonHtml, emailConfigured, itemsTableHtml, renderAutomationEmail, sendSingle } from "../_shared/email.ts";
+import { mintOneTimeCoupon, mintBundleDeal } from "../_shared/discount_codes.ts";
 
 const MAX_PER_AUTOMATION = 50;
 const SITE_URL = "https://coldd.dev";
@@ -65,6 +66,7 @@ Deno.serve(async (req: Request) => {
       abandonedCart: await runAbandonedCart(admin, configs, supabaseUrl),
       postPurchase: await runPostPurchaseReview(admin, configs.get("post_purchase_review"), supabaseUrl),
       reengagement: await runReengagement(admin, configs.get("reengagement"), supabaseUrl),
+      wishlistReminder: await runWishlistReminder(admin, configs.get("wishlist_reminder"), supabaseUrl),
     };
 
     return json({ ok: true, ...results });
@@ -75,14 +77,14 @@ Deno.serve(async (req: Request) => {
 });
 
 // deno-lint-ignore no-explicit-any
-async function eligibleProfile(admin: any, userId: string): Promise<{ email: string; email_unsub_token: string } | null> {
+async function eligibleProfile(admin: any, userId: string): Promise<{ email: string; email_unsub_token: string; hasMarketingOptIn: boolean } | null> {
   const { data } = await admin
     .from("profiles")
-    .select("email, email_unsub_token, marketing_unsubscribed, banned")
+    .select("email, email_unsub_token, marketing_unsubscribed, banned, notification_prefs")
     .eq("id", userId)
     .maybeSingle();
   if (!data || !data.email || data.marketing_unsubscribed || data.banned) return null;
-  return data;
+  return { email: data.email, email_unsub_token: data.email_unsub_token, hasMarketingOptIn: !!data.notification_prefs?.promotions };
 }
 
 // deno-lint-ignore no-explicit-any
@@ -92,7 +94,7 @@ async function runAbandonedCart(admin: any, configs: Map<string, Config>, supaba
 
   const { data: carts } = await admin
     .from("cart_snapshots")
-    .select("session_id, user_id, items, updated_at, abandoned_step_sent")
+    .select("session_id, user_id, items, updated_at, abandoned_step_sent, discount_code")
     .not("user_id", "is", null)
     .lt("abandoned_step_sent", 3)
     .order("updated_at", { ascending: true })
@@ -113,11 +115,30 @@ async function runAbandonedCart(admin: any, configs: Map<string, Config>, supaba
       : [];
     if (!items.length) { skipped++; await admin.from("cart_snapshots").update({ abandoned_step_sent: nextStepNum }).eq("session_id", cart.session_id); continue; }
 
+    // Steps 2/3 carry a real discount - only for someone who's actually
+    // opted into marketing (a plain "your cart's still here" nudge is
+    // defensible without that, a discount offer is unambiguously
+    // promotional). Everyone else still gets the same reminder, just
+    // without a code attached. The SAME code is reused for step 3 if step
+    // 2 already minted one, rather than a new one each time.
+    let discountCode: string | null = cart.discount_code || null;
+    const updatePayload: Record<string, unknown> = { abandoned_step_sent: nextStepNum };
+    if (nextStepNum >= 2 && prof.hasMarketingOptIn && !discountCode) {
+      discountCode = await mintOneTimeCoupon(admin, { prefix: "CART", pct: nextStepNum === 2 ? 10 : 15, expiresInDays: 7 });
+      if (discountCode) updatePayload.discount_code = discountCode;
+    }
+
+    const extraBlocks = [itemsTableHtml(items)];
+    if (nextStepNum >= 2 && discountCode) {
+      extraBlocks.push(`<p style="margin:0 0 20px;font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#d7d7d7;">Use code <strong style="color:#ff3344;letter-spacing:0.03em;">${discountCode}</strong> at checkout.</p>`);
+    }
+    extraBlocks.push(ctaButtonHtml(`${SITE_URL}/checkout`, "Finish checkout"));
+
     const unsubscribeUrl = `${supabaseUrl}/functions/v1/email-unsubscribe?t=${prof.email_unsub_token}`;
-    const html = renderAutomationEmail(step.body_md, [itemsTableHtml(items), ctaButtonHtml(`${SITE_URL}/checkout`, "Finish checkout")], unsubscribeUrl);
+    const html = renderAutomationEmail(step.body_md, extraBlocks, unsubscribeUrl);
     const result = await sendSingle(prof.email, step.subject, html);
     if (result.ok) sent++; else console.error("[cron-lifecycle-emails] abandoned-cart send failed:", result.error);
-    await admin.from("cart_snapshots").update({ abandoned_step_sent: nextStepNum }).eq("session_id", cart.session_id);
+    await admin.from("cart_snapshots").update(updatePayload).eq("session_id", cart.session_id);
   }
   return { sent, skipped };
 }
@@ -195,6 +216,100 @@ async function runReengagement(admin: any, config: Config | undefined, supabaseU
     const result = await sendSingle(prof.email, config.subject, html);
     if (result.ok) sent++; else { skipped++; console.error("[cron-lifecycle-emails] reengagement send failed:", result.error); }
     await admin.from("profiles").update({ reengagement_email_sent_at: new Date().toISOString() }).eq("id", prof.id);
+  }
+  return { sent, skipped };
+}
+
+// WISHLIST REMINDER (wishlist_reminder) - one per account with wishlist
+// items sitting untouched for delay_hours, offering each at item_pct off
+// (bundle_pct more if every one shown is bought together), same
+// per-user bundle_deals mechanism the post-purchase upsell uses. Unlike
+// the abandoned-cart plain-reminder step, this ALWAYS carries a
+// discount - there's no non-promotional version of "here's a nudge about
+// something you never even started buying" - so it requires real
+// marketing consent, no exceptions, rather than just being opt-out.
+const WISHLIST_ITEM_PCT = 12;
+const WISHLIST_BUNDLE_PCT = 8;
+
+// deno-lint-ignore no-explicit-any
+async function runWishlistReminder(admin: any, config: Config | undefined, supabaseUrl: string) {
+  if (!config || !config.enabled) return { sent: 0, skipped: 0 };
+
+  const cutoff = new Date(Date.now() - config.delay_hours * 3_600_000).toISOString();
+  const { data: rows } = await admin
+    .from("wishlist_items")
+    .select("user_id, product_id, created_at, products(slug, title, price_usd, image)")
+    .is("reminder_sent_at", null)
+    .lt("created_at", cutoff)
+    .limit(MAX_PER_AUTOMATION * 4); // over-fetch: several rows can belong to one user
+
+  // deno-lint-ignore no-explicit-any
+  const byUser = new Map<string, any[]>();
+  for (const row of rows || []) {
+    if (!row.products) continue;
+    if (!byUser.has(row.user_id)) byUser.set(row.user_id, []);
+    byUser.get(row.user_id)!.push(row);
+  }
+  if (!byUser.size) return { sent: 0, skipped: 0 };
+
+  let sent = 0, skipped = 0;
+  for (const [userId, userRows] of byUser) {
+    if (sent >= MAX_PER_AUTOMATION) break;
+
+    const prof = await eligibleProfile(admin, userId);
+    const productIds = userRows.map((r) => r.product_id);
+    if (!prof || !prof.hasMarketingOptIn) {
+      skipped++;
+      // Not eligible for a discount-bearing email at all - stop
+      // re-checking these specific rows every run, but this is a
+      // permanent skip, not "try again later", so sent_at is set the
+      // same as a real send would.
+      await admin.from("wishlist_items").update({ reminder_sent_at: new Date().toISOString() }).eq("user_id", userId).in("product_id", productIds);
+      continue;
+    }
+
+    // Drop anything they've since actually bought - a wishlist item that
+    // already converted isn't a reminder candidate any more.
+    const { data: owned } = await admin
+      .from("order_items")
+      .select("product_id, orders!inner(user_id, status)")
+      .eq("orders.user_id", userId)
+      .eq("orders.status", "paid")
+      .in("product_id", productIds);
+    // deno-lint-ignore no-explicit-any
+    const ownedIds = new Set((owned || []).map((o: any) => o.product_id));
+    const stillWanted = userRows.filter((r) => !ownedIds.has(r.product_id));
+
+    if (!stillWanted.length) {
+      await admin.from("wishlist_items").update({ reminder_sent_at: new Date().toISOString() }).eq("user_id", userId).in("product_id", productIds);
+      continue;
+    }
+
+    // deno-lint-ignore no-explicit-any
+    const slugs: string[] = stillWanted.map((r: any) => r.products.slug);
+    const token = await mintBundleDeal(admin, {
+      slugs,
+      itemPct: WISHLIST_ITEM_PCT,
+      bundlePct: WISHLIST_BUNDLE_PCT,
+      source: "wishlist_reminder",
+      userId,
+      email: prof.email,
+      expiresInDays: 7,
+    });
+    if (!token) { skipped++; continue; }
+
+    // deno-lint-ignore no-explicit-any
+    const lineItems = stillWanted.map((r: any) => ({ title: r.products.title }));
+    const discountNote = `<p style="margin:0 0 20px;font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#d7d7d7;">${WISHLIST_ITEM_PCT}% off each, or ${WISHLIST_ITEM_PCT + WISHLIST_BUNDLE_PCT}% off if you get all ${stillWanted.length}. This applies automatically at checkout - no code needed.</p>`;
+    const unsubscribeUrl = `${supabaseUrl}/functions/v1/email-unsubscribe?t=${prof.email_unsub_token}`;
+    const html = renderAutomationEmail(
+      config.body_md,
+      [itemsTableHtml(lineItems), discountNote, ctaButtonHtml(`${SITE_URL}/dashboard?panel=wishlist&bundle=${token}`, "See your wishlist")],
+      unsubscribeUrl,
+    );
+    const result = await sendSingle(prof.email, config.subject, html);
+    if (result.ok) sent++; else { skipped++; console.error("[cron-lifecycle-emails] wishlist-reminder send failed:", result.error); }
+    await admin.from("wishlist_items").update({ reminder_sent_at: new Date().toISOString() }).eq("user_id", userId).in("product_id", productIds);
   }
   return { sent, skipped };
 }

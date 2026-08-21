@@ -2266,6 +2266,25 @@ html.js .ref-method-btn:focus-visible { outline: 2px solid var(--accent); outlin
 .ty-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 28px; }
 .ty-actions .btn { flex: 1 1 auto; justify-content: center; min-width: 170px; }
 
+/* Post-purchase "Build more for less" - the highest-trust moment in the
+   whole flow (they've already paid once), so it gets real card styling
+   instead of reusing the plain upsell-row list checkout uses. */
+.ty-upsell { text-align: left; margin-top: 28px; padding: 24px; }
+.ty-upsell-title { font-size: 18px; font-weight: 800; letter-spacing: -0.02em; margin: 0 0 6px; }
+.ty-upsell-sub { font-size: 13px; color: var(--fg-2); margin: 0 0 18px; line-height: 1.5; }
+.ty-upsell-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 14px; }
+.ty-upsell-card { border: 1px solid var(--hairline); border-radius: var(--r-ctl); overflow: hidden; background: var(--bg-2);
+  transition: border-color .15s var(--ease); }
+.ty-upsell-card.checked { border-color: rgba(52,224,138,0.45); }
+.ty-upsell-thumb { width: 100%; aspect-ratio: 16/10; background: #0f1014 center / cover no-repeat; }
+.ty-upsell-body { padding: 10px 12px 12px; display: flex; flex-direction: column; gap: 6px; }
+.ty-upsell-name { font-size: 12.5px; font-weight: 600; line-height: 1.3; }
+.ty-upsell-price { font-size: 13px; font-weight: 700; color: var(--price); }
+.ty-upsell-was { font-size: 11px; color: var(--fg-3); text-decoration: line-through; margin-right: 4px; }
+.ty-upsell-check { display: flex; align-items: center; gap: 7px; font-size: 11px; color: var(--fg-2); cursor: pointer; margin-top: 2px; }
+.ty-upsell-actions { display: flex; align-items: center; gap: 14px; margin-top: 18px; flex-wrap: wrap; }
+.ty-upsell-selected-note { font-size: 12px; color: var(--fg-3); }
+
 /* While the payment is still resolving there is nothing to download and no
    outcome to act on, so the exits and the "what happens next" steps - which
    talk about download buttons that do not exist yet - stay hidden. The
@@ -3352,6 +3371,27 @@ body.auth-page .backdrop, body.auth-page .scrim { position: fixed; inset: 0; hei
 .confirm-modal p { margin: 0 0 22px; font-size: 15px; font-weight: 600; color: var(--fg); }
 .confirm-actions { display: flex; gap: 10px; }
 .confirm-actions .btn { flex: 1; justify-content: center; }
+
+/* Site-wide marketing-signup popup - same overlay/modal shell as the
+   sign-out confirm, just with its own content instead of a Cancel/primary
+   button pair. */
+.mkt-popup-modal { text-align: left; position: relative; padding-top: 34px; }
+.mkt-popup-x { position: absolute; top: 14px; right: 14px; width: 28px; height: 28px; border-radius: 50%;
+  border: none; background: rgba(255,255,255,0.08); color: var(--fg-3); font-size: 18px; line-height: 1; cursor: pointer; }
+.mkt-popup-x:hover { color: var(--fg); background: rgba(255,255,255,0.16); }
+.mkt-popup-title { font-size: 20px; font-weight: 800; letter-spacing: -0.02em; margin: 0 0 8px; }
+.mkt-popup-sub { font-size: 14px; color: var(--fg-2); line-height: 1.5; margin: 0 0 18px; font-weight: 400; }
+.mkt-popup-form { display: flex; gap: 8px; }
+.mkt-popup-form input { flex: 1; min-width: 0; min-height: 42px; padding: 0 14px; border-radius: 10px;
+  background: var(--bg-2); border: 1px solid var(--hairline); color: var(--fg); font-family: inherit; font-size: 14px; }
+.mkt-popup-form input:focus { outline: none; border-color: var(--accent); }
+.mkt-popup-form .btn { width: auto; flex: 0 0 auto; }
+.mkt-popup-msg { font-size: 13px; margin: 12px 0 0; line-height: 1.6; }
+.mkt-popup-msg:empty { display: none; }
+.mkt-popup-msg.err { color: var(--accent); font-weight: 600; }
+.mkt-popup-msg.ok { color: var(--fg-2); }
+.mkt-popup-code { color: var(--price); font-size: 15px; letter-spacing: 0.02em; }
+.mkt-popup-fine { font-size: 11px; color: var(--fg-3); margin: 14px 0 0; font-weight: 400; }
 
 /* password strength meter + checklist */
 .pw-strength { max-height: 0; overflow: hidden; opacity: 0; transition: max-height 0.25s ease, opacity 0.2s ease, margin-top 0.25s ease; margin-top: 0; }

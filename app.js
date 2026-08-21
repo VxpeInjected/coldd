@@ -1846,7 +1846,7 @@
         var pdLicence = $('pdLicence'), pdLicLabel = $('pdLicLabel'), pdLicResell = $('pdLicResell');
         var pdTechList = $('pdTechList'), pdAbout = $('pdAbout');
         var pdRelated = $('pdRelated'), pdRelatedWrap = $('pdRelatedWrap'), pdFaqList = $('pdFaqList');
-        var pdReferEarn = $('pdReferEarn'), pdReferCopy = $('pdReferCopy');
+        var pdReferEarn = $('pdReferEarn'), pdReferCopy = $('pdReferCopy'), pdReferLearn = $('pdReferLearn');
         var pdWish = $('pdWish'), pdWishTx = $('pdWishTx');
         var pdBuy = $('pdBuy'), pdOwned = $('pdOwned'), pdUpgrade = $('pdUpgrade');
         var pdTabUpdates = $('pdTabUpdates'), pdUpdCount = $('pdUpdCount'), pdRevCount = $('pdRevCount');
@@ -2345,13 +2345,31 @@
         if (pdUpgrade) pdUpgrade.addEventListener('click', function () { if (cur) { setLic('resell'); add(cur); openCart(); } });
         if ($('pdDownload')) $('pdDownload').addEventListener('click', function () { showTab('updates'); });
         if ($('pdReview')) $('pdReview').addEventListener('click', function () { goToReviews(true); });
+        // ref=you was a hardcoded placeholder, not a real code - every
+        // visitor who copied this link was sharing the exact same
+        // literal string "you", which the referral-attribution backend
+        // has no actual account tied to. Pulls the caller's real code
+        // from the same endpoint the Referrals dashboard tab uses.
+        var pdReferCode = null;
         if (pdReferCopy) pdReferCopy.addEventListener('click', function () {
           if (!cur) return;
-          var link = location.origin + location.pathname + '?id=' + encodeURIComponent(cur.id) + '&ref=you';
-          if (navigator.clipboard) navigator.clipboard.writeText(link).catch(function () {});
-          var t = pdReferCopy.textContent; pdReferCopy.textContent = 'Copied!';
-          setTimeout(function () { pdReferCopy.textContent = t; }, 1400);
+          if (!window.coldAuth) return;
+          window.coldSupabase.auth.getSession().then(function (res) {
+            var session = res && res.data ? res.data.session : null;
+            if (!session) { location.href = '/signin'; return; }
+            var ready = pdReferCode ? Promise.resolve(pdReferCode) : window.coldAuth.invokeFn('get-referral-code', {}).then(function (r) {
+              pdReferCode = r && r.code; return pdReferCode;
+            });
+            ready.then(function (code) {
+              if (!code) return;
+              var link = location.origin + location.pathname + '?id=' + encodeURIComponent(cur.id) + '&ref=' + encodeURIComponent(code);
+              if (navigator.clipboard) navigator.clipboard.writeText(link).catch(function () {});
+              var t = pdReferCopy.textContent; pdReferCopy.textContent = 'Copied!';
+              setTimeout(function () { pdReferCopy.textContent = t; }, 1400);
+            }).catch(function () {});
+          });
         });
+        if (pdReferLearn) pdReferLearn.addEventListener('click', function () { location.href = '/dashboard?panel=referrals'; });
 
         var revSelectedStars = 0;
         if (pdPaneReviews) {
@@ -2867,7 +2885,7 @@
           // like a normal purchase otherwise - same "received it free"
           // framing/gift-number as an admin comp is correct here too.
           var receivedAsGift = !gifted && !r.sentAsGift && !!o.purchased_by_user_id;
-          var badge = r.sentAsGift ? 'warn' : (gifted || receivedAsGift) ? 'ok' : (o.status === 'paid' ? 'ok' : 'warn');
+          var badge = r.sentAsGift ? 'warn' : (gifted || receivedAsGift) ? 'info' : (o.status === 'paid' ? 'ok' : 'warn');
           var label = r.sentAsGift ? 'Sent as gift' : (gifted || receivedAsGift) ? 'Gifted' : (o.status.charAt(0).toUpperCase() + o.status.slice(1));
           var priceCell = '<span class="p-price" data-fixed>' + orderMoney(o) + '</span>';
           // Support can tell at a glance from the id alone that this was
@@ -3511,8 +3529,17 @@
               return raw || ('Could not link ' + provider + '.');
             }
 
+            // Same "Linked as X" treatment Roblox already had - Discord and
+            // Google just said "Linked" with no account name, inconsistent
+            // with Roblox right below it for no reason.
+            function identityName(identity) {
+              var d = (identity && identity.identity_data) || {};
+              return (d.custom_claims && d.custom_claims.global_name) || d.full_name || d.name || d.user_name || d.email || '';
+            }
+
             var dBtn = document.getElementById('linkedDiscordBtn');
-            document.getElementById('linkedDiscordStatus').textContent = discordIdentity ? 'Linked' : 'Not linked';
+            var discordName = identityName(discordIdentity);
+            document.getElementById('linkedDiscordStatus').textContent = discordIdentity ? ('Linked as ' + (discordName || '…')) : 'Not linked';
             dBtn.textContent = discordIdentity ? 'Unlink' : 'Link';
             dBtn.disabled = !!(discordIdentity && totalMethods <= 1);
             dBtn.title = (discordIdentity && totalMethods <= 1) ? 'This is your only sign-in method' : '';
@@ -3543,7 +3570,8 @@
 
             var gBtn = document.getElementById('linkedGoogleBtn');
             if (gBtn) {
-              document.getElementById('linkedGoogleStatus').textContent = googleIdentity ? 'Linked' : 'Not linked';
+              var googleName = identityName(googleIdentity);
+              document.getElementById('linkedGoogleStatus').textContent = googleIdentity ? ('Linked as ' + (googleName || '…')) : 'Not linked';
               gBtn.textContent = googleIdentity ? 'Unlink' : 'Link';
               gBtn.disabled = !!(googleIdentity && totalMethods <= 1);
               gBtn.title = (googleIdentity && totalMethods <= 1) ? 'This is your only sign-in method' : '';

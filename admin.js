@@ -1192,7 +1192,12 @@
       return '<div class="adm-todo-row"><span class="adm-todo-text">' + esc(t.text) + '</span><a href="#" class="btn btn-ghost adm-btn-sm" data-panel="' + t.panel + '">Review</a></div>';
     }).join('') : '<p class="adm-empty">Nothing needs your attention right now.</p>';
 
-    var recent = ORDERS.filter(function (o) { return o.status === 'completed'; }).slice().sort(function (a, b) { return new Date(b.date) - new Date(a.date); }).slice(0, 6);
+    // Recent orders is meant as a snapshot of real sales activity - a free
+    // admin-granted comp isn't that, and mixing $0.00 "Completed" rows in
+    // with actual purchases made the widget read as broken/fake ("orders
+    // showing free grants"). Grants still show up in full in the Orders
+    // panel itself, just not on this home-page summary.
+    var recent = ORDERS.filter(function (o) { return o.status === 'completed' && o.source !== 'granted'; }).slice().sort(function (a, b) { return new Date(b.date) - new Date(a.date); }).slice(0, 6);
     $('admHomeRecent').innerHTML = recent.map(orderRowHTML).join('') || '<p class="adm-empty">No completed orders yet.</p>';
 
   }
@@ -2955,7 +2960,7 @@
         '<td>' + esc(o.userName) + '</td>' +
         '<td>' + o.currency.toUpperCase() + '</td>' +
         '<td>' + orderAmount(o) + '</td>' +
-        '<td>' + (o.source === 'granted' ? '<span class="dt-badge ok">Gifted</span>' : statusBadge(o.status)) +
+        '<td>' + (o.source === 'granted' ? '<span class="dt-badge info">Gifted</span>' : statusBadge(o.status)) +
         // A real, currently-paying gift order - distinct from the "Gifted"
         // free-comp badge above, so shown alongside it rather than in place
         // of it.

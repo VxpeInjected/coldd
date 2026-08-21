@@ -2004,6 +2004,7 @@ body.auth-page { min-height: 100vh; min-height: 100dvh; }
 .dt-badge.ok { color: var(--price); background: rgba(52,224,138,0.12); border: 1px solid rgba(52,224,138,0.28); }
 .dt-badge.warn { color: var(--warn); background: var(--warn-tint); border: 1px solid rgba(246,196,84,0.28); }
 .dt-badge.err { color: var(--accent); background: rgba(255,77,68,0.12); border: 1px solid rgba(255,77,68,0.28); }
+.dt-badge.info { color: #5b9bff; background: rgba(91,155,255,0.12); border: 1px solid rgba(91,155,255,0.28); }
 button.dt-badge { font-family: inherit; cursor: pointer; transition: filter .15s var(--ease); }
 button.dt-badge:hover:not(:disabled) { filter: brightness(1.2); }
 button.dt-badge:disabled { cursor: default; opacity: 0.6; }
@@ -2874,6 +2875,12 @@ a.adm-sub[href] { color: var(--fg-1); cursor: pointer; text-decoration: underlin
    aligning by the bottom edge instead lines every real input up, labeled
    or not. */
 .adm-form { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; }
+/* A card-head's 4px margin-bottom is fine when a table or note paragraph
+   sits between it and the next element (their own visual weight reads as
+   the gap), but a form's controls have no such buffer of their own - the
+   title read as crammed right on top of them. Only fires when nothing
+   else already separates the two. */
+.dash-card-head + .adm-form { margin-top: 12px; }
 .adm-btn-sm { padding: 8px 13px; font-size: 12px; min-height: 0; }
 
 .adm-table-tight td, .adm-table-tight th { white-space: nowrap; }

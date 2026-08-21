@@ -3847,19 +3847,55 @@
       // validate-coupon - never computed client-side, so what's shown here
       // always matches what create-checkout-session actually charges.
       var appliedCoupon = null;
-      // The marketing-optin 10% is an ESTIMATE for this summary only - the
-      // real, floor-respecting amount is computed server-side the moment
-      // the order is actually created (same "capped without failing the
-      // whole checkout" rule a coupon gets), and Stripe/PayPal's own hosted
-      // page (or the Robux order confirmation screen) always shows the
-      // real final figure before anything is charged, so a same-ballpark
-      // preview here is enough.
+      // Must match _shared/coupon.ts's SPEND_TIERS exactly - this is a
+      // client preview only (the real, floor-respecting amount is computed
+      // server-side the instant the order is actually created, same as a
+      // coupon), but the numbers themselves need to agree or the banner
+      // below promises a discount the order won't actually give.
+      var SPEND_TIERS = [
+        { minSubtotal: 120, pct: 18 },
+        { minSubtotal: 75, pct: 12 },
+        { minSubtotal: 40, pct: 8 }
+      ];
+      function currentSpendTier(sub) {
+        for (var i = 0; i < SPEND_TIERS.length; i++) { if (sub >= SPEND_TIERS[i].minSubtotal) return SPEND_TIERS[i]; }
+        return null;
+      }
+      function nextSpendTier(sub) {
+        var next = null;
+        for (var i = 0; i < SPEND_TIERS.length; i++) {
+          var t = SPEND_TIERS[i];
+          if (sub < t.minSubtotal && (!next || t.minSubtotal < next.minSubtotal)) next = t;
+        }
+        return next;
+      }
       function computeDiscount() {
         var sub = subtotal();
         var d = appliedCoupon ? appliedCoupon.discountUsd : 0;
-        var mktToggle = document.getElementById('coMkt');
-        if (mktToggle && mktToggle.checked) d += Math.round(sub * 0.10 * 100) / 100;
+        var tier = currentSpendTier(sub);
+        if (tier) d += Math.round(sub * (tier.pct / 100) * 100) / 100;
         return Math.min(d, sub);
+      }
+      function renderTierBanner() {
+        var box = document.getElementById('coTierBanner');
+        if (!box) return;
+        var sub = subtotal();
+        if (sub <= 0) { box.hidden = true; return; }
+        box.hidden = false;
+        var tier = currentSpendTier(sub);
+        var next = nextSpendTier(sub);
+        box.classList.toggle('co-tier-unlocked', !!tier);
+        if (next) {
+          var remaining = money(next.minSubtotal - sub);
+          var pctToNext = Math.min(100, Math.round((sub / next.minSubtotal) * 100));
+          box.innerHTML = '<div class="co-tier-text">' + (tier ? (tier.pct + '% off unlocked - spend ' + remaining + ' more for ' + next.pct + '% off') : ('Spend ' + remaining + ' more to unlock ' + next.pct + '% off')) + '</div>' +
+            '<div class="co-tier-bar"><div class="co-tier-fill" style="width:' + pctToNext + '%"></div></div>';
+        } else if (tier) {
+          box.innerHTML = '<div class="co-tier-text">' + tier.pct + '% off unlocked - the best tier in your cart right now.</div>' +
+            '<div class="co-tier-bar"><div class="co-tier-fill" style="width:100%"></div></div>';
+        } else {
+          box.hidden = true;
+        }
       }
 
       function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
@@ -3920,8 +3956,10 @@
         if (discLine) {
           discLine.hidden = disc <= 0;
           if (disc > 0) {
-            var mktChecked = document.getElementById('coMkt') && document.getElementById('coMkt').checked;
-            var discLabel = appliedCoupon ? ('Discount (' + appliedCoupon.code + (mktChecked ? ' + 10%' : '') + ')') : 'Discount (10%)';
+            var tierNow = currentSpendTier(sub);
+            var discLabel = appliedCoupon
+              ? ('Discount (' + appliedCoupon.code + (tierNow ? ' + ' + tierNow.pct + '%' : '') + ')')
+              : (tierNow ? ('Discount (' + tierNow.pct + '% off)') : 'Discount');
             set('coDiscLabel', discLabel);
             if (rbxSub != null && sub > 0) {
               set('coDiscAmt', '-R$ ' + Math.round(rbxSub * (disc / sub)).toLocaleString('en-US'));
@@ -4001,7 +4039,7 @@
       }
       function render() {
         renderItems(); renderTotals(); updateResell();
-        renderResellUpsell(); renderCrossSell();
+        renderTierBanner(); renderResellUpsell(); renderCrossSell();
         if (typeof payMethod !== 'undefined' && payMethod === 'robux') renderRobuxPanel();
       }
 
@@ -4019,6 +4057,11 @@
       function renderResellUpsell() {
         var box = document.getElementById('coResellUpsell');
         if (!box) return;
+        // Resell licences are never sold via Robux at all (priceRobuxItems
+        // rejects the whole order outright if one's in the cart) - offering
+        // the upgrade while Robux is the selected method would just lead to
+        // "Place order" failing, so the box doesn't show at all in that case.
+        if (typeof payMethod !== 'undefined' && payMethod === 'robux') { box.hidden = true; box.innerHTML = ''; return; }
         var cat = window.__CATALOG || [];
         var candidates = cart.filter(function (i) {
           if (i.licence === 'resell') return false;
@@ -4027,13 +4070,18 @@
         });
         if (!candidates.length) { box.hidden = true; box.innerHTML = ''; return; }
         box.hidden = false;
+        // Resell pricing is always USD, regardless of the header's currency
+        // toggle - matches product.html's own resell display (__usd, not
+        // __money, once Robux mode is active).
+        var robuxMode = window.__currencyMode && window.__currencyMode() === 'robux';
+        var resellMoney = function (n) { return robuxMode ? (window.__usd ? window.__usd(n) : ('$' + n)) : money(n); };
         box.innerHTML = candidates.map(function (i) {
           var p = cat.filter(function (x) { return x.id === i.id; })[0];
           var resellPrice = p.resellPrice != null ? p.resellPrice : Math.round(p.priceNum * 3);
           return '<div class="co-upsell-row" data-slug="' + esc(i.id) + '">' +
             '<span class="co-upsell-thumb" style="background-image:url(\'' + i.image + '\')"></span>' +
             '<div class="co-upsell-text"><div class="co-upsell-title">Add resell rights to ' + esc(i.title) + '</div>' +
-            '<div class="co-upsell-sub">Upgrade for ' + money(resellPrice - i.price) + ' more</div></div>' +
+            '<div class="co-upsell-sub">Upgrade for ' + resellMoney(resellPrice - i.price) + ' more (USD only)</div></div>' +
             '<button class="btn btn-tinted co-upsell-btn" type="button" data-act="resell-upgrade">Upgrade</button></div>';
         }).join('');
       }
@@ -4507,6 +4555,7 @@
         // PayPal - re-run so it shows/hides for the method just picked
         // instead of only reflecting whatever was selected on page load.
         renderTotals();
+        renderResellUpsell();
         // Selection is exposed to assistive tech, not just painted. The row
         // group is a radiogroup, so each row has to carry its own state.
         document.querySelectorAll('.co-pay-btn').forEach(function (b) {

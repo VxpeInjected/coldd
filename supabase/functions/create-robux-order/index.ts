@@ -20,7 +20,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { priceRobuxItems } from "../_shared/roblox.ts";
 import { leasePassForOrder } from "../_shared/roblox_pool.ts";
 import { resolveCampaignCode } from "../_shared/campaign.ts";
-import { priceItems, resolveCoupon, flatPctDiscount, clampCombinedDiscount } from "../_shared/coupon.ts";
+import { priceItems, resolveCoupon, spendTierDiscount, clampCombinedDiscount } from "../_shared/coupon.ts";
 import { isSiteInMaintenance } from "../_shared/maintenance.ts";
 
 const ALLOWED_ORIGIN = "https://coldd.dev";
@@ -99,7 +99,10 @@ Deno.serve(async (req: Request) => {
     let finalTotalRobux = totalRobux;
     let finalTotalUsd = subtotalUsd;
     const marketingOptIn = !!body.marketingOptIn;
-    if (body.couponCode || marketingOptIn) {
+    // Always priced now, not just when a coupon/marketing-optin is present -
+    // the spend-tier discount below applies automatically off the real
+    // subtotal, same as every other checkout path.
+    {
       const usdPriced = await priceItems(admin, items);
       if (usdPriced.ok && usdPriced.subtotal > 0) {
         let rawDiscountUsd = 0;
@@ -114,9 +117,7 @@ Deno.serve(async (req: Request) => {
             appliedCouponCode = couponResult.code;
           }
         }
-        if (marketingOptIn) {
-          rawDiscountUsd = clampCombinedDiscount(usdPriced.lines, rawDiscountUsd + flatPctDiscount(usdPriced.lines, 10).discount);
-        }
+        rawDiscountUsd = clampCombinedDiscount(usdPriced.lines, rawDiscountUsd + spendTierDiscount(usdPriced.lines).discount);
         if (rawDiscountUsd > 0) {
           discountUsd = rawDiscountUsd;
           const fractionOff = discountUsd / usdPriced.subtotal;

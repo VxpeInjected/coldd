@@ -2422,6 +2422,14 @@ html.js .ref-method-btn:focus-visible { outline: 2px solid var(--accent); outlin
 .co-item-sub { font-size: 12px; color: var(--fg-3); margin-top: 2px; }
 .co-item-price { font-size: 13px; font-weight: 700; color: var(--price); white-space: nowrap; }
 .co-empty { padding: 24px 0; text-align: center; color: var(--fg-3); font-size: 14px; }
+/* Automatic spend-more tier progress - no code, the price just drops once
+   the cart clears a threshold. Green/price-colored since it's a live
+   savings signal, same idiom as .p-price elsewhere. */
+.co-tier { padding: 12px 14px; margin: 14px 0 0; border-radius: var(--r-ctl); background: rgba(52,224,138,0.08); border: 1px solid rgba(52,224,138,0.22); }
+.co-tier-text { font-size: 13px; font-weight: 600; color: var(--price); }
+.co-tier-bar { height: 5px; border-radius: 4px; background: rgba(255,255,255,0.08); margin-top: 9px; overflow: hidden; }
+.co-tier-fill { height: 100%; border-radius: 4px; background: var(--price); transition: width .25s var(--ease); }
+.co-tier.co-tier-unlocked { background: rgba(52,224,138,0.14); }
 /* Resell-license upgrade and genre cross-sell offers - both live-priced
    and floor-checked server-side the moment either gets added (same path
    real cart items go through), this is just the invitation. */

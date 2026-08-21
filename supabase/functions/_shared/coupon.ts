@@ -117,6 +117,30 @@ export function flatPctDiscount(lines: PricedLine[], pct: number): { discount: n
   return { discount, capped: discount < Math.round(raw * 100) / 100 };
 }
 
+// Automatic "spend $X, get Y% off" tiers - no code needed, applies itself
+// off the cart's real subtotal. Ordered highest threshold first so the
+// loop below can just take the first (best) tier the cart actually
+// clears. Tuned for a catalog full of individually cheap products: the
+// point is pulling someone from "one $15 item" toward "a cart worth
+// clearing the next tier", not rewarding a cart that was already going
+// to be big regardless.
+export const SPEND_TIERS: { minSubtotal: number; pct: number }[] = [
+  { minSubtotal: 120, pct: 18 },
+  { minSubtotal: 75, pct: 12 },
+  { minSubtotal: 40, pct: 8 },
+];
+
+export function spendTierDiscount(lines: PricedLine[]): { discount: number; pct: number; minSubtotal: number } {
+  const subtotal = lines.reduce((sum, li) => sum + li.unitPrice * li.qty, 0);
+  for (const tier of SPEND_TIERS) {
+    if (subtotal >= tier.minSubtotal) {
+      const r = flatPctDiscount(lines, tier.pct);
+      return { discount: r.discount, pct: tier.pct, minSubtotal: tier.minSubtotal };
+    }
+  }
+  return { discount: 0, pct: 0, minSubtotal: 0 };
+}
+
 // Re-clamps a coupon discount plus a marketing-optin discount together,
 // since each is independently capped against the SAME headroom - stacked
 // without this, their sum could still legally overshoot a floor even

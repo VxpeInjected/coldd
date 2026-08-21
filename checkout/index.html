@@ -16,7 +16,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
 
-  <link rel="stylesheet" href="/styles.css?v=20260820w" />
+  <link rel="stylesheet" href="/styles.css?v=20260820x" />
 </head>
 <body>
   <div class="backdrop"></div>
@@ -230,7 +230,7 @@
                the privacy-preserving default the cookie banner already commits
                to. Opting in stays one click; it just has to be the buyer's
                click. -->
-          <label class="co-check"><input id="coMkt" type="checkbox" /> <span>Email me deals, drops, and product updates - <strong>get 10% off this order</strong> (optional).</span></label>
+          <label class="co-check"><input id="coMkt" type="checkbox" /> <span>Email me deals, drops, and product updates (optional).</span></label>
           <span class="auth-err" id="coAgreeErr"></span>
         </section>
 
@@ -243,6 +243,7 @@
           <h2>Order summary</h2>
           <div class="co-items" id="coItems"></div>
           <div class="co-empty" id="coEmpty" hidden>Your cart is empty. <a class="lnk-arrow" href="/assets">Browse products</a></div>
+          <div class="co-tier" id="coTierBanner" hidden></div>
           <div class="co-upsell" id="coResellUpsell" hidden></div>
           <div class="co-upsell" id="coCrossSell" hidden></div>
           <div class="co-coupon">
@@ -468,7 +469,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.2/dist/umd/supabase.min.js" integrity="sha384-B2duOBIryCXbX4eDE4BdJwtNkQMRQde3o6IsjfPW28E6aH1CYE96hHeZRG3zY56O" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script src="/supabase-init.js?v=20260820f"></script>
   <script src="/site-gate.js?v=20260820b"></script>
-  <script src="/catalog.js?v=20260820b" data-then="/app.js?v=20260820x"></script>
+  <script src="/catalog.js?v=20260820b" data-then="/app.js?v=20260820y"></script>
   <script>
     // Cart badge/total sync from localStorage, ahead of app.js. The fab
     // markup above ships hardcoded at "0"/"$0", and the cart module that

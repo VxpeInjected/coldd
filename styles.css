@@ -902,6 +902,13 @@
    than sharing Sort's line - "Recommended" on its own reads fine without
    the redundant label at this width. */
 @media (max-width: 480px) { .sf-label { display: none; } }
+/* .sort-menu is right:0 (anchors under the button's right edge), sized for
+   a Sort button sitting further right/centre on desktop. On mobile Sort is
+   the toolbar's first item, hard against the left edge - a 220px-wide menu
+   still anchored to the right edge of a button that's now this narrow runs
+   well past x:0, clipped off the left side of the viewport entirely rather
+   than just looking cramped. Opens from the button's left edge instead. */
+@media (max-width: 480px) { .sort-menu { right: auto; left: 0; } }
 .sort-btn-val { font-size: 13px; font-weight: 600; white-space: nowrap; }
 .sort-chev { color: var(--fg-3); transition: transform .18s var(--ease); flex: 0 0 auto; }
 .sort-field.open .sort-chev { transform: rotate(180deg); }

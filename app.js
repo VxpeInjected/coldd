@@ -119,12 +119,14 @@
         overlay.className = 'confirm-overlay';
         overlay.innerHTML =
           '<div class="confirm-modal mkt-popup-modal">' +
-          '<button class="mkt-popup-x" type="button" aria-label="Close">&times;</button>' +
-          '<h3 class="mkt-popup-title">Get 10% off</h3>' +
-          '<p class="mkt-popup-sub">Drop your email for deals, drops, and product updates - we\'ll send a one-time 10% code right now.</p>' +
+          '<button class="mkt-popup-x" type="button" aria-label="Close"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M5 5l14 14M19 5 5 19"/></svg></button>' +
+          '<h3 class="mkt-popup-title">First order? Take <span class="mkt-popup-pct">10% off</span>.</h3>' +
+          '<p class="mkt-popup-sub">Deals, drops, and product updates - drop your email and we\'ll send a one-time code right now.</p>' +
           '<form class="mkt-popup-form" id="mktPopupForm">' +
+          '<div class="mkt-popup-field">' +
           '<input type="email" id="mktPopupEmail" placeholder="you@example.com" aria-label="Email address" required />' +
           '<button class="btn btn-primary" type="submit"><span class="btn-label">Get my code</span><span class="btn-spinner" hidden></span></button>' +
+          '</div>' +
           '</form>' +
           '<p class="mkt-popup-msg" id="mktPopupMsg"></p>' +
           '<p class="mkt-popup-fine">No spam, unsubscribe any time.</p>' +
@@ -155,7 +157,7 @@
             try { localStorage.setItem(CODE_KEY, data.code); } catch (err) {}
             form.hidden = true;
             msgEl.className = 'mkt-popup-msg ok';
-            msgEl.innerHTML = 'Your code: <strong class="mkt-popup-code">' + data.code + '</strong> - use it at checkout for 10% off. It\'s also saved to this browser.';
+            msgEl.innerHTML = '<span class="mkt-popup-code">' + data.code + '</span>Use this at checkout - it\'s also saved to this browser.';
           }).catch(function () {
             btn.disabled = false; if (spinner) spinner.hidden = true;
             msgEl.className = 'mkt-popup-msg err';
@@ -2792,19 +2794,65 @@
       // you haven't bought yet, so it gets the same visual weight as one you
       // have, plus the Buy now/Add to cart pair a still-to-buy item actually
       // needs (Licenses' equivalent slot is Download/Review instead).
+      // A wishlist/post-purchase-upsell email links back here with
+      // ?bundle=TOKEN (captured into localStorage by supabase-init.js, same
+      // as ?ref=/?cmp=). get-bundle-deal is the one sanctioned way to read
+      // a token's terms client-side (bundle_deals itself has no client
+      // read policy) - possession of the token is the capability, same
+      // trust model as a coupon code. Fetched once per panel render, not
+      // per item, and cached until the token itself changes.
+      var wishBundleCache = null; // { slugs, itemPct, bundlePct } | false (fetched, none active) | null (not fetched yet)
+      var wishBundleToken = null;
+      function loadWishBundle(cb) {
+        var token = null;
+        try { token = localStorage.getItem('coldd_bundle_token'); } catch (e) {}
+        if (!token) { wishBundleCache = false; cb(); return; }
+        if (token === wishBundleToken && wishBundleCache !== null) { cb(); return; }
+        wishBundleToken = token;
+        if (!window.coldSupabase) { wishBundleCache = false; cb(); return; }
+        window.coldSupabase.functions.invoke('get-bundle-deal', { body: { token: token } }).then(function (res) {
+          var data = res && res.data;
+          wishBundleCache = (data && data.ok) ? { slugs: data.slugs, itemPct: data.itemPct, bundlePct: data.bundlePct } : false;
+          cb();
+        }).catch(function () { wishBundleCache = false; cb(); });
+      }
       function renderWishlist() {
         var el = document.getElementById('dashWishlistRows');
         if (!el) return;
+        loadWishBundle(function () { paintWishlist(el); });
+      }
+      function paintWishlist(el) {
         var ids = wishIds();
         var cat = window.__CATALOG || [];
         var items = ids.map(function (id) { return cat.filter(function (p) { return p.id === id; })[0]; }).filter(Boolean);
         if (!items.length) { el.innerHTML = '<p class="dash-empty-note">Nothing saved yet - tap the heart on any product to add it here.</p>'; return; }
-        el.innerHTML = items.map(function (p) {
+        var bundle = wishBundleCache || null;
+        var wishedSlugs = items.map(function (p) { return p.id; });
+        var dealItems = bundle ? items.filter(function (p) { return bundle.slugs.indexOf(p.id) !== -1; }) : [];
+        var allDealItemsWished = bundle ? bundle.slugs.every(function (s) { return wishedSlugs.indexOf(s) !== -1; }) : false;
+        var banner = '';
+        if (dealItems.length) {
+          banner = '<div class="wish-deal-banner">' +
+            (allDealItemsWished
+              ? ('<strong>' + (bundle.itemPct + bundle.bundlePct) + '% off</strong> all ' + dealItems.length + ' discounted items below if you get them together.')
+              : ('<strong>' + bundle.itemPct + '% off</strong> ' + dealItems.length + ' item' + (dealItems.length > 1 ? 's' : '') + ' below - add every discounted one for ' + (bundle.itemPct + bundle.bundlePct) + '% off instead.')) +
+            '</div>';
+        }
+        el.innerHTML = banner + items.map(function (p) {
           var href = '/product?id=' + encodeURIComponent(p.id);
-          return '<div class="dash-prod" data-id="' + esc(p.id) + '">' +
-            '<div class="dp-thumb" style="background-image:url(\'' + p.image + '\')"><button class="dp-remove wl-remove" type="button" aria-label="Remove from wishlist">×</button></div>' +
+          var inDeal = bundle && bundle.slugs.indexOf(p.id) !== -1;
+          var priceHtml = wishPriceText(p);
+          if (inDeal) {
+            var pct = allDealItemsWished ? (bundle.itemPct + bundle.bundlePct) : bundle.itemPct;
+            var discounted = Math.round(p.priceNum * (1 - pct / 100) * 100) / 100;
+            priceHtml = '<span class="dp-was">' + wishPriceText(p) + '</span>' + (window.__money ? window.__money(discounted) : ('$' + discounted));
+          }
+          return '<div class="dash-prod' + (inDeal ? ' dp-in-deal' : '') + '" data-id="' + esc(p.id) + '">' +
+            '<div class="dp-thumb" style="background-image:url(\'' + p.image + '\')">' +
+            (inDeal ? '<span class="dp-deal-badge">Deal</span>' : '') +
+            '<button class="dp-remove wl-remove" type="button" aria-label="Remove from wishlist">×</button></div>' +
             '<div class="dp-body"><a class="dp-name dr-title-link" href="' + href + '">' + esc(p.title) + '</a>' +
-            '<span class="dp-price" data-usd="' + p.priceNum + '">' + wishPriceText(p) + '</span>' +
+            '<span class="dp-price" data-usd="' + p.priceNum + '">' + priceHtml + '</span>' +
             '<div class="dp-actions"><button class="p-add wl-add" type="button">Add to cart</button><button class="p-buy wl-buy" type="button">Buy now</button></div></div></div>';
         }).join('');
       }

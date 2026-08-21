@@ -2048,6 +2048,18 @@ button.dt-badge:disabled { cursor: default; opacity: 0.6; }
 .dp-body { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 12px; padding: 16px; }
 .dp-name { font-size: 15px; font-weight: 600; letter-spacing: -0.01em; line-height: 1.35; }
 .dp-price { font-size: 16px; font-weight: 700; color: var(--price); margin-top: -6px; }
+.dp-was { font-size: 13px; font-weight: 600; color: var(--fg-3); text-decoration: line-through; margin-right: 6px; }
+/* Wishlist bundle-deal state (?bundle= token from a wishlist-reminder or
+   post-purchase-upsell email, read via get-bundle-deal) - a discounted
+   card gets the same corner-ribbon idiom the resell badge above uses,
+   plus a strikethrough original price, and the panel gets one summary
+   banner instead of repeating the offer terms on every card. */
+.wish-deal-banner { grid-column: 1 / -1; padding: 13px 16px; border-radius: var(--r-ctl); margin-bottom: 4px;
+  background: rgba(52,224,138,0.08); border: 1px solid rgba(52,224,138,0.22); font-size: 13px; color: var(--fg-2); line-height: 1.5; }
+.wish-deal-banner strong { color: var(--price); }
+.dp-in-deal { border-color: rgba(52,224,138,0.35); }
+.dp-deal-badge { position: absolute; top: 10px; right: 10px; z-index: 1; font-size: 12px; font-weight: 800; letter-spacing: 0.02em;
+  color: #06150c; padding: 5px 10px; border-radius: 10px; background: var(--price); box-shadow: 0 6px 16px -6px var(--ink-75); }
 .dp-actions { margin-top: auto; width: 100%; display: flex; gap: 8px; }
 .dp-btn, .dp-review-btn { flex: 1; min-width: 0; min-height: 40px; padding: 9px 12px; font-size: 13px;
   display: inline-flex; align-items: center; justify-content: center; gap: 7px; }
@@ -3373,25 +3385,42 @@ body.auth-page .backdrop, body.auth-page .scrim { position: fixed; inset: 0; hei
 .confirm-actions .btn { flex: 1; justify-content: center; }
 
 /* Site-wide marketing-signup popup - same overlay/modal shell as the
-   sign-out confirm, just with its own content instead of a Cancel/primary
-   button pair. */
-.mkt-popup-modal { text-align: left; position: relative; padding-top: 34px; }
-.mkt-popup-x { position: absolute; top: 14px; right: 14px; width: 28px; height: 28px; border-radius: 50%;
-  border: none; background: rgba(255,255,255,0.08); color: var(--fg-3); font-size: 18px; line-height: 1; cursor: pointer; }
-.mkt-popup-x:hover { color: var(--fg); background: rgba(255,255,255,0.16); }
-.mkt-popup-title { font-size: 20px; font-weight: 800; letter-spacing: -0.02em; margin: 0 0 8px; }
-.mkt-popup-sub { font-size: 14px; color: var(--fg-2); line-height: 1.5; margin: 0 0 18px; font-weight: 400; }
-.mkt-popup-form { display: flex; gap: 8px; }
-.mkt-popup-form input { flex: 1; min-width: 0; min-height: 42px; padding: 0 14px; border-radius: 10px;
-  background: var(--bg-2); border: 1px solid var(--hairline); color: var(--fg); font-family: inherit; font-size: 14px; }
-.mkt-popup-form input:focus { outline: none; border-color: var(--accent); }
-.mkt-popup-form .btn { width: auto; flex: 0 0 auto; }
-.mkt-popup-msg { font-size: 13px; margin: 12px 0 0; line-height: 1.6; }
+   sign-out confirm structurally, but this is a promo moment (the one
+   place on the site actively selling a discount for an email), not a
+   Cancel/primary utility prompt, so it earns its own real design: set
+   left-aligned like an actual editorial offer instead of centered around
+   a badge icon, with the discount carried by the heading's own type
+   (weight + Price Green, same convention product cards already use for
+   a savings figure) rather than a separate glowing circle. No gradient,
+   no radial wash - ember stays on the one button that is the actual
+   primary action. */
+.mkt-popup-modal { position: relative; width: 420px; max-width: 96vw; text-align: left; padding: 34px 32px 28px; }
+.mkt-popup-x { position: absolute; top: 16px; right: 16px; z-index: 2; width: 30px; height: 30px; border-radius: var(--r-ctl);
+  display: flex; align-items: center; justify-content: center;
+  border: none; background: transparent; color: var(--fg-3); cursor: pointer; }
+@media (hover: hover) and (pointer: fine) { .mkt-popup-x:hover { color: var(--fg); background: rgba(255,255,255,0.08); } }
+.mkt-popup-title { font-size: 24px; font-weight: 800; letter-spacing: -0.02em; line-height: 1.25; margin: 0 30px 10px 0; color: var(--fg); }
+.mkt-popup-pct { color: var(--price); }
+.mkt-popup-sub { font-size: 14px; color: var(--fg-2); line-height: 1.55; margin: 0 0 22px; font-weight: 400; max-width: 34ch; }
+.mkt-popup-form { display: flex; flex-direction: column; gap: 10px; }
+.mkt-popup-field { display: flex; gap: 8px; }
+.mkt-popup-field input { flex: 1; min-width: 0; min-height: 46px; padding: 0 14px; border-radius: var(--r-sm);
+  background: rgba(255,255,255,0.04); border: 1px solid var(--hairline); color: var(--fg); font-family: inherit; font-size: 14px; }
+.mkt-popup-field input::placeholder { color: var(--fg-3); }
+.mkt-popup-field input:focus { outline: none; border-color: rgba(255,77,68,0.5); background: rgba(255,255,255,0.06); }
+.mkt-popup-field .btn { flex: none; min-height: 46px; font-size: 13px; padding: 12px 20px; white-space: nowrap; }
+.mkt-popup-msg { font-size: 13px; margin: 14px 0 0; line-height: 1.6; }
 .mkt-popup-msg:empty { display: none; }
 .mkt-popup-msg.err { color: var(--accent); font-weight: 600; }
-.mkt-popup-msg.ok { color: var(--fg-2); }
-.mkt-popup-code { color: var(--price); font-size: 15px; letter-spacing: 0.02em; }
-.mkt-popup-fine { font-size: 11px; color: var(--fg-3); margin: 14px 0 0; font-weight: 400; }
+.mkt-popup-msg.ok { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; color: var(--fg-2); }
+.mkt-popup-code { display: inline-block; padding: 8px 14px; border-radius: var(--r-ctl); background: var(--ok-tint);
+  border: 1px solid rgba(107,216,138,0.3); color: var(--price); font-size: 15px; font-weight: 700; letter-spacing: 0.04em; }
+.mkt-popup-fine { font-size: 11px; color: var(--fg-3); margin: 18px 0 0; font-weight: 400; padding-top: 16px; border-top: 1px solid var(--hairline); }
+@media (max-width: 480px) {
+  .mkt-popup-modal { padding: 30px 22px 24px; }
+  .mkt-popup-field { flex-direction: column; }
+  .mkt-popup-field .btn { width: 100%; }
+}
 
 /* password strength meter + checklist */
 .pw-strength { max-height: 0; overflow: hidden; opacity: 0; transition: max-height 0.25s ease, opacity 0.2s ease, margin-top 0.25s ease; margin-top: 0; }

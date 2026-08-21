@@ -121,7 +121,7 @@
           '<div class="confirm-modal mkt-popup-modal">' +
           '<button class="mkt-popup-x" type="button" aria-label="Close"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M5 5l14 14M19 5 5 19"/></svg></button>' +
           '<h3 class="mkt-popup-title">First order? Take <span class="mkt-popup-pct">10% off</span>.</h3>' +
-          '<p class="mkt-popup-sub">New products and sale events first, plus a one-time code waiting in your inbox the second you sign up.</p>' +
+          '<p class="mkt-popup-sub">Get new products and sale events first, plus a one-time code waiting in your inbox the second you sign up.</p>' +
           '<form class="mkt-popup-form" id="mktPopupForm">' +
           '<div class="mkt-popup-field">' +
           '<input type="email" id="mktPopupEmail" placeholder="you@example.com" aria-label="Email address" required />' +
@@ -2794,27 +2794,41 @@
       // you haven't bought yet, so it gets the same visual weight as one you
       // have, plus the Buy now/Add to cart pair a still-to-buy item actually
       // needs (Licenses' equivalent slot is Download/Review instead).
-      // A wishlist/post-purchase-upsell email links back here with
-      // ?bundle=TOKEN (captured into localStorage by supabase-init.js, same
-      // as ?ref=/?cmp=). get-bundle-deal is the one sanctioned way to read
-      // a token's terms client-side (bundle_deals itself has no client
-      // read policy) - possession of the token is the capability, same
-      // trust model as a coupon code. Fetched once per panel render, not
-      // per item, and cached until the token itself changes.
+      // Two ways a bundle deal reaches this panel: get-my-bundle-deal looks
+      // up whatever's minted directly against this signed-in account (the
+      // wishlist reminder always sets user_id - see runWishlistReminder),
+      // so it shows up here even if this browser never clicked the actual
+      // reminder email. Falling back to a ?bundle=TOKEN captured into
+      // localStorage (same as ?ref=/?cmp=) covers the case of a deal
+      // minted for a guest email, or a link opened somewhere localStorage
+      // doesn't carry the account's own deal. Fetched once per panel
+      // render, not per item.
       var wishBundleCache = null; // { slugs, itemPct, bundlePct } | false (fetched, none active) | null (not fetched yet)
-      var wishBundleToken = null;
+      var wishBundleFetched = false;
       function loadWishBundle(cb) {
-        var token = null;
-        try { token = localStorage.getItem('coldd_bundle_token'); } catch (e) {}
-        if (!token) { wishBundleCache = false; cb(); return; }
-        if (token === wishBundleToken && wishBundleCache !== null) { cb(); return; }
-        wishBundleToken = token;
-        if (!window.coldSupabase) { wishBundleCache = false; cb(); return; }
-        window.coldSupabase.functions.invoke('get-bundle-deal', { body: { token: token } }).then(function (res) {
+        if (wishBundleFetched) { cb(); return; }
+        if (!window.coldSupabase) { wishBundleFetched = true; wishBundleCache = false; cb(); return; }
+        function fromToken() {
+          var token = null;
+          try { token = localStorage.getItem('coldd_bundle_token'); } catch (e) {}
+          if (!token) { wishBundleFetched = true; wishBundleCache = false; cb(); return; }
+          window.coldSupabase.functions.invoke('get-bundle-deal', { body: { token: token } }).then(function (res) {
+            var data = res && res.data;
+            wishBundleFetched = true;
+            wishBundleCache = (data && data.ok) ? { slugs: data.slugs, itemPct: data.itemPct, bundlePct: data.bundlePct } : false;
+            cb();
+          }).catch(function () { wishBundleFetched = true; wishBundleCache = false; cb(); });
+        }
+        window.coldSupabase.functions.invoke('get-my-bundle-deal', { body: {} }).then(function (res) {
           var data = res && res.data;
-          wishBundleCache = (data && data.ok) ? { slugs: data.slugs, itemPct: data.itemPct, bundlePct: data.bundlePct } : false;
-          cb();
-        }).catch(function () { wishBundleCache = false; cb(); });
+          if (data && data.ok) {
+            wishBundleFetched = true;
+            wishBundleCache = { slugs: data.slugs, itemPct: data.itemPct, bundlePct: data.bundlePct };
+            cb();
+            return;
+          }
+          fromToken();
+        }).catch(fromToken);
       }
       function renderWishlist() {
         var el = document.getElementById('dashWishlistRows');

@@ -1733,7 +1733,8 @@
     { key: 'abandoned_cart_2', label: 'Abandoned cart · step 2', hint: 'Hours after step 1 would have sent.' },
     { key: 'abandoned_cart_3', label: 'Abandoned cart · step 3', hint: 'Hours after step 2 would have sent.' },
     { key: 'post_purchase_review', label: 'Post-purchase review request', hint: 'Hours after an order is marked paid.' },
-    { key: 'reengagement', label: 'Re-engagement', hint: 'Hours since last purchase (or signup, if they never bought) before we call the account lapsed. Sent once.' }
+    { key: 'reengagement', label: 'Re-engagement', hint: 'Hours since last purchase (or signup, if they never bought) before we call the account lapsed. Sent once.' },
+    { key: 'wishlist_reminder', label: 'Wishlist reminder', hint: 'Hours a wishlist item sits with no purchase since. Always includes a discount, so it only sends to accounts with real marketing consent.' }
   ];
 
   function refreshAutomations() {
@@ -3707,9 +3708,37 @@
     salesTypeToggle.querySelectorAll('.adm-sales-type-btn').forEach(function (b) { b.classList.toggle('active', b === btn); });
     $('admSalesEventsView').hidden = type !== 'events';
     $('admDiscountCodesView').hidden = type !== 'codes';
+    $('admBundleDealsView').hidden = type !== 'bundles';
     $('admHomepageView').hidden = type !== 'homepage';
     if (type === 'homepage') renderHomepageTab();
+    if (type === 'bundles') renderBundleDeals();
   });
+
+  /* Bundle deals are auto-minted (post-purchase upsell, wishlist
+     reminder), never created by hand here - this tab is read-only
+     visibility into what's currently active, not a form. Reads
+     bundle_deals directly via RLS (bundle_deals_select_admin), same
+     as coupons. */
+  function renderBundleDeals() {
+    var el = $('admBundleDealsBody'); if (!el || !window.coldSupabase) return;
+    el.innerHTML = '<tr><td colspan="5" class="adm-empty">Loading…</td></tr>';
+    window.coldSupabase.from('bundle_deals').select('*').order('created_at', { ascending: false }).limit(100).then(function (res) {
+      if (res.error) { el.innerHTML = '<tr><td colspan="5" class="adm-empty">Could not load bundle deals.</td></tr>'; return; }
+      var rows = res.data || [];
+      var now = Date.now();
+      el.innerHTML = rows.map(function (r) {
+        var expired = r.expires_at && new Date(r.expires_at).getTime() < now;
+        var expiresText = r.expires_at ? fmtDate(new Date(r.expires_at)) : 'Never';
+        return '<tr' + (expired ? ' style="opacity:0.5;"' : '') + '>' +
+          '<td>' + esc((r.slugs || []).join(', ')) + '</td>' +
+          '<td>' + esc(r.item_pct) + '% / ' + esc(Number(r.item_pct) + Number(r.bundle_pct)) + '%</td>' +
+          '<td>' + esc(r.source || '') + '</td>' +
+          '<td>' + fmtDate(new Date(r.created_at)) + '</td>' +
+          '<td>' + expiresText + (expired ? ' <span class="dt-badge">Expired</span>' : '') + '</td>' +
+          '</tr>';
+      }).join('') || '<tr><td colspan="5" class="adm-empty">No bundle deals minted yet.</td></tr>';
+    });
+  }
 
   function callWeeklyDeals(action, productId) {
     var body = { action: action };

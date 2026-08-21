@@ -30,9 +30,9 @@ alter table public.wishlist_items add column if not exists reminder_sent_at time
 
 -- Sixth email_automations key, same seeded-disabled pattern as the other
 -- five in lifecycle_automations.sql - nothing sends until an admin turns
--- it on. delay_hours defaults to a week (168h) sitting on the wishlist
--- untouched.
+-- it on. delay_hours defaults to 48h sitting on the wishlist untouched
+-- with no purchase since.
 insert into public.email_automations (key, enabled, delay_hours, subject, body_md) values
-  ('wishlist_reminder', false, 168, 'Still want these? Here''s a discount',
+  ('wishlist_reminder', false, 48, 'Still want these? Here''s a discount',
    'Some things on your wishlist are still just sitting there. Here''s a discount to help you finally grab them.')
 on conflict (key) do nothing;

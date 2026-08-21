@@ -3399,9 +3399,9 @@ body.auth-page .backdrop, body.auth-page .scrim { position: fixed; inset: 0; hei
   display: flex; align-items: center; justify-content: center;
   border: none; background: transparent; color: var(--fg-3); cursor: pointer; }
 @media (hover: hover) and (pointer: fine) { .mkt-popup-x:hover { color: var(--fg); background: rgba(255,255,255,0.08); } }
-.mkt-popup-title { font-size: 24px; font-weight: 800; letter-spacing: -0.02em; line-height: 1.25; margin: 0 30px 10px 0; color: var(--fg); }
+.mkt-popup-modal .mkt-popup-title { font-size: 24px; font-weight: 800; letter-spacing: -0.02em; line-height: 1.25; margin: 0 30px 10px 0; color: var(--fg); }
 .mkt-popup-pct { color: var(--price); }
-.mkt-popup-sub { font-size: 14px; color: var(--fg-2); line-height: 1.55; margin: 0 0 22px; font-weight: 400; max-width: 34ch; }
+.mkt-popup-modal .mkt-popup-sub { font-size: 14px; color: var(--fg-2); line-height: 1.55; margin: 0 0 22px; font-weight: 400; max-width: 34ch; }
 .mkt-popup-form { display: flex; flex-direction: column; gap: 10px; }
 .mkt-popup-field { display: flex; gap: 8px; }
 .mkt-popup-field input { flex: 1; min-width: 0; min-height: 46px; padding: 0 14px; border-radius: var(--r-sm);
@@ -3409,13 +3409,13 @@ body.auth-page .backdrop, body.auth-page .scrim { position: fixed; inset: 0; hei
 .mkt-popup-field input::placeholder { color: var(--fg-3); }
 .mkt-popup-field input:focus { outline: none; border-color: rgba(255,77,68,0.5); background: rgba(255,255,255,0.06); }
 .mkt-popup-field .btn { flex: none; min-height: 46px; font-size: 13px; padding: 12px 20px; white-space: nowrap; }
-.mkt-popup-msg { font-size: 13px; margin: 14px 0 0; line-height: 1.6; }
+.mkt-popup-modal .mkt-popup-msg { font-size: 13px; font-weight: 400; margin: 14px 0 0; line-height: 1.6; }
 .mkt-popup-msg:empty { display: none; }
-.mkt-popup-msg.err { color: var(--accent); font-weight: 600; }
-.mkt-popup-msg.ok { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; color: var(--fg-2); }
+.mkt-popup-modal .mkt-popup-msg.err { color: var(--accent); font-weight: 600; }
+.mkt-popup-modal .mkt-popup-msg.ok { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; color: var(--fg-2); }
 .mkt-popup-code { display: inline-block; padding: 8px 14px; border-radius: var(--r-ctl); background: var(--ok-tint);
   border: 1px solid rgba(107,216,138,0.3); color: var(--price); font-size: 15px; font-weight: 700; letter-spacing: 0.04em; }
-.mkt-popup-fine { font-size: 11px; color: var(--fg-3); margin: 18px 0 0; font-weight: 400; padding-top: 16px; border-top: 1px solid var(--hairline); }
+.mkt-popup-modal .mkt-popup-fine { font-size: 11px; font-weight: 400; color: var(--fg-3); margin: 18px 0 0; padding-top: 16px; border-top: 1px solid var(--hairline); }
 @media (max-width: 480px) {
   .mkt-popup-modal { padding: 30px 22px 24px; }
   .mkt-popup-field { flex-direction: column; }

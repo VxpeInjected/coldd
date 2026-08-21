@@ -1950,6 +1950,46 @@ body.auth-page { min-height: 100vh; min-height: 100dvh; }
 .wl-remove { width: 30px; height: 30px; border: none; background: transparent; color: var(--fg-3); font-size: 20px; line-height: 1; border-radius: 10px; cursor: pointer; }
 .wl-remove:hover { color: var(--accent); background: rgba(255,77,68,0.1); }
 
+/* Wishlist rows read as sparse next to the empty space in .panel-wishlist's
+   full-width card - the thumb and text were sized for a compact list
+   (Recent purchases/Recommended previews reuse this same markup and are
+   right to stay small), so the bump is scoped to the wishlist panel only. */
+#dashWishlistRows .dr-thumb { flex-basis: 72px; width: 72px; height: 72px; }
+#dashWishlistRows .dr-sub .p-price { font-size: 16px; font-weight: 700; color: var(--price); }
+.dr-title-link { display: block; font-size: 14px; font-weight: 600; color: inherit; text-decoration: none; }
+.dr-title-link:hover { text-decoration: underline; color: var(--fg); }
+#dashWishlistRows .dr-title-link { font-size: 17px; }
+
+/* Reuses .shop-searchbar's exact look (rounded pill, icon + input) for the
+   Licenses/Purchase history search fields - same control, different page. */
+.dash-searchbar { display: flex; align-items: center; gap: 10px; max-width: 420px; margin: 0 0 16px;
+  padding: 12px 16px; border-radius: 14px; background: var(--bg-3); border: 1px solid var(--hairline); color: var(--fg-3); }
+.dash-searchbar svg { flex: 0 0 auto; }
+.dash-searchbar input { flex: 1; min-width: 0; background: transparent; border: none; outline: none; color: var(--fg); font-family: inherit; font-size: 14px; }
+.dash-searchbar input::placeholder { color: var(--fg-3); }
+
+.dash-filter-row { display: flex; align-items: end; gap: 14px; flex-wrap: wrap; margin: 0 0 18px; }
+.dash-filter-field { display: flex; flex-direction: column; gap: 6px; font-size: 12px; color: var(--fg-3); font-weight: 600; }
+.dash-filter-field input, .dash-filter-field select { min-height: 40px; padding: 0 12px; border-radius: 10px;
+  background: var(--bg-3); border: 1px solid var(--hairline); color: var(--fg); font-family: inherit; font-size: 13px; }
+.dash-filter-field input[type="date"], .dash-filter-field input[type="number"] { width: 140px; }
+.dash-filter-clear { align-self: flex-end; }
+
+/* Persistent confirmation that a referral link's code actually stuck
+   (it's in localStorage the whole time, but nothing on screen ever said
+   so once the ?ref= query param scrolled out of the address bar) - shown
+   on every page, not just the landing page, since the code itself is
+   sitewide for the length of the visit. */
+.ref-active-pill { position: fixed; left: 16px; bottom: 16px; z-index: 200;
+  display: flex; align-items: center; gap: 10px; padding: 10px 10px 10px 16px; border-radius: 999px;
+  background: rgba(19,20,26,0.96); border: 1px solid var(--hairline); box-shadow: 0 16px 40px -16px var(--ink-75);
+  font-size: 13px; font-weight: 600; color: var(--fg); animation: refPillIn .3s var(--ease) both; }
+@keyframes refPillIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+.ref-active-pill button { width: 24px; height: 24px; flex: 0 0 auto; border-radius: 50%; border: none;
+  background: rgba(255,255,255,0.08); color: var(--fg-3); font-size: 16px; line-height: 1; cursor: pointer; }
+.ref-active-pill button:hover { color: var(--fg); background: rgba(255,255,255,0.16); }
+@media (max-width: 640px) { .ref-active-pill { left: 12px; right: 12px; bottom: 84px; } }
+
 /* Collapsible dash-card sections (AdBlox top-servers / activity log) -
    native <details>/<summary> so open/closed state needs no JS, capped at a
    fixed height with internal scroll even when open so a long table never
@@ -2006,7 +2046,8 @@ button.dt-badge:disabled { cursor: default; opacity: 0.6; }
 .dp-lic-badge svg { width: 12px; height: 12px; flex: 0 0 auto; }
 .dp-body { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 12px; padding: 16px; }
 .dp-name { font-size: 15px; font-weight: 600; letter-spacing: -0.01em; line-height: 1.35; }
-.dp-btn { margin-top: auto; width: 100%; min-height: 40px; padding: 9px 16px; font-size: 13px;
+.dp-actions { margin-top: auto; width: 100%; display: flex; gap: 8px; }
+.dp-btn, .dp-review-btn { flex: 1; min-width: 0; min-height: 40px; padding: 9px 12px; font-size: 13px;
   display: inline-flex; align-items: center; justify-content: center; gap: 7px; }
 .dp-btn svg { flex: 0 0 auto; }
 

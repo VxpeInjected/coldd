@@ -89,6 +89,28 @@
       };
     })();
 
+    // A referral code (supabase-init.js's captureReferralClick) is real and
+    // persists fine in localStorage the whole time - it was never actually
+    // lost by navigating to a page with no ?ref= in the URL. What "the
+    // referral disappears" actually meant: there was never anything on
+    // screen confirming it stuck around once the query param itself was
+    // gone from the address bar, so it just looked gone. This is that
+    // confirmation, on every page, plus a way to back out of it.
+    (function () {
+      var REF_KEY = 'coldd_ref_code';
+      var code = null;
+      try { code = localStorage.getItem(REF_KEY); } catch (e) {}
+      if (!code) return;
+      var pill = document.createElement('div');
+      pill.className = 'ref-active-pill';
+      pill.innerHTML = '<span>Shopping with a referral</span><button type="button" aria-label="Remove referral">&times;</button>';
+      document.body.appendChild(pill);
+      pill.querySelector('button').addEventListener('click', function () {
+        try { localStorage.removeItem(REF_KEY); } catch (e) {}
+        pill.remove();
+      });
+    })();
+
     // Light mode toggle (dashboard > Appearance). The actual theme
     // application happens in an early inline <head> script on every page
     // (reads localStorage before paint, sets data-theme on <html>) so there
@@ -2665,8 +2687,9 @@
         var items = ids.map(function (id) { return cat.filter(function (p) { return p.id === id; })[0]; }).filter(Boolean);
         if (!items.length) { el.innerHTML = '<p class="dash-empty-note">Nothing saved yet - tap the heart on any product to add it here.</p>'; return; }
         el.innerHTML = items.map(function (p) {
+          var href = '/product?id=' + encodeURIComponent(p.id);
           return '<div class="dash-row" data-id="' + esc(p.id) + '"><span class="dr-thumb" style="background-image:url(\'' + p.image + '\')"></span>' +
-            '<div class="dr-main"><div class="dr-title">' + esc(p.title) + '</div><div class="dr-sub"><span class="p-price" data-usd="' + p.priceNum + '">' + wishPriceText(p) + '</span></div></div>' +
+            '<div class="dr-main"><a class="dr-title-link" href="' + href + '">' + esc(p.title) + '</a><div class="dr-sub"><span class="p-price" data-usd="' + p.priceNum + '">' + wishPriceText(p) + '</span></div></div>' +
             '<div class="dr-actions"><button class="btn btn-ghost dr-cart" type="button">Add to cart</button><button class="wl-remove" type="button" aria-label="Remove">×</button></div></div>';
         }).join('');
       }
@@ -2770,19 +2793,52 @@
         return '$' + usd.toFixed(2).replace(/\.00$/, '');
       }
 
+      var PURCHASE_ROWS = [];
       function renderPurchases(orders, sentGiftOrders) {
-        var body = document.getElementById('dashPurchasesBody');
-        if (!body) return;
         // Orders paid for as a gift for someone else don't match .eq('user_id',
         // userId) any more under the gifting RLS policy (orders.user_id is the
         // RECIPIENT, not the buyer) - merged in here from a second query so the
         // buyer can still see what they paid for, tagged distinctly from
         // "Gifted" below (that means "you received something for free"; this
         // means "you paid for someone else").
-        var rows = orders.map(function (o) { return { order: o, sentAsGift: false }; })
+        PURCHASE_ROWS = orders.map(function (o) { return { order: o, sentAsGift: false }; })
           .concat((sentGiftOrders || []).map(function (o) { return { order: o, sentAsGift: true }; }))
           .sort(function (a, b) { return new Date(b.order.created_at) - new Date(a.order.created_at); });
-        if (!rows.length) { body.innerHTML = '<tr><td colspan="5">No orders yet.</td></tr>'; return; }
+        renderPurchasesTable();
+      }
+      function renderPurchasesTable() {
+        var body = document.getElementById('dashPurchasesBody');
+        if (!body) return;
+        if (!PURCHASE_ROWS.length) { body.innerHTML = '<tr><td colspan="5">No orders yet.</td></tr>'; return; }
+
+        var q = ((document.getElementById('dashPurchSearch') || {}).value || '').trim().toLowerCase();
+        var fromVal = (document.getElementById('dashPurchFrom') || {}).value || '';
+        var toVal = (document.getElementById('dashPurchTo') || {}).value || '';
+        var minAmt = parseFloat((document.getElementById('dashPurchMinAmt') || {}).value);
+        var maxAmt = parseFloat((document.getElementById('dashPurchMaxAmt') || {}).value);
+        var statusFilter = (document.getElementById('dashPurchStatus') || {}).value || 'all';
+        var fromTs = fromVal ? new Date(fromVal + 'T00:00:00').getTime() : null;
+        var toTs = toVal ? new Date(toVal + 'T23:59:59').getTime() : null;
+
+        var rows = PURCHASE_ROWS.filter(function (r) {
+          var o = r.order;
+          var items = o.order_items || [];
+          var titles = items.map(function (i) { return i.title; }).join(', ');
+          var gifted = o.source === 'granted';
+          var receivedAsGift = !gifted && !r.sentAsGift && !!o.purchased_by_user_id;
+          var statusKey = r.sentAsGift ? 'sent' : (gifted || receivedAsGift) ? 'gifted' : 'paid';
+          if (statusFilter !== 'all' && statusFilter !== statusKey) return false;
+          if (q && titles.toLowerCase().indexOf(q) < 0 && o.id.toLowerCase().indexOf(q) < 0) return false;
+          var ts = new Date(o.created_at).getTime();
+          if (fromTs != null && ts < fromTs) return false;
+          if (toTs != null && ts > toTs) return false;
+          var amt = o.currency === 'robux' ? Number(o.total_robux) : Number(o.total_usd);
+          if (Number.isFinite(minAmt) && amt < minAmt) return false;
+          if (Number.isFinite(maxAmt) && amt > maxAmt) return false;
+          return true;
+        });
+
+        if (!rows.length) { body.innerHTML = '<tr><td colspan="5">No orders match your filters.</td></tr>'; return; }
         body.innerHTML = rows.map(function (r) {
           var o = r.order;
           var items = o.order_items || [];
@@ -2794,14 +2850,35 @@
           // order history. source:'granted' distinguishes it without
           // touching the real payment status underneath.
           var gifted = o.source === 'granted';
-          var badge = r.sentAsGift ? 'warn' : gifted ? 'ok' : (o.status === 'paid' ? 'ok' : 'warn');
-          var label = r.sentAsGift ? 'Sent as gift' : gifted ? 'Gifted' : (o.status.charAt(0).toUpperCase() + o.status.slice(1));
+          // A real gift from another buyer (order.user_id is the recipient,
+          // purchased_by_user_id is whoever actually paid) reads exactly
+          // like a normal purchase otherwise - same "received it free"
+          // framing/gift-number as an admin comp is correct here too.
+          var receivedAsGift = !gifted && !r.sentAsGift && !!o.purchased_by_user_id;
+          var badge = r.sentAsGift ? 'warn' : (gifted || receivedAsGift) ? 'ok' : (o.status === 'paid' ? 'ok' : 'warn');
+          var label = r.sentAsGift ? 'Sent as gift' : (gifted || receivedAsGift) ? 'Gifted' : (o.status.charAt(0).toUpperCase() + o.status.slice(1));
           var priceCell = '<span class="p-price" data-fixed>' + orderMoney(o) + '</span>';
-          return '<tr><td>' + fmtDate(o.created_at) + '</td><td>' + titles + '</td><td class="dt-mono">' + shortOrderId(o.id) + '</td>' +
+          // Support can tell at a glance from the id alone that this was
+          // never a real charge to look up in Stripe/PayPal/etc - same
+          // short id, just labeled for what it actually is.
+          var idCell = (gifted || receivedAsGift) ? shortOrderId(o.id).replace('#', 'GIFT-') : shortOrderId(o.id);
+          return '<tr><td>' + fmtDate(o.created_at) + '</td><td>' + titles + '</td><td class="dt-mono">' + idCell + '</td>' +
             '<td>' + priceCell + '</td>' +
             '<td><span class="dt-badge ' + badge + '">' + label + '</span></td></tr>';
         }).join('');
       }
+      ['dashPurchSearch', 'dashPurchFrom', 'dashPurchTo', 'dashPurchMinAmt', 'dashPurchMaxAmt', 'dashPurchStatus'].forEach(function (id) {
+        var el = document.getElementById(id);
+        if (el) el.addEventListener(el.tagName === 'SELECT' || el.type === 'date' ? 'change' : 'input', renderPurchasesTable);
+      });
+      var dashPurchClearBtn = document.getElementById('dashPurchClear');
+      if (dashPurchClearBtn) dashPurchClearBtn.addEventListener('click', function () {
+        ['dashPurchSearch', 'dashPurchFrom', 'dashPurchTo', 'dashPurchMinAmt', 'dashPurchMaxAmt'].forEach(function (id) {
+          var el = document.getElementById(id); if (el) el.value = '';
+        });
+        var statusEl = document.getElementById('dashPurchStatus'); if (statusEl) statusEl.value = 'all';
+        renderPurchasesTable();
+      });
 
       function renderOverview(orders) {
         var recentEl = document.getElementById('dashRecentPurchases');
@@ -2866,14 +2943,22 @@
         return btn;
       }
 
+      var OWNED_ITEMS = [];
       function renderOwnedAndDownloads(orders) {
-        var owned = ownedFromOrders(orders);
+        OWNED_ITEMS = ownedFromOrders(orders);
+        renderOwnedGrid();
+      }
+      function renderOwnedGrid() {
         var grid = document.getElementById('dashOwnedGrid');
         if (!grid) return;
+        var q = ((document.getElementById('dashOwnedSearch') || {}).value || '').trim().toLowerCase();
+        var owned = q ? OWNED_ITEMS.filter(function (i) { return i.title.toLowerCase().indexOf(q) >= 0; }) : OWNED_ITEMS;
         grid.innerHTML = '';
-        if (!owned.length) {
+        if (!OWNED_ITEMS.length) {
           grid.innerHTML = '<div class="dash-empty-cta"><p>You don\'t own any products yet.</p>' +
             '<a class="btn btn-primary" href="/assets">Browse products</a></div>';
+        } else if (!owned.length) {
+          grid.innerHTML = '<p class="dash-empty-note">No licenses match "' + esc(q) + '".</p>';
         }
         else owned.forEach(function (item) {
           var img = item.products && item.products.image ? window.imgUrl(item.products.image) : '/banner.jpg';
@@ -2881,12 +2966,20 @@
           var card = document.createElement('div'); card.className = 'dash-prod';
           card.innerHTML = '<div class="dp-thumb" style="background-image:url(\'' + img + '\')">' +
             (isResell ? '<span class="dp-lic-badge" aria-label="Resell licence">' + RESELL_ICON_SVG + '<span aria-hidden="true">Resell</span></span>' : '<span class="sr-only">Standard licence</span>') +
-            '</div><div class="dp-body"><div class="dp-name"></div></div>';
+            '</div><div class="dp-body"><div class="dp-name"></div><div class="dp-actions"></div></div>';
           card.querySelector('.dp-name').textContent = item.title;
-          card.querySelector('.dp-body').appendChild(downloadBtn(item, 'btn btn-tinted dp-btn'));
+          var actions = card.querySelector('.dp-actions');
+          actions.appendChild(downloadBtn(item, 'btn btn-tinted dp-btn'));
+          var reviewLink = document.createElement('a');
+          reviewLink.className = 'btn btn-ghost dp-review-btn';
+          reviewLink.href = '/product?id=' + encodeURIComponent(item.product_slug) + '&tab=reviews';
+          reviewLink.textContent = 'Review';
+          actions.appendChild(reviewLink);
           grid.appendChild(card);
         });
       }
+      var dashOwnedSearchEl = document.getElementById('dashOwnedSearch');
+      if (dashOwnedSearchEl) dashOwnedSearchEl.addEventListener('input', renderOwnedGrid);
 
       var dashRecentPurchasesEl = document.getElementById('dashRecentPurchases');
       if (dashRecentPurchasesEl) dashRecentPurchasesEl.addEventListener('click', function (e) {
@@ -2896,7 +2989,7 @@
       });
 
       function loadRealData(userId) {
-        var ORDER_COLS = 'id, created_at, status, source, currency, total_usd, total_robux, order_items(product_slug, title, qty, licence, products(image))';
+        var ORDER_COLS = 'id, created_at, status, source, purchased_by_user_id, currency, total_usd, total_robux, order_items(product_slug, title, qty, licence, products(image))';
         Promise.all([
           window.coldSupabase.from('orders').select(ORDER_COLS).eq('user_id', userId).order('created_at', { ascending: false }),
           // Gift orders paid for by this user, but owned by whoever they were

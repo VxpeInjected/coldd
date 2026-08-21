@@ -32,7 +32,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
 
-  <link rel="stylesheet" href="/styles.css?v=20260820k" />
+  <link rel="stylesheet" href="/styles.css?v=20260820l" />
 </head>
 <body class="dash-body">
   <div class="backdrop"></div>
@@ -163,6 +163,22 @@
       </section>
       <section class="dash-panel" id="panel-purchases" hidden>
         <div class="dash-head"><h1>Purchase history</h1><p>Every order on your account.</p></div>
+        <div class="dash-searchbar"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg><input type="text" id="dashPurchSearch" placeholder="Search by product or order number…" aria-label="Search purchase history" /></div>
+        <div class="dash-filter-row">
+          <label class="dash-filter-field"><span>From</span><input type="date" id="dashPurchFrom" /></label>
+          <label class="dash-filter-field"><span>To</span><input type="date" id="dashPurchTo" /></label>
+          <label class="dash-filter-field"><span>Min amount</span><input type="number" id="dashPurchMinAmt" min="0" step="0.01" placeholder="$0" /></label>
+          <label class="dash-filter-field"><span>Max amount</span><input type="number" id="dashPurchMaxAmt" min="0" step="0.01" placeholder="Any" /></label>
+          <label class="dash-filter-field"><span>Status</span>
+            <select id="dashPurchStatus">
+              <option value="all">All</option>
+              <option value="paid">Paid</option>
+              <option value="gifted">Gifted</option>
+              <option value="sent">Sent as gift</option>
+            </select>
+          </label>
+          <button class="btn btn-ghost dash-filter-clear" id="dashPurchClear" type="button">Clear filters</button>
+        </div>
         <div class="dash-card glass dash-tablewrap">
           <table class="dash-table">
             <thead><tr><th>Date</th><th>Product</th><th>Order</th><th>Amount</th><th>Status</th></tr></thead>
@@ -172,6 +188,7 @@
       </section>
       <section class="dash-panel" id="panel-owned" hidden>
         <div class="dash-head"><h1>Licenses</h1><p>Everything you have access to.</p></div>
+        <div class="dash-searchbar"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg><input type="text" id="dashOwnedSearch" placeholder="Search your licenses…" aria-label="Search your licenses" /></div>
         <div class="dash-grid" id="dashOwnedGrid"><p class="dash-empty-note">Loading…</p></div>
       </section>
       <section class="dash-panel" id="panel-wishlist" hidden>
@@ -503,7 +520,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.2/dist/umd/supabase.min.js" integrity="sha384-B2duOBIryCXbX4eDE4BdJwtNkQMRQde3o6IsjfPW28E6aH1CYE96hHeZRG3zY56O" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script src="/supabase-init.js?v=20260820e"></script>
   <script src="/site-gate.js?v=20260820b"></script>
-  <script src="/catalog.js?v=20260820b" data-then="/app.js?v=20260820m"></script>
+  <script src="/catalog.js?v=20260820b" data-then="/app.js?v=20260820n"></script>
   <script>
     // Cart badge/total sync from localStorage, ahead of app.js. The fab
     // markup above ships hardcoded at "0"/"$0", and the cart module that

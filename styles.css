@@ -157,6 +157,37 @@
       display: none;
     }
 
+    /* A recurring "active/hover" idiom across the site lightens a dark
+       surface with a low-alpha white tint and punches the label to pure
+       white - correct against the near-black base it was designed on, but
+       inverted in light mode: the same white tint over a near-white base
+       nearly disappears and white text goes with it (this is the
+       "Account Settings looks blank" bug). Same idiom, opposite direction:
+       a dark tint plus the normal foreground color. */
+    html[data-theme="light"] .btn-tinted:hover,
+    html[data-theme="light"] .nmt-tab.active,
+    html[data-theme="light"] .sort-opt.active,
+    html[data-theme="light"] .chip.active,
+    html[data-theme="light"] .p-add:hover,
+    html[data-theme="light"] .fc-cat.active,
+    html[data-theme="light"] .fc-sub.active,
+    html[data-theme="light"] .ref-method-opt.active,
+    html[data-theme="light"] .adm-dd-opt.active,
+    html[data-theme="light"] .bt-opt.active {
+      color: var(--fg);
+      background: rgba(0,0,0,0.06);
+    }
+    /* Same idiom, red-tinted variant (rgba(255,77,68, low-alpha) + white
+       text) - the tint reads as a soft rose highlight in light mode fine,
+       but white text on light pink is the same illegible pairing. */
+    html[data-theme="light"] .dash-nav a.active,
+    html[data-theme="light"] .dash-admin-link:hover,
+    html[data-theme="light"] .ref-tab.active,
+    html[data-theme="light"] .plat-opt.active,
+    html[data-theme="light"] .co-sg-add {
+      color: var(--accent-deep);
+    }
+
     * { box-sizing: border-box; }
     html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; scroll-padding-top: 84px; }
 
@@ -300,14 +331,14 @@
       width: max-content; max-width: calc(100% - 24px); }
     .nav-inner { position: relative; display: flex; align-items: center; gap: 18px; height: 50px;
       padding: 0 8px 0 14px; border-radius: 16px;
-      background: linear-gradient(180deg, rgba(32,34,42,0.95), rgba(20,22,28,0.95));
-      box-shadow: 0 1px 0 rgba(255,255,255,0.06) inset, 0 18px 50px -22px var(--ink-75);
+      background: var(--bg-2);
+      box-shadow: 0 1px 0 var(--glass-top) inset, 0 18px 50px -22px var(--ink-75);
       transition: background .4s var(--ease), gap .55s cubic-bezier(0.6,0,0.2,1); }
     .nav-inner::before { content: ""; position: absolute; inset: 0; border-radius: inherit; padding: 1px;
-      background: linear-gradient(180deg, rgba(255,255,255,0.13), rgba(255,255,255,0.05) 50%, rgba(255,255,255,0.035));
+      background: linear-gradient(180deg, var(--glass-top), var(--glass-bot) 50%, var(--glass-bot));
       -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
       -webkit-mask-composite: xor; mask-composite: exclude; pointer-events: none; }
-    header.nav.scrolled .nav-inner { background: linear-gradient(180deg, rgba(34,36,44,0.72), rgba(20,22,27,0.66)); }
+    header.nav.scrolled .nav-inner { background: var(--bg-2); opacity: 0.92; }
     .brand { display: flex; align-items: center; text-decoration: none; }
     .brand .logo { height: 34px; width: auto; display: block; }
     footer .brand .logo { height: 38px; }
@@ -519,10 +550,10 @@
     .asset-visual .v .tag { position: absolute; top: 22px; left: 22px; font-size: 11px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase;
       color: var(--fg-2); padding: 5px 11px; border-radius: 999px; background: rgba(10,11,14,0.5); border: 1px solid var(--hairline); }
 
-    .asset-list { background: var(--bg-3); border: 1px solid rgba(255,255,255,0.06); border-radius: var(--r); padding: 26px 28px; }
+    .asset-list { background: var(--bg-3); border: 1px solid var(--hairline); border-radius: var(--r); padding: 26px 28px; }
     .asset-list h3 { font-size: 20px; font-weight: 600; }
     .asset-list .rows { margin-top: 16px; display: flex; flex-direction: column; }
-    .asset-list .lrow { display: flex; align-items: center; justify-content: space-between; padding: 13px 0; border-top: 1px solid rgba(255,255,255,0.07); font-size: 14px; }
+    .asset-list .lrow { display: flex; align-items: center; justify-content: space-between; padding: 13px 0; border-top: 1px solid var(--hairline); font-size: 14px; }
     .asset-list .lrow:first-child { border-top: 0; }
     .asset-list .lrow .c { color: var(--fg-2); }
     .asset-list .lrow .v { font-weight: 600; color: var(--accent); }
@@ -653,7 +684,7 @@
     .cta h2 { font-size: var(--t-h2); text-shadow: 0 2px 18px var(--ink-60); }
     .cta p { color: #cdd3dd; font-size: 17px; max-width: 480px; margin: 14px auto 0; text-shadow: 0 2px 14px var(--ink-60); }
 
-    footer { border-top: 1px solid rgba(255,255,255,0.06); margin-top: 40px; padding: 54px 0 34px; }
+    footer { border-top: 1px solid var(--hairline); margin-top: 40px; padding: 54px 0 34px; }
     /* Our Assets only holds 3 short links (Roblox / Minecraft / Releases &
        Updates) but was given more width (1.7fr) than Explore's 1fr despite
        Explore's own longest link ("Development Tutorials") being longer -
@@ -665,7 +696,7 @@
       transition: color .2s ease, transform .2s var(--ease); }
     .foot-col a:hover { color: var(--fg); transform: translateX(3px); }
     .foot-links2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0 18px; }
-    .foot-bottom { margin-top: 44px; padding-top: 22px; border-top: 1px solid rgba(255,255,255,0.06); display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px; align-items: center; }
+    .foot-bottom { margin-top: 44px; padding-top: 22px; border-top: 1px solid var(--hairline); display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px; align-items: center; }
     .foot-bottom .muted { font-size: 12px; color: var(--fg-3); }
     .foot-social { display: flex; align-items: center; gap: 16px; }
     /* The marks are 18px, which is below the 24px WCAG target minimum and well
@@ -822,7 +853,7 @@
   transition: opacity .34s var(--ease), transform .34s var(--ease); }
 .nav-mega.open { opacity: 1; transform: none; pointer-events: auto; }
 .nav-mega-inner { width: 560px; max-width: calc(100vw - 24px); padding: 12px;
-  display: flex; align-items: stretch; gap: 12px; background: rgba(19,20,26,0.97); }
+  display: flex; align-items: stretch; gap: 12px; background: var(--bg-2); }
 .nav-mega-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
 .nav-mega-tabs { display: flex; gap: 6px; }
 .nmt-tab { padding: 7px 15px; border-radius: 999px; background: rgba(255,255,255,0.04); border: 1px solid var(--hairline);
@@ -884,7 +915,7 @@
 .plat-chev { color: var(--fg-3); transition: transform .18s var(--ease); flex: 0 0 auto; }
 .plat-select.open .plat-chev { transform: rotate(180deg); }
 .plat-menu { position: absolute; top: calc(100% + 8px); left: 0; z-index: 40; width: 208px;
-  padding: 6px; border-radius: 16px; background: rgba(19,20,26,0.98); border: 1px solid var(--hairline);
+  padding: 6px; border-radius: 16px; background: var(--bg-2); border: 1px solid var(--hairline);
   box-shadow: 0 20px 46px -18px var(--ink-75); }
 .plat-menu[hidden] { display: none; }
 .plat-opt { display: flex; align-items: center; gap: 11px; padding: 10px 12px; border-radius: 10px;
@@ -915,7 +946,7 @@
 .sort-chev { color: var(--fg-3); transition: transform .18s var(--ease); flex: 0 0 auto; }
 .sort-field.open .sort-chev { transform: rotate(180deg); }
 .sort-menu { position: absolute; top: calc(100% + 8px); right: 0; z-index: 40; width: 220px;
-  padding: 6px; border-radius: 16px; background: rgba(19,20,26,0.98); border: 1px solid var(--hairline);
+  padding: 6px; border-radius: 16px; background: var(--bg-2); border: 1px solid var(--hairline);
   box-shadow: 0 20px 46px -18px var(--ink-75); }
 .sort-menu[hidden] { display: none; }
 .sort-opt { display: flex; align-items: center; justify-content: space-between; gap: 14px; width: 100%;
@@ -1048,7 +1079,7 @@
    the wide-tracked micro-caps were the generic part; structure now comes from
    a flat surface, a real header rule and honest section headings. */
 .filter-card { position: relative; border-radius: 16px; padding: 0; overflow: hidden;
-  background: rgba(20,21,26,0.92);
+  background: var(--bg-2);
   border: 1px solid var(--hairline); box-shadow: var(--e-2); }
 .fc-head { display: flex; align-items: center; justify-content: space-between; gap: 10px;
   margin: 0; padding: 15px 18px; border-bottom: 1px solid var(--hairline);
@@ -1244,7 +1275,7 @@ main { animation: pageIn .32s ease both; }
 }
 
 .tc { position: fixed; top: 16px; right: 24px; z-index: 250; display: inline-flex; align-items: center;
-  padding: 4px; border-radius: 16px; border: 1px solid var(--hairline); background: rgba(22,23,29,0.98);
+  padding: 4px; border-radius: 16px; border: 1px solid var(--hairline); background: var(--bg-2);
   box-shadow: 0 14px 34px -18px var(--ink-75); }
 html[data-ann="on"] .tc { top: 56px; }
 .cart-fab { position: relative; display: inline-flex; align-items: center; min-height: 32px; padding: 0 11px 0 0; margin: 0; border: none;
@@ -1428,7 +1459,7 @@ body.no-scroll { overflow: hidden; }
    scroll code does not have to measure the header. */
 .pd-panelbox { padding-top: 22px; scroll-margin-top: 88px; }
 .pd-hi { display: flex; gap: 14px; align-items: center; padding: 16px 20px; border-radius: 16px;
-  border: 1px solid var(--hairline); background: rgba(16,17,22,0.94); }
+  border: 1px solid var(--hairline); background: var(--bg-2); }
 .pd-hi-ic { flex: 0 0 auto; width: 40px; height: 40px; display: inline-flex; align-items: center; justify-content: center;
   border-radius: 10px; background: var(--accent-deep); color: #fff; }
 .pd-hi-tx h4 { font-size: 15px; font-weight: 700; margin: 0; }
@@ -1465,7 +1496,7 @@ body.no-scroll { overflow: hidden; }
 .pd-rev-reply p { font-size: 13px; color: var(--fg-1); line-height: 1.55; margin: 5px 0 0; }
 .pd-empty { font-size: 14px; color: var(--fg-3); }
 
-.pd-upd { padding: 16px 18px; border-radius: 16px; border: 1px solid var(--hairline); background: rgba(16,17,22,0.94); margin-bottom: 12px; }
+.pd-upd { padding: 16px 18px; border-radius: 16px; border: 1px solid var(--hairline); background: var(--bg-2); margin-bottom: 12px; }
 .pd-upd-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
 .pd-upd-v { font-size: 16px; font-weight: 700; }
 .pd-upd-date { font-size: 13px; color: var(--fg-3); }
@@ -1648,7 +1679,7 @@ body.no-scroll { overflow: hidden; }
   opacity: 0; transform: translateX(-50%) translateY(-6px); pointer-events: none;
   transition: opacity .2s var(--ease), transform .2s var(--ease); }
 .search-panel.open { opacity: 1; transform: translateX(-50%) translateY(0); pointer-events: auto; }
-.search-panel-inner { padding: 8px; background: rgba(19,20,26,0.98); max-height: 64vh; overflow-y: auto; }
+.search-panel-inner { padding: 8px; background: var(--bg-2); max-height: 64vh; overflow-y: auto; }
 .search-list { display: flex; flex-direction: column; gap: 2px; }
 .sresult { display: flex; align-items: center; gap: 13px; width: 100%; text-align: left; padding: 10px 12px;
   border-radius: 16px; background: transparent; border: none; cursor: pointer; color: var(--fg); font-family: inherit; }
@@ -1682,7 +1713,7 @@ body.no-scroll { overflow: hidden; }
 .pay-overlay { position: fixed; inset: 0; z-index: 320; background: rgba(6,7,10,0.62);
   backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px); animation: ovIn .2s var(--ease); }
 .pay-overlay:not([hidden]) { display: flex; align-items: center; justify-content: center; padding: 24px; }
-.pay-modal { position: relative; z-index: 331; width: 420px; max-width: 100%; padding: 30px; background: rgba(20,21,27,0.99);
+.pay-modal { position: relative; z-index: 331; width: 420px; max-width: 100%; padding: 30px; background: var(--bg-2);
   animation: pmIn .3s var(--ease); }
 .pay-title { font-size: 20px; font-weight: 700; letter-spacing: -0.02em; }
 .pay-sub { color: var(--fg-2); font-size: 14px; margin: 8px 0 22px; line-height: 1.5; }
@@ -1705,7 +1736,7 @@ body.no-scroll { overflow: hidden; }
 @media (prefers-reduced-motion: reduce) { .cur-thumb.anim { transition: none; } }
 
 .cur-menu { position: absolute; right: 0; left: auto; top: calc(100% + 8px); bottom: auto; width: 256px; max-width: calc(100vw - 24px); padding: 8px; z-index: 260;
-  border-radius: 16px; border: 1px solid var(--hairline); background: rgba(19,20,26,0.99);
+  border-radius: 16px; border: 1px solid var(--hairline); background: var(--bg-2);
   box-shadow: 0 26px 64px -24px var(--ink-85); }
 .cur-search { width: 100%; padding: 9px 12px; border-radius: 10px; border: 1px solid var(--hairline);
   background: rgba(255,255,255,0.05); color: var(--fg); font-family: inherit; font-size: 13px; outline: none; margin-bottom: 6px; }
@@ -1724,9 +1755,9 @@ body.no-scroll { overflow: hidden; }
 .cur-empty { padding: 16px; text-align: center; color: var(--fg-3); font-size: 13px; }
 
 .announce { display: none; position: fixed; top: 0; left: 0; right: 0; z-index: 95; height: 40px; align-items: center;
-  background: rgba(16,17,22,0.98); border-bottom: 1px solid var(--hairline); }
+  background: var(--bg-2); border-bottom: 1px solid var(--hairline); }
 html[data-ann="on"] .announce { display: flex; }
-html[data-ann="on"] { border-top: 40px solid #15161b; }
+html[data-ann="on"] { border-top: 40px solid var(--bg); }
 html[data-ann="on"] header.nav { top: 52px; }
 .announce-inner { width: 100%; max-width: var(--maxw); margin: 0 auto; padding: 0 56px;
   display: flex; align-items: center; justify-content: center; }
@@ -1789,8 +1820,8 @@ body.auth-page { min-height: 100vh; min-height: 100dvh; }
    this card looking too low until the chrome collapses on scroll. */
 .auth-wrap { min-height: 100vh; min-height: 100dvh; display: flex; align-items: center; justify-content: center; padding: 96px 20px 56px; }
 .auth-card { width: 100%; max-width: 426px; padding: 38px 36px;
-  background: linear-gradient(180deg, rgba(28,29,37,0.99), rgba(20,21,27,0.99));
-  box-shadow: 0 40px 90px -28px var(--ink-85), 0 0 0 1px rgba(255,255,255,0.05); }
+  background: var(--bg-2);
+  box-shadow: 0 40px 90px -28px var(--ink-85), 0 0 0 1px var(--glass-top); }
 .auth-card h2 { font-size: 24px; font-weight: 700; letter-spacing: -0.03em; }
 .auth-sub { color: var(--fg-2); font-size: 14px; line-height: 1.5; margin: 8px 0 26px; }
 .auth-social { display: flex; flex-direction: column; gap: 10px; }
@@ -2092,7 +2123,7 @@ button.dt-badge:disabled { cursor: default; opacity: 0.6; }
   background-color: var(--fg-3); -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m9 18 6-6-6-6'/%3E%3C/svg%3E") center / contain no-repeat; mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m9 18 6-6-6-6'/%3E%3C/svg%3E") center / contain no-repeat;
   transition: transform .18s var(--ease-out); }
 .dl-history[open] summary::before { transform: rotate(90deg); }
-.dl-ver { display: grid; grid-template-columns: 56px 110px 1fr; gap: 10px; align-items: baseline; padding: 9px 0; font-size: 13px; border-top: 1px solid rgba(255,255,255,0.05); }
+.dl-ver { display: grid; grid-template-columns: 56px 110px 1fr; gap: 10px; align-items: baseline; padding: 9px 0; font-size: 13px; border-top: 1px solid var(--hairline); }
 .dl-ver:first-of-type { border-top: 0; margin-top: 6px; }
 .dl-v { font-weight: 700; color: var(--fg); }
 .dl-ver.cur .dl-v { color: var(--price); }
@@ -2133,7 +2164,7 @@ html.js .ref-method-btn:focus-visible { outline: 2px solid var(--accent); outlin
 .ref-method-chev { color: var(--fg-3); transition: transform .18s var(--ease); flex: 0 0 auto; }
 .ref-method-dd.open .ref-method-chev { transform: rotate(180deg); }
 .ref-method-menu { position: absolute; top: calc(100% + 8px); left: 0; right: 0; z-index: 40; padding: 6px;
-  border-radius: var(--r-sm); background: rgba(19,20,26,0.98); border: 1px solid var(--hairline);
+  border-radius: var(--r-sm); background: var(--bg-2); border: 1px solid var(--hairline);
   box-shadow: 0 20px 46px -18px var(--ink-75); }
 .ref-method-menu[hidden] { display: none; }
 .ref-method-opt { display: flex; align-items: center; justify-content: space-between; gap: 14px; width: 100%;
@@ -2157,10 +2188,28 @@ html.js .ref-method-btn:focus-visible { outline: 2px solid var(--accent); outlin
 .ac-linked-icon { flex: 0 0 auto; color: var(--fg-2); }
 .switch { flex: 0 0 auto; position: relative; width: 44px; height: 26px; cursor: pointer; }
 .switch input { position: absolute; opacity: 0; width: 100%; height: 100%; margin: 0; cursor: pointer; }
-.switch .track { position: absolute; inset: 0; border-radius: 999px; background: rgba(255,255,255,0.12); transition: background .2s; }
-.switch .track::after { content: ""; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: #fff; transition: transform .2s var(--ease); }
+.switch .track { position: absolute; inset: 0; border-radius: 999px; background: var(--hairline-strong); transition: background .2s; }
+.switch .track::after { content: ""; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: #fff; box-shadow: var(--e-1); transition: transform .2s var(--ease); }
 .switch input:checked + .track { background: var(--accent-deep); }
 .switch input:checked + .track::after { transform: translateX(18px); }
+
+/* Appearance theme picker (dashboard > Appearance) - a 3-way segmented
+   control (Dark/Light/Sync), same pill-switch pattern as .bt-switch, not
+   a plain on/off toggle: this is a choice between three states, not a
+   boolean, and a checkbox misrepresented that. */
+.theme-switch { flex: 0 0 auto; display: inline-flex; gap: 4px; padding: 4px; border-radius: 14px;
+  background: var(--bg-3); border: 1px solid var(--hairline); }
+.theme-opt { display: inline-flex; align-items: center; gap: 6px; font-family: inherit; font-size: 13px; font-weight: 600;
+  color: var(--fg-2); background: none; border: none; padding: 8px 14px; border-radius: 10px; cursor: pointer;
+  transition: background .2s var(--ease), color .2s var(--ease); }
+.theme-opt svg { flex: 0 0 auto; opacity: .85; }
+.theme-opt:hover { color: var(--fg); }
+.theme-opt.active { color: var(--fg); background: var(--bg-2); box-shadow: var(--e-1); }
+.theme-opt.active svg { color: var(--accent); opacity: 1; }
+@media (max-width: 560px) {
+  .theme-switch { width: 100%; }
+  .theme-opt { flex: 1 1 0; justify-content: center; }
+}
 
 .dash-card.danger { border: 1px solid rgba(255,77,68,0.3); }
 .danger-text { font-size: 14px; color: var(--fg-2); line-height: 1.6; margin: 4px 0 16px; max-width: 540px; }
@@ -2470,6 +2519,19 @@ html.js .ref-method-btn:focus-visible { outline: 2px solid var(--accent); outlin
 .co-tier-marker-label { margin-top: 6px; font-size: 11px; font-weight: 600; line-height: 1.35; text-align: center; color: var(--fg-3); white-space: nowrap; }
 .co-tier-marker.done .co-tier-marker-label { color: var(--price); font-weight: 700; }
 .co-tier-marker.next .co-tier-marker-label { color: var(--fg); font-weight: 700; }
+/* Same ladder, shown in the cart drawer too - reuses every .co-tier*
+   rule above (the element carries both classes) and only adds the
+   drawer's own horizontal margin. */
+.cd-tier { margin: 0 18px 14px; }
+/* The gap-closing pick: "spend $12 more" turned into a specific,
+   one-click product instead of homework - shared by checkout and the
+   drawer, same shape as the other upsell rows on the site. */
+.co-tier-nudge { display: flex; align-items: center; gap: 10px; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--hairline); cursor: pointer; }
+.co-tier-nudge-thumb { flex: 0 0 44px; width: 44px; height: 44px; border-radius: var(--r-ctl); background: #0f1014 center / cover no-repeat; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08); }
+.co-tier-nudge-body { flex: 1; min-width: 0; }
+.co-tier-nudge-title { font-size: 12.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.co-tier-nudge-sub { font-size: 11px; color: var(--fg-3); margin-top: 1px; }
+.co-tier-nudge-add { flex: 0 0 auto; min-height: 32px; padding: 0 14px; font-size: 12px; }
 /* Resell-license upgrade and genre cross-sell offers - both live-priced
    and floor-checked server-side the moment either gets added (same path
    real cart items go through), this is just the invitation. */
@@ -2591,7 +2653,7 @@ html[data-theme="light"] .hero-h1 .hl.hl-minecraft { color: #2e7d32; }
 }
 .hero-copy .hero-cta .btn-primary:hover,
 .hero-copy .hero-cta .btn-minecraft:hover {
-  background: #2a2d35; border-color: transparent; color: #fff; box-shadow: var(--e-3);
+  background: var(--bg-2); border-color: transparent; color: var(--fg); box-shadow: var(--e-3);
 }
 .hero-copy .hero-cta .btn-primary:active,
 .hero-copy .hero-cta .btn-minecraft:active {
@@ -2785,7 +2847,7 @@ body.dash-body .backdrop, body.dash-body .scrim { display: none; }
 .adm-dd-chev { color: var(--fg-3); transition: transform .18s var(--ease); flex: 0 0 auto; }
 .adm-dd.open .adm-dd-chev { transform: rotate(180deg); }
 .adm-dd-menu { position: absolute; top: calc(100% + 8px); left: 0; right: 0; z-index: 40; max-height: 280px; overflow-y: auto;
-  padding: 6px; border-radius: 16px; background: rgba(19,20,26,0.98); border: 1px solid var(--hairline);
+  padding: 6px; border-radius: 16px; background: var(--bg-2); border: 1px solid var(--hairline);
   box-shadow: 0 20px 46px -18px var(--ink-75); }
 .adm-dd-menu[hidden] { display: none; }
 .adm-dd-opt { display: flex; align-items: center; justify-content: space-between; gap: 14px; width: 100%;
@@ -2817,7 +2879,7 @@ body.dash-body .backdrop, body.dash-body .scrim { display: none; }
   transition: background .15s, border-color .15s, color .15s; }
 .adm-row-menu-btn:hover, .adm-row-menu.open .adm-row-menu-btn { background: rgba(255,255,255,0.06); border-color: var(--hairline); color: var(--fg); }
 .adm-row-menu-list { position: absolute; top: calc(100% + 6px); right: 0; z-index: 45; min-width: 180px;
-  padding: 6px; border-radius: 12px; background: rgba(19,20,26,0.98); border: 1px solid var(--hairline);
+  padding: 6px; border-radius: 12px; background: var(--bg-2); border: 1px solid var(--hairline);
   box-shadow: 0 20px 46px -18px var(--ink-75); }
 .adm-row-menu-list[hidden] { display: none; }
 .adm-row-menu-item { display: flex; align-items: center; width: 100%; padding: 9px 10px; border-radius: 8px;
@@ -3532,7 +3594,7 @@ input[type="checkbox"]:focus-visible { outline: 2px solid var(--accent); outline
    used to be a flat #0b0b0b box with no shadow at all - the only popover on
    the site without one, which is exactly what read as out of place. */
 .notif-panel { position: absolute; top: calc(100% + 10px); right: 0; width: 320px; max-width: calc(100vw - 32px);
-  max-height: 420px; overflow-y: auto; z-index: 250; background: rgba(19,20,26,0.99); border: 1px solid var(--hairline);
+  max-height: 420px; overflow-y: auto; z-index: 250; background: var(--bg-2); border: 1px solid var(--hairline);
   border-radius: 16px; padding: 8px; box-shadow: 0 26px 64px -24px var(--ink-85); }
 .notif-panel[hidden] { display: none; }
 .notif-panel-head { display: flex; align-items: center; justify-content: space-between; padding: 8px 10px 10px; }
@@ -3678,7 +3740,7 @@ input[type="checkbox"]:focus-visible { outline: 2px solid var(--accent); outline
   .back-to-top.show { opacity: 1; transform: none; pointer-events: auto; }
 }
 @media (hover: hover) and (pointer: fine) {
-  .back-to-top:hover { background: #2a2d35; border-color: rgba(255,255,255,0.26); }
+  .back-to-top:hover { background: var(--bg-2); border-color: var(--hairline-strong); }
 }
 .back-to-top:active { transform: scale(0.94); }
 @media (prefers-reduced-motion: reduce) {
@@ -3694,7 +3756,7 @@ input[type="checkbox"]:focus-visible { outline: 2px solid var(--accent); outline
 .robux-overlay:not([hidden]) { display: flex; }
 .robux-modal { position: relative; width: 420px; min-height: 420px; max-width: 92vw; max-height: 88vh; overflow-y: auto;
   display: flex; flex-direction: column; justify-content: center;
-  background: rgba(19,20,26,0.99); border: 1px solid var(--hairline);
+  background: var(--bg-2); border: 1px solid var(--hairline);
   /* Was a one-off 20px - matched neither var(--r) (24px, what every other
      card in checkout - Contact/Payment/Before you pay/Order summary -
      actually uses) nor var(--r-sm) (16px, the inner-panel token). This is

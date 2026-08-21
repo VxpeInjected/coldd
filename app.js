@@ -186,24 +186,51 @@
       }, SHOW_DELAY_MS);
     })();
 
-    // Light mode toggle (dashboard > Appearance). The actual theme
-    // application happens in an early inline <head> script on every page
-    // (reads localStorage before paint, sets data-theme on <html>) so there
-    // is no flash of the wrong theme on pages other than dashboard; this
-    // block only has to sync the checkbox and handle live changes.
+    // Theme picker (dashboard > Appearance). The actual theme application
+    // happens in an early inline <head> script on every page (reads
+    // localStorage before paint, sets data-theme on <html>) so there is no
+    // flash of the wrong theme on pages other than dashboard; this block
+    // only has to sync the segmented control and handle live changes,
+    // including live-following the OS when "Sync" is selected.
     (function () {
       var KEY = 'coldd_theme';
-      var toggle = document.getElementById('themeLightToggle');
-      if (!toggle) return;
-      toggle.checked = document.documentElement.getAttribute('data-theme') === 'light';
-      toggle.addEventListener('change', function () {
-        if (toggle.checked) {
-          document.documentElement.setAttribute('data-theme', 'light');
-          try { localStorage.setItem(KEY, 'light'); } catch (e) {}
-        } else {
-          document.documentElement.removeAttribute('data-theme');
-          try { localStorage.removeItem(KEY); } catch (e) {}
-        }
+      var wrap = document.getElementById('themeSwitch');
+      if (!wrap) return;
+      var opts = wrap.querySelectorAll('.theme-opt');
+      var mq = window.matchMedia('(prefers-color-scheme: light)');
+
+      function apply(mode) {
+        var light = mode === 'light' || (mode === 'system' && mq.matches);
+        if (light) document.documentElement.setAttribute('data-theme', 'light');
+        else document.documentElement.removeAttribute('data-theme');
+      }
+      function setActive(mode) {
+        opts.forEach(function (btn) {
+          var on = btn.getAttribute('data-theme-choice') === mode;
+          btn.classList.toggle('active', on);
+          btn.setAttribute('aria-checked', on ? 'true' : 'false');
+        });
+      }
+
+      var stored = null;
+      try { stored = localStorage.getItem(KEY); } catch (e) {}
+      var mode = stored === 'light' || stored === 'system' ? stored : 'dark';
+      setActive(mode);
+
+      opts.forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          mode = btn.getAttribute('data-theme-choice');
+          setActive(mode);
+          apply(mode);
+          try {
+            if (mode === 'dark') localStorage.removeItem(KEY);
+            else localStorage.setItem(KEY, mode);
+          } catch (e) {}
+        });
+      });
+
+      mq.addEventListener('change', function () {
+        if (mode === 'system') apply('system');
       });
     })();
 
@@ -1801,6 +1828,85 @@
         }
         return money(subtotal());
       }
+
+      // Same spend-tier ladder as checkout (must match _shared/coupon.ts's
+      // SPEND_TIERS exactly - this is a preview, the real discount is
+      // computed server-side the instant an order is created). Showing it
+      // here too, not just at checkout, means someone can shop TOWARD the
+      // next tier instead of only discovering it after they've already
+      // decided what to buy.
+      var SPEND_TIERS = [
+        { minSubtotal: 140, pct: 18 },
+        { minSubtotal: 100, pct: 14 },
+        { minSubtotal: 70, pct: 11 },
+        { minSubtotal: 40, pct: 8 }
+      ];
+      // The cheapest catalog item (not already in the cart) whose price
+      // alone covers the remaining gap to the next tier - turns "spend $12
+      // more" into a specific, one-click thing to add instead of homework
+      // the shopper has to go do themselves.
+      function cheapestGapCloser(remaining) {
+        var cat = window.__CATALOG || [];
+        var cartIds = {};
+        cart.forEach(function (i) { cartIds[i.id.replace(/--resell$/, '').replace(/--bundle$/, '').replace(/--crosssell$/, '')] = true; });
+        var candidates = cat.filter(function (p) { return !cartIds[p.id] && p.priceNum >= remaining; });
+        candidates.sort(function (a, b) { return a.priceNum - b.priceNum; });
+        return candidates[0] || null;
+      }
+      function renderTierProgress() {
+        var box = document.getElementById('cdTierBanner');
+        if (!box) return;
+        var sub = subtotal();
+        if (sub <= 0) { box.hidden = true; box.innerHTML = ''; return; }
+        var tier = null;
+        for (var i = 0; i < SPEND_TIERS.length; i++) { if (sub >= SPEND_TIERS[i].minSubtotal) { tier = SPEND_TIERS[i]; break; } }
+        var next = null;
+        for (var j = 0; j < SPEND_TIERS.length; j++) {
+          var t = SPEND_TIERS[j];
+          if (sub < t.minSubtotal && (!next || t.minSubtotal < next.minSubtotal)) next = t;
+        }
+        box.hidden = false;
+        box.className = 'cd-tier co-tier' + (tier ? ' co-tier-unlocked' : '');
+        var ascending = SPEND_TIERS.slice().sort(function (a, b) { return a.minSubtotal - b.minSubtotal; });
+        var maxThreshold = ascending[ascending.length - 1].minSubtotal;
+        var pctToNext = Math.min(100, Math.round((sub / maxThreshold) * 100));
+        var headline = next
+          ? (tier ? (tier.pct + '% off unlocked - spend ' + money(next.minSubtotal - sub) + ' more for ' + next.pct + '% off') : ('Spend ' + money(next.minSubtotal - sub) + ' more to start saving'))
+          : (tier.pct + '% off unlocked - the best tier in your cart right now.');
+        var markers = ascending.map(function (t) {
+          var reached = sub >= t.minSubtotal;
+          var isNext = next && t.minSubtotal === next.minSubtotal;
+          var left = Math.min(100, Math.round((t.minSubtotal / maxThreshold) * 100));
+          return '<div class="co-tier-marker' + (reached ? ' done' : '') + (isNext ? ' next' : '') + '" style="left:' + left + '%">' +
+            '<span class="co-tier-dot">' + (reached ? '<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg>' : '') + '</span>' +
+            '<span class="co-tier-marker-label">' + t.pct + '%<br>' + money(t.minSubtotal) + '</span>' +
+            '</div>';
+        }).join('');
+        var nudgeHtml = '';
+        if (next) {
+          var pick = cheapestGapCloser(next.minSubtotal - sub);
+          if (pick) {
+            nudgeHtml = '<div class="co-tier-nudge" data-id="' + esc(pick.id) + '">' +
+              '<span class="co-tier-nudge-thumb" style="background-image:url(\'' + pick.image + '\')"></span>' +
+              '<div class="co-tier-nudge-body"><div class="co-tier-nudge-title">' + esc(pick.title) + '</div>' +
+              '<div class="co-tier-nudge-sub">' + money(pick.priceNum) + ' - crosses into ' + next.pct + '% off</div></div>' +
+              '<button class="btn btn-tinted co-tier-nudge-add" type="button">Add</button></div>';
+          }
+        }
+        box.innerHTML = '<div class="co-tier-text">' + headline + '</div>' +
+          '<div class="co-tier-track"><div class="co-tier-bar"><div class="co-tier-fill" style="width:' + pctToNext + '%"></div></div>' + markers + '</div>' +
+          nudgeHtml;
+      }
+      var cdTierBannerEl = document.getElementById('cdTierBanner');
+      if (cdTierBannerEl) cdTierBannerEl.addEventListener('click', function (e) {
+        var btn = e.target.closest('.co-tier-nudge-add'); if (!btn) return;
+        var row = e.target.closest('.co-tier-nudge'); if (!row) return;
+        var cat = window.__CATALOG || [];
+        var p = cat.filter(function (x) { return x.id === row.getAttribute('data-id'); })[0];
+        if (!p) return;
+        add({ id: p.id, title: p.title, price: p.priceNum, image: p.image, tag: p.cat || '' });
+      });
+
       function updateBadge() {
         var c = count();
         if (countEl) {
@@ -1859,6 +1965,7 @@
           itemsEl.appendChild(row);
         });
         if (subEl) subEl.textContent = subtotalMoney();
+        renderTierProgress();
       }
       function openCart() { renderCart(); if (overlay) overlay.hidden = false;
         if (drawer) { drawer.classList.add('open'); drawer.setAttribute('aria-hidden', 'false'); }
@@ -4018,8 +4125,9 @@
       // coupon), but the numbers themselves need to agree or the banner
       // below promises a discount the order won't actually give.
       var SPEND_TIERS = [
-        { minSubtotal: 120, pct: 18 },
-        { minSubtotal: 75, pct: 12 },
+        { minSubtotal: 140, pct: 18 },
+        { minSubtotal: 100, pct: 14 },
+        { minSubtotal: 70, pct: 11 },
         { minSubtotal: 40, pct: 8 }
       ];
       function currentSpendTier(sub) {
@@ -4040,6 +4148,17 @@
         var tier = currentSpendTier(sub);
         if (tier) d += Math.round(sub * (tier.pct / 100) * 100) / 100;
         return Math.min(d, sub);
+      }
+      // Same gap-closing pick as the cart drawer - the cheapest catalog
+      // item not already in the cart whose price alone covers the
+      // remaining distance to the next tier.
+      function cheapestGapCloser(remaining) {
+        var cat = window.__CATALOG || [];
+        var cartIds = {};
+        cart.forEach(function (i) { cartIds[i.id.replace(/--resell$/, '').replace(/--bundle$/, '').replace(/--crosssell$/, '')] = true; });
+        var candidates = cat.filter(function (p) { return !cartIds[p.id] && p.priceNum >= remaining; });
+        candidates.sort(function (a, b) { return a.priceNum - b.priceNum; });
+        return candidates[0] || null;
       }
       function renderTierBanner() {
         var box = document.getElementById('coTierBanner');
@@ -4069,12 +4188,34 @@
             '<span class="co-tier-marker-label">' + t.pct + '%<br>' + money(t.minSubtotal) + '</span>' +
             '</div>';
         }).join('');
+        var nudgeHtml = '';
+        if (next) {
+          var pick = cheapestGapCloser(next.minSubtotal - sub);
+          if (pick) {
+            nudgeHtml = '<div class="co-tier-nudge" data-id="' + esc(pick.id) + '">' +
+              '<span class="co-tier-nudge-thumb" style="background-image:url(\'' + pick.image + '\')"></span>' +
+              '<div class="co-tier-nudge-body"><div class="co-tier-nudge-title">' + esc(pick.title) + '</div>' +
+              '<div class="co-tier-nudge-sub">' + money(pick.priceNum) + ' - crosses into ' + next.pct + '% off</div></div>' +
+              '<button class="btn btn-tinted co-tier-nudge-add" type="button">Add</button></div>';
+          }
+        }
         box.innerHTML = '<div class="co-tier-text">' + headline + '</div>' +
           '<div class="co-tier-track">' +
           '<div class="co-tier-bar"><div class="co-tier-fill" style="width:' + pctToNext + '%"></div></div>' +
           markers +
-          '</div>';
+          '</div>' +
+          nudgeHtml;
       }
+      if (document.getElementById('coTierBanner')) document.getElementById('coTierBanner').addEventListener('click', function (e) {
+        var btn = e.target.closest('.co-tier-nudge-add'); if (!btn) return;
+        var row = e.target.closest('.co-tier-nudge'); if (!row) return;
+        var cat = window.__CATALOG || [];
+        var p = cat.filter(function (x) { return x.id === row.getAttribute('data-id'); })[0];
+        if (!p) return;
+        cart.push({ id: p.id, title: p.title, price: p.priceNum, image: p.image, tag: p.cat || '', licence: 'standard', qty: 1 });
+        save(cart);
+        render();
+      });
 
       function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
       // The place-order button used to stay fully enabled and styled as the

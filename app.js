@@ -3518,20 +3518,31 @@
       if (refProdBody) {
         var fmt = function (n) { return window.__money ? window.__money(n) : ('$' + n); };
         var cat = (window.__CATALOG || []).slice(0, 6);
-        var hh = function (s) { var h = 5381; for (var i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) >>> 0; return h; };
-        refProdBody.innerHTML = cat.map(function (p) {
-          var h = hh(p.id), sales = h % 9, earn = Math.round(p.priceNum * 0.2 * 100) / 100;
-          return '<tr><td>' + esc(p.title) + '</td><td><span class="p-price" data-usd="' + earn + '">' + fmt(earn) + '</span></td>' +
-            '<td>' + sales + '</td><td><span class="p-price" data-usd="' + (earn * sales) + '">' + fmt(earn * sales) + '</span></td>' +
-            '<td><button class="btn btn-ghost ref-prod-copy" type="button" data-link="' + (p.page || '/product') + '?id=' + p.id + '&ref=you">Copy link</button></td></tr>';
-        }).join('');
-        refProdBody.querySelectorAll('.ref-prod-copy').forEach(function (b) {
-          b.addEventListener('click', function () {
-            var link = location.origin + location.pathname.replace(/[^/]*$/, '') + b.getAttribute('data-link');
-            try { navigator.clipboard.writeText(link); } catch (_) {}
-            var t = b.textContent; b.textContent = 'Copied'; setTimeout(function () { b.textContent = t; }, 1400);
+        // Sales/Earned used to be a hash of the product id (h % 9), not a
+        // real number - nothing tracks referral conversions per specific
+        // product link today (get-referral-stats attributes a sale to
+        // WHO referred the buyer, not which product link they clicked),
+        // so those columns were always fictional. Dropped rather than
+        // faked; "Earn per sale" stays because that one's real math
+        // (20% of the product's own price). Link used the literal string
+        // "you" instead of an actual code - same bug the product page's
+        // own referral widget already had fixed, just never applied here.
+        window.coldAuth.invokeFn('get-referral-code', {}).then(function (r) {
+          var code = r && r.code; if (!code) return;
+          refProdBody.innerHTML = cat.map(function (p) {
+            var earn = Math.round(p.priceNum * 0.2 * 100) / 100;
+            var link = (p.page || '/product') + '?id=' + p.id + '&ref=' + encodeURIComponent(code);
+            return '<tr><td>' + esc(p.title) + '</td><td><span class="p-price" data-usd="' + earn + '">' + fmt(earn) + '</span></td>' +
+              '<td><button class="btn btn-ghost ref-prod-copy" type="button" data-link="' + link + '">Copy link</button></td></tr>';
+          }).join('');
+          refProdBody.querySelectorAll('.ref-prod-copy').forEach(function (b) {
+            b.addEventListener('click', function () {
+              var link = location.origin + b.getAttribute('data-link');
+              try { navigator.clipboard.writeText(link); } catch (_) {}
+              var t = b.textContent; b.textContent = 'Copied'; setTimeout(function () { b.textContent = t; }, 1400);
+            });
           });
-        });
+        }).catch(function () {});
       }
 
       dash.querySelectorAll('.wl-remove').forEach(function (x) {

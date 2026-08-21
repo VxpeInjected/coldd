@@ -578,8 +578,12 @@
     .asset-visual { padding: 0; overflow: hidden; min-height: 260px; display: flex; align-items: flex-end; }
     .asset-visual .v { width: 100%; height: 100%; min-height: 260px; position: relative; padding: 24px; display: flex; flex-direction: column; justify-content: flex-end;
       background: linear-gradient(180deg, rgba(8,9,12,0.12) 0%, rgba(8,9,12,0.55) 52%, rgba(8,9,12,0.93) 100%), url('premade.jpg') center / cover no-repeat, #100d0f; }
-    .asset-visual .v h3 { position: relative; z-index: 1; font-size: 24px; font-weight: 700; }
-    .asset-visual .v p { position: relative; z-index: 1; font-size: 13px; color: var(--fg-2); margin: 8px 0 0; max-width: 340px; text-shadow: 0 2px 10px var(--ink-60); }
+    /* .v's own inline background gradient (hardcoded rgba(8,9,12,...), see the
+       markup) is a dark photo scrim in both themes, not just dark mode - the
+       label needs to stay white in both for the same reason .resell-points
+       does, rather than inheriting a.asset-visual's var(--fg). */
+    .asset-visual .v h3 { position: relative; z-index: 1; font-size: 24px; font-weight: 700; color: #fff; }
+    .asset-visual .v p { position: relative; z-index: 1; font-size: 13px; color: #c7ccd6; margin: 8px 0 0; max-width: 340px; text-shadow: 0 2px 10px var(--ink-60); }
     .asset-visual .v .tag { position: absolute; top: 22px; left: 22px; font-size: 11px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase;
       color: var(--fg-2); padding: 5px 11px; border-radius: 999px; background: rgba(10,11,14,0.5); border: 1px solid var(--hairline); }
 
@@ -603,7 +607,12 @@
       background: linear-gradient(110deg, rgba(15,16,21,0.92) 0%, rgba(15,16,21,0.55) 45%, rgba(15,16,21,0.25) 100%); }
     .resell-points { position: relative; z-index: 1; list-style: none; margin: 0; padding: 30px 34px;
       display: flex; flex-direction: column; justify-content: center; gap: 20px; height: 100%; }
-    .resell-points li { position: relative; padding-left: 32px; font-size: 17px; font-weight: 500; color: var(--fg); }
+    /* Always sits over .resell-art's photo + dark scrim (see .resell-art::before
+       above), in both themes - unlike .cta's band this one keeps its photo in
+       light mode too, so the label stays hardcoded white rather than following
+       var(--fg), which would go near-black-on-dark-photo the same way .cta's
+       heading did. */
+    .resell-points li { position: relative; padding-left: 32px; font-size: 17px; font-weight: 500; color: #fff; }
     /* top:8px was a guess at the checkmark's vertical position rather than
        an actual center - true centering against the li's own height (which
        text sizing/line-height actually determines) instead of a fixed guess. */
@@ -1147,7 +1156,13 @@
 @media (hover: hover) and (pointer: fine) {
   .fc-check:hover { background: rgba(255,255,255,0.05); }
 }
-.fc-check input { position: absolute; opacity: 0; width: 0; height: 0; }
+/* [type="checkbox"] added to win specificity against the later, equal-
+   specificity global `input[type="checkbox"]` reset below (same
+   0,1,1) - without it, source order (that rule comes later in the
+   file) let its 18px visible box leak through on top of this custom
+   drawn checkbox, pushing .fc-check-box ~28px right of where every
+   other row in this panel starts. */
+.fc-check input[type="checkbox"] { position: absolute; opacity: 0; width: 0; height: 0; }
 .fc-check-box { width: 16px; height: 16px; border-radius: 4px; border: 1px solid var(--hairline-strong);
   background: var(--ink-25);
   display: flex; align-items: center; justify-content: center; flex: 0 0 auto; position: relative;
@@ -2228,7 +2243,14 @@ html.js .ref-method-btn:focus-visible { outline: 2px solid var(--accent); outlin
 .ac-linked-text { display: flex; align-items: center; gap: 12px; }
 .ac-linked-icon { flex: 0 0 auto; color: var(--fg-2); }
 .switch { flex: 0 0 auto; position: relative; width: 44px; height: 26px; cursor: pointer; }
-.switch input { position: absolute; opacity: 0; width: 100%; height: 100%; margin: 0; cursor: pointer; }
+/* [type="checkbox"] added to win specificity against the later, equal-
+   specificity global `input[type="checkbox"]` reset below (same
+   0,1,1) - without it, source order let that rule force this input
+   down to an 18x18 relatively-positioned box instead of an absolutely
+   positioned one covering the full switch, shrinking every toggle's
+   real click target site-wide (notifications, theme, admin) to a
+   fraction of the visible pill. */
+.switch input[type="checkbox"] { position: absolute; opacity: 0; width: 100%; height: 100%; margin: 0; cursor: pointer; }
 .switch .track { position: absolute; inset: 0; border-radius: 999px; background: var(--hairline-strong); transition: background .2s; }
 .switch .track::after { content: ""; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: #fff; box-shadow: var(--e-1); transition: transform .2s var(--ease); }
 .switch input:checked + .track { background: var(--accent-deep); }
@@ -2470,11 +2492,18 @@ html.js .ref-method-btn:focus-visible { outline: 2px solid var(--accent); outlin
    (appearance:none + our own box/checkmark) puts it on the same var(--r-xs)
    radius the rest of the site's small ticks/badges/chips use, instead of
    an unstyled native control sitting in an otherwise fully custom UI. */
-.co-check input { -webkit-appearance: none; appearance: none; margin-top: 1px; width: 17px; height: 17px; flex: 0 0 auto; cursor: pointer;
+/* [type="checkbox"] added to win specificity against the later, equal-
+   specificity global `input[type="checkbox"]` reset below (same
+   0,1,1) - without it, source order let that rule's display:inline-
+   block win over this rule's display:inline-grid;place-items:center,
+   which is what centers the custom checkmark below (that pseudo-
+   element itself does win on specificity, since it targets `:checked`
+   too - it just had nothing centering it any more). */
+.co-check input[type="checkbox"] { -webkit-appearance: none; appearance: none; margin-top: 1px; width: 17px; height: 17px; flex: 0 0 auto; cursor: pointer;
   border: 1.5px solid var(--hairline-strong); border-radius: var(--r-xs); background: var(--ink-25);
   display: inline-grid; place-items: center; transition: background .15s var(--ease), border-color .15s var(--ease); }
-.co-check input:hover { border-color: var(--accent); }
-.co-check input:checked { background: var(--accent); border-color: var(--accent); }
+.co-check input[type="checkbox"]:hover { border-color: var(--accent); }
+.co-check input[type="checkbox"]:checked { background: var(--accent); border-color: var(--accent); }
 .co-check input:checked::after { content: ''; width: 5px; height: 9px; margin-bottom: 1px;
   border: solid #fff; border-width: 0 2px 2px 0; transform: rotate(45deg); }
 .co-check a { color: var(--accent); text-decoration: none; }
@@ -2987,7 +3016,7 @@ body.dash-body .backdrop, body.dash-body .scrim { display: none; }
 .adm-chart { display: block; width: 100%; height: 140px; cursor: crosshair; }
 .adm-chart-bar { transition: opacity .1s ease; }
 .adm-chart-bar.hover { opacity: 1 !important; stroke: #fff; stroke-width: 0.6; }
-.adm-chart-tip { position: fixed; z-index: 9999; background: #0a0a0a; border: 1px solid var(--hairline); color: var(--fg-1); font-size: 12px; padding: 6px 10px; border-radius: 4px; pointer-events: none; white-space: nowrap; box-shadow: 0 6px 20px var(--ink-40); }
+.adm-chart-tip { position: fixed; z-index: 9999; background: var(--bg-2); border: 1px solid var(--hairline); color: var(--fg-1); font-size: 12px; padding: 6px 10px; border-radius: 4px; pointer-events: none; white-space: nowrap; box-shadow: 0 6px 20px var(--ink-40); }
 /* Marketing channel rows. Replaced .adm-platform-row, whose "Revenue by
    platform" table listed four marketplaces that were all "Not tracked yet". */
 .adm-channel-row { display: flex; justify-content: space-between; align-items: center; gap: 16px;
@@ -3615,7 +3644,7 @@ input[type="checkbox"]:focus-visible { outline: 2px solid var(--accent); outline
 
 /* account dropdown menu (matches account-menu classes built in app.js) */
 .account-menu { position: absolute; top: calc(100% + 10px); right: 0; min-width: 190px; z-index: 250;
-  background: #0b0b0b; border: 1px solid var(--hairline); border-radius: 10px; padding: 6px; }
+  background: var(--bg-2); border: 1px solid var(--hairline); border-radius: 10px; padding: 6px; box-shadow: var(--e-3); }
 .account-menu[hidden] { display: none; }
 .account-menu-item { display: flex; align-items: center; gap: 10px; width: 100%; padding: 9px 10px; border-radius: 10px;
   background: none; border: none; color: var(--fg); font-size: 13px; font-family: inherit; cursor: pointer;

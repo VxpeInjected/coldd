@@ -21,6 +21,7 @@ import { priceRobuxItems } from "../_shared/roblox.ts";
 import { leasePassForOrder } from "../_shared/roblox_pool.ts";
 import { resolveCampaignCode } from "../_shared/campaign.ts";
 import { priceItems, resolveCoupon } from "../_shared/coupon.ts";
+import { isSiteInMaintenance } from "../_shared/maintenance.ts";
 
 const ALLOWED_ORIGIN = "https://coldd.dev";
 
@@ -55,6 +56,13 @@ Deno.serve(async (req: Request) => {
     if (userErr || !userData?.user) return json({ ok: false, error: "Please sign in to pay with Robux." }, 401);
 
     const admin = createClient(supabaseUrl, serviceKey);
+
+    // See create-checkout-session's identical check for why this exists -
+    // the maintenance overlay is a client-side visual gate only.
+    if (await isSiteInMaintenance(admin)) {
+      const { data: profile } = await admin.from("profiles").select("is_admin").eq("id", userData.user.id).maybeSingle();
+      if (!profile?.is_admin) return json({ ok: false, error: "coldd is temporarily down for maintenance. Please check back shortly." }, 503);
+    }
 
     const { data: robloxAcct } = await admin
       .from("roblox_accounts")

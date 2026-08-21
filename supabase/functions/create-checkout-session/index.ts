@@ -34,6 +34,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import Stripe from "https://esm.sh/stripe@17?target=deno";
 import { priceItems, resolveCoupon } from "../_shared/coupon.ts";
 import { resolveCampaignCode } from "../_shared/campaign.ts";
+import { isSiteInMaintenance } from "../_shared/maintenance.ts";
 
 const ALLOWED_ORIGIN = "https://coldd.dev";
 
@@ -76,6 +77,21 @@ Deno.serve(async (req: Request) => {
 
     const body = await req.json().catch(() => ({}));
     const admin = createClient(supabaseUrl, serviceKey);
+
+    // The maintenance overlay (site-gate.js) is a client-side visual gate
+    // only - removing it in DevTools, or just calling this function
+    // directly with no browser involved at all, always sailed straight
+    // through to a real checkout regardless of site mode. This is the
+    // actual enforcement point. Staff stay exempt, same as the overlay's
+    // own admin-bypass behavior (site-gate.js's showWhitelistBanner path).
+    if (await isSiteInMaintenance(admin)) {
+      let isStaff = false;
+      if (user) {
+        const { data: profile } = await admin.from("profiles").select("is_admin").eq("id", user.id).maybeSingle();
+        isStaff = !!profile?.is_admin;
+      }
+      if (!isStaff) return json({ ok: false, error: "coldd is temporarily down for maintenance. Please check back shortly." }, 503);
+    }
 
     const priced = await priceItems(admin, Array.isArray(body.items) ? body.items : []);
     if (!priced.ok) return json({ ok: false, error: priced.error }, 400);

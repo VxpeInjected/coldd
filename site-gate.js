@@ -32,6 +32,23 @@
   var PREVIEW_KEY = 'coldd_maint_preview';
   var WHITELIST_DISMISS_KEY = 'coldd_whitelist_banner_dismissed';
 
+  // Both blocking overlays below append to document.documentElement (a
+  // sibling of <body>, not a child of it), specifically so this can hide
+  // the real page - every product, every button, everything - without
+  // touching the overlay itself. Before this, the overlay was the ONLY
+  // thing standing between a visitor and a fully working site: deleting
+  // that one <div> in DevTools (or just never loading a browser at all -
+  // calling an Edge Function directly skips this file completely) left a
+  // completely normal, completely functional storefront underneath. This
+  // doesn't make that impossible - nothing client-side on a static site
+  // ever can - but it's no longer a single element away, and the checkout
+  // functions themselves now independently refuse to run during
+  // maintenance regardless of what this script did or didn't manage to
+  // hide (see _shared/maintenance.ts) - that's the part that actually
+  // matters; this is just not handing out the storefront for free too.
+  function lockBody() { document.body.style.setProperty('display', 'none', 'important'); }
+  function unlockBody() { document.body.style.removeProperty('display'); }
+
   // adminPreview: true when a whitelisted staff member has opted to see
   // the public-facing screen rather than being auto-bypassed. Swaps the
   // lock/sign-in control for an "Exit preview" pill that hands them
@@ -61,6 +78,7 @@
           '</button>');
     document.documentElement.appendChild(overlay);
     document.body.style.overflow = 'hidden';
+    lockBody();
 
     if (endsAt) {
       var cdEl = document.getElementById('siteMaintCountdown');
@@ -77,6 +95,7 @@
         try { sessionStorage.removeItem(PREVIEW_KEY); } catch (e) {}
         overlay.remove();
         document.body.style.overflow = '';
+        unlockBody();
         showWhitelistBanner(status);
       });
       return;
@@ -178,6 +197,7 @@
         '</div>';
         document.documentElement.appendChild(overlay);
         document.body.style.overflow = 'hidden';
+        lockBody();
       });
     }).catch(function () {});
   }).catch(function () {});

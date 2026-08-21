@@ -32,7 +32,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
 
-  <link rel="stylesheet" href="/styles.css?v=20260820s" />
+  <link rel="stylesheet" href="/styles.css?v=20260820t" />
 </head>
 <body class="dash-body">
   <div class="backdrop"></div>
@@ -158,7 +158,7 @@
         </div>
         <div class="dash-card glass" id="dashRecommendedCard" hidden>
           <div class="dash-card-head"><h2>Recommended for you</h2></div>
-          <div class="dash-rows" id="dashRecommended"></div>
+          <div class="product-grid dash-rec-grid" id="dashRecommended"></div>
         </div>
       </section>
       <section class="dash-panel" id="panel-purchases" hidden>
@@ -269,61 +269,75 @@
       </section>
       <section class="dash-panel" id="panel-account" hidden>
         <div class="dash-head"><h1>Account settings</h1><p>Update your details, manage security, or close your account.</p></div>
-        <div class="dash-card glass"><div class="dash-card-head"><h2>Appearance</h2></div>
-          <div class="ntf-row"><div class="ntf-text"><div class="ntf-label">Light mode</div><div class="ntf-sub">coldd is dark by default - turn this on for a light theme instead. Only affects your own browser.</div></div><label class="switch"><input type="checkbox" id="themeLightToggle" /><span class="track"></span></label></div>
+        <div class="pd-tabs ac-tabs" id="acTabs" role="tablist">
+          <button class="pd-tab active" type="button" data-actab="profile">Profile</button>
+          <button class="pd-tab" type="button" data-actab="security">Security</button>
+          <button class="pd-tab ac-tab-danger" type="button" data-actab="danger">Danger zone</button>
         </div>
-        <div class="dash-card glass"><div class="dash-card-head"><h2>Profile picture</h2></div>
-          <div class="ac-avatar-row">
-            <span class="dash-av dash-av-lg" id="acAvatarPreview"></span>
-            <div class="ac-avatar-actions">
-              <button class="btn btn-tinted" id="acAvatarBtn" type="button">Change picture</button>
-              <button class="btn btn-ghost" id="acAvatarRemove" type="button">Remove</button>
-              <input type="file" id="acAvatarInput" accept="image/jpeg,image/png,image/webp,image/gif" hidden />
-              <p class="auth-hint">JPG, PNG, WEBP, or GIF. Square images look best.</p>
-              <div class="auth-msg" id="acAvatarMsg"></div>
+
+        <div class="ac-tabpanel" data-actabpanel="profile">
+          <div class="dash-card glass"><div class="dash-card-head"><h2>Profile picture</h2></div>
+            <div class="ac-avatar-row">
+              <span class="dash-av dash-av-lg" id="acAvatarPreview"></span>
+              <div class="ac-avatar-actions">
+                <button class="btn btn-tinted" id="acAvatarBtn" type="button">Change picture</button>
+                <button class="btn btn-ghost" id="acAvatarRemove" type="button">Remove</button>
+                <input type="file" id="acAvatarInput" accept="image/jpeg,image/png,image/webp,image/gif" hidden />
+                <p class="auth-hint">JPG, PNG, WEBP, or GIF. Square images look best.</p>
+                <div class="auth-msg" id="acAvatarMsg"></div>
+              </div>
             </div>
           </div>
-        </div>
-        <div class="dash-card glass"><div class="dash-card-head"><h2>Change account details</h2></div>
-          <form class="auth-form" id="acctForm" novalidate style="max-width:420px;">
-            <div class="auth-field" data-for="name"><label for="ac-name">Display name</label><input id="ac-name" name="name" type="text" value="" /><span class="auth-err"></span></div>
-            <div class="auth-field" data-for="email"><label for="ac-email">Email</label><input id="ac-email" name="email" type="email" value="" readonly />
-              <p class="auth-hint">Verify your identity below to edit this information.</p><span class="auth-err"></span></div>
-            <button class="btn btn-primary auth-submit" type="submit" style="width:auto;align-self:flex-start;"><span class="btn-label">Save changes</span><span class="btn-spinner" hidden></span></button>
-            <div class="auth-msg"></div>
-          </form>
-        </div>
-        <div id="secUnlocked">
-          <div class="dash-card glass">
-            <div class="dash-card-head"><h2>Email</h2></div>
-            <form class="auth-form" id="secEmailForm" novalidate style="max-width:420px;">
-              <div class="auth-field" data-for="email"><label for="sec-email">Email</label><input id="sec-email" name="email" type="email" /><span class="auth-err"></span></div>
-              <button class="btn btn-primary" type="submit" style="width:auto;align-self:flex-start;"><span class="btn-label">Save email</span><span class="btn-spinner" hidden></span></button>
+          <div class="dash-card glass"><div class="dash-card-head"><h2>Change account details</h2></div>
+            <form class="auth-form" id="acctForm" novalidate style="max-width:420px;">
+              <div class="auth-field" data-for="name"><label for="ac-name">Display name</label><input id="ac-name" name="name" type="text" value="" /><span class="auth-err"></span></div>
+              <div class="auth-field" data-for="email"><label for="ac-email">Email</label><input id="ac-email" name="email" type="email" value="" readonly />
+                <p class="auth-hint">Verify your identity below to edit this information.</p><span class="auth-err"></span></div>
+              <button class="btn btn-primary auth-submit" type="submit" style="width:auto;align-self:flex-start;"><span class="btn-label">Save changes</span><span class="btn-spinner" hidden></span></button>
               <div class="auth-msg"></div>
             </form>
           </div>
-          <div class="dash-card glass">
-            <div class="dash-card-head"><h2>Password</h2></div>
-            <p class="auth-hint" style="margin:0 0 12px;">Change your account password.</p>
-            <button class="btn btn-ghost" id="openPwModalBtn" type="button">Change password</button>
-          </div>
-          <div class="dash-card glass">
-            <div class="dash-card-head"><h2>Linked accounts</h2></div>
-            <div class="ntf-row"><div class="ntf-text"><div class="ntf-label">Email &amp; password</div><div class="ntf-sub" id="linkedEmailStatus">—</div></div></div>
-            <div class="ntf-row"><div class="ntf-text"><div class="ntf-label">Discord</div><div class="ntf-sub" id="linkedDiscordStatus">—</div></div><button class="btn btn-ghost" id="linkedDiscordBtn" type="button"></button></div>
-            <div class="ntf-row"><div class="ntf-text"><div class="ntf-label">Roblox</div><div class="ntf-sub" id="linkedRobloxStatus">—</div></div><button class="btn btn-ghost" id="linkedRobloxBtn" type="button"></button></div>
-            <div class="ntf-row"><div class="ntf-text"><div class="ntf-label">Google</div><div class="ntf-sub" id="linkedGoogleStatus">—</div></div><button class="btn btn-ghost" id="linkedGoogleBtn" type="button"></button></div>
-            <p class="auth-err" id="linkedErr"></p>
+          <div class="dash-card glass"><div class="dash-card-head"><h2>Appearance</h2></div>
+            <div class="ntf-row"><div class="ntf-text"><div class="ntf-label">Light mode</div><div class="ntf-sub">coldd is dark by default - turn this on for a light theme instead. Only affects your own browser.</div></div><label class="switch"><input type="checkbox" id="themeLightToggle" /><span class="track"></span></label></div>
           </div>
         </div>
-        <div class="dash-card glass danger"><div class="dash-card-head"><h2>Delete account</h2></div>
-          <p class="danger-text">This permanently removes your account, licences, and download access. This can't be undone.</p>
-          <button class="btn danger-btn" id="delAcct" type="button">Delete my account</button>
-          <div class="danger-confirm" id="delConfirm" hidden>
-            <p>Are you sure? Type the code below to confirm - it can't be copy-pasted, you have to type it out.</p>
-            <p class="danger-code" id="delCode" oncontextmenu="return false"></p>
-            <div class="danger-row"><input id="delInput" type="text" placeholder="Type the code" aria-label="Confirmation code to delete your account" autocomplete="off" /><button class="btn danger-btn" id="delFinal" type="button"><span class="btn-label">Confirm delete</span><span class="btn-spinner" hidden></span></button><button class="btn btn-ghost" id="delCancel" type="button">Cancel</button></div>
-            <p class="auth-err" id="delErr"></p>
+
+        <div class="ac-tabpanel" data-actabpanel="security" hidden>
+          <div id="secUnlocked">
+            <div class="dash-card glass">
+              <div class="dash-card-head"><h2>Email</h2></div>
+              <form class="auth-form" id="secEmailForm" novalidate style="max-width:420px;">
+                <div class="auth-field" data-for="email"><label for="sec-email">Email</label><input id="sec-email" name="email" type="email" /><span class="auth-err"></span></div>
+                <button class="btn btn-primary" type="submit" style="width:auto;align-self:flex-start;"><span class="btn-label">Save email</span><span class="btn-spinner" hidden></span></button>
+                <div class="auth-msg"></div>
+              </form>
+            </div>
+            <div class="dash-card glass">
+              <div class="dash-card-head"><h2>Password</h2></div>
+              <p class="auth-hint" style="margin:0 0 12px;">Change your account password.</p>
+              <button class="btn btn-ghost" id="openPwModalBtn" type="button">Change password</button>
+            </div>
+            <div class="dash-card glass">
+              <div class="dash-card-head"><h2>Linked accounts</h2></div>
+              <div class="ntf-row"><div class="ntf-text"><div class="ntf-label">Email &amp; password</div><div class="ntf-sub" id="linkedEmailStatus">—</div></div></div>
+              <div class="ntf-row"><div class="ntf-text"><div class="ntf-label">Discord</div><div class="ntf-sub" id="linkedDiscordStatus">—</div></div><button class="btn btn-ghost" id="linkedDiscordBtn" type="button"></button></div>
+              <div class="ntf-row"><div class="ntf-text"><div class="ntf-label">Roblox</div><div class="ntf-sub" id="linkedRobloxStatus">—</div></div><button class="btn btn-ghost" id="linkedRobloxBtn" type="button"></button></div>
+              <div class="ntf-row"><div class="ntf-text"><div class="ntf-label">Google</div><div class="ntf-sub" id="linkedGoogleStatus">—</div></div><button class="btn btn-ghost" id="linkedGoogleBtn" type="button"></button></div>
+              <p class="auth-err" id="linkedErr"></p>
+            </div>
+          </div>
+        </div>
+
+        <div class="ac-tabpanel" data-actabpanel="danger" hidden>
+          <div class="dash-card glass danger"><div class="dash-card-head"><h2>Delete account</h2></div>
+            <p class="danger-text">This permanently removes your account, licences, and download access. This can't be undone.</p>
+            <button class="btn danger-btn" id="delAcct" type="button">Delete my account</button>
+            <div class="danger-confirm" id="delConfirm" hidden>
+              <p>Are you sure? Type the code below to confirm - it can't be copy-pasted, you have to type it out.</p>
+              <p class="danger-code" id="delCode" oncontextmenu="return false"></p>
+              <div class="danger-row"><input id="delInput" type="text" placeholder="Type the code" aria-label="Confirmation code to delete your account" autocomplete="off" /><button class="btn danger-btn" id="delFinal" type="button"><span class="btn-label">Confirm delete</span><span class="btn-spinner" hidden></span></button><button class="btn btn-ghost" id="delCancel" type="button">Cancel</button></div>
+              <p class="auth-err" id="delErr"></p>
+            </div>
           </div>
         </div>
       </section>
@@ -532,7 +546,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.2/dist/umd/supabase.min.js" integrity="sha384-B2duOBIryCXbX4eDE4BdJwtNkQMRQde3o6IsjfPW28E6aH1CYE96hHeZRG3zY56O" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script src="/supabase-init.js?v=20260820f"></script>
   <script src="/site-gate.js?v=20260820b"></script>
-  <script src="/catalog.js?v=20260820b" data-then="/app.js?v=20260820s"></script>
+  <script src="/catalog.js?v=20260820b" data-then="/app.js?v=20260820t"></script>
   <script>
     // Cart badge/total sync from localStorage, ahead of app.js. The fab
     // markup above ships hardcoded at "0"/"$0", and the cart module that

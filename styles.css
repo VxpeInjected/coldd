@@ -1418,6 +1418,17 @@ body.no-scroll { overflow: hidden; }
 .pd-tab.active { color: var(--fg); }
 .pd-tab.active::after { content: ""; position: absolute; left: 10px; right: 10px; bottom: -1px; height: 2px; background: var(--accent); border-radius: 4px; }
 .pd-tab-n { color: var(--fg-3); font-weight: 600; }
+/* Account settings reuses the same underline tab bar as the product
+   page instead of inventing a second component - Profile/Security are
+   neutral, but Danger zone gets a permanent red tint (not just on
+   .active like the other two) so it reads as a different kind of tab
+   even before it's selected. */
+.ac-tabs { margin-top: 22px; }
+.ac-tab-danger { color: var(--accent); }
+.ac-tab-danger:hover { color: var(--accent); opacity: 0.85; }
+.ac-tab-danger.active::after { background: var(--accent); }
+.ac-tabpanel { margin-top: 20px; }
+.ac-tabpanel[hidden] { display: none; }
 /* scroll-margin-top keeps the sticky header from covering the panel when
    "Review" deep-links here (app.js goToReviews). Doing it in CSS means the
    scroll code does not have to measure the header. */

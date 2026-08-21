@@ -2737,6 +2737,21 @@
       // with no purchase history yet, since there's nothing real to base it
       // on and an empty or random-looking "recommended" card is worse than
       // no card.
+      // Same .product card the shop grid and product page's "Related
+      // products" use (thumb/name/price/summary/Buy now/Add to cart) -
+      // was a compact vertical list of rows, unlike every other
+      // "recommended" row on the site. Riding the .product markup means
+      // it also picks up the sitewide click-delegation handler (buy/add/
+      // open) for free, no extra wiring needed here.
+      function dashRecCard(p) {
+        return '<article class="product" data-id="' + esc(p.id) + '" data-resell="' + (p.resell ? 'yes' : 'no') + '" data-catlabel="' + esc(p.cat) + '" data-price="' + p.priceNum + '">' +
+          '<div class="p-thumb" style="background-image:url(\'' + p.image + '\')"></div>' +
+          '<div class="p-body"><h3 class="p-name">' + esc(p.title) + '</h3>' +
+          '<div class="p-price-row"><span class="p-price" data-usd="' + p.priceNum + '">' + wishPriceText(p) + '</span></div>' +
+          '<p class="p-sum">' + esc(p.desc || '') + '</p>' +
+          '<div class="p-actions"><button class="p-buy" type="button">Buy now</button>' +
+          '<button class="p-add" type="button">Add to cart</button></div></div></article>';
+      }
       function renderRecommended() {
         var card = document.getElementById('dashRecommendedCard');
         var el = document.getElementById('dashRecommended');
@@ -2750,11 +2765,7 @@
             var cat = window.__CATALOG || [];
             var items = slugs.map(function (s) { return cat.filter(function (p) { return p.id === s; })[0]; }).filter(Boolean);
             if (!items.length) return;
-            el.innerHTML = items.map(function (p) {
-              return '<div class="dash-row"><span class="dr-thumb" style="background-image:url(\'' + p.image + '\')"></span>' +
-                '<div class="dr-main"><div class="dr-title">' + esc(p.title) + '</div><div class="dr-sub"><span class="p-price" data-usd="' + p.priceNum + '">' + wishPriceText(p) + '</span></div></div>' +
-                '<div class="dr-actions"><a class="btn btn-ghost dr-btn" href="/product?id=' + encodeURIComponent(p.id) + '">' + window.msym('visibility') + 'View</a></div></div>';
-            }).join('');
+            el.innerHTML = items.map(dashRecCard).join('');
             card.hidden = false;
           });
         }).catch(function () {});
@@ -3432,6 +3443,16 @@
         });
         if (typeof renderLinkedAccounts === 'function') renderLinkedAccounts();
       }
+
+      var acTabs = document.getElementById('acTabs');
+      if (acTabs) acTabs.addEventListener('click', function (e) {
+        var btn = e.target.closest('[data-actab]'); if (!btn) return;
+        var name = btn.getAttribute('data-actab');
+        acTabs.querySelectorAll('.pd-tab').forEach(function (b) { b.classList.toggle('active', b === btn); });
+        document.querySelectorAll('.ac-tabpanel').forEach(function (p) {
+          p.hidden = p.getAttribute('data-actabpanel') !== name;
+        });
+      });
 
       var secEmailForm = document.getElementById('secEmailForm');
       if (secEmailForm) secEmailForm.addEventListener('submit', function (e) {

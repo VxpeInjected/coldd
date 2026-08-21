@@ -4926,11 +4926,13 @@
       // that intercepts the actual "Place order" click - a row buried in
       // the summary column was easy to never notice; a popup right before
       // the buyer commits is the moment they're already thinking "am I
-      // done adding things." Only ever interrupts once per eligible item:
-      // resellPopupSeen tracks which slugs have already been offered
-      // (upgraded OR skipped) so retrying a failed validation, or a second
-      // click after Continue, never re-shows it for the same item.
+      // done adding things." Only ever interrupts once per product, EVER -
+      // not just for this checkout attempt - persisted to localStorage so
+      // it doesn't come back on a later visit either (upgraded or
+      // skipped, either way they've already made the call once).
+      var RESELL_POPUP_SEEN_KEY = 'coldd_resell_popup_seen';
       var resellPopupSeen = {};
+      try { resellPopupSeen = JSON.parse(localStorage.getItem(RESELL_POPUP_SEEN_KEY) || '{}') || {}; } catch (e) {}
       function resellCandidates() {
         if (typeof payMethod !== 'undefined' && payMethod === 'robux') return [];
         var cat = window.__CATALOG || [];
@@ -4954,11 +4956,12 @@
             var p = cat.filter(function (x) { return x.id === i.id; })[0];
             if (!p) return '';
             var resellPrice = p.resellPrice != null ? p.resellPrice : Math.round(p.priceNum * 3);
-            return '<div class="ty-upsell-card' + (selected[i.id] ? ' checked' : '') + '" data-slug="' + esc(i.id) + '">' +
-              '<span class="ty-upsell-thumb" style="background-image:url(\'' + i.image + '\')"></span>' +
-              '<div class="ty-upsell-body"><div class="ty-upsell-name">' + esc(i.title) + '</div>' +
-              '<div class="ty-upsell-price">+' + resellMoney(resellPrice - i.price) + '</div>' +
-              '<label class="ty-upsell-check"><input type="checkbox" data-slug="' + esc(i.id) + '"' + (selected[i.id] ? ' checked' : '') + ' /> Add resell rights</label>' +
+            return '<div class="resell-popup-card' + (selected[i.id] ? ' checked' : '') + '" data-slug="' + esc(i.id) + '">' +
+              '<span class="resell-popup-thumb" style="background-image:url(\'' + i.image + '\')"></span>' +
+              '<div class="resell-popup-body">' +
+              '<div class="resell-popup-name">' + esc(i.title) + '</div>' +
+              '<div class="resell-popup-price">+' + resellMoney(resellPrice - i.price) + '</div>' +
+              '<label class="ty-upsell-check"><input type="checkbox" data-slug="' + esc(i.id) + '"' + (selected[i.id] ? ' checked' : '') + ' /> Add resell rights to this order</label>' +
               '</div></div>';
           }).join('');
         }
@@ -4968,7 +4971,11 @@
           selected[cb.getAttribute('data-slug')] = cb.checked;
           paint();
         };
-        function close() { overlay.hidden = true; candidates.forEach(function (i) { resellPopupSeen[i.id] = true; }); }
+        function close() {
+          overlay.hidden = true;
+          candidates.forEach(function (i) { resellPopupSeen[i.id] = true; });
+          try { localStorage.setItem(RESELL_POPUP_SEEN_KEY, JSON.stringify(resellPopupSeen)); } catch (e) {}
+        }
         overlay.hidden = false;
         document.getElementById('coResellPopupClose').onclick = function () { close(); onDone(); };
         document.getElementById('coResellPopupSkip').onclick = function () { close(); onDone(); };
@@ -4988,6 +4995,47 @@
         };
       }
 
+      // Runs the actual "can this order be placed" checks and, on the
+      // first thing that's missing, brings it into view instead of just
+      // printing an error above a button that might be a full scroll away
+      // from the field the error is even about.
+      function validateBeforeOrder() {
+        var tos = document.getElementById('coTos'), resellWrap = document.getElementById('coResellWrap'), resell = document.getElementById('coResell');
+        var ok = true, agreeMsgs = [], scrollEl = null;
+        if (tos && !tos.checked) { ok = false; agreeMsgs.push('accept the Terms of Service'); scrollEl = scrollEl || tos.closest('.co-check'); }
+        if (resellWrap && !resellWrap.hidden && resell && !resell.checked) { ok = false; agreeMsgs.push('accept the Resell Licence Terms'); scrollEl = scrollEl || resellWrap; }
+        if (agreeErr) agreeErr.textContent = agreeMsgs.length ? 'Please ' + agreeMsgs.join(' and ') + '.' : '';
+        if (!ok) {
+          if (msg) { msg.className = 'co-msg err show'; msg.textContent = 'Please fix the highlighted fields above.'; }
+          if (scrollEl && scrollEl.scrollIntoView) scrollEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          return false;
+        }
+        // Gift toggle on but no verified recipient - never place an order
+        // gifted to nobody in particular.
+        if (giftToggle && giftToggle.checked && !giftRecipientUserId) {
+          if (msg) { msg.className = 'co-msg err show'; msg.textContent = 'Please verify a gift recipient above, or turn off "This is a gift".'; }
+          var giftBlock = document.getElementById('coGiftBlock') || giftToggle.closest('.co-check');
+          if (giftBlock && giftBlock.scrollIntoView) giftBlock.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          return false;
+        }
+        return true;
+      }
+
+      // Re-entrant: after the popup resolves, this runs again from the
+      // top rather than jumping straight to proceedToOrder - adding
+      // resell rights makes the resell-terms checkbox appear, and that
+      // checkbox has to actually be re-checked, not skipped just because
+      // it didn't exist the first time validateBeforeOrder ran. Since the
+      // popup marks every offered item "seen" before calling back,
+      // resellCandidates() is empty on this second pass, so it falls
+      // straight through to proceedToOrder once validation passes.
+      function tryPlaceOrder() {
+        if (!validateBeforeOrder()) return;
+        var candidates = resellCandidates();
+        if (candidates.length) { openResellPopup(candidates, tryPlaceOrder); return; }
+        proceedToOrder();
+      }
+
       if (placeBtn) placeBtn.addEventListener('click', function () {
         if (!cart.length) return;
         // Card, PayPal and Robux all place an order from this button; they
@@ -5001,24 +5049,7 @@
         // Robux is the one method that requires a signed-in, Roblox-linked
         // account (startRobuxOrder checks that), since Roblox has no guest
         // concept to buy a gamepass under.
-
-        var tos = document.getElementById('coTos'), resellWrap = document.getElementById('coResellWrap'), resell = document.getElementById('coResell');
-        var ok = true, agreeMsgs = [];
-        if (tos && !tos.checked) { ok = false; agreeMsgs.push('accept the Terms of Service'); }
-        if (resellWrap && !resellWrap.hidden && resell && !resell.checked) { ok = false; agreeMsgs.push('accept the Resell Licence Terms'); }
-        if (agreeErr) agreeErr.textContent = agreeMsgs.length ? 'Please ' + agreeMsgs.join(' and ') + '.' : '';
-        if (!ok) { if (msg) { msg.className = 'co-msg err show'; msg.textContent = 'Please fix the highlighted fields above.'; } return; }
-
-        // Gift toggle on but no verified recipient - never place an order
-        // gifted to nobody in particular.
-        if (giftToggle && giftToggle.checked && !giftRecipientUserId) {
-          if (msg) { msg.className = 'co-msg err show'; msg.textContent = 'Please verify a gift recipient above, or turn off "This is a gift".'; }
-          return;
-        }
-
-        var candidates = resellCandidates();
-        if (candidates.length) { openResellPopup(candidates, proceedToOrder); return; }
-        proceedToOrder();
+        tryPlaceOrder();
       });
 
       function proceedToOrder() {

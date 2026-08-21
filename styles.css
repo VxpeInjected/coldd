@@ -173,7 +173,8 @@
     html[data-theme="light"] .fc-sub.active,
     html[data-theme="light"] .ref-method-opt.active,
     html[data-theme="light"] .adm-dd-opt.active,
-    html[data-theme="light"] .bt-opt.active {
+    html[data-theme="light"] .bt-opt.active,
+    html[data-theme="light"] .co-pay-btn.active {
       color: var(--fg);
       background: rgba(0,0,0,0.06);
     }
@@ -186,6 +187,38 @@
     html[data-theme="light"] .plat-opt.active,
     html[data-theme="light"] .co-sg-add {
       color: var(--accent-deep);
+    }
+
+    /* .cta (homepage "Join the coldd community" band) is a photo section
+       with a hardcoded dark scrim, same atmosphere as .backdrop/.scrim -
+       its h2 inherits var(--fg), which is correct against the dark photo
+       in dark mode but flips to near-black in light mode while the photo
+       stays dark, making the heading unreadable. Same fix as .backdrop:
+       drop the photo in light mode and show a flat, normally-themed panel
+       instead. */
+    html[data-theme="light"] .cta {
+      background: var(--bg-3);
+    }
+    html[data-theme="light"] .cta::after {
+      display: none;
+    }
+    html[data-theme="light"] .cta h2 {
+      text-shadow: none;
+    }
+    html[data-theme="light"] .cta p {
+      color: var(--fg-2);
+      text-shadow: none;
+    }
+
+    /* .resell-logo is a deliberately dark chip (see its own comment) built
+       to host partner logo files that are light-colored artwork on
+       transparent backgrounds. var(--bg-3) themes it to near-white in
+       light mode same as every other surface, but these specific logos
+       were never designed against a light background and disappear.
+       Keep the chip dark in both themes instead of theming it. */
+    html[data-theme="light"] .resell-logo {
+      background: #1a1b21;
+      border-color: rgba(255,255,255,0.08);
     }
 
     * { box-sizing: border-box; }
@@ -1306,8 +1339,8 @@ body.no-scroll { overflow: hidden; }
 
 .cart-drawer { position: fixed; top: 0; right: 0; z-index: 301; height: 100%; width: 394px; max-width: 92vw;
   display: flex; flex-direction: column; overflow: hidden;
-  background: linear-gradient(180deg, rgba(27,28,35,0.99), rgba(15,16,21,0.99));
-  border-left: 1px solid rgba(255,255,255,0.10);
+  background: var(--bg-2);
+  border-left: 1px solid var(--hairline);
   box-shadow: -30px 0 80px -30px var(--ink-85);
   transform: translateX(101%); transition: transform .38s var(--ease); }
 .cart-drawer::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 2px; pointer-events: none;
@@ -2408,11 +2441,11 @@ html.js .ref-method-btn:focus-visible { outline: 2px solid var(--accent); outlin
 .co-secure { color: var(--price); font-weight: 600; }
 .co-user-row { display: flex; align-items: center; gap: 12px; }
 .co-pay-panel .auth-field { margin-bottom: 14px; }
-/* Both buttons sat with zero gap against the hint paragraph above them -
+/* These buttons sat with zero gap against the hint paragraph above them -
    .co-hint's own margin-top only pushes itself down from what's above it,
    it doesn't add space below, so a bare <button> right after touched the
    text directly. */
-#coRobuxLinkBtn { margin-top: 14px; }
+#coRobuxLinkBtn, #coSigninBtn { margin-top: 14px; }
 .co-robux-actions { display: flex; align-items: center; gap: 12px; margin-top: 14px; flex-wrap: wrap; }
 .co-robux-actions .btn { flex: 1 1 auto; justify-content: center; }
 .co-robux-actions .btn[aria-disabled="true"] { pointer-events: none; opacity: 0.5; }
@@ -2451,7 +2484,7 @@ html.js .ref-method-btn:focus-visible { outline: 2px solid var(--accent); outlin
    off-scale radius, which is exactly the sixth-step drift DESIGN.md forbids -
    caught by the detector rather than by eye. */
 .co-pay-btn { display: grid; grid-template-columns: 28px 1fr auto; align-items: center; gap: 13px; padding: 14px 16px; border-radius: var(--r-sm);
-  background: var(--ink-25); border: 1px solid var(--hairline); color: var(--fg-2); font-family: inherit;
+  background: var(--bg-3); border: 1px solid var(--hairline); color: var(--fg-2); font-family: inherit;
   font-size: 15px; font-weight: 700; cursor: pointer; transition: border-color .18s var(--ease), background .18s var(--ease), color .18s var(--ease); }
 .co-pay-btn svg { display: block; }
 @media (hover: hover) and (pointer: fine) {
@@ -2505,20 +2538,35 @@ html.js .ref-method-btn:focus-visible { outline: 2px solid var(--accent); outlin
 /* Automatic spend-more tier progress - no code, the price just drops once
    the cart clears a threshold. Green/price-colored since it's a live
    savings signal, same idiom as .p-price elsewhere. */
-.co-tier { padding: 14px 16px; margin: 14px 0 0; border-radius: var(--r-ctl); background: rgba(52,224,138,0.08); border: 1px solid rgba(52,224,138,0.22); }
+.co-tier { padding: 14px 16px; margin: 14px 0 0; border-radius: var(--r-ctl); background: rgba(52,224,138,0.08); border: 1px solid rgba(52,224,138,0.22);
+  transition: background-color .3s var(--ease), border-color .3s var(--ease); }
 .co-tier-text { font-size: 13px; font-weight: 600; color: var(--price); }
 .co-tier-track { position: relative; margin-top: 14px; padding-bottom: 30px; }
 .co-tier-bar { height: 5px; border-radius: 4px; background: rgba(255,255,255,0.08); overflow: hidden; }
-.co-tier-fill { height: 100%; border-radius: 4px; background: var(--price); transition: width .25s var(--ease); }
+.co-tier-fill { height: 100%; border-radius: 4px; background: var(--price); transition: width .5s var(--ease); }
 .co-tier.co-tier-unlocked { background: rgba(52,224,138,0.14); }
 .co-tier-marker { position: absolute; top: 0; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; }
 .co-tier-dot { width: 12px; height: 12px; margin-top: -3.5px; border-radius: 50%; background: var(--bg-2);
-  border: 2px solid var(--hairline-strong); display: flex; align-items: center; justify-content: center; color: #fff; }
-.co-tier-marker.done .co-tier-dot { background: var(--price); border-color: var(--price); }
+  border: 2px solid var(--hairline-strong); display: flex; align-items: center; justify-content: center; color: #fff;
+  transition: background-color .3s var(--ease), border-color .3s var(--ease), transform .3s var(--ease-out); }
+.co-tier-marker.done .co-tier-dot { background: var(--price); border-color: var(--price); animation: coTierDotPop .4s var(--ease-out); }
 .co-tier-marker.next .co-tier-dot { border-color: var(--price); }
-.co-tier-marker-label { margin-top: 6px; font-size: 11px; font-weight: 600; line-height: 1.35; text-align: center; color: var(--fg-3); white-space: nowrap; }
+/* The one authored motion moment on this component: a check that draws
+   itself in rather than just appearing, plus the dot it sits in
+   popping to size - both play once per render, which in practice means
+   once per real tier change, since nothing else re-renders this box. */
+.co-tier-dot svg path { stroke-dasharray: 24; stroke-dashoffset: 24; animation: coTierCheckDraw .3s var(--ease-out) .15s forwards; }
+.co-tier-marker-label { margin-top: 6px; font-size: 11px; font-weight: 600; line-height: 1.35; text-align: center; color: var(--fg-3); white-space: nowrap;
+  transition: color .3s var(--ease); }
 .co-tier-marker.done .co-tier-marker-label { color: var(--price); font-weight: 700; }
 .co-tier-marker.next .co-tier-marker-label { color: var(--fg); font-weight: 700; }
+@keyframes coTierDotPop { 0% { transform: scale(0.55); } 65% { transform: scale(1.2); } 100% { transform: scale(1); } }
+@keyframes coTierCheckDraw { to { stroke-dashoffset: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .co-tier-dot, .co-tier-fill, .co-tier-marker-label, .co-tier { transition: none; }
+  .co-tier-marker.done .co-tier-dot { animation: none; }
+  .co-tier-dot svg path { animation: none; stroke-dashoffset: 0; }
+}
 /* Same ladder, shown in the cart drawer too - reuses every .co-tier*
    rule above (the element carries both classes) and only adds the
    drawer's own horizontal margin. */
@@ -2553,16 +2601,21 @@ html.js .ref-method-btn:focus-visible { outline: 2px solid var(--accent); outlin
 /* Resell-rights popup: intercepts "Place order" instead of a passive
    sidebar row, so the offer lands right when the buyer is already
    committing. Reuses the mkt-popup-modal shell (close button, left-
-   aligned title/sub) and the ty-upsell-card grid the post-purchase
-   upsell already established, rather than inventing a third card style. */
+   aligned title/sub, the fine-print divider for "Terms apply"), but
+   its own bigger row-card so the actual product is visible, not just
+   named in a link. */
 .co-resell-popup-modal { width: 480px; }
-.co-resell-popup-modal .ty-upsell-grid { margin-top: 20px; }
-/* This card's price line is an added cost (resell rights on top of the
-   licence already in the cart), not a discount - .ty-upsell-price is
-   Price Green everywhere else because it always signals savings there,
-   so it's overridden here rather than implying this makes the order
-   cheaper. */
-.co-resell-popup-modal .ty-upsell-price { color: var(--fg); font-weight: 700; }
+.resell-popup-grid { display: flex; flex-direction: column; gap: 10px; margin-top: 20px; }
+.resell-popup-card { display: flex; align-items: center; gap: 12px; padding: 12px; background: var(--bg-3); border: 1px solid var(--hairline); border-radius: var(--r-sm); }
+/* Radio-style selection (the border IS the indicator here, same as
+   .pm-lic/.co-pay-btn) - ember, not green, since checking this box is
+   an added cost, not a discount. */
+.resell-popup-card.checked { border-color: rgba(255,77,68,0.45); }
+.resell-popup-thumb { flex: 0 0 64px; width: 64px; height: 64px; border-radius: var(--r-ctl); background: #0f1014 center / cover no-repeat; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08); }
+.resell-popup-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.resell-popup-name { font-size: 14px; font-weight: 700; line-height: 1.3; }
+.resell-popup-price { font-size: 13px; font-weight: 700; color: var(--fg); }
+.mkt-popup-modal .mkt-popup-fine a { color: var(--accent); font-weight: 600; text-decoration: none; }
 .co-resell-popup-actions { display: flex; gap: 10px; margin-top: 22px; }
 .co-resell-popup-actions .btn { flex: 1; justify-content: center; }
 .co-empty a { color: var(--accent); text-decoration: none; }

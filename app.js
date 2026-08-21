@@ -3438,8 +3438,8 @@
          re-checks credentials anyway. */
       function loadSecurity() {
         currentUser(function (user) {
-          var emailInput = document.getElementById('sec-email');
-          if (emailInput && user) emailInput.value = user.email || '';
+          var curEl = document.getElementById('secEmailCurrent');
+          if (curEl) curEl.textContent = user ? ('Current email: ' + (user.email || '—')) : '';
         });
         if (typeof renderLinkedAccounts === 'function') renderLinkedAccounts();
       }
@@ -3454,19 +3454,72 @@
         });
       });
 
-      var secEmailForm = document.getElementById('secEmailForm');
-      if (secEmailForm) secEmailForm.addEventListener('submit', function (e) {
+      // Changing the email is now a two-step, code-gated flow: request a
+      // code (sent to the CURRENT email, proving whoever's here actually
+      // controls this account) and verify it before the real
+      // auth.updateUser() call ever fires - that call still triggers
+      // Supabase's own confirm-link to the NEW address on top of this, so
+      // an email change now needs proof of both ends, not just whichever
+      // browser happens to be signed in.
+      var secEmailStep1 = document.getElementById('secEmailStep1');
+      var secEmailStep2 = document.getElementById('secEmailStep2');
+      var pendingNewEmail = null;
+      if (secEmailStep1) secEmailStep1.addEventListener('submit', function (e) {
         e.preventDefault();
         var newEmail = document.getElementById('sec-email').value.trim();
-        var msgEl = secEmailForm.querySelector('.auth-msg');
-        var btn = secEmailForm.querySelector('button[type="submit"]');
+        var msgEl = secEmailStep1.querySelector('.auth-msg');
+        var btn = secEmailStep1.querySelector('button[type="submit"]');
+        if (!newEmail || !window.coldAuth) return;
         setBtnLoading(btn, true);
-        window.coldSupabase.auth.updateUser({ email: newEmail }).then(function (res) {
+        window.coldAuth.requestEmailOtp().then(function (res) {
           setBtnLoading(btn, false);
-          if (!msgEl) return;
-          msgEl.classList.add('show');
-          msgEl.textContent = res.error ? (res.error.message || 'Could not update email.') : 'Check your new email to confirm the change - it will not take effect until then.';
+          if (res.error) {
+            if (msgEl) { msgEl.classList.add('show'); msgEl.textContent = (res.data && res.data.error) || res.error.message || 'Could not send a code.'; }
+            return;
+          }
+          pendingNewEmail = newEmail;
+          secEmailStep1.hidden = true;
+          if (secEmailStep2) { secEmailStep2.hidden = false; secEmailStep2.querySelector('.auth-msg').classList.remove('show'); }
+        }).catch(function () {
+          setBtnLoading(btn, false);
+          if (msgEl) { msgEl.classList.add('show'); msgEl.textContent = 'Could not send a code.'; }
         });
+      });
+      if (secEmailStep2) secEmailStep2.addEventListener('submit', function (e) {
+        e.preventDefault();
+        var code = document.getElementById('sec-email-code').value.trim();
+        var msgEl = secEmailStep2.querySelector('.auth-msg');
+        var btn = secEmailStep2.querySelector('button[type="submit"]');
+        if (!code || !pendingNewEmail || !window.coldAuth) return;
+        setBtnLoading(btn, true);
+        window.coldAuth.verifyEmailOtp(code).then(function (res) {
+          if (res.error || !res.data || !res.data.ok) {
+            setBtnLoading(btn, false);
+            if (msgEl) { msgEl.classList.add('show'); msgEl.textContent = (res.data && res.data.error) || 'Incorrect or expired code.'; }
+            return;
+          }
+          window.coldSupabase.auth.updateUser({ email: pendingNewEmail }).then(function (ures) {
+            setBtnLoading(btn, false);
+            if (!msgEl) return;
+            msgEl.classList.add('show');
+            if (ures.error) { msgEl.textContent = ures.error.message || 'Could not update email.'; return; }
+            msgEl.textContent = 'Verified - check your new email to confirm the change. It will not take effect until then.';
+            pendingNewEmail = null;
+            secEmailStep2.reset();
+            secEmailStep2.hidden = true;
+            secEmailStep1.hidden = false;
+            secEmailStep1.reset();
+          });
+        }).catch(function () {
+          setBtnLoading(btn, false);
+          if (msgEl) { msgEl.classList.add('show'); msgEl.textContent = 'Something went wrong. Please try again.'; }
+        });
+      });
+      var secEmailCancel = document.getElementById('secEmailCancel');
+      if (secEmailCancel) secEmailCancel.addEventListener('click', function () {
+        pendingNewEmail = null;
+        if (secEmailStep2) secEmailStep2.hidden = true;
+        if (secEmailStep1) secEmailStep1.hidden = false;
       });
 
       var pwModalOverlay = document.getElementById('pwModalOverlay');

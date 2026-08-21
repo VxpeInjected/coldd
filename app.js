@@ -121,15 +121,15 @@
           '<div class="confirm-modal mkt-popup-modal">' +
           '<button class="mkt-popup-x" type="button" aria-label="Close"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M5 5l14 14M19 5 5 19"/></svg></button>' +
           '<h3 class="mkt-popup-title">First order? Take <span class="mkt-popup-pct">10% off</span>.</h3>' +
-          '<p class="mkt-popup-sub">Deals, drops, and product updates - drop your email and we\'ll send a one-time code right now.</p>' +
+          '<p class="mkt-popup-sub">New products and sale events first, plus a one-time code waiting in your inbox the second you sign up.</p>' +
           '<form class="mkt-popup-form" id="mktPopupForm">' +
           '<div class="mkt-popup-field">' +
           '<input type="email" id="mktPopupEmail" placeholder="you@example.com" aria-label="Email address" required />' +
-          '<button class="btn btn-primary" type="submit"><span class="btn-label">Get my code</span><span class="btn-spinner" hidden></span></button>' +
+          '<button class="btn btn-primary" type="submit"><span class="btn-label">Get my discount</span><span class="btn-spinner" hidden></span></button>' +
           '</div>' +
           '</form>' +
           '<p class="mkt-popup-msg" id="mktPopupMsg"></p>' +
-          '<p class="mkt-popup-fine">No spam, unsubscribe any time.</p>' +
+          '<p class="mkt-popup-fine">By continuing you agree to receive marketing emails from coldd. No spam, unsubscribe any time.</p>' +
           '</div>';
         document.body.appendChild(overlay);
 

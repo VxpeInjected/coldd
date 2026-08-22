@@ -1845,73 +1845,113 @@
       // alone covers the remaining gap to the next tier - turns "spend $12
       // more" into a specific, one-click thing to add instead of homework
       // the shopper has to go do themselves.
-      function cheapestGapCloser(remaining) {
+      function cheapestGapCloser(remaining, useRobux) {
         var cat = window.__CATALOG || [];
         var cartIds = {};
         cart.forEach(function (i) { cartIds[i.id.replace(/--resell$/, '').replace(/--bundle$/, '').replace(/--crosssell$/, '')] = true; });
-        var candidates = cat.filter(function (p) { return !cartIds[p.id] && p.priceNum >= remaining; });
-        candidates.sort(function (a, b) { return a.priceNum - b.priceNum; });
-        return candidates[0] || null;
+        // The gap itself, and every candidate's price, both have to be in
+        // whatever unit the ladder is actually comparing against right now
+        // (see renderTierProgress's useRobux) - a Robux gap searched
+        // against USD list prices would filter and sort against numbers
+        // from two different scales entirely.
+        function priceOf(p) {
+          if (!useRobux) return p.priceNum;
+          var rbx = catalogRobuxPrice(p.id);
+          return rbx != null ? rbx : Math.round(p.priceNum * ROBUX_PER_USD_FALLBACK);
+        }
+        var candidates = cat.filter(function (p) { return !cartIds[p.id] && priceOf(p) >= remaining; });
+        candidates.sort(function (a, b) { return priceOf(a) - priceOf(b); });
+        var pick = candidates[0] || null;
+        if (pick) pick = Object.assign({}, pick, { gapPrice: priceOf(pick) });
+        return pick;
+      }
+      // Same fallback shape create-robux-order's priceRobuxItems already
+      // uses server-side (a real per-product robux_price where one's set,
+      // Math.round(price * flat rate) otherwise) - robuxSubtotalRaw()
+      // returns null for the WHOLE cart the moment even one line lacks an
+      // explicit override, which left the tier preview (and the discount
+      // line) falling back to a USD-only view far more often than the
+      // server itself ever falls back to anything.
+      function robuxSubtotalWithFallback() {
+        var total = 0;
+        cart.forEach(function (i) {
+          if (i.licence === 'resell') return;
+          var rbx = catalogRobuxPrice(i.id);
+          if (rbx == null) rbx = Math.round(i.price * ROBUX_PER_USD_FALLBACK);
+          total += rbx * i.qty;
+        });
+        return total;
       }
       function renderTierProgress() {
         var box = document.getElementById('cdTierBanner');
         if (!box) return;
-        var sub = subtotal();
+        // Robux orders don't grant this discount off USD list value - a
+        // product's real admin-set robux_price often has no fixed ratio
+        // to its USD price, so evaluating against USD while a Robux
+        // shopper stares at their real, much smaller Robux total produced
+        // exactly the "10% unlocked, my order is 1R$" confusion this was
+        // built to prevent. Paying in Robux now evaluates (and the server
+        // now grants - see spendTierDiscountRobux) against the REAL Robux
+        // total against Robux-equivalent thresholds instead, so this
+        // preview can never promise a discount the order doesn't actually
+        // give, or vice versa.
+        var robuxMode = window.__currencyMode && window.__currencyMode() === 'robux';
+        var hasResell = cart.some(function (i) { return i.licence === 'resell'; });
+        var useRobux = robuxMode && !hasResell && cart.length > 0;
+        var rbxSub = useRobux ? robuxSubtotalWithFallback() : null;
+        var sub = useRobux ? rbxSub : subtotal();
         if (sub <= 0) { box.hidden = true; box.innerHTML = ''; return; }
+        var ascending = SPEND_TIERS.slice().sort(function (a, b) { return a.minSubtotal - b.minSubtotal; });
+        var thresholdFor = function (t) { return useRobux ? Math.round(t.minSubtotal * ROBUX_PER_USD_FALLBACK) : t.minSubtotal; };
         var tier = null;
-        for (var i = 0; i < SPEND_TIERS.length; i++) { if (sub >= SPEND_TIERS[i].minSubtotal) { tier = SPEND_TIERS[i]; break; } }
+        for (var i = ascending.length - 1; i >= 0; i--) { if (sub >= thresholdFor(ascending[i])) { tier = ascending[i]; break; } }
         var next = null;
-        for (var j = 0; j < SPEND_TIERS.length; j++) {
-          var t = SPEND_TIERS[j];
-          if (sub < t.minSubtotal && (!next || t.minSubtotal < next.minSubtotal)) next = t;
-        }
+        for (var j = 0; j < ascending.length; j++) { if (sub < thresholdFor(ascending[j])) { next = ascending[j]; break; } }
         box.hidden = false;
         box.className = 'cd-tier co-tier' + (tier ? ' co-tier-unlocked' : '');
-        var ascending = SPEND_TIERS.slice().sort(function (a, b) { return a.minSubtotal - b.minSubtotal; });
-        var maxThreshold = ascending[ascending.length - 1].minSubtotal;
+        var maxThreshold = thresholdFor(ascending[ascending.length - 1]);
         var pctToNext = Math.min(100, Math.round((sub / maxThreshold) * 100));
-        // Tiers are always evaluated against real USD order value (matches
-        // what the server actually grants - see _shared/coupon.ts), so the
-        // headline and each rung's figure stay in USD regardless of the
-        // currency toggle instead of switching to window.__money's robux
-        // display, which used a flat 80-per-$1 estimate totally unrelated
-        // to this cart's REAL per-product Robux pricing (a $100 threshold
-        // showing as "R$ 8,000" next to an actual Robux order total of,
-        // say, R$1 for a cheaply-priced item was the exact "14% unlocked
-        // but my order is 1R$" confusion this replaces). The small ≈R$
-        // figure under each rung is that same flat DevEx estimate, kept
-        // as a rough reference, never the number actually being compared.
         var usdStr = window.__usd || function (n) { return '$' + n; };
+        var primaryStr = useRobux ? function (n) { return 'R$ ' + Math.round(n).toLocaleString('en-US'); } : usdStr;
         var headline = next
-          ? (tier ? (tier.pct + '% off unlocked - spend ' + usdStr(next.minSubtotal - sub) + ' more for ' + next.pct + '% off') : ('Spend ' + usdStr(next.minSubtotal - sub) + ' more to start saving'))
+          ? (tier ? (tier.pct + '% off unlocked - spend ' + primaryStr(thresholdFor(next) - sub) + ' more for ' + next.pct + '% off') : ('Spend ' + primaryStr(thresholdFor(next) - sub) + ' more to start saving'))
           : (tier.pct + '% off unlocked - the best tier in your cart right now.');
-        var markers = ascending.map(function (t, idx) {
-          var reached = sub >= t.minSubtotal;
+        var dots = ascending.map(function (t) {
+          var thr = thresholdFor(t);
+          var reached = sub >= thr;
           var isNext = next && t.minSubtotal === next.minSubtotal;
-          var left = Math.min(100, Math.round((t.minSubtotal / maxThreshold) * 100));
-          var devexRbx = Math.round(t.minSubtotal * ROBUX_PER_USD_FALLBACK);
-          // The dot always centers on its exact point; the label aligns
-          // inward at the two ends instead (left edge for the first rung,
-          // right edge for the last) so it never overhangs the track.
-          var labelX = idx === 0 ? '0%' : idx === ascending.length - 1 ? '-100%' : '-50%';
+          var left = Math.min(100, Math.round((thr / maxThreshold) * 100));
           return '<div class="co-tier-marker' + (reached ? ' done' : '') + (isNext ? ' next' : '') + '" style="left:' + left + '%">' +
             '<span class="co-tier-dot">' + (reached ? '<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg>' : '') + '</span>' +
-            '<span class="co-tier-marker-label" style="transform:translateX(' + labelX + ')">' + t.pct + '%<br>' + usdStr(t.minSubtotal) + '<span class="co-tier-marker-rbx">≈R$' + devexRbx.toLocaleString('en-US') + '</span></span>' +
             '</div>';
+        }).join('');
+        // Equal-width legend columns, NOT positioned at each tier's real
+        // proportional point (see the CSS comment) - this ladder's actual
+        // thresholds aren't evenly spaced, so labels placed at their true
+        // points collided whenever two happened to sit close together.
+        var legend = ascending.map(function (t) {
+          var thr = thresholdFor(t);
+          var reached = sub >= thr;
+          var isNext = next && t.minSubtotal === next.minSubtotal;
+          var secondary = useRobux ? usdStr(t.minSubtotal) : ('R$' + Math.round(t.minSubtotal * ROBUX_PER_USD_FALLBACK).toLocaleString('en-US'));
+          return '<div class="co-tier-legend-item' + (reached ? ' done' : '') + (isNext ? ' next' : '') + '">' +
+            t.pct + '%<br>' + primaryStr(thr) + '<span class="co-tier-marker-rbx">≈' + secondary + '</span></div>';
         }).join('');
         var nudgeHtml = '';
         if (next) {
-          var pick = cheapestGapCloser(next.minSubtotal - sub);
+          var pick = cheapestGapCloser(thresholdFor(next) - sub, useRobux);
           if (pick) {
+            var pickPriceStr = useRobux ? ('R$ ' + Math.round(pick.gapPrice).toLocaleString('en-US')) : money(pick.priceNum);
             nudgeHtml = '<div class="co-tier-nudge" data-id="' + esc(pick.id) + '">' +
               '<span class="co-tier-nudge-thumb" style="background-image:url(\'' + pick.image + '\')"></span>' +
               '<div class="co-tier-nudge-body"><div class="co-tier-nudge-title">' + esc(pick.title) + '</div>' +
-              '<div class="co-tier-nudge-sub">' + money(pick.priceNum) + ' - crosses into ' + next.pct + '% off</div></div>' +
+              '<div class="co-tier-nudge-sub">' + pickPriceStr + ' - crosses into ' + next.pct + '% off</div></div>' +
               '<button class="btn btn-tinted co-tier-nudge-add" type="button">Add</button></div>';
           }
         }
         box.innerHTML = '<div class="co-tier-text">' + headline + '</div>' +
-          '<div class="co-tier-track"><div class="co-tier-bar"><div class="co-tier-fill" style="width:' + pctToNext + '%"></div></div>' + markers + '</div>' +
+          '<div class="co-tier-track"><div class="co-tier-bar"><div class="co-tier-fill" style="width:' + pctToNext + '%"></div></div>' + dots + '</div>' +
+          '<div class="co-tier-legend">' + legend + '</div>' +
           nudgeHtml;
       }
       var cdTierBannerEl = document.getElementById('cdTierBanner');
@@ -4202,18 +4242,22 @@
         }
         return money(item.price * item.qty);
       }
-      // Raw number, not a display string - shared by subtotalMoney() below
-      // and renderTotals()'s discount/total math, so a coupon's Robux
-      // figures stay proportional to the REAL per-item Robux subtotal
-      // shown here instead of being computed some other way.
+      // Raw number, not a display string - shared by subtotalMoney() below,
+      // the tier ladder, and renderTotals()'s discount/total math. Falls
+      // back to the flat rate per item without a real robux_price override,
+      // same as create-robux-order's priceRobuxItems does server-side -
+      // this used to bail to null (silently swapping the whole subtotal
+      // display back to USD) the moment even ONE item lacked an override,
+      // even though the server always has a real total to charge either way.
       function robuxSubtotalRaw() {
-        var total = 0, allPriced = true;
+        var total = 0;
         cart.forEach(function (i) {
-          var rbx = i.licence !== 'resell' ? catalogRobuxPrice(i.id) : null;
-          if (rbx == null) { allPriced = false; return; }
+          if (i.licence === 'resell') return;
+          var rbx = catalogRobuxPrice(i.id);
+          if (rbx == null) rbx = Math.round(i.price * ROBUX_PER_USD_FALLBACK);
           total += rbx * i.qty;
         });
-        return allPriced ? total : null;
+        return total;
       }
       function subtotalMoney() {
         if (window.__currencyMode && window.__currencyMode() === 'robux') {
@@ -4271,78 +4315,130 @@
         if (tier) d += Math.round(sub * (tier.pct / 100) * 100) / 100;
         return Math.min(d, sub);
       }
+      // Mirrors create-robux-order's own combination exactly: the coupon
+      // (USD-basis, floor-checked) is applied to the Robux total as the
+      // same proportion of the USD subtotal it discounts, THEN the
+      // spend-tier discount is evaluated and applied directly in Robux
+      // terms against what's left. finalTotal is computed first and
+      // discount derived FROM it (never the reverse) so Subtotal minus
+      // Discount always equals Total exactly - the two used to be rounded
+      // independently (-R$ discount from one expression, Total from a
+      // different one), which could disagree by a Robux or two.
+      function computeRobuxDiscount(rbxSub) {
+        var sub = subtotal();
+        var couponDiscountUsd = appliedCoupon ? appliedCoupon.discountUsd : 0;
+        var afterCoupon = rbxSub;
+        if (couponDiscountUsd > 0 && sub > 0) {
+          afterCoupon = Math.round(rbxSub * (1 - couponDiscountUsd / sub));
+        }
+        var descending = SPEND_TIERS.slice().sort(function (a, b) { return b.minSubtotal - a.minSubtotal; });
+        var tierPct = 0;
+        for (var i = 0; i < descending.length; i++) {
+          var minRbx = Math.round(descending[i].minSubtotal * ROBUX_PER_USD_FALLBACK);
+          if (afterCoupon >= minRbx) { tierPct = descending[i].pct; break; }
+        }
+        var finalTotal = Math.max(0, afterCoupon - Math.round(afterCoupon * (tierPct / 100)));
+        return { finalTotal: finalTotal, discount: rbxSub - finalTotal, tierPct: tierPct };
+      }
       // Same gap-closing pick as the cart drawer - the cheapest catalog
       // item not already in the cart whose price alone covers the
       // remaining distance to the next tier.
-      function cheapestGapCloser(remaining) {
+      function cheapestGapCloser(remaining, useRobux) {
         var cat = window.__CATALOG || [];
         var cartIds = {};
         cart.forEach(function (i) { cartIds[i.id.replace(/--resell$/, '').replace(/--bundle$/, '').replace(/--crosssell$/, '')] = true; });
-        var candidates = cat.filter(function (p) { return !cartIds[p.id] && p.priceNum >= remaining; });
-        candidates.sort(function (a, b) { return a.priceNum - b.priceNum; });
-        return candidates[0] || null;
+        // The gap itself, and every candidate's price, both have to be in
+        // whatever unit the ladder is actually comparing against right now
+        // (see renderTierProgress's useRobux) - a Robux gap searched
+        // against USD list prices would filter and sort against numbers
+        // from two different scales entirely.
+        function priceOf(p) {
+          if (!useRobux) return p.priceNum;
+          var rbx = catalogRobuxPrice(p.id);
+          return rbx != null ? rbx : Math.round(p.priceNum * ROBUX_PER_USD_FALLBACK);
+        }
+        var candidates = cat.filter(function (p) { return !cartIds[p.id] && priceOf(p) >= remaining; });
+        candidates.sort(function (a, b) { return priceOf(a) - priceOf(b); });
+        var pick = candidates[0] || null;
+        if (pick) pick = Object.assign({}, pick, { gapPrice: priceOf(pick) });
+        return pick;
       }
       function renderTierBanner() {
         var box = document.getElementById('coTierBanner');
         if (!box) return;
-        var sub = subtotal();
+        // Robux orders don't grant this discount off USD list value - a
+        // product's real admin-set robux_price often has no fixed ratio
+        // to its USD price, so evaluating against USD while a Robux
+        // shopper stares at their real, much smaller Robux total produced
+        // exactly the "10% unlocked, my order is 1R$" confusion this was
+        // built to prevent. Paying in Robux now evaluates (and the server
+        // now grants - see spendTierDiscountRobux) against the REAL Robux
+        // total against Robux-equivalent thresholds instead, so this
+        // preview can never promise a discount the order doesn't actually
+        // give, or vice versa.
+        var robuxMode = window.__currencyMode && window.__currencyMode() === 'robux';
+        var hasResell = cart.some(function (i) { return i.licence === 'resell'; });
+        var useRobux = robuxMode && !hasResell && cart.length > 0;
+        var sub = useRobux ? robuxSubtotalRaw() : subtotal();
         if (sub <= 0) { box.hidden = true; return; }
         box.hidden = false;
-        var tier = currentSpendTier(sub);
-        var next = nextSpendTier(sub);
-        box.classList.toggle('co-tier-unlocked', !!tier);
         // Steps ascend by threshold, not the SPEND_TIERS declaration order
         // (that array is written highest-first so currentSpendTier's first
         // match wins correctly) - the ladder reads left to right as money
         // goes up.
         var ascending = SPEND_TIERS.slice().sort(function (a, b) { return a.minSubtotal - b.minSubtotal; });
-        var maxThreshold = ascending[ascending.length - 1].minSubtotal;
+        var thresholdFor = function (t) { return useRobux ? Math.round(t.minSubtotal * ROBUX_PER_USD_FALLBACK) : t.minSubtotal; };
+        var tier = null;
+        for (var i = ascending.length - 1; i >= 0; i--) { if (sub >= thresholdFor(ascending[i])) { tier = ascending[i]; break; } }
+        var next = null;
+        for (var j = 0; j < ascending.length; j++) { if (sub < thresholdFor(ascending[j])) { next = ascending[j]; break; } }
+        box.classList.toggle('co-tier-unlocked', !!tier);
+        var maxThreshold = thresholdFor(ascending[ascending.length - 1]);
         var pctToNext = Math.min(100, Math.round((sub / maxThreshold) * 100));
-        // Tiers are always evaluated against real USD order value (matches
-        // what the server actually grants - see _shared/coupon.ts), so the
-        // headline and each rung's figure stay in USD regardless of the
-        // currency toggle instead of switching to window.__money's robux
-        // display, which used a flat 80-per-$1 estimate totally unrelated
-        // to this cart's REAL per-product Robux pricing (a $100 threshold
-        // showing as "R$ 8,000" next to an actual Robux order total of,
-        // say, R$1 for a cheaply-priced item was the exact "14% unlocked
-        // but my order is 1R$" confusion this replaces). The small ≈R$
-        // figure under each rung is that same flat DevEx estimate, kept
-        // as a rough reference, never the number actually being compared.
         var usdStr = window.__usd || function (n) { return '$' + n; };
+        var primaryStr = useRobux ? function (n) { return 'R$ ' + Math.round(n).toLocaleString('en-US'); } : usdStr;
         var headline = next
-          ? (tier ? (tier.pct + '% off unlocked - spend ' + usdStr(next.minSubtotal - sub) + ' more for ' + next.pct + '% off') : ('Spend ' + usdStr(next.minSubtotal - sub) + ' more to start saving'))
+          ? (tier ? (tier.pct + '% off unlocked - spend ' + primaryStr(thresholdFor(next) - sub) + ' more for ' + next.pct + '% off') : ('Spend ' + primaryStr(thresholdFor(next) - sub) + ' more to start saving'))
           : (tier.pct + '% off unlocked - the best tier in your cart right now.');
-        var markers = ascending.map(function (t, idx) {
-          var reached = sub >= t.minSubtotal;
+        var dots = ascending.map(function (t) {
+          var thr = thresholdFor(t);
+          var reached = sub >= thr;
           var isNext = next && t.minSubtotal === next.minSubtotal;
-          var left = Math.min(100, Math.round((t.minSubtotal / maxThreshold) * 100));
-          var devexRbx = Math.round(t.minSubtotal * ROBUX_PER_USD_FALLBACK);
-          // The dot always centers on its exact point; the label aligns
-          // inward at the two ends instead (left edge for the first rung,
-          // right edge for the last) so it never overhangs the track.
-          var labelX = idx === 0 ? '0%' : idx === ascending.length - 1 ? '-100%' : '-50%';
+          var left = Math.min(100, Math.round((thr / maxThreshold) * 100));
           return '<div class="co-tier-marker' + (reached ? ' done' : '') + (isNext ? ' next' : '') + '" style="left:' + left + '%">' +
             '<span class="co-tier-dot">' + (reached ? '<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg>' : '') + '</span>' +
-            '<span class="co-tier-marker-label" style="transform:translateX(' + labelX + ')">' + t.pct + '%<br>' + usdStr(t.minSubtotal) + '<span class="co-tier-marker-rbx">≈R$' + devexRbx.toLocaleString('en-US') + '</span></span>' +
             '</div>';
+        }).join('');
+        // Equal-width legend columns, NOT positioned at each tier's real
+        // proportional point (see the CSS comment) - this ladder's actual
+        // thresholds aren't evenly spaced, so labels placed at their true
+        // points collided whenever two happened to sit close together.
+        var legend = ascending.map(function (t) {
+          var thr = thresholdFor(t);
+          var reached = sub >= thr;
+          var isNext = next && t.minSubtotal === next.minSubtotal;
+          var secondary = useRobux ? usdStr(t.minSubtotal) : ('R$' + Math.round(t.minSubtotal * ROBUX_PER_USD_FALLBACK).toLocaleString('en-US'));
+          return '<div class="co-tier-legend-item' + (reached ? ' done' : '') + (isNext ? ' next' : '') + '">' +
+            t.pct + '%<br>' + primaryStr(thr) + '<span class="co-tier-marker-rbx">≈' + secondary + '</span></div>';
         }).join('');
         var nudgeHtml = '';
         if (next) {
-          var pick = cheapestGapCloser(next.minSubtotal - sub);
+          var pick = cheapestGapCloser(thresholdFor(next) - sub, useRobux);
           if (pick) {
+            var pickPriceStr = useRobux ? ('R$ ' + Math.round(pick.gapPrice).toLocaleString('en-US')) : money(pick.priceNum);
             nudgeHtml = '<div class="co-tier-nudge" data-id="' + esc(pick.id) + '">' +
               '<span class="co-tier-nudge-thumb" style="background-image:url(\'' + pick.image + '\')"></span>' +
               '<div class="co-tier-nudge-body"><div class="co-tier-nudge-title">' + esc(pick.title) + '</div>' +
-              '<div class="co-tier-nudge-sub">' + money(pick.priceNum) + ' - crosses into ' + next.pct + '% off</div></div>' +
+              '<div class="co-tier-nudge-sub">' + pickPriceStr + ' - crosses into ' + next.pct + '% off</div></div>' +
               '<button class="btn btn-tinted co-tier-nudge-add" type="button">Add</button></div>';
           }
         }
         box.innerHTML = '<div class="co-tier-text">' + headline + '</div>' +
           '<div class="co-tier-track">' +
           '<div class="co-tier-bar"><div class="co-tier-fill" style="width:' + pctToNext + '%"></div></div>' +
-          markers +
+          dots +
           '</div>' +
+          '<div class="co-tier-legend">' + legend + '</div>' +
           nudgeHtml;
       }
       if (document.getElementById('coTierBanner')) document.getElementById('coTierBanner').addEventListener('click', function (e) {
@@ -4405,32 +4501,28 @@
         var total = Math.max(0, sub - disc);
         var set = function (id, v) { var el = document.getElementById(id); if (el) el.textContent = v; };
         set('coSubtotal', subtotalMoney());
-        // A coupon's discountUsd is a flat USD figure, no matter the display
-        // currency - converting it (and the total) through money()'s generic
-        // flat exchange rate produced a Robux discount with no relationship
-        // to the REAL, per-item Robux subtotal already on screen (each
-        // product's actual robux_price is set independently by an admin,
-        // often nowhere near what a flat USD conversion would suggest) -
-        // a $24 discount at the flat rate could show as -R$1,944 sitting
-        // under a R$13 subtotal. Scaling the discount by the same fraction
-        // of the REAL Robux subtotal keeps every figure on this page
-        // proportionally consistent with each other, in Robux mode.
+        // Robux mode now evaluates and combines the discount entirely in
+        // Robux terms (computeRobuxDiscount, matching create-robux-order's
+        // spendTierDiscountRobux) rather than converting a USD figure -
+        // see renderTierBanner's comment for why. hasResell/cart.length
+        // guards match the same conditions the resell-popup and Robux
+        // payment panel already gate on elsewhere on this page.
         var robuxMode = window.__currencyMode && window.__currencyMode() === 'robux';
-        var rbxSub = robuxMode ? robuxSubtotalRaw() : null;
+        var hasResell = cart.some(function (i) { return i.licence === 'resell'; });
+        var useRobux = robuxMode && !hasResell && cart.length > 0;
+        var rbxSub = useRobux ? robuxSubtotalRaw() : null;
+        var rr = rbxSub != null ? computeRobuxDiscount(rbxSub) : null;
         var discLine = document.getElementById('coDiscLine');
+        var showsDiscount = rr ? rr.discount > 0 : disc > 0;
         if (discLine) {
-          discLine.hidden = disc <= 0;
-          if (disc > 0) {
-            var tierNow = currentSpendTier(sub);
+          discLine.hidden = !showsDiscount;
+          if (showsDiscount) {
+            var tierPctNow = rr ? rr.tierPct : (currentSpendTier(sub) ? currentSpendTier(sub).pct : 0);
             var discLabel = appliedCoupon
-              ? ('Discount (' + appliedCoupon.code + (tierNow ? ' + ' + tierNow.pct + '%' : '') + ')')
-              : (tierNow ? ('Discount (' + tierNow.pct + '% off)') : 'Discount');
+              ? ('Discount (' + appliedCoupon.code + (tierPctNow ? ' + ' + tierPctNow + '%' : '') + ')')
+              : (tierPctNow ? ('Discount (' + tierPctNow + '% off)') : 'Discount');
             set('coDiscLabel', discLabel);
-            if (rbxSub != null && sub > 0) {
-              set('coDiscAmt', '-R$ ' + Math.round(rbxSub * (disc / sub)).toLocaleString('en-US'));
-            } else {
-              set('coDiscAmt', '-' + money(disc));
-            }
+            set('coDiscAmt', rr ? ('-R$ ' + rr.discount.toLocaleString('en-US')) : ('-' + money(disc)));
           }
         }
         // Tax is not currently charged on any order. The row stays hidden
@@ -4439,9 +4531,8 @@
         var taxLine = document.getElementById('coTaxLine');
         if (taxLine) taxLine.hidden = true;
         set('coTax', money(0));
-        if (rbxSub != null) {
-          var rbxTotal = disc > 0 && sub > 0 ? Math.max(0, rbxSub - rbxSub * (disc / sub)) : rbxSub;
-          set('coTotal', 'R$ ' + Math.round(rbxTotal).toLocaleString('en-US'));
+        if (rr) {
+          set('coTotal', 'R$ ' + rr.finalTotal.toLocaleString('en-US'));
         } else {
           set('coTotal', disc > 0 ? money(total) : subtotalMoney());
         }

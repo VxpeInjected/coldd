@@ -5,6 +5,8 @@
 // shown to the shopper before payment must exactly match what Stripe
 // actually charges.
 
+import { ROBUX_PER_USD } from "./roblox.ts";
+
 export const RESELL_MULT = 3; // must match app.js's RESELL_MULT and create-checkout-session's
 
 export const CROSS_SELL_PCT = 10; // must match app.js's checkout cross-sell offer text
@@ -159,6 +161,30 @@ export const SPEND_TIERS: { minSubtotal: number; pct: number }[] = [
   { minSubtotal: 50, pct: 15 },
   { minSubtotal: 35, pct: 10 },
 ];
+
+// Robux orders can't reuse spendTierDiscount() as-is: that compares a
+// line list's own USD subtotal against SPEND_TIERS, but a product's real
+// admin-set robux_price often has no fixed ratio to its USD price (see
+// priceRobuxItems' own comment on this) - a cart that's genuinely small
+// in Robux terms could still cross a USD threshold through one product
+// priced disproportionately cheap in Robux, unlocking a discount that
+// looks like it came from nowhere against the number actually on
+// screen. This evaluates AND grants the discount against the real Robux
+// total instead, scaling each tier's threshold onto Robux via the flat
+// DevEx estimate - the only conversion basis available for a threshold
+// that has no specific product behind it - so the ladder, the discount,
+// and the visible total can never disagree with each other in Robux
+// mode, regardless of how any one product's cross-currency pricing
+// happens to sit.
+export function spendTierDiscountRobux(totalRobux: number): { discountRobux: number; pct: number; minRobux: number } {
+  for (const tier of SPEND_TIERS) {
+    const minRobux = Math.round(tier.minSubtotal * ROBUX_PER_USD);
+    if (totalRobux >= minRobux) {
+      return { discountRobux: Math.round(totalRobux * (tier.pct / 100)), pct: tier.pct, minRobux };
+    }
+  }
+  return { discountRobux: 0, pct: 0, minRobux: 0 };
+}
 
 export function spendTierDiscount(lines: PricedLine[]): { discount: number; pct: number; minSubtotal: number } {
   const subtotal = lines.reduce((sum, li) => sum + li.unitPrice * li.qty, 0);

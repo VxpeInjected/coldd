@@ -2582,17 +2582,20 @@ html.js .ref-method-btn:focus-visible { outline: 2px solid var(--accent); outlin
 .co-tier { padding: 14px 16px; margin: 14px 0 0; border-radius: var(--r-ctl); background: rgba(52,224,138,0.08); border: 1px solid rgba(52,224,138,0.22);
   transition: background-color .3s var(--ease), border-color .3s var(--ease); }
 .co-tier-text { font-size: 13px; font-weight: 600; color: var(--price); }
-.co-tier-track { position: relative; margin-top: 14px; padding-bottom: 46px; }
+.co-tier-track { position: relative; margin-top: 14px; padding-bottom: 14px; }
 .co-tier-bar { height: 5px; border-radius: 4px; background: rgba(255,255,255,0.08); overflow: hidden; }
 .co-tier-fill { height: 100%; border-radius: 4px; background: var(--price); transition: width .5s var(--ease); }
 .co-tier.co-tier-unlocked { background: rgba(52,224,138,0.14); }
-/* Dot and label position independently now, not as one flex-centered
-   unit - the dot has to sit exactly on its left:X% point (that's the
-   real tier threshold position), but a label centered the same way at
-   the very first or last point had half its own width hanging off the
-   edge of the card with nothing to clip it against. JS sets each
-   label's own transform (0 / -50% / -100%) so the end labels align
-   inward against the track instead of overhanging it. */
+/* The dot sits exactly on its left:X% point (the real tier threshold
+   position) - but text labels positioned the same proportional way
+   collided whenever two tiers' thresholds happened to sit close
+   together (this ladder's actual numbers are NOT evenly spaced), no
+   matter how the individual label was aligned. The legend row below is
+   a completely separate, non-proportional flex row - equal-width
+   columns in ascending order - so it physically cannot overlap
+   regardless of how close any two thresholds are numerically. Only the
+   dots need true proportional position; the legend just needs to read
+   in the right order. */
 .co-tier-marker { position: absolute; top: 0; }
 .co-tier-dot { position: absolute; left: 0; top: -3.5px; transform: translateX(-50%); width: 12px; height: 12px; border-radius: 50%; background: var(--bg-2);
   border: 2px solid var(--hairline-strong); display: flex; align-items: center; justify-content: center; color: #fff;
@@ -2604,16 +2607,19 @@ html.js .ref-method-btn:focus-visible { outline: 2px solid var(--accent); outlin
    popping to size - both play once per render, which in practice means
    once per real tier change, since nothing else re-renders this box. */
 .co-tier-dot svg path { stroke-dasharray: 24; stroke-dashoffset: 24; animation: coTierCheckDraw .3s var(--ease-out) .15s forwards; }
-.co-tier-marker-label { position: absolute; left: 0; top: 14px; width: 60px; font-size: 11px; font-weight: 600; line-height: 1.35; text-align: center; color: var(--fg-3);
+.co-tier-legend { display: flex; margin-top: 22px; gap: 4px; }
+.co-tier-legend-item { flex: 1; min-width: 0; font-size: 11px; font-weight: 600; line-height: 1.35; color: var(--fg-3); text-align: center;
   transition: color .3s var(--ease); }
-.co-tier-marker.done .co-tier-marker-label { color: var(--price); font-weight: 700; }
-.co-tier-marker.next .co-tier-marker-label { color: var(--fg); font-weight: 700; }
+.co-tier-legend-item:first-child { text-align: left; }
+.co-tier-legend-item:last-child { text-align: right; }
+.co-tier-legend-item.done { color: var(--price); font-weight: 700; }
+.co-tier-legend-item.next { color: var(--fg); font-weight: 700; }
 .co-tier-marker-rbx { display: block; font-size: 11px; font-weight: 500; color: var(--fg-3); opacity: 0.75; }
-.co-tier-marker.done .co-tier-marker-rbx, .co-tier-marker.next .co-tier-marker-rbx { color: inherit; opacity: 0.65; }
+.co-tier-legend-item.done .co-tier-marker-rbx, .co-tier-legend-item.next .co-tier-marker-rbx { color: inherit; opacity: 0.65; }
 @keyframes coTierDotPop { 0% { transform: scale(0.55); } 65% { transform: scale(1.2); } 100% { transform: scale(1); } }
 @keyframes coTierCheckDraw { to { stroke-dashoffset: 0; } }
 @media (prefers-reduced-motion: reduce) {
-  .co-tier-dot, .co-tier-fill, .co-tier-marker-label, .co-tier { transition: none; }
+  .co-tier-dot, .co-tier-fill, .co-tier-legend-item, .co-tier { transition: none; }
   .co-tier-marker.done .co-tier-dot { animation: none; }
   .co-tier-dot svg path { animation: none; stroke-dashoffset: 0; }
 }

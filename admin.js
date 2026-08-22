@@ -78,6 +78,19 @@
   function orderAmount(o) { return o.currency === 'robux' ? ('R$ ' + Math.round(o.totalRobux).toLocaleString('en-US')) : usd(o.total); }
   function fmtDate(d) { return d.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' }); }
   function fmtDateTime(d) { return d.toLocaleDateString('en-US', { day: 'numeric', month: 'short' }) + ' ' + d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }); }
+  // A <input type="datetime-local">'s .value is always local wall-clock
+  // time with no timezone info attached - the browser applies zero
+  // conversion. Feeding it .toISOString() (always UTC) mislabels a UTC
+  // instant as if it were already local, off by the admin's own UTC
+  // offset; saving that value back then genuinely (and correctly)
+  // interprets it as local and converts to UTC again, drifting the
+  // stored instant by the offset on every single save. Building the
+  // string from the Date's own local getters instead is what actually
+  // round-trips.
+  function toDatetimeLocalValue(d) {
+    var p = function (n) { return String(n).padStart(2, '0'); };
+    return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) + 'T' + p(d.getHours()) + ':' + p(d.getMinutes());
+  }
   // AdBlox's /servers and /logs endpoints return timestamps with no
   // timezone designator (e.g. "2026-08-12T14:25:15.268322"), even though
   // the account itself is UTC (confirmed via /stats, which does include an
@@ -4147,31 +4160,39 @@
      SITE ACCESS PANEL (open / maintenance)
      ================================================================ */
   var siteMode = 'open';
+  var SITE_MODE_COPY = {
+    open: { status: 'Open', badge: 'ok', hint: 'Open: the storefront, checkout, and dashboard all work normally for every visitor.' },
+    maintenance: { status: 'Maintenance', badge: 'warn', hint: 'Maintenance: every visitor except staff sees a maintenance page instead of the site - nothing can be bought or browsed until this is switched back to Open.' }
+  };
+  function applySiteModeUI(mode) {
+    var copy = SITE_MODE_COPY[mode] || SITE_MODE_COPY.open;
+    var cur = $('admSiteCurrentStatus');
+    if (cur) { cur.textContent = copy.status; cur.className = 'dt-badge ' + copy.badge; }
+    var modeHint = $('admSiteModeHint');
+    if (modeHint) modeHint.textContent = copy.hint;
+    document.querySelectorAll('.adm-site-mode-btn').forEach(function (b) {
+      b.classList.toggle('active', b.getAttribute('data-mode') === mode);
+    });
+    var maintFields = $('admSiteMaintFields');
+    if (maintFields) maintFields.hidden = mode !== 'maintenance';
+  }
   function refreshSiteStatus() {
     if (!window.coldSupabase) return Promise.resolve();
     return window.coldSupabase.from('site_status').select('*').eq('id', true).maybeSingle().then(function (res) {
       var data = res && res.data;
       siteMode = (data && data.mode) || 'open';
-      var cur = $('admSiteCurrentStatus');
-      if (cur) cur.textContent = siteMode.charAt(0).toUpperCase() + siteMode.slice(1);
-      document.querySelectorAll('.adm-site-mode-btn').forEach(function (b) {
-        b.classList.toggle('active', b.getAttribute('data-mode') === siteMode);
-      });
-      var maintFields = $('admSiteMaintFields');
-      if (maintFields) maintFields.hidden = siteMode !== 'maintenance';
+      applySiteModeUI(siteMode);
       if (data) {
         var msgEl = $('admSiteMaintMsg'); if (msgEl) msgEl.value = data.maintenance_message || '';
         var endsEl = $('admSiteMaintEnds');
-        if (endsEl) endsEl.value = data.maintenance_ends_at ? new Date(data.maintenance_ends_at).toISOString().slice(0, 16) : '';
+        if (endsEl) endsEl.value = data.maintenance_ends_at ? toDatetimeLocalValue(new Date(data.maintenance_ends_at)) : '';
       }
     });
   }
   document.querySelectorAll('.adm-site-mode-btn').forEach(function (b) {
     b.addEventListener('click', function () {
       siteMode = b.getAttribute('data-mode');
-      document.querySelectorAll('.adm-site-mode-btn').forEach(function (x) { x.classList.toggle('active', x === b); });
-      var maintFields = $('admSiteMaintFields');
-      if (maintFields) maintFields.hidden = siteMode !== 'maintenance';
+      applySiteModeUI(siteMode);
     });
   });
   var admSiteSaveBtn = $('admSiteSaveBtn');

@@ -154,10 +154,10 @@ export function flatPctDiscount(lines: PricedLine[], pct: number): { discount: n
 // clearing the next tier", not rewarding a cart that was already going
 // to be big regardless.
 export const SPEND_TIERS: { minSubtotal: number; pct: number }[] = [
-  { minSubtotal: 140, pct: 18 },
-  { minSubtotal: 100, pct: 14 },
-  { minSubtotal: 70, pct: 11 },
-  { minSubtotal: 40, pct: 8 },
+  { minSubtotal: 100, pct: 25 },
+  { minSubtotal: 75, pct: 20 },
+  { minSubtotal: 50, pct: 15 },
+  { minSubtotal: 35, pct: 10 },
 ];
 
 export function spendTierDiscount(lines: PricedLine[]): { discount: number; pct: number; minSubtotal: number } {

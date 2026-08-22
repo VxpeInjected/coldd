@@ -35,6 +35,60 @@
   });
   window.coldSupabase = client;
 
+  // Cart and wishlist are both pure localStorage with no per-user
+  // namespacing (cart has no backend at all; wishlist mirrors into
+  // wishlist_items but always reads back from localStorage first - see
+  // app.js). On a shared/borrowed browser, signing into a DIFFERENT
+  // account than whichever one (or guest state) last touched this
+  // browser silently inherited that previous cart/wishlist - a real
+  // privacy bug, not just a stale-cache annoyance. ACCOUNT_KEY tracks
+  // which account (or '' for guest) the current local cart/wishlist
+  // actually belong to; any mismatch resets both before anything else
+  // reads them. A first-ever guest->sign-in transition (stored === null,
+  // meaning this browser has never been associated with any account) is
+  // deliberately NOT treated as a mismatch - that's very likely the same
+  // person continuing a guest session into their own new account, not a
+  // different person inheriting someone else's cart.
+  var ACCOUNT_KEY = 'coldd_account_uid';
+  function resetLocalCartAndWishlist() {
+    try { localStorage.setItem('coldd_cart_v1', '[]'); } catch (e) {}
+    try { localStorage.setItem('coldd_wish_v1', '[]'); } catch (e) {}
+    try { window.dispatchEvent(new CustomEvent('coldd:cart-sync', { detail: { source: 'account-switch' } })); } catch (e) {}
+  }
+  // Repopulates the wishlist from the newly-signed-in account's real
+  // wishlist_items rows - without this, a reset (or a brand new browser)
+  // shows an empty wishlist even though the account has real saved items
+  // server-side.
+  function restoreWishlistFor(uid) {
+    client.from('wishlist_items').select('products(slug)').eq('user_id', uid).then(function (res) {
+      var rows = (res && res.data) || [];
+      var slugs = rows.map(function (r) { return r.products && r.products.slug; }).filter(Boolean);
+      if (!slugs.length) return;
+      try { localStorage.setItem('coldd_wish_v1', JSON.stringify(slugs)); } catch (e) {}
+      try { window.dispatchEvent(new CustomEvent('coldd:cart-sync', { detail: { source: 'account-switch' } })); } catch (e) {}
+    }).catch(function () {});
+  }
+  var lastReconciledUid; // avoids re-running for the same uid on every redundant auth event
+  function reconcileAccountLocalState(uid) {
+    var current = uid || '';
+    if (current === lastReconciledUid) return;
+    lastReconciledUid = current;
+    var stored = null;
+    try { stored = localStorage.getItem(ACCOUNT_KEY); } catch (e) {}
+    if (stored !== null && stored !== current) {
+      resetLocalCartAndWishlist();
+      if (uid) restoreWishlistFor(uid);
+    }
+    try { localStorage.setItem(ACCOUNT_KEY, current); } catch (e) {}
+  }
+  client.auth.getSession().then(function (res) {
+    var session = res && res.data && res.data.session;
+    reconcileAccountLocalState(session && session.user && session.user.id);
+  }).catch(function () {});
+  client.auth.onAuthStateChange(function (_event, session) {
+    reconcileAccountLocalState(session && session.user && session.user.id);
+  });
+
   // Site-wide error capture: uncaught JS errors, unhandled promise
   // rejections, and failed Edge Function calls, from any visitor - signed
   // in or not, since errors often happen exactly when something (like

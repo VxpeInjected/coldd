@@ -127,7 +127,7 @@ Deno.serve(async (req: Request) => {
       });
     if (signErr || !signed) return json({ ok: false, error: "Could not generate download link." }, 500);
 
-    return json({ ok: true, url: publicSignedUrl(signed.signedUrl) });
+    return json({ ok: true, url: publicSignedUrl(signed.signedUrl), filename: downloadName(product.storage_path, product.title) });
   } catch (err) {
     console.error("[get-download-url] error:", err);
     return json({ ok: false, error: "Server error." }, 500);

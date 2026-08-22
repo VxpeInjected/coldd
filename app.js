@@ -1836,10 +1836,10 @@
       // next tier instead of only discovering it after they've already
       // decided what to buy.
       var SPEND_TIERS = [
-        { minSubtotal: 140, pct: 18 },
-        { minSubtotal: 100, pct: 14 },
-        { minSubtotal: 70, pct: 11 },
-        { minSubtotal: 40, pct: 8 }
+        { minSubtotal: 100, pct: 25 },
+        { minSubtotal: 75, pct: 20 },
+        { minSubtotal: 50, pct: 15 },
+        { minSubtotal: 35, pct: 10 }
       ];
       // The cheapest catalog item (not already in the cart) whose price
       // alone covers the remaining gap to the next tier - turns "spend $12
@@ -1870,16 +1870,33 @@
         var ascending = SPEND_TIERS.slice().sort(function (a, b) { return a.minSubtotal - b.minSubtotal; });
         var maxThreshold = ascending[ascending.length - 1].minSubtotal;
         var pctToNext = Math.min(100, Math.round((sub / maxThreshold) * 100));
+        // Tiers are always evaluated against real USD order value (matches
+        // what the server actually grants - see _shared/coupon.ts), so the
+        // headline and each rung's figure stay in USD regardless of the
+        // currency toggle instead of switching to window.__money's robux
+        // display, which used a flat 80-per-$1 estimate totally unrelated
+        // to this cart's REAL per-product Robux pricing (a $100 threshold
+        // showing as "R$ 8,000" next to an actual Robux order total of,
+        // say, R$1 for a cheaply-priced item was the exact "14% unlocked
+        // but my order is 1R$" confusion this replaces). The small ≈R$
+        // figure under each rung is that same flat DevEx estimate, kept
+        // as a rough reference, never the number actually being compared.
+        var usdStr = window.__usd || function (n) { return '$' + n; };
         var headline = next
-          ? (tier ? (tier.pct + '% off unlocked - spend ' + money(next.minSubtotal - sub) + ' more for ' + next.pct + '% off') : ('Spend ' + money(next.minSubtotal - sub) + ' more to start saving'))
+          ? (tier ? (tier.pct + '% off unlocked - spend ' + usdStr(next.minSubtotal - sub) + ' more for ' + next.pct + '% off') : ('Spend ' + usdStr(next.minSubtotal - sub) + ' more to start saving'))
           : (tier.pct + '% off unlocked - the best tier in your cart right now.');
-        var markers = ascending.map(function (t) {
+        var markers = ascending.map(function (t, idx) {
           var reached = sub >= t.minSubtotal;
           var isNext = next && t.minSubtotal === next.minSubtotal;
           var left = Math.min(100, Math.round((t.minSubtotal / maxThreshold) * 100));
+          var devexRbx = Math.round(t.minSubtotal * ROBUX_PER_USD_FALLBACK);
+          // The dot always centers on its exact point; the label aligns
+          // inward at the two ends instead (left edge for the first rung,
+          // right edge for the last) so it never overhangs the track.
+          var labelX = idx === 0 ? '0%' : idx === ascending.length - 1 ? '-100%' : '-50%';
           return '<div class="co-tier-marker' + (reached ? ' done' : '') + (isNext ? ' next' : '') + '" style="left:' + left + '%">' +
             '<span class="co-tier-dot">' + (reached ? '<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg>' : '') + '</span>' +
-            '<span class="co-tier-marker-label">' + t.pct + '%<br>' + money(t.minSubtotal) + '</span>' +
+            '<span class="co-tier-marker-label" style="transform:translateX(' + labelX + ')">' + t.pct + '%<br>' + usdStr(t.minSubtotal) + '<span class="co-tier-marker-rbx">≈R$' + devexRbx.toLocaleString('en-US') + '</span></span>' +
             '</div>';
         }).join('');
         var nudgeHtml = '';
@@ -2090,6 +2107,86 @@
         }
         function reviewsFor(p) {
           return window.__reviews ? window.__reviews.productReviews(p.id) : [];
+        }
+        function renderReviewListHtml(list) {
+          return list.length ? list.map(function (r) {
+            var reply = r.reply ? '<div class="pd-rev-reply"><div class="pd-rev-reply-head">coldd team replied</div><p>' + esc(r.reply.text) + '</p></div>' : '';
+            return '<div class="pd-rev"><div class="pd-rev-head"><span class="pd-rev-name">' + esc(r.user) + '</span>' +
+              '<span class="pd-rev-dot">·</span><span class="pd-rev-stars">' + starRow(r.stars) + '</span>' +
+              '<span class="pd-rev-dot">·</span><span class="pd-rev-meta">' + esc(fmtRevDate(r.date)) + '</span></div>' +
+              '<p class="pd-rev-body">' + esc(r.text) + '</p>' + reply + '</div>';
+          }).join('') : '<p class="pd-empty">No reviews yet. Be the first to review this product.</p>';
+        }
+        // `existing` is {stars, text} when this account already has a
+        // review on file (fetched async by loadMyReview, since the
+        // catalog's own bulk reviews fetch never included user_id and has
+        // no reason to for every OTHER visitor's reviews), null for a
+        // genuinely first-time review.
+        function renderReviewFormHtml(existing) {
+          var stars = existing ? existing.stars : 0;
+          return '<form class="pd-rev-form" id="pdRevForm">' +
+            '<h4>' + (existing ? 'Your review' : 'Leave a review') + '</h4>' +
+            '<div class="pd-rev-stars-input" id="pdRevStarsInput">' +
+              [1, 2, 3, 4, 5].map(function (n) { return '<button type="button" class="pd-rev-star-btn' + (n <= stars ? ' active' : '') + '" data-star="' + n + '" aria-label="' + n + ' star">' + STAR_SVG + '</button>'; }).join('') +
+            '</div>' +
+            '<textarea id="pdRevText" maxlength="2000" rows="3" placeholder="Share what you thought of this product...">' + esc(existing ? existing.text : '') + '</textarea>' +
+            '<button type="submit" class="btn btn-primary" id="pdRevSubmit">' + (existing ? 'Update review' : 'Submit review') + '</button>' +
+            '<p class="pd-rev-form-msg" id="pdRevFormMsg" hidden></p>' +
+          '</form>';
+        }
+        // Guards against a slow lookup resolving after the shopper has
+        // already clicked to a different product - re-checked before
+        // touching the DOM so a stale response can't overwrite the form
+        // for whatever's actually showing now.
+        var myReviewLoadToken = 0;
+        function loadMyReview(slug) {
+          var token = ++myReviewLoadToken;
+          if (!window.coldSupabase) return;
+          window.coldSupabase.auth.getSession().then(function (res) {
+            var session = res && res.data && res.data.session;
+            if (!session) return null;
+            return window.coldSupabase.from('reviews').select('stars, text, products!inner(slug)')
+              .eq('user_id', session.user.id).eq('products.slug', slug).maybeSingle();
+          }).then(function (r) {
+            if (token !== myReviewLoadToken) return;
+            var data = r && r.data;
+            if (!data || !pdPaneReviews) return;
+            var form = pdPaneReviews.querySelector('#pdRevForm');
+            if (!form) return;
+            revSelectedStars = data.stars;
+            form.outerHTML = renderReviewFormHtml({ stars: data.stars, text: data.text });
+          }).catch(function () {});
+        }
+        // Re-pulls just this product's reviews and repaints the list -
+        // used right after a save so the new/edited review shows up
+        // immediately instead of only after a manual page reload.
+        function refetchReviewsAndRender(slug) {
+          if (!window.coldSupabase || !pdPaneReviews) return Promise.resolve();
+          return window.coldSupabase.from('reviews')
+            .select('id, stars, text, created_at, reply, reply_at, user_name, products!inner(slug)')
+            .eq('status', 'approved').eq('products.slug', slug)
+            .order('created_at', { ascending: false }).limit(500)
+            .then(function (res) {
+              var rows = res && res.data || [];
+              var list = rows.map(function (row) {
+                return { user: row.user_name || 'user', stars: row.stars, text: row.text, date: row.created_at,
+                  reply: row.reply ? { text: row.reply, date: row.reply_at } : null };
+              });
+              if (pdRevCount) pdRevCount.textContent = '(' + list.length + ')';
+              var listWrap = pdPaneReviews.querySelector('#pdRevForm');
+              // Everything after the form is the review list - replace just
+              // that, so the form (and whatever the shopper is mid-typing
+              // isn't relevant here since this only runs post-submit) isn't
+              // torn down and rebuilt too.
+              var html = renderReviewListHtml(list);
+              if (listWrap) {
+                var node = listWrap.nextSibling;
+                while (node) { var next = node.nextSibling; node.remove(); node = next; }
+                listWrap.insertAdjacentHTML('afterend', html);
+              } else {
+                pdPaneReviews.innerHTML = html;
+              }
+            }).catch(function () {});
         }
         function updatesFor(p) {
           var list = Array.isArray(p.versions) ? p.versions.slice() : [];
@@ -2440,24 +2537,15 @@
           var revs = reviewsFor(p);
           if (pdRevCount) pdRevCount.textContent = '(' + revs.length + ')';
           if (pdPaneReviews) {
-            var revFormHtml = owned ? (
-              '<form class="pd-rev-form" id="pdRevForm">' +
-                '<h4>Leave a review</h4>' +
-                '<div class="pd-rev-stars-input" id="pdRevStarsInput">' +
-                  [1, 2, 3, 4, 5].map(function (n) { return '<button type="button" class="pd-rev-star-btn" data-star="' + n + '" aria-label="' + n + ' star">' + STAR_SVG + '</button>'; }).join('') +
-                '</div>' +
-                '<textarea id="pdRevText" maxlength="2000" rows="3" placeholder="Share what you thought of this product..."></textarea>' +
-                '<button type="submit" class="btn btn-primary" id="pdRevSubmit">Submit review</button>' +
-                '<p class="pd-rev-form-msg" id="pdRevFormMsg" hidden></p>' +
-              '</form>'
-            ) : '';
-            pdPaneReviews.innerHTML = revFormHtml + (revs.length ? revs.map(function (r) {
-              var reply = r.reply ? '<div class="pd-rev-reply"><div class="pd-rev-reply-head">coldd team replied</div><p>' + esc(r.reply.text) + '</p></div>' : '';
-              return '<div class="pd-rev"><div class="pd-rev-head"><span class="pd-rev-name">' + esc(r.user) + '</span>' +
-                '<span class="pd-rev-dot">·</span><span class="pd-rev-stars">' + starRow(r.stars) + '</span>' +
-                '<span class="pd-rev-dot">·</span><span class="pd-rev-meta">' + esc(fmtRevDate(r.date)) + '</span></div>' +
-                '<p class="pd-rev-body">' + esc(r.text) + '</p>' + reply + '</div>';
-            }).join('') : '<p class="pd-empty">No reviews yet. Be the first to review this product.</p>');
+            pdPaneReviews.innerHTML = (owned ? renderReviewFormHtml(null) : '') + renderReviewListHtml(revs);
+            revSelectedStars = 0;
+            // Whether this account already reviewed this product - the form
+            // used to always render blank, so resubmitting silently
+            // overwrote the existing review (the upsert already prevented a
+            // true duplicate row) with zero indication that's what just
+            // happened. Pre-filling it and relabeling the button to "Update
+            // review" makes that visible instead of implicit.
+            if (owned) loadMyReview(p.id);
           }
 
           if (pdTabUpdates) pdTabUpdates.hidden = ups.length === 0;
@@ -2604,19 +2692,23 @@
             if (!revSelectedStars) { showMsg('Please select a star rating.'); return; }
             if (!text) { showMsg('Please write a short review.'); return; }
             if (!window.coldAuth) return;
+            var wasUpdate = !!btn && btn.textContent === 'Update review';
             if (btn) { btn.disabled = true; btn.textContent = 'Submitting…'; }
             window.coldAuth.invokeFn('submit-review', { slug: cur.id, stars: revSelectedStars, text: text })
               .then(function () {
-                showMsg('Thanks! Your review is pending approval.');
-                if (textEl) textEl.value = '';
-                revSelectedStars = 0;
-                var btns = pdPaneReviews.querySelectorAll('.pd-rev-star-btn');
-                for (var i = 0; i < btns.length; i++) btns[i].classList.remove('active');
-                if (btn) { btn.disabled = false; btn.textContent = 'Submit review'; }
+                // Reviews go live immediately (no approval queue - see
+                // submit-review's own comment) - the old "pending approval"
+                // copy hadn't matched reality since that changed.
+                return refetchReviewsAndRender(cur.id).then(function () {
+                  showMsg(wasUpdate ? 'Your review has been updated.' : 'Thanks! Your review is live.');
+                  if (btn) { btn.disabled = false; btn.textContent = 'Update review'; }
+                  var heading = form.querySelector('h4');
+                  if (heading) heading.textContent = 'Your review';
+                });
               })
               .catch(function (err) {
                 showMsg((err && err.message) || 'Could not submit review.');
-                if (btn) { btn.disabled = false; btn.textContent = 'Submit review'; }
+                if (btn) { btn.disabled = false; btn.textContent = wasUpdate ? 'Update review' : 'Submit review'; }
               });
           });
         }
@@ -3231,6 +3323,24 @@
         return Object.keys(bySlug).map(function (slug) { return bySlug[slug]; });
       }
 
+      // Navigating straight to the signed URL put a raw
+      // <project-ref>.supabase.co address in the tab/download manager for
+      // whoever had just paid us - reads as a phishing link, not a coldd
+      // download. Fetching it and saving the blob instead means the only
+      // URL ever visible anywhere is a blob: one, which carries THIS
+      // page's own coldd.dev origin, not the signed URL's real host.
+      function triggerFileDownload(url, filename) {
+        return fetch(url).then(function (res) {
+          if (!res.ok) throw new Error('Download failed.');
+          return res.blob();
+        }).then(function (blob) {
+          var objectUrl = URL.createObjectURL(blob);
+          var a = document.createElement('a');
+          a.href = objectUrl; a.download = filename || '';
+          document.body.appendChild(a); a.click(); a.remove();
+          setTimeout(function () { URL.revokeObjectURL(objectUrl); }, 4000);
+        });
+      }
       function requestDownload(slug, btn) {
         // Swap only the label span's text when present (icon buttons like
         // .dp-btn), so a loading/error state doesn't wipe out the icon by
@@ -3243,8 +3353,9 @@
             if (res.error || !res.data || !res.data.ok) throw new Error((res.data && res.data.error) || 'Unavailable');
             return res.data;
           }))
-          .then(function (data) { window.open(data.url, '_blank', 'noopener'); btn.disabled = false; labelEl.textContent = prev; })
-          .catch(function (err) { labelEl.textContent = (err && err.message) || 'Unavailable'; });
+          .then(function (data) { return triggerFileDownload(data.url, data.filename); })
+          .then(function () { btn.disabled = false; labelEl.textContent = prev; })
+          .catch(function (err) { labelEl.textContent = (err && err.message) || 'Unavailable'; btn.disabled = false; });
       }
       var DOWNLOAD_ICON_SVG = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>';
       var RESELL_ICON_SVG = '<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m17 2 4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="m7 22-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>';
@@ -4136,10 +4247,10 @@
       // coupon), but the numbers themselves need to agree or the banner
       // below promises a discount the order won't actually give.
       var SPEND_TIERS = [
-        { minSubtotal: 140, pct: 18 },
-        { minSubtotal: 100, pct: 14 },
-        { minSubtotal: 70, pct: 11 },
-        { minSubtotal: 40, pct: 8 }
+        { minSubtotal: 100, pct: 25 },
+        { minSubtotal: 75, pct: 20 },
+        { minSubtotal: 50, pct: 15 },
+        { minSubtotal: 35, pct: 10 }
       ];
       function currentSpendTier(sub) {
         for (var i = 0; i < SPEND_TIERS.length; i++) { if (sub >= SPEND_TIERS[i].minSubtotal) return SPEND_TIERS[i]; }
@@ -4187,16 +4298,33 @@
         var ascending = SPEND_TIERS.slice().sort(function (a, b) { return a.minSubtotal - b.minSubtotal; });
         var maxThreshold = ascending[ascending.length - 1].minSubtotal;
         var pctToNext = Math.min(100, Math.round((sub / maxThreshold) * 100));
+        // Tiers are always evaluated against real USD order value (matches
+        // what the server actually grants - see _shared/coupon.ts), so the
+        // headline and each rung's figure stay in USD regardless of the
+        // currency toggle instead of switching to window.__money's robux
+        // display, which used a flat 80-per-$1 estimate totally unrelated
+        // to this cart's REAL per-product Robux pricing (a $100 threshold
+        // showing as "R$ 8,000" next to an actual Robux order total of,
+        // say, R$1 for a cheaply-priced item was the exact "14% unlocked
+        // but my order is 1R$" confusion this replaces). The small ≈R$
+        // figure under each rung is that same flat DevEx estimate, kept
+        // as a rough reference, never the number actually being compared.
+        var usdStr = window.__usd || function (n) { return '$' + n; };
         var headline = next
-          ? (tier ? (tier.pct + '% off unlocked - spend ' + money(next.minSubtotal - sub) + ' more for ' + next.pct + '% off') : ('Spend ' + money(next.minSubtotal - sub) + ' more to start saving'))
+          ? (tier ? (tier.pct + '% off unlocked - spend ' + usdStr(next.minSubtotal - sub) + ' more for ' + next.pct + '% off') : ('Spend ' + usdStr(next.minSubtotal - sub) + ' more to start saving'))
           : (tier.pct + '% off unlocked - the best tier in your cart right now.');
-        var markers = ascending.map(function (t) {
+        var markers = ascending.map(function (t, idx) {
           var reached = sub >= t.minSubtotal;
           var isNext = next && t.minSubtotal === next.minSubtotal;
           var left = Math.min(100, Math.round((t.minSubtotal / maxThreshold) * 100));
+          var devexRbx = Math.round(t.minSubtotal * ROBUX_PER_USD_FALLBACK);
+          // The dot always centers on its exact point; the label aligns
+          // inward at the two ends instead (left edge for the first rung,
+          // right edge for the last) so it never overhangs the track.
+          var labelX = idx === 0 ? '0%' : idx === ascending.length - 1 ? '-100%' : '-50%';
           return '<div class="co-tier-marker' + (reached ? ' done' : '') + (isNext ? ' next' : '') + '" style="left:' + left + '%">' +
             '<span class="co-tier-dot">' + (reached ? '<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg>' : '') + '</span>' +
-            '<span class="co-tier-marker-label">' + t.pct + '%<br>' + money(t.minSubtotal) + '</span>' +
+            '<span class="co-tier-marker-label" style="transform:translateX(' + labelX + ')">' + t.pct + '%<br>' + usdStr(t.minSubtotal) + '<span class="co-tier-marker-rbx">≈R$' + devexRbx.toLocaleString('en-US') + '</span></span>' +
             '</div>';
         }).join('');
         var nudgeHtml = '';
@@ -4229,6 +4357,13 @@
       });
 
       function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+      // A checkout that fails for a reason the buyer can't just fix
+      // themselves (a declined charge, a payment provider error, the
+      // Roblox link check erroring out) left them with nothing but an
+      // error string and no path to an actual person.
+      function withSupportLine(msgText) {
+        return esc(msgText) + ' <a href="https://discord.gg/coldd" target="_blank" rel="noopener">Contact us on Discord</a> if this doesn\'t sort itself out.';
+      }
       // The place-order button used to stay fully enabled and styled as the
       // primary action on an empty cart, while its handler bailed out on
       // `if (!cart.length) return;` — so clicking it did nothing at all and
@@ -4915,7 +5050,7 @@
           }).catch(function (err) {
             placeBtn.removeAttribute('data-busy');
             placeBtn.disabled = false; placeBtn.textContent = prevText;
-            if (msg) { msg.className = 'co-msg err show'; msg.textContent = (err && err.message) || 'Could not start Robux checkout.'; }
+            if (msg) { msg.className = 'co-msg err show'; msg.innerHTML = withSupportLine((err && err.message) || 'Could not start Robux checkout.'); }
             // create-robux-order's own live inventory check is the actual
             // authority on whether a re-link is needed (see its comments) -
             // only switch to the link block when THAT specifically failed,
@@ -4930,7 +5065,7 @@
             }
           });
         }).catch(function () {
-          if (msg) { msg.className = 'co-msg err show'; msg.textContent = 'Could not check your Roblox account link.'; }
+          if (msg) { msg.className = 'co-msg err show'; msg.innerHTML = withSupportLine('Could not check your Roblox account link.'); }
         });
       }
       // Resell-rights upgrade moved from a passive sidebar row to a popup
@@ -5112,7 +5247,7 @@
           .catch(function (err) {
             placeBtn.removeAttribute('data-busy');
             placeBtn.disabled = false; placeBtn.textContent = prevText;
-            if (msg) { msg.className = 'co-msg err show'; msg.textContent = (err && err.message) || 'Something went wrong. Please try again.'; }
+            if (msg) { msg.className = 'co-msg err show'; msg.innerHTML = withSupportLine((err && err.message) || 'Something went wrong. Please try again.'); }
           });
       }
 
@@ -5141,7 +5276,7 @@
         placeBtnSide.addEventListener('click', function () { placeBtn.click(); });
       }
 
-      window.addEventListener('currencychange', function () { renderTotals(); renderItems(); });
+      window.addEventListener('currencychange', function () { renderTotals(); renderItems(); renderTierBanner(); });
       if (cart.length) scheduleCartSnapshot();
       render();
     })();
@@ -5151,6 +5286,35 @@
     (function () {
       var root = document.querySelector('.success-page');
       if (!root) return;
+
+      // A visitor staring at a failed/stuck order has no other path to a
+      // human on this page - the sub-message alone left them to go dig up
+      // a support contact themselves. Appended (not replacing the actual
+      // explanation) to every failure-ish message, as real HTML since it
+      // needs to be a clickable link.
+      function withSupportLine(msgHtml) {
+        return msgHtml + ' <a href="https://discord.gg/coldd" target="_blank" rel="noopener">Contact us on Discord</a> if this doesn\'t sort itself out.';
+      }
+      function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+
+      // Navigating straight to the signed URL put a raw
+      // <project-ref>.supabase.co address in the tab/download manager for
+      // whoever had just paid us - reads as a phishing link, not a coldd
+      // download. Fetching it and saving the blob instead means the only
+      // URL ever visible anywhere is a blob: one, which carries THIS
+      // page's own coldd.dev origin, not the signed URL's real host.
+      function triggerFileDownload(url, filename) {
+        return fetch(url).then(function (res) {
+          if (!res.ok) throw new Error('Download failed.');
+          return res.blob();
+        }).then(function (blob) {
+          var objectUrl = URL.createObjectURL(blob);
+          var a = document.createElement('a');
+          a.href = objectUrl; a.download = filename || '';
+          document.body.appendChild(a); a.click(); a.remove();
+          setTimeout(function () { URL.revokeObjectURL(objectUrl); }, 4000);
+        });
+      }
 
       var itemsEl = document.getElementById('successItems');
       var titleEl = document.getElementById('successTitle');
@@ -5273,8 +5437,8 @@
             window.coldSupabase.functions.invoke('get-download-url', { body: { slug: it.product_slug, sessionId: sessionId } })
               .then(function (res) {
                 var data = res && res.data;
-                if (data && data.ok) { window.open(data.url, '_blank', 'noopener'); btn.disabled = false; btn.textContent = prev; }
-                else { btn.textContent = (data && data.error) || 'Could not get download.'; }
+                if (!data || !data.ok) { btn.textContent = (data && data.error) || 'Could not get download.'; return; }
+                return triggerFileDownload(data.url, data.filename).then(function () { btn.disabled = false; btn.textContent = prev; });
               })
               .catch(function () { btn.disabled = false; btn.textContent = prev; });
           });
@@ -5322,7 +5486,7 @@
               // failure on a payment that might be completely fine.
               mark('fail');
               if (titleEl) titleEl.textContent = "Still confirming…";
-              if (subEl) subEl.textContent = "We haven't been able to find this order yet. If you completed payment, it may just be taking a moment to show up here - try checking again, or check your dashboard.";
+              if (subEl) subEl.innerHTML = withSupportLine("We haven't been able to find this order yet. If you completed payment, it may just be taking a moment to show up here - try checking again, or check your dashboard.");
               if (tyRetryBtn) tyRetryBtn.hidden = false;
               return;
             }
@@ -5377,10 +5541,12 @@
               var allSelected = selCount === data.items.length;
               grid.innerHTML = data.items.map(function (it) {
                 var checked = !!selected[it.slug];
+                var pct = allSelected ? (data.itemPct + data.bundlePct) : data.itemPct;
                 var price = allSelected ? it.bundlePriceUsd : it.itemPriceUsd;
                 return '<div class="ty-upsell-card' + (checked ? ' checked' : '') + '" data-slug="' + it.slug + '">' +
-                  '<span class="ty-upsell-thumb" style="background-image:url(\'' + window.imgUrl(it.image) + '\')"></span>' +
-                  '<div class="ty-upsell-body"><div class="ty-upsell-name">' + it.title + '</div>' +
+                  '<span class="ty-upsell-thumb" style="background-image:url(\'' + window.imgUrl(it.image) + '\')"><span class="ty-upsell-off">-' + pct + '%</span></span>' +
+                  '<div class="ty-upsell-body"><div class="ty-upsell-name">' + esc(it.title) + '</div>' +
+                  (it.description ? '<div class="ty-upsell-desc">' + esc(it.description) + '</div>' : '') +
                   '<div class="ty-upsell-price"><span class="ty-upsell-was">' + money2(it.priceUsd) + '</span>' + money2(price) + '</div>' +
                   '<label class="ty-upsell-check"><input type="checkbox" data-slug="' + it.slug + '"' + (checked ? ' checked' : '') + ' /> Include this one</label>' +
                   '</div></div>';
@@ -5496,7 +5662,7 @@
               // A hard failure here means money did not move. Say so plainly
               // rather than letting the poll time out into a vague message.
               mark('fail');
-              subEl.textContent = data.error || 'PayPal could not complete this payment.';
+              subEl.innerHTML = withSupportLine(esc(data.error || 'PayPal could not complete this payment.'));
             }
           })
           .catch(function () {})

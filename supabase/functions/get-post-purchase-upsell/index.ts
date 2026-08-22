@@ -24,7 +24,7 @@ import { mintBundleDeal } from "../_shared/discount_codes.ts";
 const ALLOWED_ORIGIN = "https://coldd.dev";
 const ITEM_PCT = 15;
 const BUNDLE_PCT = 10; // additional, on top of ITEM_PCT, if every offered item is bought together
-const LIMIT = 4;
+const LIMIT = 6;
 const EXPIRES_DAYS = 3;
 
 function corsHeaders() {
@@ -70,7 +70,7 @@ Deno.serve(async (req: Request) => {
 
     const { data: products } = await admin
       .from("products")
-      .select("slug, title, price_usd, image, product_legal(min_sale_usd, disallow_sales)")
+      .select("slug, title, description, image, price_usd, product_legal(min_sale_usd, disallow_sales)")
       .in("slug", candidateSlugs)
       .eq("is_active", true);
     // deno-lint-ignore no-explicit-any
@@ -99,6 +99,7 @@ Deno.serve(async (req: Request) => {
       return {
         slug: p.slug,
         title: p.title,
+        description: p.description || "",
         image: p.image,
         priceUsd: Number(p.price_usd),
         itemPriceUsd: minSaleUsd > 0 ? Math.max(discounted, minSaleUsd) : discounted,

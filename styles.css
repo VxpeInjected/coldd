@@ -1700,27 +1700,60 @@ body.no-scroll { overflow: hidden; }
 .career-section-label h2 { font-size: 17px; font-weight: 700; letter-spacing: -0.01em; }
 .career-section-label p { color: var(--fg-2); font-size: 13px; }
 
-.career-roles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 8px; }
-.career-role { background: var(--bg-3); border: 1px solid var(--hairline); border-radius: var(--r-sm);
-  padding: 22px 22px 20px; display: flex; flex-direction: column;
-  transition: transform .2s var(--ease), border-color .2s, box-shadow .2s; }
-@media (hover: hover) and (pointer: fine) {
-  .career-role:hover { transform: translateY(-2px); border-color: var(--hairline-strong); box-shadow: var(--e-3); }
-}
-.career-role-ic { width: 44px; height: 44px; border-radius: var(--r-ctl); background: var(--ink-25);
-  border: 1px solid var(--hairline); display: grid; place-items: center; color: var(--fg-1); flex: 0 0 auto; }
-.career-role h3 { font-size: 17px; font-weight: 700; letter-spacing: -0.015em; margin: 16px 0 0; }
-.career-role p { color: var(--fg-2); font-size: 14px; line-height: 1.6; margin: 8px 0 18px; flex: 1; }
-.career-apply { align-self: flex-start; color: var(--accent-ink); font-size: 13px; font-weight: 600; }
-@media (hover: hover) and (pointer: fine) {
-  .career-apply:hover { color: var(--accent); }
+/* "How we work" and "What we look for" used to be two stacked clones of
+   .about-info - identical panel, identical two-column split, twice.
+   One panel, two columns, one hairline between them reads as a single
+   thought instead of the landing-page habit of restating a section
+   shape until the page is full. */
+.careers-intro { padding: 46px 50px; display: grid; grid-template-columns: 1.05fr 0.95fr; gap: 0; }
+.ci-col { min-width: 0; }
+.ci-col-look { padding-left: 52px; border-left: 1px solid var(--hairline); }
+.careers-intro h2 { font-size: var(--t-h2); letter-spacing: -0.035em; line-height: 1.08; margin-bottom: 16px; }
+.careers-intro p { color: var(--fg-2); font-size: 15.5px; line-height: 1.75; margin: 0 0 16px; }
+.careers-intro p:last-of-type { margin-bottom: 0; }
+.ci-meta { list-style: none; display: flex; flex-direction: column; gap: 12px; margin: 24px 0 0; padding: 22px 0 0; border-top: 1px solid var(--hairline); }
+.ci-meta li { display: flex; align-items: baseline; gap: 12px; font-size: 14px; color: var(--fg-2); }
+.ci-meta li b { font-weight: 700; color: var(--fg); min-width: 66px; flex: 0 0 auto; }
+
+@media (max-width: 820px) {
+  .careers-intro { grid-template-columns: 1fr; gap: 30px; padding: 32px 26px; }
+  .ci-col-look { padding-left: 0; padding-top: 30px; border-left: none; border-top: 1px solid var(--hairline); }
 }
 
-@media (max-width: 900px) {
-  .career-roles { grid-template-columns: repeat(2, 1fr); }
+/* FAQ as ruled rows instead of an accordion stack - every answer is
+   already short, so there's nothing gained by hiding it behind a
+   click except one more generic "click to expand" pattern. */
+.career-faq { max-width: 820px; margin: 0 auto; border-top: 1px solid var(--hairline); }
+.cf-row { display: grid; grid-template-columns: 240px 1fr; gap: 32px; padding: 26px 4px; border-bottom: 1px solid var(--hairline); }
+.cf-row h3 { font-size: 15px; font-weight: 700; letter-spacing: -0.01em; }
+.cf-row p { color: var(--fg-2); font-size: 14.5px; line-height: 1.7; margin: 0; }
+
+@media (max-width: 640px) {
+  .cf-row { grid-template-columns: 1fr; gap: 6px; padding: 20px 4px; }
 }
-@media (max-width: 560px) {
-  .career-roles { grid-template-columns: 1fr; }
+
+/* A ruled listing, not a row of equal-width cards - reads like a real
+   job board (one posting today, room for more later) instead of a
+   grid built to hold nine generic tiles. */
+.career-list { border-top: 1px solid var(--hairline); }
+.career-listing { display: grid; grid-template-columns: 56px 1fr 1.5fr; gap: 28px; align-items: start;
+  padding: 30px 4px; border-bottom: 1px solid var(--hairline); }
+.cl-num { font-size: 13px; font-weight: 700; color: var(--fg-3); letter-spacing: -0.01em; padding-top: 3px; }
+.cl-main h3 { font-size: 19px; font-weight: 800; letter-spacing: -0.02em; }
+.cl-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.cl-tags span { font-size: 12px; font-weight: 600; color: var(--fg-2); padding: 5px 10px; border-radius: 999px;
+  background: var(--glass-top); border: 1px solid var(--hairline); }
+.cl-body p { color: var(--fg-2); font-size: 14.5px; line-height: 1.68; margin: 0 0 16px; max-width: 52ch; }
+.career-apply { display: inline-flex; align-items: center; gap: 6px; color: var(--accent-ink); font-size: 13.5px; font-weight: 600; }
+.career-apply svg { transition: transform .2s var(--ease); }
+@media (hover: hover) and (pointer: fine) {
+  .career-apply:hover { color: var(--accent); }
+  .career-apply:hover svg { transform: translate(2px, -2px); }
+}
+
+@media (max-width: 720px) {
+  .career-listing { grid-template-columns: 1fr; gap: 10px; padding: 24px 4px; }
+  .cl-num { display: none; }
   .career-section-label { flex-direction: column; align-items: flex-start; }
 }
 

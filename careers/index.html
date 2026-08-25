@@ -32,7 +32,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
 
-  <link rel="stylesheet" href="/styles.css?v=20260822j" />
+  <link rel="stylesheet" href="/styles.css?v=20260825a" />
   <!-- ld:start -->
   <script type="application/ld+json">{"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Home", "item": "https://coldd.dev/"}, {"@type": "ListItem", "position": 2, "name": "Careers", "item": "https://coldd.dev/careers"}]}</script>
   <!-- ld:end -->
@@ -147,31 +147,19 @@
 
     <section class="section-pad" style="padding-top: 6px;">
       <div class="wrap">
-        <div class="glass about-info reveal">
-          <div class="about-info-head">
+        <div class="glass careers-intro reveal">
+          <div class="ci-col">
             <h2>How we work.</h2>
-          </div>
-          <div class="about-info-body">
             <p>coldd doesn't have an office, a headcount target, or a hiring pipeline. It has a Discord server, a shared bar for quality, and a handful of people who ship. When we need a role filled, it's because a real backlog of work needs it, not because a plan says we should be bigger.</p>
-            <p>Every collaborator here is a contractor working on specific products or systems, paid per delivered piece or on an ongoing basis once the fit is proven. You keep your own hours and tools. What matters is whether the work is good enough to sell.</p>
+            <p>Every collaborator here is a contractor working on specific products or systems, paid per delivered piece or on an ongoing basis once the fit is proven. You keep your own hours and tools.</p>
+            <ul class="ci-meta">
+              <li><b>Remote</b>Work from anywhere</li>
+              <li><b>Contract</b>Paid per project or ongoing</li>
+              <li><b>Async</b>Coordinated over Discord</li>
+            </ul>
           </div>
-        </div>
-
-        <div class="glass about-figures reveal d1">
-          <div class="fig"><div class="fn">Remote</div><div class="fl">Work from anywhere</div></div>
-          <div class="fig"><div class="fn">Contract</div><div class="fl">Paid per project or ongoing</div></div>
-          <div class="fig"><div class="fn">Async</div><div class="fl">Coordinated over Discord</div></div>
-        </div>
-      </div>
-    </section>
-
-    <section class="section-pad" style="padding-top: 0;">
-      <div class="wrap">
-        <div class="glass about-info reveal">
-          <div class="about-info-head">
+          <div class="ci-col ci-col-look">
             <h2>What we look for.</h2>
-          </div>
-          <div class="about-info-body">
             <p>A portfolio that shows finished, shippable work beats a resume every time. We care about craft, speed, and whether you can take a brief and run with it with minimal back-and-forth.</p>
             <div class="about-tags">
               <span>Strong portfolio</span><span>Self-directed</span><span>Fast communicator</span>
@@ -189,7 +177,7 @@
           <p>Contract-based, remote, paid per project unless noted.</p>
         </div>
 
-        <div class="career-roles" id="careerRolesGrid">
+        <div class="career-list" id="careerRolesGrid">
           <p class="pd-empty">Loading roles…</p>
         </div>
       </div>
@@ -200,28 +188,26 @@
         <div class="sec-head reveal">
           <h2>Hiring FAQ.</h2>
         </div>
-        <div class="glass" style="padding: 22px 24px 8px; max-width: 760px; margin: 0 auto;">
-          <div class="pd-faq-list">
-            <details class="pd-faq-item reveal">
-              <summary>Are these paid positions?</summary>
-              <p>Yes. Work is paid per delivered asset or project, and moves to an ongoing arrangement once the fit is proven on both sides. There are no unpaid trials.</p>
-            </details>
-            <details class="pd-faq-item reveal">
-              <summary>Do I need prior Roblox or Minecraft experience?</summary>
-              <p>A portfolio that shows finished, shippable work matters far more than years on a resume. If your work is in-engine and holds up, we want to see it.</p>
-            </details>
-            <details class="pd-faq-item reveal">
-              <summary>Is this remote?</summary>
-              <p>Yes, fully remote. The team coordinates asynchronously over Discord, there's no fixed schedule beyond agreed delivery dates.</p>
-            </details>
-            <details class="pd-faq-item reveal">
-              <summary>How do I apply?</summary>
-              <p>Hit Apply on the role you're interested in, it opens an email with a subject line already filled in. Include a portfolio link or attached samples, that's the main thing we look at first.</p>
-            </details>
-            <details class="pd-faq-item reveal">
-              <summary>How long does it take to hear back?</summary>
-              <p>We review applications as they come in and reply either way, usually within a couple weeks. If a role fills before we get to yours, strong applications are kept for the next opening.</p>
-            </details>
+        <div class="career-faq">
+          <div class="cf-row reveal">
+            <h3>Are these paid positions?</h3>
+            <p>Yes. Work is paid per delivered asset or project, and moves to an ongoing arrangement once the fit is proven on both sides. There are no unpaid trials.</p>
+          </div>
+          <div class="cf-row reveal">
+            <h3>Do I need prior Roblox or Minecraft experience?</h3>
+            <p>A portfolio that shows finished, shippable work matters far more than years on a resume. If your work is in-engine and holds up, we want to see it.</p>
+          </div>
+          <div class="cf-row reveal">
+            <h3>Is this remote?</h3>
+            <p>Yes, fully remote. The team coordinates asynchronously over Discord, there's no fixed schedule beyond agreed delivery dates.</p>
+          </div>
+          <div class="cf-row reveal">
+            <h3>How do I apply?</h3>
+            <p>Hit Apply on the role you're interested in, it opens an email with a subject line already filled in. Include a portfolio link or attached samples, that's the main thing we look at first.</p>
+          </div>
+          <div class="cf-row reveal">
+            <h3>How long does it take to hear back?</h3>
+            <p>We review applications as they come in and reply either way, usually within a couple weeks. If a role fills before we get to yours, strong applications are kept for the next opening.</p>
           </div>
         </div>
       </div>
@@ -402,7 +388,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.2/dist/umd/supabase.min.js" integrity="sha384-B2duOBIryCXbX4eDE4BdJwtNkQMRQde3o6IsjfPW28E6aH1CYE96hHeZRG3zY56O" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script src="/supabase-init.js?v=20260821a"></script>
   <script src="/site-gate.js?v=20260820b"></script>
-  <script src="/catalog.js?v=20260820b" data-then="/app.js?v=20260822j,/careers.js?v=20260816a"></script>
+  <script src="/catalog.js?v=20260820b" data-then="/app.js?v=20260822j,/careers.js?v=20260825a"></script>
   <script>
     // Cart badge/total sync from localStorage, ahead of app.js. The fab
     // markup above ships hardcoded at "0"/"$0", and the cart module that

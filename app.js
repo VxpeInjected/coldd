@@ -954,6 +954,29 @@
           '</div>' +
         '</article>';
       }
+      // markOwned() in the shop-grid module only ever touches that grid's own
+      // cards - the homepage's Featured/Deals grids are curated/algorithmic
+      // picks, not personalized, so a product a signed-in visitor already
+      // owns can legitimately still show up here. Without this, it showed
+      // with a fully-active Buy/Add to cart and no indication they already
+      // own it - the same "owned state missing" gap the shop grid already
+      // solves, just not applied to these two grids.
+      function applyOwnedState(container) {
+        if (!container || !window.__coldOwned) return;
+        window.__coldOwned.load().then(function () {
+          Array.prototype.forEach.call(container.querySelectorAll('.product'), function (card) {
+            var owned = window.__coldOwned.has(card.getAttribute('data-id'));
+            card.classList.toggle('owned', owned);
+            var addBtn = card.querySelector('.p-add');
+            if (addBtn) { addBtn.disabled = owned; addBtn.textContent = owned ? 'Owned' : 'Add to cart'; }
+            var buyBtn = card.querySelector('.p-buy');
+            if (buyBtn) buyBtn.disabled = owned;
+            var thumb = card.querySelector('.p-thumb');
+            var badge = thumb ? thumb.querySelector('.p-owned-badge') : null;
+            if (owned && thumb && !badge) thumb.insertAdjacentHTML('beforeend', '<span class="p-owned-badge">Owned</span>');
+          });
+        });
+      }
       var catalog = window.__CATALOG || [];
       // Both grids ship `hidden` in the static HTML - see index.html - so the
       // hardcoded example cards below (a fallback for no-JS/no-picks-yet,
@@ -974,6 +997,7 @@
         if (featuredPicks.length) featuredGrid.innerHTML = featuredPicks.map(homeCardHtml).join('');
         featuredGrid.hidden = !featuredPicks.length;
         if (featuredSection) featuredSection.hidden = !featuredPicks.length;
+        applyOwnedState(featuredGrid);
       }
       var dealsGrid = document.getElementById('homeDealsGrid');
       var dealsSection = document.getElementById('homeDealsSection');
@@ -982,6 +1006,7 @@
         if (dealPicks.length) dealsGrid.innerHTML = dealPicks.map(homeCardHtml).join('');
         dealsGrid.hidden = !dealPicks.length;
         if (dealsSection) dealsSection.hidden = !dealPicks.length;
+        applyOwnedState(dealsGrid);
       }
     })();
 

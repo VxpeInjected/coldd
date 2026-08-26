@@ -3757,7 +3757,7 @@
     $('admDiscountCodesView').hidden = type !== 'codes';
     $('admBundleDealsView').hidden = type !== 'bundles';
     $('admHomepageView').hidden = type !== 'homepage';
-    if (type === 'homepage') renderHomepageTab();
+    if (type === 'homepage') { renderHomepageTab(); loadWeeklyDealsSettings(); }
     if (type === 'bundles') renderBundleDeals();
   });
 
@@ -3853,6 +3853,30 @@
   if (weeklyExcludedBody) weeklyExcludedBody.addEventListener('click', function (e) {
     var includeBtn = e.target.closest('.adm-weekly-include'); if (!includeBtn) return;
     weeklyDealsAction('include', includeBtn.getAttribute('data-id'), includeBtn);
+  });
+  function loadWeeklyDealsSettings() {
+    callWeeklyDeals('getSettings').then(function (res) {
+      if ($('admWeeklyMaxPct')) $('admWeeklyMaxPct').value = res.maxDiscountPct;
+      if ($('admWeeklyStepPct')) $('admWeeklyStepPct').value = res.discountStepPct;
+      if ($('admWeeklyMaxPctLabel')) $('admWeeklyMaxPctLabel').textContent = res.maxDiscountPct;
+    }).catch(function () {});
+  }
+  var weeklySettingsSaveBtn = $('admWeeklySettingsSave');
+  if (weeklySettingsSaveBtn) weeklySettingsSaveBtn.addEventListener('click', function () {
+    if (!can('admin')) return;
+    var msg = $('admWeeklyDealsMsg');
+    var label = weeklySettingsSaveBtn.querySelector('.btn-label'), spinner = weeklySettingsSaveBtn.querySelector('.btn-spinner');
+    var maxDiscountPct = parseInt($('admWeeklyMaxPct').value, 10);
+    var discountStepPct = parseInt($('admWeeklyStepPct').value, 10);
+    weeklySettingsSaveBtn.disabled = true; if (label) label.hidden = true; if (spinner) spinner.hidden = false;
+    invokeAdminFn('admin-weekly-deals', { action: 'updateSettings', maxDiscountPct: maxDiscountPct, discountStepPct: discountStepPct }, 'Request failed.').then(function () {
+      if (msg) msg.textContent = 'Settings saved.';
+      if ($('admWeeklyMaxPctLabel')) $('admWeeklyMaxPctLabel').textContent = maxDiscountPct;
+    }).catch(function (err) {
+      if (msg) msg.textContent = err.message || 'Something went wrong.';
+    }).then(function () {
+      weeklySettingsSaveBtn.disabled = false; if (label) label.hidden = false; if (spinner) spinner.hidden = true;
+    });
   });
   var runNowBtn = $('admWeeklyDealsRunNow');
   if (runNowBtn) runNowBtn.addEventListener('click', function () { weeklyDealsAction('run', null, runNowBtn); });

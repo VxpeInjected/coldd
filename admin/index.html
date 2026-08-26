@@ -833,11 +833,16 @@
               </div>
               <div class="dash-card glass dash-tablewrap">
                 <div class="dash-card-head">
-                  <div><h2>This week's deals</h2><span class="adm-sub">Picked automatically every Monday by a revenue-maximizing algorithm - never above 40% off, never below a product's minimum sale price. See "How this works" below.</span></div>
+                  <div><h2>This week's deals</h2><span class="adm-sub">Picked automatically every Monday by a revenue-maximizing algorithm - never above <span id="admWeeklyMaxPctLabel">40</span>% off, never below a product's minimum sale price. See "How this works" below.</span></div>
                   <div style="display:flex;gap:8px;">
                     <button class="btn btn-ghost adm-btn-sm" id="admWeeklyDealsRunNow" type="button"><span class="btn-label">Run now</span><span class="btn-spinner" hidden></span></button>
                     <button class="btn btn-ghost adm-btn-sm" id="admWeeklyDealsRevertAll" type="button">Revert all</button>
                   </div>
+                </div>
+                <div class="adm-form">
+                  <label class="adm-field" style="max-width:160px;"><span>Max discount (%)</span><input type="number" min="1" max="90" step="1" id="admWeeklyMaxPct" class="adm-input" /></label>
+                  <label class="adm-field" style="max-width:160px;"><span>Discount step (%)</span><input type="number" min="1" max="90" step="1" id="admWeeklyStepPct" class="adm-input" /></label>
+                  <button class="btn btn-ghost adm-btn-sm" id="admWeeklySettingsSave" type="button"><span class="btn-label">Save</span><span class="btn-spinner" hidden></span></button>
                 </div>
                 <div class="adm-edit-msg" id="admWeeklyDealsMsg"></div>
                 <table class="dash-table">

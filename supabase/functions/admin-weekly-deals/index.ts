@@ -45,10 +45,18 @@ function json(body: unknown, status = 200) {
 // still lose to a smaller one when the smaller one keeps more revenue per
 // sale - it isn't a rule that says "always take the max discount".
 const ELASTICITY = 1.5;
-const MAX_DISCOUNT_PCT = 40;
-const DISCOUNT_STEP_PCT = 5;
+const DEFAULT_MAX_DISCOUNT_PCT = 40;
+const DEFAULT_DISCOUNT_STEP_PCT = 5;
 const PICK_COUNT = 4;
 const LOOKBACK_DAYS = 30;
+
+async function loadSettings(admin: ReturnType<typeof createClient>) {
+  const { data } = await admin.from("weekly_deal_settings").select("max_discount_pct, discount_step_pct").eq("id", true).maybeSingle();
+  return {
+    maxDiscountPct: data?.max_discount_pct ?? DEFAULT_MAX_DISCOUNT_PCT,
+    discountStepPct: data?.discount_step_pct ?? DEFAULT_DISCOUNT_STEP_PCT,
+  };
+}
 
 type ProductRow = {
   id: string;
@@ -86,6 +94,8 @@ async function runAlgorithm(admin: ReturnType<typeof createClient>, actorName: s
   // mid-week (the "Run now" button) can never compound a discount on top
   // of last run's discount.
   await revertAuto(admin);
+
+  const { maxDiscountPct: MAX_DISCOUNT_PCT, discountStepPct: DISCOUNT_STEP_PCT } = await loadSettings(admin);
 
   const { data: products, error: prodErr } = await admin
     .from("products")
@@ -203,6 +213,36 @@ Deno.serve(async (req: Request) => {
     if (action === "run") {
       const picks = await runAlgorithm(admin, isCron ? actorName : `${actorName} (manual run)`);
       return json({ ok: true, picks });
+    }
+
+    if (action === "getSettings") {
+      const settings = await loadSettings(admin);
+      return json({ ok: true, ...settings });
+    }
+
+    if (action === "updateSettings") {
+      if (isCron) return json({ ok: false, error: "Not permitted." }, 403);
+      const maxDiscountPct = Math.round(Number(body.maxDiscountPct));
+      const discountStepPct = Math.round(Number(body.discountStepPct));
+      if (!Number.isFinite(maxDiscountPct) || maxDiscountPct <= 0 || maxDiscountPct > 90) {
+        return json({ ok: false, error: "Max discount must be between 1 and 90." }, 400);
+      }
+      if (!Number.isFinite(discountStepPct) || discountStepPct <= 0 || discountStepPct > maxDiscountPct) {
+        return json({ ok: false, error: "Discount step must be between 1 and the max discount." }, 400);
+      }
+      const { error: settingsErr } = await admin.from("weekly_deal_settings").upsert({
+        id: true,
+        max_discount_pct: maxDiscountPct,
+        discount_step_pct: discountStepPct,
+        updated_at: new Date().toISOString(),
+      });
+      if (settingsErr) throw new Error(settingsErr.message);
+      await admin.from("admin_audit_log").insert({
+        actor_id: null,
+        actor_name: actorName,
+        action: `Weekly deals settings: max ${maxDiscountPct}%, step ${discountStepPct}%`,
+      });
+      return json({ ok: true });
     }
 
     if (action === "revertAll") {

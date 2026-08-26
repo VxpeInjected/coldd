@@ -1418,21 +1418,30 @@
 
           return priorityBoost + social + saleBoost + recencyBoost + priceWeight + interestBoost + genreBoost + revenueBoost + resellBoost;
         }
-        // Each of these four ranking signals is its own round trip that
-        // resolves well after the grid's first paint (that paint runs
-        // synchronously, before any network round trip can possibly
-        // return). This used to call refilter() the instant a signal
-        // landed, reordering the grid the visitor was already looking at -
-        // reads as the catalog randomly swapping products around under
-        // them, "a few seconds" after the page loaded, no matter how many
-        // signals were coalesced into that reflow. Fixed by never
-        // reflowing already-visible cards for this: a late-arriving signal
-        // just updates the variables conversionScore() reads, so it only
-        // affects the NEXT refilter a visitor actually triggers (changing
-        // sort, category, search, or page) - the grid they're currently
-        // looking at never moves under them on its own.
+        // Each of these four ranking signals is its own round trip. A
+        // previous fix stopped them from reordering the grid AFTER it was
+        // revealed (they used to call refilter() the instant one landed,
+        // visibly reshuffling cards the visitor was already looking at) -
+        // but the grid's first reveal was still happening immediately, with
+        // whatever subset of these signals had happened to resolve by
+        // then, and never got corrected once the rest landed. On a
+        // connection where even one of these round trips takes a couple of
+        // seconds, that's still exactly "products change a few seconds
+        // after the page loads" - just moved from "after reveal" to "the
+        // reveal itself was the change." Fixed properly this time by
+        // holding the reveal - grid stays hidden behind the loading spinner
+        // - until every signal has either resolved or hit the safety
+        // timeout below, so there is only ever one render, with final data,
+        // and nothing to visibly transition from.
+        var pendingRankingSignals = { cats: true, catTerms: true, userTerms: true, revenue: true };
+        var gridRevealed = false;
+        function signalSettled(key) {
+          delete pendingRankingSignals[key];
+          if (Object.keys(pendingRankingSignals).length === 0) revealGrid();
+        }
+        var revealSafetyTimer = setTimeout(revealGrid, 2500);
         function loadUserCategories() {
-          if (!window.coldSupabase) return;
+          if (!window.coldSupabase) { signalSettled('cats'); return; }
           window.coldSupabase.auth.getSession().then(function (res) {
             var session = res && res.data && res.data.session;
             if (!session) return;
@@ -1441,22 +1450,22 @@
               if (!rows.length) return;
               userCategories = new Set(rows.map(function (row) { return row.platform + '|' + row.cat; }));
             });
-          }).catch(function () {});
+          }).catch(function () {}).then(function () { signalSettled('cats'); });
         }
         loadUserCategories();
         function loadCatalogTerms() {
-          if (!window.coldSupabase) return;
+          if (!window.coldSupabase) { signalSettled('catTerms'); return; }
           window.coldSupabase.rpc('catalog_signal_terms', {}).then(function (r) {
             var rows = r.data || [];
             if (!rows.length) return;
             var map = {};
             rows.forEach(function (row) { map[row.product_slug] = row.terms || []; });
             catalogTerms = map;
-          }).catch(function () {});
+          }).catch(function () {}).then(function () { signalSettled('catTerms'); });
         }
         loadCatalogTerms();
         function loadUserTerms() {
-          if (!window.coldSupabase) return;
+          if (!window.coldSupabase) { signalSettled('userTerms'); return; }
           window.coldSupabase.auth.getSession().then(function (res) {
             var session = res && res.data && res.data.session;
             if (!session) return;
@@ -1465,18 +1474,18 @@
               if (!terms.length) return;
               userTerms = new Set(terms);
             });
-          }).catch(function () {});
+          }).catch(function () {}).then(function () { signalSettled('userTerms'); });
         }
         loadUserTerms();
         function loadCatalogRevenue() {
-          if (!window.coldSupabase) return;
+          if (!window.coldSupabase) { signalSettled('revenue'); return; }
           window.coldSupabase.rpc('get_catalog_revenue', {}).then(function (r) {
             var rows = r.data || [];
             if (!rows.length) return;
             var map = {};
             rows.forEach(function (row) { map[row.product_slug] = Number(row.revenue) || 0; });
             catalogRevenue = map;
-          }).catch(function () {});
+          }).catch(function () {}).then(function () { signalSettled('revenue'); });
         }
         loadCatalogRevenue();
         function sortMatches(arr) {
@@ -1699,27 +1708,35 @@
         });
 
         paintRange();
-        const initial = new URLSearchParams(location.search).get('cat');
-        const hasInit = initial && ((chips && chips.querySelector('.chip[data-cat="' + initial + '"]')) || (sideCats && sideCats.querySelector('.fc-cat[data-cat="' + initial + '"]')));
-        setCat(hasInit ? initial : 'all');
-
-        // Lets a link (the Shop mega-menu's New Releases tile, currently the
-        // only user of this) land pre-sorted instead of on Recommended.
-        const initialSort = new URLSearchParams(location.search).get('sort');
-        const initialSortOpt = initialSort && sortOpts.filter(function (o) { return o.getAttribute('data-sort') === initialSort; })[0];
-        if (initialSortOpt) {
-          var initialSortLabel = initialSortOpt.querySelector('span') ? initialSortOpt.querySelector('span').textContent : initialSortOpt.textContent;
-          setSort(initialSort, initialSortLabel);
-        }
-
         // #grid ships [hidden] (static markup is every product in raw
         // build-time order, unsorted and unpaginated - see styles.css's
-        // .grid-loading comment). setCat/setSort above already ran the
-        // real sort+filter+pagination pass synchronously, so the grid is
-        // correct now - reveal it and drop the spinner in its place.
-        grid.hidden = false;
-        var gridLoading = document.getElementById('gridLoading');
-        if (gridLoading) gridLoading.hidden = true;
+        // .grid-loading comment) and stays that way, spinner showing, until
+        // every ranking signal above has settled - see the comment on
+        // pendingRankingSignals for why this waits rather than revealing
+        // immediately. setCat/setSort run the real sort+filter+pagination
+        // pass synchronously with whatever final data is available the
+        // moment this actually fires, so there is exactly one render.
+        function revealGrid() {
+          if (gridRevealed) return;
+          gridRevealed = true;
+          clearTimeout(revealSafetyTimer);
+          const initial = new URLSearchParams(location.search).get('cat');
+          const hasInit = initial && ((chips && chips.querySelector('.chip[data-cat="' + initial + '"]')) || (sideCats && sideCats.querySelector('.fc-cat[data-cat="' + initial + '"]')));
+          setCat(hasInit ? initial : 'all');
+
+          // Lets a link (the Shop mega-menu's New Releases tile, currently
+          // the only user of this) land pre-sorted instead of on Recommended.
+          const initialSort = new URLSearchParams(location.search).get('sort');
+          const initialSortOpt = initialSort && sortOpts.filter(function (o) { return o.getAttribute('data-sort') === initialSort; })[0];
+          if (initialSortOpt) {
+            var initialSortLabel = initialSortOpt.querySelector('span') ? initialSortOpt.querySelector('span').textContent : initialSortOpt.textContent;
+            setSort(initialSort, initialSortLabel);
+          }
+
+          grid.hidden = false;
+          var gridLoading = document.getElementById('gridLoading');
+          if (gridLoading) gridLoading.hidden = true;
+        }
       });
     })();
 

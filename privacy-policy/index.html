@@ -156,7 +156,12 @@
           <p><strong>Payment processors.</strong> Card payments are processed by Stripe. We also support PayPal, cryptocurrency (processed by NOWPayments), and Robux via Roblox. coldd never receives or stores your full card number, PayPal credentials, crypto wallet keys, or Roblox password — those go directly to the relevant processor. We keep a record of the transaction itself (amount, date, product, payment method, and the processor's own reference) for order history, refunds and support.</p>
           <p><strong>Roblox.</strong> If you pay with Robux you link a Roblox account. We store your Roblox user ID and an access token so we can confirm your purchase; the token is kept server-side and is never sent to your browser. We request permission to read your inventory purely to verify that a purchase completed — we do not browse, store or analyse the rest of your inventory.</p>
           <p><strong>Discord and support communications.</strong> If you contact us by email or through our Discord server, we retain that correspondence to help resolve your request.</p>
-          <p><strong>Cookies and analytics.</strong> We use two kinds of browser storage. <em>Essential</em> storage keeps you signed in, remembers your cart and currency preference, and records the cookie choice you make below — the Site cannot function without it, so it isn't offered as a choice. <em>Analytics</em> storage is optional and stays off until you actively turn it on; once enabled, it sends us a page-view beacon and, if you reach checkout with items in your cart, a snapshot of that cart so we can follow up if it's abandoned. This analytics runs in-house on our own Supabase infrastructure — we do not use a third-party analytics provider, and analytics data is never shared outside coldd or used for advertising. It's kept in aggregate; see "Data Retention" below. You can grant or withdraw analytics consent at any time using the button below.</p>
+          <p><strong>Cookies and analytics.</strong> We use two kinds of browser storage. <em>Essential</em> storage keeps you signed in, remembers your cart and currency preference, and records the cookie choice you make below — the Site cannot function without it, so it isn't offered as a choice. <em>Analytics</em> storage is optional and stays off until you actively turn it on. It covers two things, which are not equally anonymous:</p>
+          <ul>
+            <li><strong>Page-view beacon</strong> — a page visit logged against a random id generated for that browser session, never your account. This is genuinely anonymous: it isn't linked to your identity and is used only in aggregate, to see which pages get used.</li>
+            <li><strong>Abandoned-cart snapshot</strong> — if you reach checkout with items still in your cart, we save that cart so we can follow up if you don't complete the order. If you're signed in, this snapshot <strong>is</strong> linked to your account and email address, and may be used to send you up to a few reminder emails about that cart (the later ones may include a discount code, only if you've separately opted in to marketing emails). If you're signed out, the snapshot has no account or email attached. Either way, it's cleared as soon as you check out or empty your cart.</li>
+          </ul>
+          <p>Both run in-house on our own Supabase infrastructure — we do not use a third-party analytics provider, and neither is shared outside coldd or used for third-party advertising. You can grant or withdraw analytics consent at any time using the button below; withdrawing it stops new page-view and cart-snapshot data being collected going forward.</p>
           <p><button type="button" class="btn btn-tinted" id="cookiePrefsBtn">Manage Cookie Preferences</button></p>
           <script>
             // Re-opens the consent bar so a decision is never final. Guarded
@@ -182,28 +187,43 @@
           </ul>
 
           <h2>3. How We Share Information</h2>
-          <p>We share information only where necessary to operate the Site:</p>
+          <p>We share information only where necessary to operate the Site, and only with the specific providers below:</p>
           <ul>
             <li><strong>Payment processors</strong> — Stripe (cards), PayPal, NOWPayments (cryptocurrency) and Roblox (Robux), to take payment and confirm it completed</li>
             <li><strong>OAuth providers</strong> — Google, Discord and Roblox, when you choose to sign in or link through them</li>
-            <li><strong>Infrastructure providers</strong> — Supabase, which hosts our database, authentication and file storage, and Cloudflare, which serves and protects the Site</li>
+            <li><strong>Infrastructure providers</strong> — Supabase, which hosts our database, authentication and file storage; Cloudflare, which fronts the Site's traffic and provides security filtering; and GitHub Pages, which hosts the Site's static pages</li>
             <li><strong>Email delivery</strong> — Resend, which sends order confirmations, sign-in codes, and (if you've opted in) marketing emails on our behalf</li>
             <li>Where required by law, or to protect coldd's rights and users' safety</li>
           </ul>
-          <p>We do not sell your personal information, and we do not share it for advertising.</p>
+          <p>We do not sell your personal information, and we do not share it with third parties for their own advertising.</p>
 
           <h2>4. Where Your Information Is Stored</h2>
-          <p>Our database and file storage are hosted by Supabase in the <strong>European Union</strong>. If you are in Australia or elsewhere, this means your personal information is stored overseas. Our payment processors and sign-in providers also operate internationally and may process your information in the United States and other countries.</p>
-          <p>We take reasonable steps to ensure these providers handle your information consistently with this Policy and applicable privacy law, but by using the Site you acknowledge your information will be stored and processed outside your country of residence.</p>
+          <p>Our database, authentication and file storage are hosted by Supabase in the <strong>European Union</strong>. If you are in Australia or elsewhere, this means your account and order data is stored overseas.</p>
+          <p>Beyond that, the specific providers above each process information internationally as part of how they operate:</p>
+          <ul>
+            <li>Cloudflare operates a global network and may handle your requests at an edge location anywhere in the world, purely to route traffic and filter abuse — it does not store your personal information.</li>
+            <li>GitHub Pages (United States) hosts the Site's static pages and logs standard web requests to do so.</li>
+            <li>Stripe, PayPal, Resend, Google, Discord and Roblox are all headquartered in the United States and process data there and in other countries as part of their own global operations.</li>
+            <li>NOWPayments processes cryptocurrency payments internationally; we do not control which country a given transaction is processed in.</li>
+          </ul>
+          <p>We take reasonable steps to ensure these providers handle your information consistently with this Policy and applicable privacy law, but by using the Site you acknowledge your information may be stored and processed outside your country of residence.</p>
 
           <h2>5. Data Retention</h2>
-          <p>We keep account and order records for as long as your account is active, and afterwards for as long as we are required to — Australian tax and business records law generally requires transaction records to be kept for <strong>five years</strong>.</p>
-          <p>Analytics data is kept in aggregate and is not tied to your identity. If you delete your account, we remove your profile and sign-in details; order records are retained where we are legally required to keep them, but are disassociated from your account where we can.</p>
+          <p>How long we keep something depends on what it is:</p>
+          <ul>
+            <li><strong>Account and profile information</strong> is kept while your account is active. If you delete your account, your profile, Roblox account link, and any reviews you've posted are removed immediately.</li>
+            <li><strong>Order and payment records</strong> are kept for as long as we're legally required to — Australian tax and business records law generally requires transaction records to be kept for around <strong>five years</strong>. If you delete your account, these records are kept but disassociated from your account where we're able to do that.</li>
+            <li><strong>Support and Discord correspondence</strong> is kept for as long as reasonably necessary to resolve your request and for a reasonable period afterwards, in case the same issue recurs.</li>
+            <li><strong>Page-view analytics</strong> (the anonymous beacon described in section 1) is never linked to an account, so it isn't affected by account deletion.</li>
+            <li><strong>Abandoned-cart snapshots</strong> are deleted automatically once you check out or empty your cart; if left abandoned, the reminder sequence itself completes within about two weeks, after which the snapshot is no longer actively used.</li>
+            <li><strong>Security, fraud and administrative logs</strong> (rate-limiting records, staff action logs, and infrastructure request logs kept by Supabase/Cloudflare/GitHub) are retained for as long as reasonably necessary for security, fraud prevention and accountability purposes, and are not tied to routine account deletion.</li>
+          </ul>
 
           <h2>6. Your Rights</h2>
-          <p>You can request access to, correction of, or deletion of your personal information at any time by emailing <a href="mailto:support@coldd.dev">support@coldd.dev</a>. We'll respond as soon as reasonably possible, and within 30 days.</p>
+          <p>You can request access to, or correction of, your personal information at any time by emailing <a href="mailto:support@coldd.dev">support@coldd.dev</a>. You can also request deletion — see "Data Retention" above for what is and isn't retained after account deletion, and section 7 if the request relates to a child.</p>
+          <p>We may need to verify your identity before actioning a request, to make sure we're not disclosing or changing someone else's information. We aim to respond within 30 days as a general target, or sooner where practical — this is our own service standard, not a claim that 30 days is a universal statutory deadline; some jurisdictions' laws may set a different timeframe, which we'll follow where it applies to you.</p>
           <p>You can change your cookie choice at any time using the button in section 1 above — including withdrawing analytics consent after granting it.</p>
-          <p>If you are unhappy with how we have handled your information, you can complain to the <a href="https://www.oaic.gov.au" target="_blank" rel="noopener">Office of the Australian Information Commissioner</a>. If you are in the UK or EU, you may also complain to your local data protection authority.</p>
+          <p>If you have a concern about how we've handled your information, please contact us first at <a href="mailto:support@coldd.dev">support@coldd.dev</a> so we have a chance to resolve it directly. If you're not satisfied with our response, you can complain to the <a href="https://www.oaic.gov.au" target="_blank" rel="noopener">Office of the Australian Information Commissioner</a>. If you are in the UK or EU, you may also complain to your local data protection authority.</p>
 
           <h2>7. Children's Privacy</h2>
           <p>coldd is not directed at children. Our account creation flow does not ask for or collect date of birth or other age-verification information, and neither our sign-in providers (Google, Discord, Roblox) nor our own account system are designed to serve children under the minimum age applicable in their country of residence.</p>
@@ -211,7 +231,7 @@
           <p><strong>If we learn a user is underage.</strong> If we become aware that an account belongs to a child below the applicable minimum age for using the Site without parental consent, we will take reasonable steps to deactivate the account and remove the associated personal information we're not otherwise legally required to retain (see "Data Retention" below), and, where practical, notify the account holder that this has happened.</p>
           <p><strong>Parent and guardian requests.</strong> A parent or guardian who believes their child has created a coldd account or given us personal information can contact <a href="mailto:support@coldd.dev">support@coldd.dev</a> to ask us to review, restrict, or delete it. We will take reasonable steps to verify the request and respond as set out in "Your Rights" below.</p>
           <p><strong>Roblox-linked accounts.</strong> Roblox sets its own minimum age for using Roblox and linking a Roblox account to third-party services like ours. Where a Roblox account is linked to pay with Robux, we only use that link to verify and process the specific purchase (see "Roblox" above) — we do not use it to collect any further information about a child's Roblox account or activity.</p>
-          <p>These practices are intended to be consistent with the Australian Privacy Act (including children's online privacy requirements that apply to us) and comparable international children's privacy laws, to the extent they apply to coldd. This section describes our practices and is not a legal determination of how any specific law applies to coldd.</p>
+          <p>These practices are intended to be consistent with the Australian Privacy Act, the Children's Online Privacy Code as it comes into effect and applies to services like ours, and comparable international children's privacy laws, to the extent they apply to coldd. This section describes our practices and is not a legal determination of how any specific law applies to coldd; we'll update it as those requirements take effect.</p>
 
           <h2>8. Changes to This Policy</h2>
           <p>We may update this Policy from time to time. Material changes will be reflected by updating the "Last updated" date above.</p>
@@ -224,7 +244,7 @@
             <h2 id="relHead">Related documents</h2>
             <div class="rel-link-grid">
               <a class="rel-link" href="/terms-of-service"><span class="rel-link-t">Terms of Service</span><span class="rel-link-d">The agreement covering your account and every purchase.</span></a>
-              <a class="rel-link" href="/refund-policy"><span class="rel-link-t">Refund Policy</span><span class="rel-link-d">All sales are final — the reasoning, and the exceptions.</span></a>
+              <a class="rel-link" href="/refund-policy"><span class="rel-link-t">Refund Policy</span><span class="rel-link-d">No change-of-mind refunds, and the exceptions where the law still requires one.</span></a>
               <a class="rel-link" href="/resell-license"><span class="rel-link-t">Resell Licence Terms</span><span class="rel-link-d">What reselling a coldd product does and does not permit.</span></a>
               <a class="rel-link" href="/faq"><span class="rel-link-t">FAQ</span><span class="rel-link-d">Delivery, licensing, pricing and support, answered.</span></a>
             </div>

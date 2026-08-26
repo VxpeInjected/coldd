@@ -1927,6 +1927,13 @@ body.auth-page { min-height: 100vh; min-height: 100dvh; }
 .auth-field { display: flex; flex-direction: column; gap: 7px; }
 .auth-field > label { font-size: 13px; font-weight: 600; color: var(--fg-2); }
 .auth-input-wrap { position: relative; }
+.auth-field select {
+  width: 100%; min-height: 46px; padding: 12px 40px 12px 14px; border-radius: 16px; border: 1px solid var(--hairline);
+  background: rgba(255,255,255,0.04) url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="%23888" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>') no-repeat right 12px center / 16px 16px;
+  color: var(--fg); font-family: inherit; font-size: 16px; outline: none; appearance: none; -webkit-appearance: none;
+  transition: border-color .2s, background-color .2s; }
+.auth-field select:invalid { color: var(--fg-3); }
+.auth-field select:focus { border-color: rgba(255,77,68,0.5); background-color: rgba(255,255,255,0.06); }
 .auth-field input[type="email"], .auth-field input[type="password"], .auth-field input[type="text"], .auth-field input[type="number"] {
   width: 100%; min-height: 46px; padding: 12px 14px; border-radius: 16px; border: 1px solid var(--hairline);
   /* 16px, not 14px. Below 16px iOS Safari zooms the viewport the moment the

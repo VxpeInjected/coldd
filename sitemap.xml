@@ -43,6 +43,12 @@
     <priority>0.6</priority>
   </url>
   <url>
+    <loc>https://coldd.dev/contact</loc>
+    <lastmod>2026-08-27</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  <url>
     <loc>https://coldd.dev/reviews</loc>
     <lastmod>2026-08-13</lastmod>
     <changefreq>monthly</changefreq>

@@ -89,6 +89,45 @@
       };
     })();
 
+    // /contact page's form - posts straight to send-contact-message, which
+    // holds the reason->destination-email mapping server-side (never trust
+    // a client-supplied "send this to X" address). No-ops everywhere else
+    // on the site since #contactForm only exists on that one page.
+    (function () {
+      var form = document.getElementById('contactForm');
+      if (!form) return;
+      var submitBtn = document.getElementById('ctSubmit');
+      var msgEl = document.getElementById('ctMsg');
+      form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        var label = submitBtn.querySelector('.btn-label'), spinner = submitBtn.querySelector('.btn-spinner');
+        var payload = {
+          name: document.getElementById('ctName').value.trim(),
+          email: document.getElementById('ctEmail').value.trim(),
+          reason: document.getElementById('ctReason').value,
+          message: document.getElementById('ctMessage').value.trim()
+        };
+        if (msgEl) { msgEl.textContent = ''; msgEl.classList.remove('show'); }
+        submitBtn.disabled = true; if (label) label.hidden = true; if (spinner) spinner.hidden = false;
+        window.coldSupabase.functions.invoke('send-contact-message', { body: payload })
+          .then(function (res) {
+            var data = res && res.data;
+            if (!data || !data.ok) {
+              if (msgEl) { msgEl.textContent = (data && data.error) || 'Could not send your message. Please try again.'; msgEl.classList.add('show'); }
+              return;
+            }
+            form.reset();
+            if (msgEl) { msgEl.textContent = "Thanks - we've got your message and will get back to you soon."; msgEl.classList.add('show'); }
+          })
+          .catch(function () {
+            if (msgEl) { msgEl.textContent = 'Could not send your message. Please try again.'; msgEl.classList.add('show'); }
+          })
+          .then(function () {
+            submitBtn.disabled = false; if (label) label.hidden = false; if (spinner) spinner.hidden = true;
+          });
+      });
+    })();
+
     // Site-wide "get 10% off for your email" popup - the discount used to
     // be tied to the checkout marketing checkbox, which wasn't the right
     // place for it (a purchase already in progress isn't the moment to be

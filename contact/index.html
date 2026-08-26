@@ -1,20 +1,20 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <script>document.documentElement.classList.add('js');try{var t=localStorage.getItem('coldd_theme');if(t==='light'||(t==='system'&&matchMedia('(prefers-color-scheme: light)').matches))document.documentElement.setAttribute('data-theme','light');}catch(e){}</script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Blog &amp; Tutorials - coldd Development</title>
+  <title>Contact Us - coldd Development</title>
   <link rel="icon" type="image/png" href="/logo.png" />
   <!-- meta:start -->
-  <meta name="description" content="Devlogs, studio news, and craft notes from the people building coldd's Roblox and Minecraft catalog." />
-  <link rel="canonical" href="https://coldd.dev/blog" />
+  <meta name="description" content="Get in touch with coldd Development for support, legal, or business inquiries." />
+  <link rel="canonical" href="https://coldd.dev/contact" />
 
   <meta property="og:type" content="website" />
   <meta property="og:site_name" content="coldd Development" />
-  <meta property="og:url" content="https://coldd.dev/blog" />
-  <meta property="og:title" content="Blog &amp; Tutorials - coldd Development" />
-  <meta property="og:description" content="Devlogs, studio news, and craft notes from the people building coldd's Roblox and Minecraft catalog." />
+  <meta property="og:url" content="https://coldd.dev/contact" />
+  <meta property="og:title" content="Contact Us - coldd Development" />
+  <meta property="og:description" content="Get in touch with coldd Development for support, legal, or business inquiries." />
   <meta property="og:image" content="https://coldd.dev/banner.jpg" />
   <meta property="og:image:width" content="1920" />
   <meta property="og:image:height" content="1080" />
@@ -22,8 +22,8 @@
 
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:site" content="@ColddDev" />
-  <meta name="twitter:title" content="Blog &amp; Tutorials - coldd Development" />
-  <meta name="twitter:description" content="Devlogs, studio news, and craft notes from the people building coldd's Roblox and Minecraft catalog." />
+  <meta name="twitter:title" content="Contact Us - coldd Development" />
+  <meta name="twitter:description" content="Get in touch with coldd Development for support, legal, or business inquiries." />
   <meta name="twitter:image" content="https://coldd.dev/banner.jpg" />
   <meta name="theme-color" content="#15161b" />
   <!-- meta:end -->
@@ -34,7 +34,7 @@
 
   <link rel="stylesheet" href="/styles.css?v=20260827c" />
   <!-- ld:start -->
-  <script type="application/ld+json">{"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Home", "item": "https://coldd.dev/"}, {"@type": "ListItem", "position": 2, "name": "Blog & Tutorials", "item": "https://coldd.dev/blog"}]}</script>
+  <script type="application/ld+json">{"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Home", "item": "https://coldd.dev/"}, {"@type": "ListItem", "position": 2, "name": "Contact Us", "item": "https://coldd.dev/contact"}]}</script>
   <!-- ld:end -->
 </head>
 <body>
@@ -55,7 +55,7 @@
       </a>
       <nav class="nav-links" aria-label="Primary">
         <span class="nav-set">
-          <a href="/">Home</a><a href="/assets" id="shopLink">Shop</a><a href="/blog" id="blogLink" class="active" aria-current="page">Blog &amp; Tutorials</a><a href="/about" id="aboutLink">About Us</a>
+          <a href="/">Home</a><a href="/assets" id="shopLink">Shop</a><a href="/blog" id="blogLink">Blog &amp; Tutorials</a><a href="/about" id="aboutLink">About Us</a>
         </span>
         <span class="nav-search-wrap">
           <button class="nav-search" id="searchBtn" type="button" aria-label="Search"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg></button>
@@ -126,67 +126,61 @@
     </div>
   </div>
 
-  <main class="page blog-page">
+  <main class="page legal">
     <section class="page-head">
       <div class="wrap">
         <!-- crumbs:start -->
         <nav class="crumbs" aria-label="Breadcrumb">
           <ol>
             <li><a href="/">Home</a></li>
-            <li><span aria-current="page">Blog &amp; Tutorials</span></li>
+            <li><span aria-current="page">Contact Us</span></li>
           </ol>
         </nav>
         <!-- crumbs:end -->
-        <h1>Blogs &amp; Tutorials</h1>
-        <p>Devlogs, craft notes, and step-by-step guides from the people building coldd's Roblox and Minecraft catalog.</p>
+        <h1>Contact Us</h1>
+        <p>Pick a reason below and we'll route your message to the right team.</p>
       </div>
     </section>
 
-    <section class="section-pad" style="padding-top:6px;">
-      <div class="wrap">
-        <div class="bt-switch" id="btSwitch" role="group" aria-label="Content type">
-          <button class="bt-opt active" data-view="blog" type="button">Blog</button>
-          <button class="bt-opt" data-view="tutorials" type="button">Tutorials</button>
-          <button class="bt-opt" data-view="releases" type="button">Releases</button>
-        </div>
+    <section class="section-pad" style="padding-top: 6px;">
+      <div class="wrap legal-wrap">
+        <div class="glass legal-card">
+          <form id="contactForm" novalidate>
+            <div class="auth-field" style="margin-bottom:16px;"><label for="ctName">Name</label>
+              <input id="ctName" name="name" type="text" autocomplete="name" placeholder="Your name" required /><span class="auth-err"></span></div>
+            <div class="auth-field" style="margin-bottom:16px;"><label for="ctEmail">Email</label>
+              <input id="ctEmail" name="email" type="email" autocomplete="email" placeholder="you@example.com" required /><span class="auth-err"></span></div>
+            <div class="auth-field" style="margin-bottom:16px;"><label for="ctReason">Reason for contacting us</label>
+              <select id="ctReason" name="reason" required>
+                <option value="" disabled selected>Choose a reason…</option>
+                <option value="support">Support - order, download or product issue</option>
+                <option value="legal">Legal</option>
+                <option value="marketing">Marketing &amp; Business Inquiries</option>
+              </select>
+              <span class="auth-err"></span></div>
+            <div class="auth-field" style="margin-bottom:16px;"><label for="ctMessage">Message</label>
+              <textarea id="ctMessage" name="message" placeholder="How can we help?" required></textarea><span class="auth-err"></span></div>
+            <button class="btn btn-primary" type="submit" id="ctSubmit"><span class="btn-label">Send message</span><span class="btn-spinner" hidden></span></button>
+            <div class="auth-msg" id="ctMsg" style="margin-top:12px;"></div>
+          </form>
 
-        <div id="blogView">
-          <div class="filters blog-filters" id="blogFilters">
-            <button class="chip active" data-cat="all" type="button">All</button>
-            <button class="chip" data-cat="Devlog" type="button">Devlog</button>
-            <button class="chip" data-cat="Studio News" type="button">Studio News</button>
-            <button class="chip" data-cat="Craft" type="button">Craft</button>
-          </div>
-          <div class="blog-grid" id="blogGrid"></div>
-          <p class="shop-empty" id="blogEmpty" hidden>No posts match this filter yet.</p>
-        </div>
+          <p style="margin-top:26px;">Prefer Discord? Reach us at <a href="https://discord.gg/coldd" target="_blank" rel="noopener">discord.gg/coldd</a>, or email <a href="mailto:support@coldd.dev">support@coldd.dev</a> directly.</p>
 
-        <div class="tut-hub" id="tutHub" hidden>
-          <aside class="tut-side">
-            <div class="filter-card">
-              <div class="fc-head"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg> <span>Tracks</span></div>
-              <div class="fc-cats" id="tutSide"></div>
+          <!-- related:start -->
+          <nav class="legal-more" aria-labelledby="relHead">
+            <h2 id="relHead">Looking for something else?</h2>
+            <div class="rel-link-grid">
+              <a class="rel-link" href="/faq"><span class="rel-link-t">FAQ</span><span class="rel-link-d">Delivery, licensing, pricing and support, answered.</span></a>
+              <a class="rel-link" href="/refund-policy"><span class="rel-link-t">Refund Policy</span><span class="rel-link-d">No change-of-mind refunds, and the exceptions where the law still requires one.</span></a>
+              <a class="rel-link" href="/resell-license"><span class="rel-link-t">Resell Licence Terms</span><span class="rel-link-d">What reselling a coldd product does and does not permit.</span></a>
             </div>
-          </aside>
-          <div class="tut-content" id="tutList"></div>
-        </div>
-
-        <div class="rel-timeline" id="relTimeline" hidden></div>
-      </div>
-    </section>
-
-    <section class="section-pad" style="padding-top:0;">
-      <div class="wrap">
-        <div class="glass cta reveal">
-          <h2>Curious what shipped recently?</h2>
-          <p>The changelog covers every feature, fix, and announcement.</p>
-          <div class="hero-cta" style="margin-top:28px;">
-            <a class="btn btn-primary" href="/releases">See what shipped</a>
-          </div>
+          </nav>
+          <!-- related:end -->
         </div>
       </div>
     </section>
   </main>
+
 
   <footer>
     <div class="wrap">
@@ -201,6 +195,7 @@
           <a href="/blog">Blog</a>
           <a href="/blog?view=tutorials">Development Tutorials</a>
           <a href="/assets">Products</a>
+          <a href="/faq">FAQ</a>
         </div>
 
         <div class="foot-col">
@@ -260,6 +255,8 @@
     <span class="cart-fab-total" id="cartFabTotal">$0</span>
   </button>
   </div>
+
+
 
   <div class="cart-overlay" id="cartOverlay" hidden></div>
   <aside class="cart-drawer" id="cartDrawer" aria-hidden="true" aria-label="Shopping cart">
@@ -345,18 +342,8 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.2/dist/umd/supabase.min.js" integrity="sha384-B2duOBIryCXbX4eDE4BdJwtNkQMRQde3o6IsjfPW28E6aH1CYE96hHeZRG3zY56O" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script src="/supabase-init.js?v=20260821a"></script>
   <script src="/site-gate.js?v=20260820b"></script>
-  <script src="/catalog.js?v=20260820b" data-then="/blog.js?v=20260812a,/app.js?v=20260827g"></script>
+  <script src="/catalog.js?v=20260820b" data-then="/app.js?v=20260827g"></script>
   <script>
-    // Cart badge/total sync from localStorage, ahead of app.js. The fab
-    // markup above ships hardcoded at "0"/"$0", and the cart module that
-    // reads the real localStorage cart lives in app.js, which only loads
-    // once catalog.js's Supabase fetch resolves (see catalog.js's
-    // loadDependents/data-then) - a couple seconds on a cold load. A
-    // signed-in visitor with items already in their cart saw 0/$0 flash for
-    // that whole stretch, then snap to the real count/total. The cart itself
-    // is pure localStorage (see app.js's cart module), so it doesn't need to
-    // wait on that fetch at all - just on catalog.js (loaded just above,
-    // synchronously) having already defined window.__money.
     (function () {
       try {
         var cart = JSON.parse(localStorage.getItem('coldd_cart_v1') || '[]') || [];

@@ -3009,7 +3009,7 @@
         if (!window.coldSupabase) return;
         window.coldSupabase.auth.getSession().then(function (res) {
           var session = res && res.data && res.data.session;
-          if (!session) { wrap.hidden = true; return; }
+          if (!session) { wrap.hidden = true; document.documentElement.classList.remove('auth-in'); return; }
           wrap.hidden = false;
           return window.coldSupabase.from('notifications').select('*').eq('user_id', session.user.id)
             .order('created_at', { ascending: false }).limit(50).then(function (r) {

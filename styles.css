@@ -3742,6 +3742,23 @@ input[type="checkbox"]:focus-visible { outline: 2px solid var(--accent); outline
    same 11px the gap just lost, pulling the bell noticeably too far left. */
 .nav-inner:has(.nav-links.searching) .nav-notif { margin-left: -3px; }
 .nav-notif[hidden] { display: none; }
+/* #notifWrap ships [hidden] in the static markup and only ever gets
+   unhidden by loadNotifs() in app.js, which waits on both app.js itself
+   loading (after catalog.js's fetch resolves - a second or more on a cold
+   load) and its own getSession() call - a signed-in visitor watched the
+   bell icon pop in a couple seconds after everything else on the page,
+   the same class of flash the cart badge/total already had a fix for
+   (see the inline localStorage sync script in every page's footer).
+   coldd_auth is set synchronously on sign-in/out (supabase-init.js) and
+   read here just as synchronously, in the same per-page <head> script
+   that already avoids a dark/light theme flash - so a signed-in visitor's
+   html tag carries .auth-in before first paint, and the bell shows
+   immediately instead of waiting on two async steps. loadNotifs() still
+   runs as before and is what removes .auth-in again if that cached flag
+   turns out to be stale (session actually expired) - this only ever
+   changes how soon the icon can show, never whether the real check
+   happens. */
+html.auth-in .nav-notif[hidden] { display: block; }
 .notif-badge { position: absolute; top: 2px; right: 2px; min-width: 15px; height: 15px; padding: 0 3px; border-radius: 999px;
   background: var(--accent); color: #fff; font-size: 10px; font-weight: 700; line-height: 15px; text-align: center; pointer-events: none; }
 .notif-badge[hidden] { display: none; }

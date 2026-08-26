@@ -2392,7 +2392,7 @@
             '<button class="p-add" type="button">Add to cart</button></div></div></article>';
         }
         function related(p) {
-          var cat = (window.__CATALOG || []).filter(function (x) { return x.id !== p.id && x.platform === p.platform; });
+          var cat = (window.__CATALOG || []).filter(function (x) { return x.id !== p.id && x.platform === p.platform && !isOwned(x.id); });
           function score(x) {
             var s = 0;
             if (x.subcat && x.subcat === p.subcat) s += 4;
@@ -2421,7 +2421,7 @@
             if (!slugs.length) return;
             var bySlug = {};
             (window.__CATALOG || []).forEach(function (x) { bySlug[x.id] = x; });
-            var alsoBought = slugs.map(function (s) { return bySlug[s]; }).filter(Boolean);
+            var alsoBought = slugs.map(function (s) { return bySlug[s]; }).filter(Boolean).filter(function (x) { return !isOwned(x.id); });
             if (!alsoBought.length) return;
             var already = {}; alsoBought.forEach(function (x) { already[x.id] = true; });
             var blended = alsoBought.concat(related(p).filter(function (x) { return !already[x.id]; })).slice(0, 4);

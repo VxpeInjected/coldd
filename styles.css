@@ -1375,7 +1375,14 @@ body.no-scroll { overflow: hidden; }
 @media (max-width: 640px) { .cart-x, .pm-x { width: 44px; height: 44px; } }
 
 .cart-body { flex: 1; overflow-y: auto; padding: 14px 18px; display: flex; flex-direction: column; gap: 10px; }
-.cart-empty { padding: 56px 22px; text-align: center; color: var(--fg-3); font-size: 14px; }
+/* When the cart's empty, #cartItems renders to innerHTML = '' (truly empty,
+   not just visually), so .cart-body:empty still claims flex:1 - it collapses
+   here instead, letting .cart-empty (its next sibling in this flex column)
+   take that space and centre its own text in it, rather than being pushed
+   down to sit just above the footer with .cart-body's now-unused flex:1
+   space stacked entirely above it. */
+.cart-body:empty { flex: none; padding: 0; }
+.cart-empty { flex: 1; display: flex; align-items: center; justify-content: center; padding: 22px; text-align: center; color: var(--fg-3); font-size: 14px; }
 .cart-item { display: flex; align-items: center; gap: 13px; padding: 12px; border-radius: 16px;
   background: rgba(255,255,255,0.035); border: 1px solid var(--hairline);
   transition: background .2s, border-color .2s; }

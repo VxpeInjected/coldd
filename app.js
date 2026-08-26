@@ -1418,26 +1418,21 @@
 
           return priorityBoost + social + saleBoost + recencyBoost + priceWeight + interestBoost + genreBoost + revenueBoost + resellBoost;
         }
-        // Each of these four ranking signals is its own round trip, and
-        // used to call refilter() the instant it landed - on a slow
-        // connection that meant the "Recommended" grid could visibly
-        // reshuffle up to four separate times as each one trickled in,
-        // which reads as the catalog randomly swapping products around
-        // rather than settling once. Coalesced into a single reflow once
-        // every signal has either landed or timed out, so a visitor sees
-        // at most one settle instead of a stutter of them. The 6s timeout
-        // is a safety net only - if one RPC hangs, the other three still
-        // get to reflow the grid instead of waiting forever.
-        var pendingSignals = { cats: true, catTerms: true, userTerms: true, revenue: true };
-        function signalSettled(key) {
-          if (!pendingSignals[key]) return;
-          delete pendingSignals[key];
-          if (Object.keys(pendingSignals).length === 0 && (sortMode || 'recommended') === 'recommended') refilter(false);
-        }
-        Object.keys(pendingSignals).forEach(function (key) { setTimeout(function () { signalSettled(key); }, 6000); });
-
+        // Each of these four ranking signals is its own round trip that
+        // resolves well after the grid's first paint (that paint runs
+        // synchronously, before any network round trip can possibly
+        // return). This used to call refilter() the instant a signal
+        // landed, reordering the grid the visitor was already looking at -
+        // reads as the catalog randomly swapping products around under
+        // them, "a few seconds" after the page loaded, no matter how many
+        // signals were coalesced into that reflow. Fixed by never
+        // reflowing already-visible cards for this: a late-arriving signal
+        // just updates the variables conversionScore() reads, so it only
+        // affects the NEXT refilter a visitor actually triggers (changing
+        // sort, category, search, or page) - the grid they're currently
+        // looking at never moves under them on its own.
         function loadUserCategories() {
-          if (!window.coldSupabase) { signalSettled('cats'); return; }
+          if (!window.coldSupabase) return;
           window.coldSupabase.auth.getSession().then(function (res) {
             var session = res && res.data && res.data.session;
             if (!session) return;
@@ -1446,22 +1441,22 @@
               if (!rows.length) return;
               userCategories = new Set(rows.map(function (row) { return row.platform + '|' + row.cat; }));
             });
-          }).catch(function () {}).then(function () { signalSettled('cats'); });
+          }).catch(function () {});
         }
         loadUserCategories();
         function loadCatalogTerms() {
-          if (!window.coldSupabase) { signalSettled('catTerms'); return; }
+          if (!window.coldSupabase) return;
           window.coldSupabase.rpc('catalog_signal_terms', {}).then(function (r) {
             var rows = r.data || [];
             if (!rows.length) return;
             var map = {};
             rows.forEach(function (row) { map[row.product_slug] = row.terms || []; });
             catalogTerms = map;
-          }).catch(function () {}).then(function () { signalSettled('catTerms'); });
+          }).catch(function () {});
         }
         loadCatalogTerms();
         function loadUserTerms() {
-          if (!window.coldSupabase) { signalSettled('userTerms'); return; }
+          if (!window.coldSupabase) return;
           window.coldSupabase.auth.getSession().then(function (res) {
             var session = res && res.data && res.data.session;
             if (!session) return;
@@ -1470,18 +1465,18 @@
               if (!terms.length) return;
               userTerms = new Set(terms);
             });
-          }).catch(function () {}).then(function () { signalSettled('userTerms'); });
+          }).catch(function () {});
         }
         loadUserTerms();
         function loadCatalogRevenue() {
-          if (!window.coldSupabase) { signalSettled('revenue'); return; }
+          if (!window.coldSupabase) return;
           window.coldSupabase.rpc('get_catalog_revenue', {}).then(function (r) {
             var rows = r.data || [];
             if (!rows.length) return;
             var map = {};
             rows.forEach(function (row) { map[row.product_slug] = Number(row.revenue) || 0; });
             catalogRevenue = map;
-          }).catch(function () {}).then(function () { signalSettled('revenue'); });
+          }).catch(function () {});
         }
         loadCatalogRevenue();
         function sortMatches(arr) {

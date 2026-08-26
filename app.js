@@ -2149,6 +2149,7 @@
         var pdPrice = $('pdPrice'), pdPriceWas = $('pdPriceWas'), pdPriceRbx = $('pdPriceRbx'), pdPriceNote = $('pdPriceNote');
         var pdLicence = $('pdLicence'), pdLicLabel = $('pdLicLabel'), pdLicResell = $('pdLicResell');
         var pdTechList = $('pdTechList'), pdAbout = $('pdAbout');
+        var pdTechWrap = pdTechList ? pdTechList.closest('.pd-tech') : null;
         var pdRelated = $('pdRelated'), pdRelatedWrap = $('pdRelatedWrap'), pdFaqList = $('pdFaqList');
         var pdReferEarn = $('pdReferEarn'), pdReferCopy = $('pdReferCopy'), pdReferLearn = $('pdReferLearn');
         var pdWish = $('pdWish'), pdWishTx = $('pdWishTx');
@@ -2268,24 +2269,22 @@
           list.sort(function (a, b) { return new Date(b.date) - new Date(a.date); });
           return list.map(function (v) { return { version: v.version, date: fmtRevDate(v.date), note: v.changelog || '' }; });
         }
+        // File Format and File Size are the only fields actually automated
+        // from the uploaded file - admin.js fills both from the File object
+        // the moment a staff member picks a file to upload (name extension,
+        // real byte size), and admin-upsert-product saves them verbatim as
+        // product.tech. Every other field this used to show (part/mesh/
+        // union/script counts, "Compatible Versions") was either a manual
+        // text box nobody was required to fill in, or - when left blank -
+        // silently replaced with a fabricated number derived by hashing the
+        // product id, which looked like a real fact about the file but
+        // wasn't one. Only show the two fields that are ever real.
         function techFor(p) {
-          var h = hsh(p.id + 't');
-          var size = ((h % 46) + 4) + '.' + (h % 9) + ' MB';
-          var rows = p.platform === 'Minecraft'
-            ? [['File Format', '.zip'], ['File Size', size], ['Compatible Versions', '1.20.x to 1.21.x']]
-            : [
-                ['File Format', '.rbxm'], ['File Size', size],
-                ['Part Count', ((h % 900) + 120).toLocaleString('en-US')],
-                ['MeshPart Count', ((h >>> 3) % 260 + 20).toLocaleString('en-US')],
-                ['Union Count', ((h >>> 5) % 80).toLocaleString('en-US')],
-                ['Script Count', ((h >>> 7) % 40 + 3).toLocaleString('en-US')]
-              ];
           var t = p.tech || {};
-          var overrides = { 'File Format': t.format, 'File Size': t.size, 'Part Count': t.parts, 'MeshPart Count': t.meshParts, 'Union Count': t.unions, 'Script Count': t.scripts };
-          return rows.map(function (r) {
-            var ov = overrides[r[0]];
-            return (ov != null && ov !== '') ? [r[0], ov] : r;
-          });
+          var rows = [];
+          if (t.format) rows.push(['File Format', t.format]);
+          if (t.size) rows.push(['File Size', t.size]);
+          return rows;
         }
         function formatLongDesc(text) {
           var lines = String(text || '').split(/\r?\n/).map(function (l) { return l.trim(); }).filter(Boolean);
@@ -2605,7 +2604,11 @@
               : ('<p>' + esc(p.desc || '') + ' Every coldd release ships with clean, well documented files and free lifetime updates. If you get stuck, our team is one message away.</p>' +
                  '<ul class="pd-feat-list">' + FEATURES.map(function (f) { return '<li>' + esc(f) + '</li>'; }).join('') + '</ul>'));
           }
-          if (pdTechList) pdTechList.innerHTML = techFor(p).map(function (r) { return '<div class="pd-tech-row"><dt>' + esc(r[0]) + '</dt><dd>' + esc(r[1]) + '</dd></div>'; }).join('');
+          if (pdTechList) {
+            var techRows = techFor(p);
+            pdTechList.innerHTML = techRows.map(function (r) { return '<div class="pd-tech-row"><dt>' + esc(r[0]) + '</dt><dd>' + esc(r[1]) + '</dd></div>'; }).join('');
+            if (pdTechWrap) pdTechWrap.hidden = techRows.length === 0;
+          }
 
           var owned = isOwned(p.id);
 

@@ -2342,10 +2342,6 @@
     // while storage_path was still the column default and buyers were
     // downloading the placeholder. Report the actual attached object.
     setFileNote(fileNote, p.storagePath);
-    $('admEditTechParts').value = tech.parts || '';
-    $('admEditTechMeshParts').value = tech.meshParts || '';
-    $('admEditTechUnions').value = tech.unions || '';
-    $('admEditTechScripts').value = tech.scripts || '';
 
     $('admEditThumbUrl').value = p.image || '';
     updateThumbPreview();
@@ -2640,7 +2636,7 @@
     $('admEditMsg').textContent = '';
     updateDevexHint();
 
-    ['admEditTechFormat', 'admEditTechSize', 'admEditTechFileName', 'admEditTechParts', 'admEditTechMeshParts', 'admEditTechUnions', 'admEditTechScripts'].forEach(function (id) { $(id).value = ''; });
+    ['admEditTechFormat', 'admEditTechSize', 'admEditTechFileName'].forEach(function (id) { $(id).value = ''; });
     $('admEditFileInput').value = '';
     setFileNote($('admEditFileNote'), null);
 
@@ -2699,11 +2695,7 @@
       tech: {
         format: $('admEditTechFormat').value.trim(),
         size: $('admEditTechSize').value.trim(),
-        fileName: $('admEditTechFileName').value,
-        parts: $('admEditTechParts').value,
-        meshParts: $('admEditTechMeshParts').value,
-        unions: $('admEditTechUnions').value,
-        scripts: $('admEditTechScripts').value
+        fileName: $('admEditTechFileName').value
       },
       legal: {
         tos: $('admLegalTos').value.trim(),

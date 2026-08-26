@@ -2140,7 +2140,7 @@ button.dt-badge:disabled { cursor: default; opacity: 0.6; }
    columns squeezed every card down to ~200px, which broke the fixed
    168px-tall thumbnail's proportions and wrapped "Add to cart" onto two
    lines. Reflows by actual available width instead of a fixed count. */
-.dash-rec-grid { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
+.dash-rec-grid { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); margin-top: 12px; }
 .dash-empty-note { color: var(--fg-2); font-size: 14px; grid-column: 1 / -1; }
 .dash-empty-cta { grid-column: 1 / -1; display: flex; flex-direction: column; align-items: flex-start; gap: 12px;
   padding: 26px 24px; border-radius: var(--r-sm); border: 1px solid var(--hairline); background: var(--bg-2); }

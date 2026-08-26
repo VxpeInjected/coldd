@@ -1393,8 +1393,26 @@
 
           return priorityBoost + social + saleBoost + recencyBoost + priceWeight + interestBoost + genreBoost + revenueBoost + resellBoost;
         }
+        // Each of these four ranking signals is its own round trip, and
+        // used to call refilter() the instant it landed - on a slow
+        // connection that meant the "Recommended" grid could visibly
+        // reshuffle up to four separate times as each one trickled in,
+        // which reads as the catalog randomly swapping products around
+        // rather than settling once. Coalesced into a single reflow once
+        // every signal has either landed or timed out, so a visitor sees
+        // at most one settle instead of a stutter of them. The 6s timeout
+        // is a safety net only - if one RPC hangs, the other three still
+        // get to reflow the grid instead of waiting forever.
+        var pendingSignals = { cats: true, catTerms: true, userTerms: true, revenue: true };
+        function signalSettled(key) {
+          if (!pendingSignals[key]) return;
+          delete pendingSignals[key];
+          if (Object.keys(pendingSignals).length === 0 && (sortMode || 'recommended') === 'recommended') refilter(false);
+        }
+        Object.keys(pendingSignals).forEach(function (key) { setTimeout(function () { signalSettled(key); }, 6000); });
+
         function loadUserCategories() {
-          if (!window.coldSupabase) return;
+          if (!window.coldSupabase) { signalSettled('cats'); return; }
           window.coldSupabase.auth.getSession().then(function (res) {
             var session = res && res.data && res.data.session;
             if (!session) return;
@@ -1402,29 +1420,23 @@
               var rows = r.data || [];
               if (!rows.length) return;
               userCategories = new Set(rows.map(function (row) { return row.platform + '|' + row.cat; }));
-              // Interest data landed after the page's first render (it
-              // needs a round trip) - reflow the already-visible grid with
-              // it now rather than making every visitor wait on this
-              // before seeing anything.
-              if ((sortMode || 'recommended') === 'recommended') refilter(false);
             });
-          }).catch(function () {});
+          }).catch(function () {}).then(function () { signalSettled('cats'); });
         }
         loadUserCategories();
         function loadCatalogTerms() {
-          if (!window.coldSupabase) return;
+          if (!window.coldSupabase) { signalSettled('catTerms'); return; }
           window.coldSupabase.rpc('catalog_signal_terms', {}).then(function (r) {
             var rows = r.data || [];
             if (!rows.length) return;
             var map = {};
             rows.forEach(function (row) { map[row.product_slug] = row.terms || []; });
             catalogTerms = map;
-            if ((sortMode || 'recommended') === 'recommended') refilter(false);
-          }).catch(function () {});
+          }).catch(function () {}).then(function () { signalSettled('catTerms'); });
         }
         loadCatalogTerms();
         function loadUserTerms() {
-          if (!window.coldSupabase) return;
+          if (!window.coldSupabase) { signalSettled('userTerms'); return; }
           window.coldSupabase.auth.getSession().then(function (res) {
             var session = res && res.data && res.data.session;
             if (!session) return;
@@ -1432,21 +1444,19 @@
               var terms = r.data || [];
               if (!terms.length) return;
               userTerms = new Set(terms);
-              if ((sortMode || 'recommended') === 'recommended') refilter(false);
             });
-          }).catch(function () {});
+          }).catch(function () {}).then(function () { signalSettled('userTerms'); });
         }
         loadUserTerms();
         function loadCatalogRevenue() {
-          if (!window.coldSupabase) return;
+          if (!window.coldSupabase) { signalSettled('revenue'); return; }
           window.coldSupabase.rpc('get_catalog_revenue', {}).then(function (r) {
             var rows = r.data || [];
             if (!rows.length) return;
             var map = {};
             rows.forEach(function (row) { map[row.product_slug] = Number(row.revenue) || 0; });
             catalogRevenue = map;
-            if ((sortMode || 'recommended') === 'recommended') refilter(false);
-          }).catch(function () {});
+          }).catch(function () {}).then(function () { signalSettled('revenue'); });
         }
         loadCatalogRevenue();
         function sortMatches(arr) {

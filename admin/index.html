@@ -288,6 +288,19 @@
               <div id="admEmailConfigWarning"></div>
               <div class="dash-stats" id="admEmailStats"></div>
 
+              <div class="dash-card-head" style="margin-top:22px;"><div><h2>Subscriber list</h2><span class="adm-sub">Every account with an email address. A campaign send goes to everyone here except those marked Unsubscribed or Banned.</span></div></div>
+              <div class="adm-form" style="flex-wrap:wrap;gap:8px;">
+                <input type="text" id="admEmailListSearch" class="adm-input" placeholder="Search by email address…" style="flex:1;min-width:200px;" />
+                <button class="btn btn-ghost adm-btn-sm" id="admEmailListCopyBtn" type="button">Copy sendable addresses</button>
+              </div>
+              <div class="dash-tablewrap" style="margin-top:12px;">
+                <table class="dash-table">
+                  <thead><tr><th>Email</th><th>Status</th><th>Joined</th></tr></thead>
+                  <tbody id="admEmailListBody"></tbody>
+                </table>
+              </div>
+              <p class="adm-note" id="admEmailListNote" style="margin-top:8px;"></p>
+
               <div class="dash-card-head" style="margin-top:22px;"><h2>New campaign</h2></div>
               <form class="adm-form" id="admCampaignForm" style="flex-direction:column;align-items:stretch;gap:10px;">
                 <label class="adm-field"><span>Subject</span><input type="text" id="admCampaignSubject" class="adm-input" placeholder="What's new at coldd" required /></label>
@@ -316,7 +329,7 @@
               <div class="dash-tablewrap">
                 <table class="dash-table">
                   <thead><tr><th>Date</th><th>Subject</th><th>Status</th><th>Sent</th><th>Failed</th></tr></thead>
-                  <tbody id="admCampaignsBody"></tbody>
+                  <tbody id="admEmailCampaignsBody"></tbody>
                 </table>
               </div>
 
@@ -1298,6 +1311,6 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.2/dist/umd/supabase.min.js" integrity="sha384-B2duOBIryCXbX4eDE4BdJwtNkQMRQde3o6IsjfPW28E6aH1CYE96hHeZRG3zY56O" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script src="/supabase-init.js?v=20260827a"></script>
   <script src="/site-gate.js?v=20260820b"></script>
-  <script src="/catalog.js?v=20260820b" data-then="/app.js?v=20260827h,/blog.js?v=20260812a,/reviews.js?v=20260729a,/admin.js?v=20260827b"></script>
+  <script src="/catalog.js?v=20260820b" data-then="/app.js?v=20260827h,/blog.js?v=20260812a,/reviews.js?v=20260729a,/admin.js?v=20260827c"></script>
 </body>
 </html>

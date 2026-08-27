@@ -1597,15 +1597,25 @@
      ================================================================ */
   var EMAIL_STATS = { total: 0, subscribed: 0, unsubscribed: 0 };
   var EMAIL_CAMPAIGNS = [];
+  var EMAIL_RECIPIENTS = []; // { email, status: 'subscribed'|'unsubscribed'|'banned', joined }
   var EMAIL_CONFIGURED = null; // null = not checked yet
 
   function refreshEmailStats() {
     if (!window.coldSupabase) return Promise.resolve();
-    return window.coldSupabase.from('profiles').select('marketing_unsubscribed').limit(20000).then(function (res) {
+    // Same columns the send path filters on (admin-send-campaign), so the
+    // list below shows exactly who a campaign would actually reach.
+    return window.coldSupabase.from('profiles').select('email, marketing_unsubscribed, banned, created_at').limit(20000).then(function (res) {
       if (res.error) { console.error('[admin] failed to load subscriber stats:', res.error.message); return; }
       var rows = res.data || [];
       var unsub = rows.filter(function (r) { return r.marketing_unsubscribed; }).length;
       EMAIL_STATS = { total: rows.length, subscribed: rows.length - unsub, unsubscribed: unsub };
+      EMAIL_RECIPIENTS = rows.filter(function (r) { return r.email; }).map(function (r) {
+        return {
+          email: r.email,
+          status: r.banned ? 'banned' : r.marketing_unsubscribed ? 'unsubscribed' : 'subscribed',
+          joined: r.created_at || null
+        };
+      }).sort(function (a, b) { return (b.joined || '').localeCompare(a.joined || ''); });
       if (curPanel === 'marketing') renderEmailMarketing();
     });
   }
@@ -1651,12 +1661,48 @@
       ].join('');
     }
 
-    var body = $('admCampaignsBody');
+    renderEmailList();
+
+    // NB: id is admEmailCampaignsBody, not admCampaignsBody - the Campaigns
+    // (trackable links) card higher up the same panel already owns that id,
+    // and getElementById returning the first match meant these rows used to
+    // land in the wrong table.
+    var body = $('admEmailCampaignsBody');
     if (body) {
       body.innerHTML = EMAIL_CAMPAIGNS.map(function (c) {
         var status = c.status === 'sent' ? '<span class="dt-badge ok">Sent</span>' : c.status === 'failed' ? '<span class="dt-badge err">Failed</span>' : c.status === 'sending' ? '<span class="dt-badge warn">Sending</span>' : '<span class="dt-badge">Draft</span>';
         return '<tr><td>' + fmtDateTime(new Date(c.created_at)) + '</td><td>' + esc(c.subject) + '</td><td>' + status + '</td><td>' + (c.sent_count || 0) + ' / ' + (c.recipient_count || 0) + '</td><td>' + (c.failed_count || 0) + '</td></tr>';
       }).join('') || '<tr><td colspan="5" class="adm-empty">No campaigns sent yet.</td></tr>';
+    }
+  }
+
+  var EMAIL_LIST_CAP = 500; // render ceiling; search still spans the whole list
+  function emailListFiltered() {
+    var q = ($('admEmailListSearch') && $('admEmailListSearch').value || '').trim().toLowerCase();
+    if (!q) return EMAIL_RECIPIENTS;
+    return EMAIL_RECIPIENTS.filter(function (r) { return r.email.toLowerCase().indexOf(q) !== -1; });
+  }
+  function renderEmailList() {
+    var body = $('admEmailListBody');
+    if (!body) return;
+    var badge = {
+      subscribed: '<span class="dt-badge ok">Subscribed</span>',
+      unsubscribed: '<span class="dt-badge">Unsubscribed</span>',
+      banned: '<span class="dt-badge err">Banned</span>'
+    };
+    var rows = emailListFiltered();
+    var shown = rows.slice(0, EMAIL_LIST_CAP);
+    body.innerHTML = shown.map(function (r) {
+      return '<tr><td>' + esc(r.email) + '</td><td>' + (badge[r.status] || '') + '</td><td>' +
+        (r.joined ? fmtDate(new Date(r.joined)) : '—') + '</td></tr>';
+    }).join('') || '<tr><td colspan="3" class="adm-empty">No matching addresses.</td></tr>';
+    var note = $('admEmailListNote');
+    if (note) {
+      var sendable = EMAIL_RECIPIENTS.filter(function (r) { return r.status === 'subscribed'; }).length;
+      var base = sendable.toLocaleString('en-US') + ' sendable of ' + EMAIL_RECIPIENTS.length.toLocaleString('en-US') + ' with an email';
+      note.textContent = rows.length > shown.length
+        ? 'Showing first ' + shown.length + ' of ' + rows.length.toLocaleString('en-US') + ' matches - narrow the search to see the rest. ' + base + '.'
+        : base + '.';
     }
   }
 
@@ -1767,6 +1813,22 @@
     }).then(function () {
       campaignTestBtn.disabled = false;
     });
+  });
+
+  var emailListSearch = $('admEmailListSearch');
+  if (emailListSearch) emailListSearch.addEventListener('input', renderEmailList);
+  var emailListCopyBtn = $('admEmailListCopyBtn');
+  if (emailListCopyBtn) emailListCopyBtn.addEventListener('click', function () {
+    var addrs = EMAIL_RECIPIENTS.filter(function (r) { return r.status === 'subscribed'; })
+      .map(function (r) { return r.email; });
+    if (!addrs.length) { emailListCopyBtn.textContent = 'No sendable addresses'; }
+    else {
+      var text = addrs.join(', ');
+      var done = function () { emailListCopyBtn.textContent = 'Copied ' + addrs.length + ' addresses'; };
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, done);
+      else done();
+    }
+    setTimeout(function () { emailListCopyBtn.textContent = 'Copy sendable addresses'; }, 2500);
   });
 
   /* ================================================================

@@ -1640,7 +1640,7 @@
   function simpleMarkdownToHtml(text) {
     var paras = String(text || '').replace(/\r\n/g, '\n').split(/\n{2,}/);
     return paras.map(function (p) {
-      var line = esc(p.trim()).replace(/\n/g, '<br>').replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+      var line = esc(p.trim()).replace(/\n/g, '<br>').replace(/\*\*(.+?)\*\*/g, '<strong style="color:#18181b;">$1</strong>');
       return line ? '<p style="margin:0 0 16px;">' + line + '</p>' : '';
     }).join('');
   }
@@ -1736,11 +1736,19 @@
 
   // Shared by the campaign composer and each automation's own preview -
   // same shell either way, since both send through the same Resend path.
+  // Mirrors the server shell in supabase/functions/_shared/email.ts (shell())
+  // so "Preview" shows close to what actually sends: white card on warm grey,
+  // coldd wordmark, system font, an unsubscribe footer line.
   function emailPreviewDoc(bodyHtml) {
+    var F = "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
     return '<!doctype html><html><head><meta charset="utf-8">' +
-      '<style>body{margin:0;padding:20px;font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;' +
-      'font-size:15px;line-height:1.5;color:#1a1a1a;background:#fff;} img{max-width:100%;}</style>' +
-      '</head><body>' + bodyHtml + '</body></html>';
+      '<style>body{margin:0;padding:32px 12px;background:#f4f4f5;font-family:' + F + ';} img{max-width:100%;}' +
+      '.card{max-width:480px;margin:0 auto;background:#fff;border:1px solid #e4e4e7;border-radius:14px;}' +
+      '.wm{padding:32px 36px 0;font-size:17px;font-weight:800;letter-spacing:-.02em;color:#18181b;}' +
+      '.bd{padding:20px 36px 28px;font-size:15px;line-height:1.65;color:#3f3f46;}' +
+      '.ft{padding:18px 36px 30px;border-top:1px solid #e4e4e7;font-size:12px;line-height:1.7;color:#a1a1aa;}</style>' +
+      '</head><body><div class="card"><div class="wm">coldd</div><div class="bd">' + bodyHtml +
+      '</div><div class="ft">You’re getting this because you have a coldd account. Unsubscribe.<br>coldd Development · coldd.dev</div></div></body></html>';
   }
   function updateCampaignPreview() {
     var frame = $('admCampaignPreviewFrame');

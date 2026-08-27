@@ -130,7 +130,7 @@ async function runAbandonedCart(admin: any, configs: Map<string, Config>, supaba
 
     const extraBlocks = [itemsTableHtml(items)];
     if (nextStepNum >= 2 && discountCode) {
-      extraBlocks.push(`<p style="margin:0 0 20px;font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#d7d7d7;">Use code <strong style="color:#ff3344;letter-spacing:0.03em;">${discountCode}</strong> at checkout.</p>`);
+      extraBlocks.push(`<p style="margin:0 0 18px;font-size:14px;color:#3f3f46;">Use code <strong style="color:#e11d48;letter-spacing:0.02em;">${discountCode}</strong> at checkout.</p>`);
     }
     extraBlocks.push(ctaButtonHtml(`${SITE_URL}/checkout`, "Finish checkout"));
 
@@ -300,7 +300,7 @@ async function runWishlistReminder(admin: any, config: Config | undefined, supab
 
     // deno-lint-ignore no-explicit-any
     const lineItems = stillWanted.map((r: any) => ({ title: r.products.title }));
-    const discountNote = `<p style="margin:0 0 20px;font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#d7d7d7;">${WISHLIST_ITEM_PCT}% off each, or ${WISHLIST_ITEM_PCT + WISHLIST_BUNDLE_PCT}% off if you get all ${stillWanted.length}. This applies automatically at checkout - no code needed.</p>`;
+    const discountNote = `<p style="margin:0 0 18px;font-size:14px;color:#3f3f46;">${WISHLIST_ITEM_PCT}% off each, or ${WISHLIST_ITEM_PCT + WISHLIST_BUNDLE_PCT}% off if you get all ${stillWanted.length}. Applied automatically at checkout — no code needed.</p>`;
     const unsubscribeUrl = `${supabaseUrl}/functions/v1/email-unsubscribe?t=${prof.email_unsub_token}`;
     const html = renderAutomationEmail(
       config.body_md,

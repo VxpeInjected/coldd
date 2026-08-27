@@ -31,12 +31,15 @@ export type SendResult = { ok: true } | { ok: false; error: string; code?: strin
  * The mailbox provider POSTs `List-Unsubscribe=One-Click` to the URL, which
  * email-unsubscribe handles without any confirmation step.
  *
+ * URL only - no `mailto:` form, so there's no unsubscribe inbox to run. The
+ * https one-click endpoint alone satisfies the bulk-sender requirements.
+ *
  * Transactional mail (receipts, OTP, contact form) must NOT carry these -
  * it isn't subject to unsubscribe.
  */
 export function unsubscribeHeaders(unsubscribeUrl: string): Record<string, string> {
   return {
-    "List-Unsubscribe": `<mailto:unsubscribe@coldd.dev?subject=unsubscribe>, <${unsubscribeUrl}>`,
+    "List-Unsubscribe": `<${unsubscribeUrl}>`,
     "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
   };
 }

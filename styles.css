@@ -2518,6 +2518,9 @@ html.js .ref-method-btn:focus-visible { outline: 2px solid var(--accent); outlin
 .co-guest-tag { font-size: 11px; font-weight: 600; color: var(--fg-2); padding: 4px 10px; border-radius: 999px; background: rgba(255,255,255,0.05); border: 1px solid var(--hairline); }
 .co-hint { font-size: 12px; color: var(--fg-3); margin: 10px 0 0; }
 .co-hint a { color: var(--accent); text-decoration: none; font-weight: 600; }
+/* Points at the "Place Order" button by name - same accent emphasis the
+   inline links in this hint already use. */
+.co-hint strong { color: var(--accent); font-weight: 600; }
 .co-secure { color: var(--price); font-weight: 600; }
 .co-user-row { display: flex; align-items: center; gap: 12px; }
 .co-pay-panel .auth-field { margin-bottom: 14px; }

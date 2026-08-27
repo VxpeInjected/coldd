@@ -3759,6 +3759,19 @@ input[type="checkbox"]:focus-visible { outline: 2px solid var(--accent); outline
    changes how soon the icon can show, never whether the real check
    happens. */
 html.auth-in .nav-notif[hidden] { display: block; }
+/* Signed out, the bell keeps its static [hidden] and (no .auth-in) stays
+   display:none, so .nav-account becomes .nav-cta's first child and inherits
+   the full 18px .nav-inner gap that the bell's -14px pull-back was there to
+   absorb - the account icon then sits noticeably further from the search
+   icon than it does once signed in and the bell is present. Give the
+   account button the same pull-back the bell gets in that case. Desktop
+   only: below 1100px .nav-links (search included) is display:none, so there
+   is no search icon to sit tight against. */
+@media (min-width: 1101px) {
+  html:not(.auth-in) .nav-notif[hidden] + .nav-account { margin-left: -14px;
+    transition: margin-left .55s cubic-bezier(0.6,0,0.2,1); }
+  html:not(.auth-in) .nav-inner:has(.nav-links.searching) .nav-notif[hidden] + .nav-account { margin-left: -3px; }
+}
 .notif-badge { position: absolute; top: 2px; right: 2px; min-width: 15px; height: 15px; padding: 0 3px; border-radius: 999px;
   background: var(--accent); color: #fff; font-size: 10px; font-weight: 700; line-height: 15px; text-align: center; pointer-events: none; }
 .notif-badge[hidden] { display: none; }

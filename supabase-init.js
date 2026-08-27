@@ -288,8 +288,15 @@
     // is somehow empty.
     var displayName = p.name || (p.provider === 'email' ? capitalizeEmailPrefix(p.email) : '') || 'Member';
 
-    document.querySelectorAll('#dashName, #coUserName').forEach(function (el) { el.textContent = displayName; });
-    document.querySelectorAll('#dashEmail, #coUserEmail').forEach(function (el) { el.textContent = p.email || ''; });
+    // A zero-width space, not '', for an empty value: the identity fields
+    // carry a CSS skeleton pulse keyed off :empty (see styles.css), which is
+    // only meant to run WHILE the profile is loading. An account with no
+    // email on record (Roblox sign-ins, some username-only accounts) would
+    // otherwise leave #coUserEmail / #dashEmail truly empty forever, so the
+    // grey placeholder bar pulsed under the name indefinitely. Same trick as
+    // paintAvatar() below.
+    document.querySelectorAll('#dashName, #coUserName').forEach(function (el) { el.textContent = displayName || '​'; });
+    document.querySelectorAll('#dashEmail, #coUserEmail').forEach(function (el) { el.textContent = p.email || '​'; });
 
     function paintAvatar(url) {
       document.querySelectorAll('#dashAvatar, #coAvatar, #acAvatarPreview').forEach(function (el) {

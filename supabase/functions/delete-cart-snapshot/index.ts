@@ -13,6 +13,18 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const ALLOWED_ORIGIN = "https://coldd.dev";
 
+// deno-lint-ignore no-explicit-any
+async function resolveUserId(supabaseUrl: string, anonKey: string, authHeader: string | null): Promise<string | null> {
+  if (!authHeader) return null;
+  try {
+    const userClient = createClient(supabaseUrl, anonKey, { global: { headers: { Authorization: authHeader } } });
+    const { data } = await userClient.auth.getUser();
+    return data?.user?.id ?? null;
+  } catch (_e) {
+    return null;
+  }
+}
+
 function corsHeaders() {
   return {
     "Access-Control-Allow-Origin": ALLOWED_ORIGIN,
@@ -34,11 +46,18 @@ Deno.serve(async (req: Request) => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const admin = createClient(supabaseUrl, serviceKey);
 
     const body = await req.json().catch(() => ({}));
     const sessionId = String(body.sessionId || "").slice(0, 64);
     if (sessionId) await admin.from("cart_snapshots").delete().eq("session_id", sessionId);
+
+    // A purchase clears every abandoned-cart row for that account, not just
+    // the current browser session's - stale rows from earlier sessions
+    // (different sessionStorage id) would otherwise keep getting nagged.
+    const userId = await resolveUserId(supabaseUrl, anonKey, req.headers.get("Authorization"));
+    if (userId) await admin.from("cart_snapshots").delete().eq("user_id", userId);
 
     return json({ ok: true });
   } catch (err) {

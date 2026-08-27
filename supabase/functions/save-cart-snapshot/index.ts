@@ -45,10 +45,6 @@ Deno.serve(async (req: Request) => {
 
     const items = Array.isArray(body.items) ? body.items.slice(0, 50) : [];
     const valueUsd = Math.max(0, Number(body.valueUsd) || 0);
-    if (!items.length) {
-      await admin.from("cart_snapshots").delete().eq("session_id", sessionId);
-      return json({ ok: true });
-    }
 
     let userId: string | null = null;
     let email: string | null = null;
@@ -63,12 +59,43 @@ Deno.serve(async (req: Request) => {
       }
     }
 
+    if (!items.length) {
+      await admin.from("cart_snapshots").delete().eq("session_id", sessionId);
+      // A signed-in shopper emptying their cart from any tab/device clears
+      // every stale snapshot, not just this browser session's row.
+      if (userId) await admin.from("cart_snapshots").delete().eq("user_id", userId);
+      return json({ ok: true });
+    }
+
+    // Exactly one abandoned-cart row per signed-in user. The client's
+    // session id lives in sessionStorage, so it changes on every new tab and
+    // every browser restart - keying the snapshot on session_id alone spun
+    // up a brand-new row (and, on the next cron tick, another "you left
+    // something in your cart" email) each visit. jordangal008 had 5 rows and
+    // got 3 identical nags in 2 days. Collapse to one row here, carrying the
+    // furthest nag step already reached so returning doesn't restart the
+    // sequence. Guests (no userId) are unaffected - one row per session is
+    // fine there, and the cron never emails a cart with no user_id anyway.
+    let carryStep = 0;
+    if (userId) {
+      const { data: prior } = await admin
+        .from("cart_snapshots")
+        .select("abandoned_step_sent")
+        .eq("user_id", userId);
+      carryStep = (prior || []).reduce(
+        (m: number, r: { abandoned_step_sent?: number }) => Math.max(m, r.abandoned_step_sent || 0),
+        0,
+      );
+      await admin.from("cart_snapshots").delete().eq("user_id", userId).neq("session_id", sessionId);
+    }
+
     await admin.from("cart_snapshots").upsert({
       session_id: sessionId,
       user_id: userId,
       email,
       items,
       value_usd: Math.round(valueUsd * 100) / 100,
+      abandoned_step_sent: carryStep,
       updated_at: new Date().toISOString(),
     });
 

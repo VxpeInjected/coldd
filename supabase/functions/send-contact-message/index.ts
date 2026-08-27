@@ -14,7 +14,7 @@
 // Body: { reason: 'support'|'legal'|'marketing', name, email, message }
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { escapeHtml, headingHtml, htmlToText, wrapTransactionalEmail } from "../_shared/email.ts";
+import { escapeHtml, htmlToText, wrapTransactionalEmail } from "../_shared/email.ts";
 
 const ALLOWED_ORIGIN = "https://coldd.dev";
 const RATE_LIMIT_MAX = 5;
@@ -82,15 +82,15 @@ Deno.serve(async (req: Request) => {
     if (!key) return json({ ok: false, error: "Contact form isn't configured yet - email support@coldd.dev directly." }, 503);
 
     const bodyHtml = `
-${headingHtml("New contact message")}
-<p style="margin:0 0 18px;font-size:13px;color:#a1a1aa;">${escapeHtml(reason.label)}</p>
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#fafafa;border:1px solid #e4e4e7;border-radius:10px;">
-<tr><td style="padding:14px 16px 10px;font-size:13px;color:#3f3f46;"><strong style="color:#18181b;">${escapeHtml(name)}</strong> &lt;${escapeHtml(email)}&gt;</td></tr>
-<tr><td style="padding:10px 16px 16px;font-size:14px;color:#3f3f46;white-space:pre-wrap;border-top:1px solid #e4e4e7;">${escapeHtml(message)}</td></tr>
+<p style="margin:0 0 4px;font-size:20px;font-weight:700;color:#ffffff;font-family:Arial,Helvetica,sans-serif;">New contact form message</p>
+<p style="margin:0 0 20px;color:#7a7a7a;font-size:12px;">Reason: ${escapeHtml(reason.label)}</p>
+<table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#111111;border-radius:6px;border:1px solid #1a1a1a;padding:16px 18px;margin-bottom:20px;">
+<tr><td style="font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#d7d7d7;padding-bottom:8px;"><strong style="color:#ffffff;">From:</strong> ${escapeHtml(name)} &lt;${escapeHtml(email)}&gt;</td></tr>
+<tr><td style="font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#d7d7d7;white-space:pre-wrap;border-top:1px solid #1a1a1a;padding-top:10px;">${escapeHtml(message)}</td></tr>
 </table>
-<p style="margin:16px 0 0;font-size:13px;color:#a1a1aa;">Reply to this email to respond to ${escapeHtml(name)} directly.</p>
+<p style="margin:0;color:#7a7a7a;font-size:12px;">Reply directly to this email to respond to ${escapeHtml(name)}.</p>
 `;
-    const html = wrapTransactionalEmail(bodyHtml, `${reason.label}: ${name}`);
+    const html = wrapTransactionalEmail(bodyHtml);
 
     const res = await fetch(`${RESEND_API_BASE}/emails`, {
       method: "POST",

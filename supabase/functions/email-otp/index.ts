@@ -60,40 +60,60 @@ async function hashCode(code: string): Promise<string> {
   return Array.from(new Uint8Array(digest)).map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
-// Self-contained (this function sends over SMTP, not the Resend shell in
-// _shared/email.ts) but visually identical to it: white card on warm grey,
-// one rose accent, system fonts.
 function emailHtml(code: string): string {
-  const F = "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
   return `<!DOCTYPE html>
-<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light"><meta name="supported-color-schemes" content="light"><title>Verify your email</title></head>
-<body style="margin:0;padding:0;background:#f4f4f5;-webkit-font-smoothing:antialiased;">
-<div style="display:none;max-height:0;overflow:hidden;opacity:0;">Your coldd verification code is ${code}</div>
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f4f4f5;">
-<tr><td align="center" style="padding:40px 16px;">
-<table role="presentation" width="480" cellpadding="0" cellspacing="0" border="0" style="width:480px;max-width:100%;background:#ffffff;border:1px solid #e4e4e7;border-radius:14px;">
-<tr><td style="padding:36px 40px 0;">
-<span style="font-family:${F};font-size:17px;font-weight:800;letter-spacing:-0.02em;color:#18181b;">coldd</span>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Verify your email</title>
+<style>@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@700&display=swap');</style>
+</head>
+<body style="margin:0;padding:0;background-color:#030303;">
+<table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#030303;background-image:url('data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2248%22%20height%3D%2248%22%3E%3Cline%20x1%3D%220%22%20y1%3D%2248%22%20x2%3D%2248%22%20y2%3D%220%22%20stroke%3D%22%23ffffff%22%20stroke-width%3D%220.7%22%20opacity%3D%220.035%22%2F%3E%3C%2Fsvg%3E');padding:44px 0 56px;">
+<tr><td align="center">
+<table width="560" cellpadding="0" cellspacing="0" border="0" style="width:560px;background-color:#0b0b0b;border-radius:8px;overflow:hidden;">
+<tr><td style="background:linear-gradient(90deg,#ff2233 0%,#ff6677 50%,#ff2233 100%);height:3px;line-height:3px;font-size:3px;">&nbsp;</td></tr>
+
+<tr><td style="padding:40px 44px 8px;">
+<p style="margin:0;font-size:9px;letter-spacing:4px;color:#ff3344;text-transform:uppercase;font-weight:700;font-family:Arial,Helvetica,sans-serif;">coldd Development</p>
+<p style="margin:14px 0 0;font-size:22px;color:#ffffff;font-weight:700;font-family:Arial,Helvetica,sans-serif;">Verify your email</p>
+<p style="margin:10px 0 0;font-size:13px;color:#585858;line-height:1.7;font-family:Arial,Helvetica,sans-serif;">Enter this code to confirm your account. It expires in ${EXPIRY_MINUTES} minutes.</p>
 </td></tr>
-<tr><td style="padding:22px 40px 32px;font-family:${F};font-size:15px;line-height:1.65;color:#3f3f46;">
-<p style="margin:0 0 14px;font-size:19px;line-height:1.3;font-weight:600;color:#18181b;">Verify your email</p>
-<p style="margin:0 0 6px;">Enter this code to confirm your account. It expires in ${EXPIRY_MINUTES} minutes.</p>
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:8px 0 18px;"><tr>
-<td align="center" style="padding:20px;background:#fafafa;border:1px dashed #d4d4d8;border-radius:10px;font-family:'SF Mono',SFMono-Regular,ui-monospace,Menlo,Consolas,monospace;font-size:30px;font-weight:700;letter-spacing:8px;color:#18181b;">${code}</td>
-</tr></table>
-<p style="margin:0;font-size:13px;color:#a1a1aa;">Didn't request this? You can ignore this email. coldd will never ask for your password, and only emails from an <strong style="color:#71717a;">@coldd.dev</strong> address are really from us.</p>
+
+<tr><td style="padding:26px 44px 30px;">
+<table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#111111;background-image:url('data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2216%22%20height%3D%2216%22%3E%3Ccircle%20cx%3D%228%22%20cy%3D%228%22%20r%3D%221%22%20fill%3D%22%23ffffff%22%20opacity%3D%220.055%22%2F%3E%3C%2Fsvg%3E');border-radius:6px;border:1px solid #1a1a1a;">
+<tr><td align="center" style="padding:28px 22px;">
+<table cellpadding="0" cellspacing="0" border="0" style="background:linear-gradient(135deg,#cc0011 0%,#ff3344 100%);border-radius:5px;width:100%;">
+<tr><td align="center" style="padding:18px 22px;">
+<p align="center" style="margin:0;text-align:center;font-family:'Montserrat',Arial,Helvetica,sans-serif;font-size:32px;font-weight:700;letter-spacing:6px;color:#ffffff;">${code}</p>
 </td></tr>
-<tr><td style="padding:0 40px;"><div style="border-top:1px solid #e4e4e7;"></div></td></tr>
-<tr><td style="padding:20px 40px 34px;font-family:${F};font-size:12px;line-height:1.7;color:#a1a1aa;">
-Questions? Reach us at <a href="mailto:support@coldd.dev" style="color:#a1a1aa;text-decoration:underline;">support@coldd.dev</a>.<br>
-coldd Development · <a href="https://coldd.dev" style="color:#a1a1aa;text-decoration:none;">coldd.dev</a>
+</table>
 </td></tr>
+</table>
+</td></tr>
+
+<tr><td style="padding:0 44px;">
+<table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td style="border-top:1px solid rgba(255,51,68,0.2);font-size:0;line-height:0;">&nbsp;</td></tr></table>
+</td></tr>
+
+<tr><td style="padding:24px 44px 40px;">
+<p style="margin:0;font-size:11px;color:#3e3e3e;line-height:1.8;font-family:Arial,Helvetica,sans-serif;">
+Didn't request this? You can safely ignore this email.<br><br>
+Need help? Contact <a href="mailto:support@coldd.dev" style="color:#ff3344;text-decoration:none;">support@coldd.dev</a>.<br>
+coldd Development will never ask for your password. Any message claiming to be from us that isn't sent from an <strong style="color:#7a7a7a;">@coldd.dev</strong> address is not from us.
+</p>
+</td></tr>
+
+<tr><td style="background-color:#070707;border-top:1px solid #141414;padding:18px 44px;">
+<p style="margin:0;font-size:10px;color:#252525;font-family:Arial,Helvetica,sans-serif;">coldd Development &nbsp;&middot;&nbsp; noreply@coldd.dev</p>
+</td></tr>
+
+<tr><td style="background:linear-gradient(90deg,#ff2233 0%,#ff6677 50%,#ff2233 100%);height:2px;line-height:2px;font-size:2px;">&nbsp;</td></tr>
 </table>
 </td></tr>
 </table>
 </body></html>`;
 }
 
+// Plain-text alternative - a missing text/plain part is a spam signal, and
+// some clients show it verbatim.
 function emailText(code: string): string {
   return `Verify your email
 
@@ -167,7 +187,7 @@ Deno.serve(async (req: Request) => {
 
       try {
         await client.send({
-          from: `coldd <${Deno.env.get("SMTP_USER")}>`,
+          from: `coldd Development <${Deno.env.get("SMTP_USER")}>`,
           to: email,
           replyTo: "support@coldd.dev",
           subject: "Your coldd verification code",

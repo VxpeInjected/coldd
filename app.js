@@ -196,7 +196,7 @@
             try { localStorage.setItem(CODE_KEY, data.code); } catch (err) {}
             form.hidden = true;
             msgEl.className = 'mkt-popup-msg ok';
-            msgEl.innerHTML = '<span class="mkt-popup-code">' + data.code + '</span>Use this at checkout - it\'s also saved to this browser.';
+            msgEl.innerHTML = '<span class="mkt-popup-code">' + data.code + '</span>Use this at checkout - we\'ve emailed it to you and saved it to this browser.';
           }).catch(function () {
             btn.disabled = false; if (spinner) spinner.hidden = true;
             msgEl.className = 'mkt-popup-msg err';

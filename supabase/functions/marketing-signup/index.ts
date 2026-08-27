@@ -14,13 +14,47 @@
 // (marketing_optins.discount_code) rather than minting a new one every
 // time - otherwise the popup would be a free unlimited-code generator for
 // anyone willing to resubmit the form.
+//
+// The code is also emailed to the address the visitor typed (best-effort
+// via Resend - a send failure never fails the signup, since the popup
+// already shows the code on screen). A repeat submission re-sends the
+// existing code, which doubles as a "resend my code" path.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { mintOneTimeCoupon } from "../_shared/discount_codes.ts";
+import { escapeHtml, sendSingle, wrapTransactionalEmail } from "../_shared/email.ts";
 
 const ALLOWED_ORIGIN = "https://coldd.dev";
 const DISCOUNT_PCT = 10;
 const CODE_VALID_DAYS = 14;
+
+// Emails the discount code to the address the visitor typed. Best-effort:
+// a Resend failure (or RESEND_API_KEY not set) must never fail the signup -
+// the popup already shows the code on screen, this is just a copy for
+// their inbox. `resend` softens the wording for a repeat request.
+async function emailWelcomeCode(to: string, code: string, resend: boolean): Promise<void> {
+  try {
+    const intro = resend
+      ? "Here's your coldd welcome code again."
+      : `Thanks for joining - here's your ${DISCOUNT_PCT}% off coldd welcome code.`;
+    const body = `
+<p style="margin:0 0 4px;font-size:20px;font-weight:700;color:#ffffff;font-family:Arial,Helvetica,sans-serif;">${DISCOUNT_PCT}% off your order</p>
+<p style="margin:0 0 24px;">${intro}</p>
+<table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:24px;">
+<tr><td align="center" style="background:#111111;border:1px solid #1a1a1a;border-radius:6px;padding:18px;">
+<p style="margin:0;font-family:'Courier New',Courier,monospace;font-size:24px;font-weight:700;letter-spacing:3px;color:#ff3344;">${escapeHtml(code)}</p>
+</td></tr>
+</table>
+<p style="margin:0 0 24px;">Enter it at checkout to take ${DISCOUNT_PCT}% off. It works once${resend ? "" : `, and is valid for ${CODE_VALID_DAYS} days`}.</p>
+<table cellpadding="0" cellspacing="0" border="0"><tr><td style="background:linear-gradient(135deg,#cc0011 0%,#ff3344 100%);border-radius:6px;">
+<a href="https://coldd.dev/assets" style="display:inline-block;padding:13px 26px;color:#ffffff;font-weight:700;font-size:14px;text-decoration:none;font-family:Arial,Helvetica,sans-serif;">Browse the shop</a>
+</td></tr></table>
+`;
+    await sendSingle(to, `Your ${DISCOUNT_PCT}% off coldd code: ${code}`, wrapTransactionalEmail(body));
+  } catch (err) {
+    console.error("[marketing-signup] welcome code email failed:", err);
+  }
+}
 
 function corsHeaders() {
   return {
@@ -66,6 +100,7 @@ Deno.serve(async (req: Request) => {
 
     const { data: existing } = await admin.from("marketing_optins").select("discount_code").eq("email", email).maybeSingle();
     if (existing?.discount_code) {
+      await emailWelcomeCode(email, existing.discount_code, true);
       return json({ ok: true, code: existing.discount_code, alreadySubscribed: true });
     }
 
@@ -85,6 +120,8 @@ Deno.serve(async (req: Request) => {
       const prefs = Object.assign({}, profile?.notification_prefs || {}, { promotions: true });
       await admin.from("profiles").update({ notification_prefs: prefs }).eq("id", userId);
     }
+
+    await emailWelcomeCode(email, code, false);
 
     return json({ ok: true, code, alreadySubscribed: false });
   } catch (err) {

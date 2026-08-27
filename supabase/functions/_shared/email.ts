@@ -192,7 +192,7 @@ ${bodyHtml}
 
 <tr><td style="padding:24px 44px 40px;">
 <p style="margin:0;font-size:11px;color:#3e3e3e;line-height:1.8;font-family:Arial,Helvetica,sans-serif;">
-Need help with this order? Contact <a href="mailto:support@coldd.dev" style="color:#ff3344;text-decoration:none;">support@coldd.dev</a>.
+Need help? Contact <a href="mailto:support@coldd.dev" style="color:#ff3344;text-decoration:none;">support@coldd.dev</a>.
 </p>
 </td></tr>
 

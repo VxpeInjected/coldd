@@ -52,6 +52,11 @@ Deno.serve(async (req: Request) => {
     if (!token) {
       return page(`<p style="margin:14px 0 0;font-size:16px;color:#ffffff;">Missing unsubscribe link.</p>`, 400);
     }
+    // email_unsub_token is a uuid column - a non-uuid `t` (bots, truncated
+    // links) would otherwise throw a Postgres 22P02 and surface as a 500.
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(token)) {
+      return page(`<p style="margin:14px 0 0;font-size:16px;color:#ffffff;">That link is invalid.</p>`, 404);
+    }
 
     // GET - show the confirm button, change nothing.
     if (req.method === "GET") {

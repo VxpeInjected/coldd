@@ -563,14 +563,25 @@
     accept: function () { return writeConsent(true); },
     reject: function () { return writeConsent(false); },
     // Exposed so the privacy policy can offer a "change your choice" control.
-    reopen: function () {
-      try { localStorage.removeItem(CONSENT_KEY); } catch (e) {}
-      showConsentBanner();
-    }
+    // Shows the banner pre-filled with whatever is currently saved - this
+    // used to clear the saved choice from localStorage immediately on open,
+    // before the visitor had done anything, so just opening your
+    // preferences to look (without clicking Accept/Reject/Save) silently
+    // reset a prior Accept back to declined. Nothing is written until the
+    // visitor actually makes a choice again.
+    reopen: function () { showConsentBanner({ openConfig: true }); }
   };
 
-  function showConsentBanner() {
+  function showConsentBanner(opts) {
     if (document.getElementById('cookieBanner')) return;
+    opts = opts || {};
+    // Reopening to review/change an existing choice should show that choice,
+    // not silently default back to "off" - a visitor who'd accepted
+    // analytics and clicked Save here without touching the checkbox (since
+    // it looked already off) would otherwise have their Accept quietly
+    // downgraded to a decline.
+    var current = readConsent();
+    var analyticsChecked = !!(current && current.analytics);
 
     var bar = document.createElement('div');
     bar.className = 'cookie-bar';
@@ -588,15 +599,17 @@
           '<a href="/privacy-policy">Read our privacy policy</a>.</p>' +
         '</div>' +
         '<div class="cookie-bar-actions">' +
-          '<button type="button" class="btn btn-ghost cookie-config" aria-expanded="false">Configure</button>' +
+          '<button type="button" class="btn btn-ghost cookie-config" aria-expanded="' + (opts.openConfig ? 'true' : 'false') + '">Configure</button>' +
           '<button type="button" class="btn btn-tinted cookie-reject">Essential only</button>' +
           '<button type="button" class="btn btn-primary cookie-accept">Accept all</button>' +
         '</div>' +
         // Per-category detail. Collapsed by default so the common cases stay
         // one click - a preferences panel nobody asked for is friction, but
         // burying the choice behind a link is a dark pattern. Expanding is the
-        // middle path.
-        '<div class="cookie-cats" hidden>' +
+        // middle path. Reopened via "Manage Cookie Preferences" starts
+        // expanded instead - the whole point of that button is reviewing the
+        // per-category choice, not the two big first-visit buttons.
+        '<div class="cookie-cats"' + (opts.openConfig ? '' : ' hidden') + '>' +
           '<label class="cookie-cat is-locked">' +
             '<input type="checkbox" checked disabled />' +
             '<span class="cookie-cat-tx">' +
@@ -605,7 +618,7 @@
             '</span>' +
           '</label>' +
           '<label class="cookie-cat">' +
-            '<input type="checkbox" class="cookie-cat-analytics" />' +
+            '<input type="checkbox" class="cookie-cat-analytics"' + (analyticsChecked ? ' checked' : '') + ' />' +
             '<span class="cookie-cat-tx">' +
               '<span class="cookie-cat-n">Analytics</span>' +
               '<span class="cookie-cat-d">Tells us which pages get used and whether a cart was abandoned. Never shared, never used to identify you. Off unless you turn it on.</span>' +

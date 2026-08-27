@@ -5,9 +5,13 @@
 //
 // Required secrets (set once):
 //   supabase secrets set SMTP_HOST=smtp.migadu.com
-//   supabase secrets set SMTP_PORT=587
+//   supabase secrets set SMTP_PORT=465
 //   supabase secrets set SMTP_USER=noreply@coldd.dev
 //   supabase secrets set SMTP_PASSWORD=your-mailbox-password
+//
+// Use port 465 (implicit TLS), NOT 587 (STARTTLS) - 587 is known to hang
+// from Supabase Edge Functions and cause a platform 503. See the SMTPClient
+// setup below.
 //
 // SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are provided automatically by
 // the Edge Functions runtime - no need to set those yourself.

@@ -1,10 +1,11 @@
 // supabase/functions/_shared/email.ts
 //
-// Thin Resend client + branded HTML templates, shared between
-// admin-send-campaign and cron-abandoned-cart-emails.
+// Thin Resend client + branded HTML templates. Shared by admin-send-campaign,
+// cron-lifecycle-emails, marketing-signup, send-contact-message, and the
+// order-receipt path in every payment webhook.
 //
-// Gated behind RESEND_API_KEY. Until that secret is set, sendCampaignBatch
-// and sendSingle return { ok: false, code: "NOT_CONFIGURED" } for every
+// Gated behind RESEND_API_KEY. Until that secret is set, sendBatch and
+// sendSingle return { ok: false, code: "NOT_CONFIGURED" } for every
 // call rather than throwing - callers (the admin UI, the cron job) show
 // that as a clear "email sending isn't set up yet" state instead of a
 // crash, same pattern as ROBLOX_FALLBACK_COOKIE/ADBLOX_API_KEY elsewhere in
@@ -23,15 +24,35 @@ export function emailConfigured(): boolean {
 
 export type SendResult = { ok: true } | { ok: false; error: string; code?: string };
 
-/** Sends one email immediately - used for the campaign "send test" button. */
-export async function sendSingle(to: string, subject: string, html: string): Promise<SendResult> {
+/**
+ * RFC 8058 one-click unsubscribe headers for a bulk/marketing send. Gmail
+ * and Yahoo require List-Unsubscribe + List-Unsubscribe-Post on bulk mail;
+ * without them a sender's reputation degrades and messages land in spam.
+ * The mailbox provider POSTs `List-Unsubscribe=One-Click` to the URL, which
+ * email-unsubscribe handles without any confirmation step.
+ *
+ * Transactional mail (receipts, OTP, contact form) must NOT carry these -
+ * it isn't subject to unsubscribe.
+ */
+export function unsubscribeHeaders(unsubscribeUrl: string): Record<string, string> {
+  return {
+    "List-Unsubscribe": `<mailto:unsubscribe@coldd.dev?subject=unsubscribe>, <${unsubscribeUrl}>`,
+    "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+  };
+}
+
+/** Sends one email immediately. `headers` for bulk sends - see unsubscribeHeaders(). */
+export async function sendSingle(to: string, subject: string, html: string, headers?: Record<string, string>): Promise<SendResult> {
   const key = apiKey();
   if (!key) return { ok: false, error: "Email sending is not configured yet.", code: "NOT_CONFIGURED" };
+
+  const payload: Record<string, unknown> = { from: FROM_ADDRESS, to, subject, html };
+  if (headers && Object.keys(headers).length) payload.headers = headers;
 
   const res = await fetch(`${RESEND_API_BASE}/emails`, {
     method: "POST",
     headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ from: FROM_ADDRESS, to, subject, html }),
+    body: JSON.stringify(payload),
   });
   if (!res.ok) {
     const text = await res.text().catch(() => "");
@@ -40,7 +61,7 @@ export async function sendSingle(to: string, subject: string, html: string): Pro
   return { ok: true };
 }
 
-export type BatchEmail = { to: string; subject: string; html: string };
+export type BatchEmail = { to: string; subject: string; html: string; headers?: Record<string, string> };
 
 /**
  * Sends up to 100 emails in one Resend batch call. Larger lists must be
@@ -57,7 +78,11 @@ export async function sendBatch(emails: BatchEmail[]): Promise<{ ok: true; sent:
   const res = await fetch(`${RESEND_API_BASE}/emails/batch`, {
     method: "POST",
     headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-    body: JSON.stringify(emails.map((e) => ({ from: FROM_ADDRESS, to: e.to, subject: e.subject, html: e.html }))),
+    body: JSON.stringify(emails.map((e) => {
+      const item: Record<string, unknown> = { from: FROM_ADDRESS, to: e.to, subject: e.subject, html: e.html };
+      if (e.headers && Object.keys(e.headers).length) item.headers = e.headers;
+      return item;
+    })),
   });
   if (!res.ok) {
     const text = await res.text().catch(() => "");

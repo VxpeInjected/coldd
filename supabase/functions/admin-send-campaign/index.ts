@@ -26,7 +26,7 @@
 // the kind of premature machinery this codebase avoids elsewhere.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { emailConfigured, sendBatch, sendSingle, wrapCampaignEmail, type BatchEmail } from "../_shared/email.ts";
+import { emailConfigured, sendBatch, sendSingle, unsubscribeHeaders, wrapCampaignEmail, type BatchEmail } from "../_shared/email.ts";
 
 const ALLOWED_ORIGIN = "https://coldd.dev";
 const BATCH_SIZE = 100;
@@ -83,8 +83,9 @@ Deno.serve(async (req: Request) => {
     if (action === "test") {
       const testEmail = String(body.testEmail || "").trim();
       if (!testEmail) return json({ ok: false, error: "Enter an email to send the test to." }, 400);
-      const html = wrapCampaignEmail(bodyHtml, unsubUrl(profile.email_unsub_token));
-      const result = await sendSingle(testEmail, `[Test] ${subject}`, html);
+      const testUnsubUrl = unsubUrl(profile.email_unsub_token);
+      const html = wrapCampaignEmail(bodyHtml, testUnsubUrl);
+      const result = await sendSingle(testEmail, `[Test] ${subject}`, html, unsubscribeHeaders(testUnsubUrl));
       if (!result.ok) return json({ ok: false, error: result.error, code: result.code }, result.code === "NOT_CONFIGURED" ? 400 : 502);
       return json({ ok: true });
     }
@@ -124,11 +125,15 @@ Deno.serve(async (req: Request) => {
 
     for (let i = 0; i < audience.length; i += BATCH_SIZE) {
       const chunk = audience.slice(i, i + BATCH_SIZE);
-      const emails: BatchEmail[] = chunk.map((r) => ({
-        to: r.email as string,
-        subject,
-        html: wrapCampaignEmail(bodyHtml, unsubUrl(r.email_unsub_token)),
-      }));
+      const emails: BatchEmail[] = chunk.map((r) => {
+        const u = unsubUrl(r.email_unsub_token);
+        return {
+          to: r.email as string,
+          subject,
+          html: wrapCampaignEmail(bodyHtml, u),
+          headers: unsubscribeHeaders(u),
+        };
+      });
       const result = await sendBatch(emails);
       if (result.ok) {
         sentCount += result.sent;

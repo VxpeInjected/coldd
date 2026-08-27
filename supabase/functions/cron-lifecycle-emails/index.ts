@@ -33,7 +33,7 @@
 //    delay_hours, sent once (reengagement_email_sent_at gates repeats).
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { ctaButtonHtml, emailConfigured, itemsTableHtml, renderAutomationEmail, sendSingle } from "../_shared/email.ts";
+import { ctaButtonHtml, emailConfigured, itemsTableHtml, renderAutomationEmail, sendSingle, unsubscribeHeaders } from "../_shared/email.ts";
 import { mintOneTimeCoupon, mintBundleDeal } from "../_shared/discount_codes.ts";
 
 const MAX_PER_AUTOMATION = 50;
@@ -136,7 +136,7 @@ async function runAbandonedCart(admin: any, configs: Map<string, Config>, supaba
 
     const unsubscribeUrl = `${supabaseUrl}/functions/v1/email-unsubscribe?t=${prof.email_unsub_token}`;
     const html = renderAutomationEmail(step.body_md, extraBlocks, unsubscribeUrl);
-    const result = await sendSingle(prof.email, step.subject, html);
+    const result = await sendSingle(prof.email, step.subject, html, unsubscribeHeaders(unsubscribeUrl));
     if (result.ok) sent++; else console.error("[cron-lifecycle-emails] abandoned-cart send failed:", result.error);
     await admin.from("cart_snapshots").update(updatePayload).eq("session_id", cart.session_id);
   }
@@ -173,7 +173,7 @@ async function runPostPurchaseReview(admin: any, config: Config | undefined, sup
 
     const unsubscribeUrl = `${supabaseUrl}/functions/v1/email-unsubscribe?t=${prof.email_unsub_token}`;
     const html = renderAutomationEmail(config.body_md, [itemsTableHtml(lineItems)], unsubscribeUrl);
-    const result = await sendSingle(prof.email, config.subject, html);
+    const result = await sendSingle(prof.email, config.subject, html, unsubscribeHeaders(unsubscribeUrl));
     if (result.ok) sent++; else console.error("[cron-lifecycle-emails] review-request send failed:", result.error);
     await admin.from("orders").update({ review_email_sent_at: new Date().toISOString() }).eq("id", order.id);
   }
@@ -213,7 +213,7 @@ async function runReengagement(admin: any, config: Config | undefined, supabaseU
 
     const unsubscribeUrl = `${supabaseUrl}/functions/v1/email-unsubscribe?t=${prof.email_unsub_token}`;
     const html = renderAutomationEmail(config.body_md, [ctaButtonHtml(`${SITE_URL}/assets`, "See what's new")], unsubscribeUrl);
-    const result = await sendSingle(prof.email, config.subject, html);
+    const result = await sendSingle(prof.email, config.subject, html, unsubscribeHeaders(unsubscribeUrl));
     if (result.ok) sent++; else { skipped++; console.error("[cron-lifecycle-emails] reengagement send failed:", result.error); }
     await admin.from("profiles").update({ reengagement_email_sent_at: new Date().toISOString() }).eq("id", prof.id);
   }
@@ -307,7 +307,7 @@ async function runWishlistReminder(admin: any, config: Config | undefined, supab
       [itemsTableHtml(lineItems), discountNote, ctaButtonHtml(`${SITE_URL}/dashboard?panel=wishlist&bundle=${token}`, "See your wishlist")],
       unsubscribeUrl,
     );
-    const result = await sendSingle(prof.email, config.subject, html);
+    const result = await sendSingle(prof.email, config.subject, html, unsubscribeHeaders(unsubscribeUrl));
     if (result.ok) sent++; else { skipped++; console.error("[cron-lifecycle-emails] wishlist-reminder send failed:", result.error); }
     await admin.from("wishlist_items").update({ reminder_sent_at: new Date().toISOString() }).eq("user_id", userId).in("product_id", productIds);
   }

@@ -8,14 +8,23 @@
 // the token itself (profiles.email_unsub_token, a random uuid per account),
 // not a Supabase JWT.
 //
-// GET ?t=<token> - sets marketing_unsubscribed and returns a small branded
-// confirmation page directly (no separate static page needed for a
-// one-shot, rarely-visited link like this).
+//   GET  ?t=<token>  - shows a small branded confirm page with a button.
+//                      Does NOT change anything. A plain GET must be safe:
+//                      inbox link-scanners, "open in new tab" prefetch and
+//                      corporate URL-rewriters all fetch links, and a GET
+//                      that mutated state would unsubscribe people who never
+//                      clicked.
+//   POST ?t=<token>  - actually sets marketing_unsubscribed. This is both
+//                      the confirm-page button target AND the RFC 8058
+//                      one-click endpoint that Gmail/Yahoo POST to (body
+//                      `List-Unsubscribe=One-Click`), paired with the
+//                      List-Unsubscribe / List-Unsubscribe-Post headers set
+//                      in _shared/email.ts (unsubscribeHeaders).
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-function html(body: string, status = 200) {
-  const page = `<!DOCTYPE html>
+function page(body: string, status = 200) {
+  const doc = `<!DOCTYPE html>
 <html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Unsubscribe - coldd</title></head>
 <body style="margin:0;padding:0;background:#0a0a0a;font-family:Arial,Helvetica,sans-serif;color:#d7d7d7;">
@@ -24,14 +33,42 @@ function html(body: string, status = 200) {
 ${body}
 </div>
 </body></html>`;
-  return new Response(page, { status, headers: { "Content-Type": "text/html; charset=utf-8" } });
+  return new Response(doc, { status, headers: { "Content-Type": "text/html; charset=utf-8" } });
+}
+
+function corsHeaders() {
+  return {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Headers": "content-type",
+    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+  };
 }
 
 Deno.serve(async (req: Request) => {
+  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders() });
+
   try {
     const token = new URL(req.url).searchParams.get("t");
-    if (!token) return html(`<p style="margin:14px 0 0;font-size:16px;color:#ffffff;">Missing unsubscribe link.</p>`, 400);
+    if (!token) {
+      return page(`<p style="margin:14px 0 0;font-size:16px;color:#ffffff;">Missing unsubscribe link.</p>`, 400);
+    }
 
+    // GET - show the confirm button, change nothing.
+    if (req.method === "GET") {
+      const action = `${new URL(req.url).pathname}?t=${encodeURIComponent(token)}`;
+      return page(`<p style="margin:14px 0 4px;font-size:18px;color:#ffffff;">Unsubscribe from coldd marketing emails?</p>
+<p style="margin:0 0 22px;font-size:13px;color:#7a7a7a;">You'll still get account and order emails. You can re-subscribe any time from your dashboard.</p>
+<form method="POST" action="${action}">
+<button type="submit" style="display:inline-block;padding:12px 28px;background:linear-gradient(135deg,#cc0011,#ff3344);color:#fff;font-weight:700;font-size:14px;border:none;border-radius:6px;cursor:pointer;font-family:inherit;">Unsubscribe</button>
+</form>`);
+    }
+
+    if (req.method !== "POST") {
+      return new Response("Method not allowed", { status: 405, headers: corsHeaders() });
+    }
+
+    // POST - perform the unsubscribe (human confirm button, or a mailbox
+    // provider's RFC 8058 one-click POST).
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const admin = createClient(supabaseUrl, serviceKey);
@@ -45,16 +82,16 @@ Deno.serve(async (req: Request) => {
 
     if (error) {
       console.error("[email-unsubscribe] error:", error.message);
-      return html(`<p style="margin:14px 0 0;font-size:16px;color:#ffffff;">Something went wrong. Try again later.</p>`, 500);
+      return page(`<p style="margin:14px 0 0;font-size:16px;color:#ffffff;">Something went wrong. Try again later.</p>`, 500);
     }
     if (!data) {
-      return html(`<p style="margin:14px 0 0;font-size:16px;color:#ffffff;">That link is invalid or already used.</p>`, 404);
+      return page(`<p style="margin:14px 0 0;font-size:16px;color:#ffffff;">That link is invalid.</p>`, 404);
     }
 
-    return html(`<p style="margin:14px 0 0;font-size:16px;color:#ffffff;">You're unsubscribed.</p>
+    return page(`<p style="margin:14px 0 0;font-size:16px;color:#ffffff;">You're unsubscribed.</p>
 <p style="margin:10px 0 0;font-size:13px;color:#7a7a7a;">You won't get marketing emails from coldd anymore. Account and order emails are unaffected.</p>`);
   } catch (err) {
     console.error("[email-unsubscribe] error:", err);
-    return html(`<p style="margin:14px 0 0;font-size:16px;color:#ffffff;">Something went wrong. Try again later.</p>`, 500);
+    return page(`<p style="margin:14px 0 0;font-size:16px;color:#ffffff;">Something went wrong. Try again later.</p>`, 500);
   }
 });

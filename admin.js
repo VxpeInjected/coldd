@@ -1119,6 +1119,79 @@
     var rows = TRAFFIC.slice(Math.max(0, TRAFFIC.length - days));
     return rows.map(function (r) { return { label: fmtDate(new Date(r.date)), v: r.pageviews, tip: r.pageviews + ' views' }; });
   }
+
+  /* ----------------------------------------------------------------
+     SITE ANALYTICS: payment mix, customer mix, refunds, AOV trend.
+     All USD figures use o.total (the USD or USD-equivalent record-
+     keeping value), matching the rest of the Analytics panel, so a
+     Robux order still counts toward the mix at its book value.
+     ---------------------------------------------------------------- */
+  function paymentMethodLabel(o) {
+    if (o.currency === 'robux') return 'Robux';
+    var p = String(o.paymentProvider || '').toLowerCase();
+    if (p === 'paypal') return 'PayPal';
+    if (p === 'crypto' || p === 'nowpayments' || p === 'coinbase') return 'Crypto';
+    if (!p || p === 'stripe' || p === 'card') return 'Card';
+    return p.charAt(0).toUpperCase() + p.slice(1);
+  }
+  function methodColor(label) {
+    return ({ Card: 'var(--accent)', PayPal: '#3b7bbf', Crypto: '#e8b84b', Robux: 'var(--price)' })[label] || 'var(--fg-3)';
+  }
+  function revenueByMethod() {
+    var map = {};
+    completedInRange().forEach(function (o) {
+      var k = paymentMethodLabel(o);
+      map[k] = (map[k] || 0) + (Number(o.total) || 0);
+    });
+    var total = Object.keys(map).reduce(function (s, k) { return s + map[k]; }, 0);
+    return Object.keys(map).map(function (k) { return { label: k, v: map[k], pct: total ? map[k] / total * 100 : 0 }; })
+      .sort(function (a, b) { return b.v - a.v; });
+  }
+  function repeatCustomerStats() {
+    var byUser = {};
+    ORDERS.forEach(function (o) {
+      if (o.status === 'completed' && o.source !== 'granted' && o.userId) byUser[o.userId] = (byUser[o.userId] || 0) + 1;
+    });
+    var ids = Object.keys(byUser);
+    var repeat = ids.filter(function (id) { return byUser[id] >= 2; }).length;
+    return { payers: ids.length, repeat: repeat, rate: ids.length ? repeat / ids.length * 100 : 0 };
+  }
+  function refundStats() {
+    var inr = ordersInRange().filter(function (o) { return o.source !== 'granted'; });
+    var refunded = inr.filter(function (o) { return o.status === 'refunded'; });
+    var completed = inr.filter(function (o) { return o.status === 'completed'; });
+    var denom = completed.length + refunded.length;
+    return {
+      count: refunded.length,
+      rate: denom ? refunded.length / denom * 100 : 0,
+      usd: refunded.reduce(function (s, o) { return s + (Number(o.total) || 0); }, 0)
+    };
+  }
+  function aovDailySeries() {
+    var days = RANGE_DAYS || 120;
+    var out = [];
+    for (var i = days - 1; i >= 0; i--) {
+      var d = daysAgo(i), key = d.toDateString();
+      var rev = 0, n = 0;
+      ORDERS.forEach(function (o) {
+        if (o.status === 'completed' && o.source !== 'granted' && new Date(o.date).toDateString() === key) { rev += Number(o.total) || 0; n++; }
+      });
+      var v = n ? rev / n : 0;
+      out.push({ label: fmtDate(d), v: Math.round(v * 100) / 100, tip: usd(v) + (n ? ' · ' + n + ' order' + (n === 1 ? '' : 's') : '') });
+    }
+    return out;
+  }
+  function categoryRevenueWindow(list) {
+    var map = {};
+    (list || []).forEach(function (o) {
+      (o.items || []).forEach(function (it) {
+        var product = findProduct(it.product_slug);
+        var cat = product ? product.cat : o.cat;
+        map[cat] = (map[cat] || 0) + (Number(it.unit_price_usd) || 0) * (it.qty || 1);
+      });
+    });
+    return map;
+  }
   function conversionRate() {
     var days = RANGE_DAYS || 120;
     var rows = TRAFFIC.slice(Math.max(0, TRAFFIC.length - days));
@@ -2333,7 +2406,24 @@
     $('admRevChart').innerHTML = svgBars(dailyRevenueSeries());
     attachChartTooltip($('admRevChart'));
 
-
+    if ($('admRevBreakdown')) {
+      var methods = revenueByMethod();
+      var rc = repeatCustomerStats();
+      var rf = refundStats();
+      var bd = statGrid([
+        statTile('Repeat customers', pct(rc.rate), rc.repeat + ' of ' + rc.payers + ' buyers · lifetime', ''),
+        statTile('Refund rate', pct(rf.rate), rf.count + ' refunded · ' + usd(rf.usd), ''),
+        statTile('Avg order value', usd(avgOrderValue()), 'over selected range', '')
+      ]);
+      if (methods.length) {
+        bd += '<div class="adm-mini-head">Revenue by payment method · USD-equivalent</div><div class="adm-mixbar">' +
+          methods.map(function (m) { return '<span class="adm-mixseg" style="width:' + m.pct.toFixed(2) + '%;background:' + methodColor(m.label) + ';" title="' + esc(m.label + ' · ' + usd(m.v)) + '"></span>'; }).join('') +
+          '</div><div class="adm-mixkey">' + methods.map(function (m) { return '<span><i style="background:' + methodColor(m.label) + '"></i>' + esc(m.label) + ' · ' + usd(m.v) + ' (' + Math.round(m.pct) + '%)</span>'; }).join('') + '</div>';
+      }
+      bd += '<div class="adm-mini-head">Average order value · daily</div>' + svgBars(aovDailySeries(), { height: 110, color: 'var(--price)' });
+      $('admRevBreakdown').innerHTML = bd;
+      attachChartTooltip($('admRevBreakdown'));
+    }
 
     var best = bestSellers(6);
     $('admBestSellers').innerHTML = best.length ? best.map(function (p, i) {
@@ -2345,8 +2435,10 @@
     var byCat = revenueByCategory();
     $('admCatChart').innerHTML = byCat.length ? svgBars(byCat.map(function (c) { return { label: c.label, v: c.v, tip: usd(c.v) }; }), { height: 120 }) : '<p class="adm-empty">No data.</p>';
     attachChartTooltip($('admCatChart'));
+    var prevCat = win ? categoryRevenueWindow(prevOrders) : null;
     $('admCatList').innerHTML = byCat.map(function (c) {
-      return '<div class="adm-catrow"><span>' + esc(c.label) + '</span><span>' + usd(c.v) + '</span></div>';
+      var delta = prevCat ? ' ' + pctDelta(c.v, prevCat[c.label] || 0) : '';
+      return '<div class="adm-catrow"><span>' + esc(c.label) + '</span><span>' + usd(c.v) + delta + '</span></div>';
     }).join('');
 
     $('admTrafficChart').innerHTML = svgBars(trafficSeries(), { color: 'var(--price)' });
@@ -2364,6 +2456,14 @@
     $('admAbandonedTotal').textContent = usd(ABANDONED.reduce(function (s, a) { return s + a.value; }, 0));
 
     var cs = couponStats();
+    if ($('admCouponTotals')) {
+      var ct = cs.reduce(function (a, c) { a.disc += c.discountGiven; a.rev += c.revenue; return a; }, { disc: 0, rev: 0 });
+      $('admCouponTotals').innerHTML = statGrid([
+        statTile('Coupon revenue', usd(ct.rev), 'orders using a code · this range', ''),
+        statTile('Discount given', usd(ct.disc), 'this range', ''),
+        statTile('Net after discount', usd(ct.rev - ct.disc), null, '')
+      ]);
+    }
     $('admCouponAnBody').innerHTML = cs.map(function (c) {
       return '<tr><td class="dt-mono">' + esc(c.code) + '</td><td>' + (c.active ? '<span class="dt-badge ok">Active</span>' : '<span class="dt-badge err">Inactive</span>') + '</td><td>' + c.uses + (c.limit ? ' / ' + c.limit : '') + '</td><td>' + usd(c.discountGiven) + '</td><td>' + usd(c.revenue) + '</td></tr>';
     }).join('');

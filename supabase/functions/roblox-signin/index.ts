@@ -38,6 +38,24 @@ function json(body: unknown, status = 200) {
   });
 }
 
+// The OIDC userinfo `picture` is a tiny (~48px) headshot that looks
+// pixelated blown up into the site's avatar circle. Ask the Thumbnails API
+// for a real 420px render instead; fall back to whatever userinfo gave us.
+async function robloxHeadshot(robloxId: string, fallback: string): Promise<string> {
+  try {
+    const res = await fetch(
+      `https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=${encodeURIComponent(robloxId)}&size=420x420&format=Png&isCircular=false`,
+    );
+    if (!res.ok) return fallback;
+    const data = await res.json().catch(() => ({}));
+    const row = data?.data?.[0];
+    if (row && row.state === "Completed" && row.imageUrl) return row.imageUrl as string;
+    return fallback;
+  } catch (_err) {
+    return fallback;
+  }
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders() });
 
@@ -77,11 +95,11 @@ Deno.serve(async (req: Request) => {
     const userInfo = await userInfoRes.json().catch(() => ({}));
     const robloxId = String(userInfo.sub || "");
     const robloxUsername = userInfo.preferred_username || userInfo.nickname || userInfo.name || "Roblox User";
-    const avatar = userInfo.picture || "";
     if (!robloxId) {
       console.error("[roblox-signin] userinfo missing sub:", userInfoRes.status, userInfo);
       return json({ ok: false, error: "Could not read your Roblox profile." }, 400);
     }
+    const avatar = await robloxHeadshot(robloxId, userInfo.picture || "");
 
     const expiresAt = new Date(Date.now() + (Number(tokenData.expires_in) || 3600) * 1000).toISOString();
 
@@ -105,6 +123,18 @@ Deno.serve(async (req: Request) => {
         return json({ ok: false, error: "Could not sign you in. Please try again." }, 500);
       }
       email = userRes.user.email;
+      // Backfill a proper avatar for accounts created before the headshot
+      // fix: refresh when there's nothing on record, or when what's stored
+      // is a Roblox-provided headshot (the small OIDC one, or an expired
+      // CDN link). A user-uploaded picture lives on our own storage domain
+      // and is left untouched.
+      if (avatar) {
+        const { data: prof } = await admin.from("profiles").select("avatar_url").eq("id", userId).maybeSingle();
+        const cur = String(prof?.avatar_url || "");
+        if (!cur || /rbxcdn\.com|roblox\.com/i.test(cur)) {
+          await admin.from("profiles").update({ avatar_url: avatar, updated_at: new Date().toISOString() }).eq("id", userId);
+        }
+      }
     } else {
       email = "roblox-" + robloxId + "@roblox.coldd.internal";
       const { data: created, error: createErr } = await admin.auth.admin.createUser({

@@ -263,6 +263,12 @@
   function avatarUrlFor(p) {
     if (!p) return '';
     if (p.avatar) return p.avatar;
+    // A Roblox account with no stored picture: build the headshot straight
+    // from the user id. This URL 302-redirects to the current CDN render,
+    // so it works as an <img>/background src and never goes stale.
+    if (p.robloxId) {
+      return 'https://www.roblox.com/headshot-thumbnail/image?userId=' + encodeURIComponent(p.robloxId) + '&width=150&height=150&format=png';
+    }
     if (p.provider === 'discord') return '';
     var seed = p.id || p.email || p.name || 'coldd';
     return 'https://api.dicebear.com/9.x/identicon/svg?seed=' + encodeURIComponent(seed) + '&backgroundType=solid&backgroundColor=1f2127';
@@ -302,7 +308,7 @@
     document.querySelectorAll('#dashEmail, #coUserEmail').forEach(function (el) { el.textContent = shownEmail || '​'; });
 
     function paintAvatar(url) {
-      document.querySelectorAll('#dashAvatar, #coAvatar, #acAvatarPreview').forEach(function (el) {
+      document.querySelectorAll('#dashAvatar, #coAvatar, #acAvatarPreview, .account-menu-av').forEach(function (el) {
         if (url) {
           el.style.backgroundImage = 'url(' + url + ')';
           el.style.backgroundSize = 'cover';
@@ -335,7 +341,11 @@
       client.from('profiles').select('avatar_url').eq('id', p.id).maybeSingle()
         .then(function (res) {
           var row = res && res.data;
-          if (row && row.avatar_url) paintAvatar(row.avatar_url);
+          if (row && row.avatar_url && row.avatar_url !== p.avatar) {
+            p.avatar = row.avatar_url;
+            saveProfile(p); // so a lazily-built nav dropdown menu uses it too
+            paintAvatar(row.avatar_url);
+          }
         })
         .catch(function () {});
     }
@@ -371,12 +381,26 @@
     // who customized their display name via Account Settings must not have
     // it silently reverted to their OAuth/email-derived name on every
     // future sign-in.
-    return client.from('profiles').select('username').eq('id', user.id).maybeSingle().then(function (existingRes) {
-      var existingName = existingRes && existingRes.data ? existingRes.data.username : null;
+    return client.from('profiles').select('username, avatar_url, roblox_id, discord_id').eq('id', user.id).maybeSingle().then(function (existingRes) {
+      var row = (existingRes && existingRes.data) || {};
+      var existingName = row.username || null;
       var name = existingName || derivedName;
       var payload = { id: user.id, email: email, updated_at: new Date().toISOString() };
       if (!existingName) payload.username = derivedName;
-      var profile = { id: user.id, provider: 'email', name: name, email: email, avatar: '' };
+      // Keep the real provider + avatar - a Roblox-only or Discord-only
+      // account must not get flattened to provider:'email', avatar:'' on
+      // every session restore (that's what left Roblox users showing the
+      // generated identicon in the nav dropdown).
+      var meta = user.user_metadata || {};
+      var provider = row.roblox_id || meta.roblox_id ? 'roblox'
+        : row.discord_id || meta.provider === 'discord' ? 'discord'
+        : (meta.provider || 'email');
+      var profile = {
+        id: user.id, provider: provider, name: name, email: email,
+        avatar: row.avatar_url || meta.avatar_url || '',
+        robloxId: row.roblox_id || meta.roblox_id || null,
+        discordId: row.discord_id || null
+      };
       saveProfile(profile);
       try { localStorage.setItem(AUTH_KEY, 'in'); } catch (e) {}
       return client.from('profiles').upsert(payload).then(function (res) {

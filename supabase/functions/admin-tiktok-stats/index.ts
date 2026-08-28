@@ -87,10 +87,14 @@ async function tiktokCall(
     headers: { Authorization: `Bearer ${token}`, ...(init?.headers ?? {}) },
   });
   const body = await res.json().catch(() => ({}));
-  if (res.status === 401 || body?.error?.code === "access_token_invalid" || body?.error?.code === "access_token_expired") {
+  // TikTok always includes an `error` object; error.code === "ok" is a
+  // SUCCESS, not a failure. Only a non-"ok" code (or a non-2xx status) is
+  // a real error.
+  const code: string | undefined = body?.error?.code;
+  if (res.status === 401 || code === "access_token_invalid" || code === "access_token_expired") {
     return "expired";
   }
-  if (!res.ok || body?.error?.code) {
+  if (!res.ok || (code && code !== "ok")) {
     console.error("[admin-tiktok-stats] TikTok API error:", res.status, JSON.stringify(body?.error ?? body).slice(0, 300));
     return null;
   }

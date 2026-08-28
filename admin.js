@@ -1076,7 +1076,7 @@
   // (Marketing polls every 10s, Analytics on data refresh) that a
   // per-container listener wouldn't. The native <title> is dropped in
   // favour of this since it's slow and unstyled.
-  var CHART_HIT = '.adm-chart-bar, .adm-donut-seg, .adm-spark-pt';
+  var CHART_HIT = '.adm-chart-bar, .adm-donut-seg, .adm-spark-pt, .adm-hbar';
   (function () {
     var tipEl = null;
     function tip() {
@@ -1084,7 +1084,7 @@
       return tipEl;
     }
     function clearHover() {
-      document.querySelectorAll('.adm-chart-bar.hover, .adm-donut-seg.hover, .adm-spark-pt.hover').forEach(function (x) { x.classList.remove('hover'); });
+      document.querySelectorAll('.adm-chart-bar.hover, .adm-donut-seg.hover, .adm-spark-pt.hover, .adm-hbar.hover').forEach(function (x) { x.classList.remove('hover'); });
     }
     document.addEventListener('mousemove', function (e) {
       var t = e.target.closest ? e.target.closest(CHART_HIT) : null;
@@ -1438,9 +1438,9 @@
       aud1.channels.length
         ? deltaTile('Total audience', num(aud1.total), aud1.delta, aud1.channels.length + ' channel' + (aud1.channels.length === 1 ? '' : 's'))
         : statTile('Total audience', DISCORD_STATS.memberCount != null ? num(DISCORD_STATS.memberCount) : '—', 'loading channels…', ''),
-      statTile('Discord joins',
+      statTile('Discord net',
         joins == null ? '—' : (joins.joins > 0 ? '+' : '') + joins.joins.toLocaleString('en-US'),
-        joins == null ? 'Gathering history' : (joins.partial ? 'since ' + joins.sinceKey : (RANGE_DAYS ? 'net over selected range' : 'net since tracking began')), ''),
+        joins == null ? 'Gathering history' : ('member count · ' + (joins.partial ? 'since ' + joins.sinceKey : (RANGE_DAYS ? 'selected range' : 'all time'))), ''),
       statTile('Referrals owed', aud(owed.usdTotal), owed.count ? (owed.count + ' request' + (owed.count === 1 ? '' : 's') + ' pending') : 'Nothing pending', '', { panel: 'analytics', title: owed.names.length ? 'Requested by: ' + owed.names.join(', ') : '' })
     ].join('');
 
@@ -1628,32 +1628,36 @@
     values = (values || []).map(Number).filter(function (v) { return !isNaN(v); });
     if (values.length < 2) return '';
     opts = opts || {};
-    var w = 320, h = 44, pad = 4;
+    var n = values.length;
+    var w = 600, h = 90, padX = 8, padY = 14;
     var min = Math.min.apply(null, values), max = Math.max.apply(null, values);
     var span = (max - min) || 1;
-    var stepX = (w - pad * 2) / (values.length - 1);
+    var stepX = (w - padX * 2) / (n - 1);
     var color = opts.color || 'var(--accent)';
     var co = values.map(function (v, i) {
-      return { x: pad + i * stepX, y: h - pad - ((v - min) / span) * (h - pad * 2), v: v };
+      return { x: padX + i * stepX, y: h - padY - ((v - min) / span) * (h - padY * 2), v: v };
     });
     var line = co.map(function (p) { return p.x.toFixed(1) + ',' + p.y.toFixed(1); }).join(' ');
+    var base = (h - padY + 5).toFixed(1);
+    var area = 'M' + co[0].x.toFixed(1) + ',' + base + ' L' + co.map(function (p) { return p.x.toFixed(1) + ',' + p.y.toFixed(1); }).join(' L') + ' L' + co[n - 1].x.toFixed(1) + ',' + base + ' Z';
     var lbl = opts.label ? opts.label + ': ' : '';
     var pts = co.map(function (p) {
-      return '<circle class="adm-spark-pt" cx="' + p.x.toFixed(1) + '" cy="' + p.y.toFixed(1) + '" r="6" data-tip="' + esc(lbl + num(p.v)) + '"></circle>' +
-        '<circle class="adm-spark-dot" cx="' + p.x.toFixed(1) + '" cy="' + p.y.toFixed(1) + '" r="1.8" fill="' + color + '"></circle>';
+      return '<circle class="adm-spark-pt" cx="' + p.x.toFixed(1) + '" cy="' + p.y.toFixed(1) + '" r="9" data-tip="' + esc(lbl + num(p.v)) + '"></circle>' +
+        '<circle class="adm-spark-dot" cx="' + p.x.toFixed(1) + '" cy="' + p.y.toFixed(1) + '" r="2" fill="' + color + '"></circle>';
     }).join('');
-    return '<svg class="adm-spark" viewBox="0 0 ' + w + ' ' + h + '" preserveAspectRatio="none" height="' + h + '">' +
-      '<polyline points="' + line + '" fill="none" stroke="' + color + '" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" />' +
+    return '<svg class="adm-spark" viewBox="0 0 ' + w + ' ' + h + '" preserveAspectRatio="none">' +
+      '<path d="' + area + '" fill="' + color + '" fill-opacity="0.10" />' +
+      '<polyline points="' + line + '" fill="none" stroke="' + color + '" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round" />' +
       pts + '</svg>';
   }
   function sparkCard(title, values, opts) {
     opts = opts || {};
     if (!opts.label) opts.label = title;
+    var clean = (values || []).map(Number).filter(function (v) { return !isNaN(v); });
     var s = sparkline(values, opts);
     if (!s) return '';
-    var first = values[0], last = values[values.length - 1];
     return '<div class="adm-spark-card"><div class="adm-spark-head"><span>' + esc(title) + '</span>' +
-      '<span class="adm-sub">' + num(first) + ' → ' + num(last) + '</span></div>' + s + '</div>';
+      '<span class="adm-sub">' + num(clean[0]) + ' → ' + num(clean[clean.length - 1]) + '</span></div>' + s + '</div>';
   }
   // Per-day positive change of a cumulative-ish metric across the range -
   // e.g. impressions on the trailing-100-posts window snapshotted daily,
@@ -1669,6 +1673,19 @@
     return out;
   }
   function statGrid(tiles) { return '<div class="dash-stats">' + tiles.filter(Boolean).join('') + '</div>'; }
+  // Horizontal label|bar|value rows - reads cleanly with any number of
+  // series (1 to 4), unlike svgBars which turns 1-2 series into giant slabs.
+  function hbars(rows, opts) {
+    opts = opts || {};
+    var max = Math.max.apply(null, rows.map(function (r) { return Number(r.v) || 0; }).concat([1]));
+    return '<div class="adm-hbars">' + rows.map(function (r) {
+      var w = max ? ((Number(r.v) || 0) / max * 100) : 0;
+      return '<div class="adm-hbar" data-tip="' + esc(r.label + ' · ' + (r.display != null ? r.display : r.v)) + '">' +
+        '<span class="adm-hbar-lbl">' + esc(r.label) + '</span>' +
+        '<span class="adm-hbar-track"><span class="adm-hbar-fill" style="width:' + w.toFixed(1) + '%;background:' + (r.color || opts.color || 'var(--accent)') + '"></span></span>' +
+        '<span class="adm-hbar-val">' + esc(r.display != null ? r.display : String(r.v)) + '</span></div>';
+    }).join('') + '</div>';
+  }
   function engagementSection(title, sub, tiles) {
     tiles = tiles.filter(Boolean);
     if (!tiles.length) return '';
@@ -1697,17 +1714,22 @@
     var peakOnline = onlineVals.length ? Math.max.apply(null, onlineVals) : null;
     var perDay = dMem ? dMem.abs / rangeDayCount(h) : null;
     var swing = biggestSwing(h, mem);
+    // Engagement = share of members online on an average day over the range
+    // (a rough "how alive is the server" number, comparable week to week).
+    var engagement = (avgOnline != null && DISCORD_STATS.memberCount)
+      ? Math.round(avgOnline / DISCORD_STATS.memberCount * 1000) / 10 : null;
     var tiles = [
       deltaTile('Members', num(DISCORD_STATS.memberCount), dMem),
       statTile('Online now', DISCORD_STATS.onlineCount != null ? num(DISCORD_STATS.onlineCount) : '—', null, ''),
       statTile('Net members', dMem ? signed(dMem.abs) : '—', socialRangeLabel(), dMem && dMem.pct != null ? socialDeltaSpan(dMem) : ''),
-      statTile('Avg / day', perDay == null ? '—' : signed1(perDay), socialRangeLabel(), ''),
+      statTile('Members / day', perDay == null ? '—' : signed1(perDay), socialRangeLabel(), ''),
       statTile('Avg online', avgOnline == null ? '—' : num(avgOnline), socialRangeLabel(), ''),
       statTile('Peak online', peakOnline == null ? '—' : num(peakOnline), socialRangeLabel(), ''),
+      statTile('Engagement', engagement == null ? '—' : engagement + '%', 'avg online ÷ members', ''),
       statTile('Biggest day', swing && swing.up ? signed(swing.up.diff) : '—',
-        swing && swing.down && swing.down.diff < 0 ? signed(swing.down.diff) + ' worst day' : null, '')
+        swing && swing.down && swing.down.diff < 0 ? signed(swing.down.diff) + ' worst' : null, '')
     ];
-    return statGrid(tiles) +
+    return '<div class="dash-stats adm-grid-4">' + tiles.join('') + '</div>' +
       sparkCard('Members', inr.map(function (r) { return r.member_count; })) +
       sparkCard('Online', onlineVals, { color: 'var(--price)' });
   }
@@ -1729,7 +1751,8 @@
       statTile('Interactions', num(eng.interactions), 'likes + reposts + replies + quotes', ''),
       statTile('Engagement rate', eng.engagementRate != null ? eng.engagementRate + '%' : '—',
         eng.engagementRate == null ? 'X did not report impressions' : 'interactions ÷ impressions', ''),
-      statTile('Avg / post', num(eng.avgInteractionsPerPost), num(eng.avgImpressionsPerPost) + ' impressions', ''),
+      statTile('Impressions / post', num(eng.avgImpressionsPerPost), 'average, last ' + eng.sampleSize + ' posts', ''),
+      statTile('Interactions / post', num(eng.avgInteractionsPerPost), 'average, last ' + eng.sampleSize + ' posts', ''),
       statTile('Bookmarks', num(eng.bookmarks), 'last ' + eng.sampleSize + ' posts', '')
     ] : [];
     var profileTiles = [
@@ -1750,6 +1773,12 @@
 
   function youtubePanel() {
     var s = YOUTUBE_STATS, h = s.history || [];
+    // Empty channel (no videos / views / subs yet) - a wall of "—" tiles
+    // reads as broken. Show one honest line + the analytics connect prompt.
+    if (!s.videoCount && !s.viewCount && !s.subscriberCount) {
+      return '<p class="adm-note" style="margin:4px 0 0;">This YouTube channel has no public videos or views yet - stats will populate once it does.</p>' +
+        youtubeAnalyticsSection();
+    }
     var dSubs = histDelta(h, function (r) { return r.followers; });
     var dViews = histDelta(h, function (r) { return r.extra && r.extra.viewCount; });
     var dVideos = histDelta(h, function (r) { return r.extra && r.extra.videoCount; });
@@ -1924,25 +1953,21 @@
         rates.length ? rates.length + ' of ' + chans.length + ' channels' : 'no engagement data yet', '')
     ];
 
-    // R3 - audience mix
-    var mix = '<div class="adm-mini-head">Audience mix</div><div class="adm-mixbar">' + chans.map(function (c) {
-      var w = ta.total ? c.count / ta.total * 100 : 0;
-      return '<span class="adm-mixseg" style="width:' + w.toFixed(2) + '%;background:' + c.color + ';" title="' + esc(c.name + ' · ' + num(c.count)) + '"></span>';
-    }).join('') + '</div><div class="adm-mixkey">' + chans.map(function (c) {
-      var w = ta.total ? Math.round(c.count / ta.total * 100) : 0;
-      return '<span><i style="background:' + c.color + '"></i>' + esc(c.name) + ' · ' + w + '%</span>';
-    }).join('') + '</div>';
+    // R3 - audience mix (donut)
+    var mix = '<div class="adm-mini-head">Audience mix</div>' + donutChart(chans.map(function (c) {
+      return { label: c.name, value: c.count, color: c.color, display: esc(num(c.count)), plain: num(c.count) };
+    }), { centerLabel: num(ta.total), centerSub: 'total' });
 
     // R5 - content published this range, by channel
-    var outSeries = chans.map(function (c) { var v = contentPublishedInRange(c); return { label: c.name, v: v, tip: v + ' published' }; });
-    var r5 = outSeries.some(function (d) { return d.v > 0; })
-      ? '<div class="adm-mini-head">Content published · ' + esc(socialRangeLabel()) + '</div>' + svgBars(outSeries, { height: 108 })
+    var outRows = chans.map(function (c) { return { label: c.name, v: contentPublishedInRange(c), color: c.color, display: String(contentPublishedInRange(c)) }; });
+    var r5 = outRows.some(function (d) { return d.v > 0; })
+      ? '<div class="adm-mini-head">Content published · ' + esc(socialRangeLabel()) + '</div>' + hbars(outRows)
       : '';
 
     // R7 - engagement rate by channel
-    var engSeries = rates.map(function (c) { return { label: c.name, v: c.engRate, tip: c.engRate + '%' }; });
-    var r7 = engSeries.length
-      ? '<div class="adm-mini-head">Engagement rate by channel</div>' + svgBars(engSeries, { height: 96, color: 'var(--price)' })
+    var engRows = rates.map(function (c) { return { label: c.name, v: c.engRate, color: c.color, display: c.engRate + '%' }; });
+    var r7 = engRows.length
+      ? '<div class="adm-mini-head">Engagement rate by channel</div>' + hbars(engRows)
       : '';
 
     // R6 - new followers by channel

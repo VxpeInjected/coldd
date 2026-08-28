@@ -16,7 +16,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
 
-  <link rel="stylesheet" href="/styles.css?v=20260828e" />
+  <link rel="stylesheet" href="/styles.css?v=20260828f" />
 </head>
 <body class="adm-body">
   <div class="backdrop"></div>
@@ -238,7 +238,16 @@
           </section>
 
           <section class="dash-panel" id="adm-panel-marketing" hidden>
-            <div class="dash-head"><h1>Marketing</h1><p>Audience, channels, referrals and email. Store performance lives in Analytics.</p></div>
+            <div class="dash-head adm-head-row">
+              <div><h1>Marketing</h1><p>Audience, channels, referrals and email. Store performance lives in Analytics.</p></div>
+              <div class="adm-range" role="group" aria-label="Date range">
+                <button type="button" data-range="1">24h</button>
+                <button type="button" data-range="7">7D</button>
+                <button type="button" data-range="30" class="active">30D</button>
+                <button type="button" data-range="90">90D</button>
+                <button type="button" data-range="0">All</button>
+              </div>
+            </div>
 
             <div class="dash-stats" id="admMktStats"></div>
 
@@ -1341,6 +1350,6 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.2/dist/umd/supabase.min.js" integrity="sha384-B2duOBIryCXbX4eDE4BdJwtNkQMRQde3o6IsjfPW28E6aH1CYE96hHeZRG3zY56O" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script src="/supabase-init.js?v=20260827b"></script>
   <script src="/site-gate.js?v=20260820b"></script>
-  <script src="/catalog.js?v=20260828b" data-then="/app.js?v=20260828a,/blog.js?v=20260812a,/reviews.js?v=20260729a,/admin.js?v=20260828l"></script>
+  <script src="/catalog.js?v=20260828b" data-then="/app.js?v=20260828a,/blog.js?v=20260812a,/reviews.js?v=20260729a,/admin.js?v=20260828m"></script>
 </body>
 </html>

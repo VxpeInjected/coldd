@@ -56,6 +56,26 @@
   }
   function rnd(seed) { return (hsh(seed) % 10000) / 10000; }
   function pick(arr, seed) { return arr[hsh(seed) % arr.length]; }
+
+  // Sticky corner toast for save/failure feedback - a real transient popup
+  // instead of static "Saved." text that's easy to miss. Auto-dismisses on
+  // success, stays until clicked on failure.
+  var admToastEl = null, admToastTimer = null;
+  function admToast(message, ok) {
+    if (!admToastEl) {
+      admToastEl = document.createElement('div');
+      admToastEl.className = 'adm-toast';
+      admToastEl.addEventListener('click', function () { admToastEl.classList.remove('show'); });
+      document.body.appendChild(admToastEl);
+    }
+    clearTimeout(admToastTimer);
+    admToastEl.textContent = message;
+    admToastEl.className = 'adm-toast show ' + (ok ? 'ok' : 'err');
+    // force reflow so re-triggering restarts the slide-in animation
+    void admToastEl.offsetWidth;
+    admToastEl.classList.add('show');
+    if (ok) admToastTimer = setTimeout(function () { admToastEl.classList.remove('show'); }, 3200);
+  }
   var ROBUX_PER_USD = 80;
   var DEVEX_USD_PER_ROBUX = 0.0038;
   var AUD_RATE = 1.52;
@@ -3040,10 +3060,11 @@
       toggleBtn.disabled = true;
       callUpsertProduct(upsertPayloadFor(p, { visible: !p.visible })).then(function () {
         logAudit((p.visible ? 'Unreleased' : 'Released') + ' product "' + p.title + '"');
+        admToast((p.visible ? 'Unreleased' : 'Released') + ' "' + p.title + '"', true);
         return refreshProducts();
       }).catch(function (err) {
         toggleBtn.disabled = false;
-        alert(err.message || 'Could not update product.');
+        admToast(err.message || 'Could not update product', false);
       });
     } else if (e.target.closest('.adm-prod-download')) {
       var dlBtn = e.target.closest('.adm-prod-download');
@@ -3801,10 +3822,12 @@
           var created = allProducts().filter(function (p) { return p.dbId === res.id; })[0];
           if (created) openProductEdit(created.id);
           if (msg) msg.textContent = 'Created.';
+          admToast('Product created', true);
         });
       }).catch(function (err) {
         if (saveBtn) saveBtn.disabled = false;
         if (msg) msg.textContent = err.message || 'Could not create product.';
+        admToast(err.message || 'Could not create product', false);
       });
       return;
     }
@@ -3821,9 +3844,11 @@
     }).then(function () {
       if (saveBtn) saveBtn.disabled = false;
       if (msg) msg.textContent = 'Saved.';
+      admToast('Changes saved', true);
     }).catch(function (err) {
       if (saveBtn) saveBtn.disabled = false;
       if (msg) msg.textContent = err.message || 'Could not save product.';
+      admToast(err.message || 'Could not save product', false);
     });
   });
   var editDeleteBtn = $('admEditDeleteBtn');
@@ -3838,9 +3863,10 @@
       return refreshProducts();
     }).then(function () {
       showPanel('products');
+      admToast('Product removed', true);
     }).catch(function (err) {
       editDeleteBtn.disabled = false;
-      alert(err.message || 'Could not remove product.');
+      admToast(err.message || 'Could not remove product', false);
     });
   });
   var legalDownloadBtn = $('admLegalDownloadBtn');
@@ -3989,12 +4015,14 @@
     }).then(function () {
       updSubmitBtn.disabled = false;
       if (msg) msg.textContent = 'Update pushed.';
+      admToast('Update ' + version + ' pushed', true);
       $('admUpdVersion').value = '';
       $('admUpdChangelog').value = '';
       renderUpdHistory(findProduct(updSelectedId));
     }).catch(function (err) {
       updSubmitBtn.disabled = false;
       if (msg) msg.textContent = err.message || 'Could not push update.';
+      admToast(err.message || 'Could not push update', false);
     });
   });
 

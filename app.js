@@ -3981,7 +3981,16 @@
       function loadSecurity() {
         currentUser(function (user) {
           var curEl = document.getElementById('secEmailCurrent');
-          if (curEl) curEl.textContent = user ? ('Current email: ' + (user.email || '—')) : '';
+          if (!curEl) return;
+          var placeholder = user && window.coldAuth && window.coldAuth.isPlaceholderEmail(user.email);
+          curEl.textContent = !user ? '' : placeholder
+            ? 'No email on this account yet - set one up under Account Settings.'
+            : ('Current email: ' + (user.email || '—'));
+          // The change-email form below sends a code to the CURRENT email,
+          // which for a Roblox account is an undeliverable address - hide it
+          // and point to the claim flow instead.
+          var s1 = document.getElementById('secEmailStep1');
+          if (s1) s1.hidden = !!placeholder;
         });
         if (typeof renderLinkedAccounts === 'function') renderLinkedAccounts();
       }
@@ -4122,12 +4131,21 @@
         currentUser(function (user) {
           if (!user) return;
           var identities = user.identities || [];
-          var hasEmail = identities.some(function (i) { return i.provider === 'email'; });
+          var placeholder = window.coldAuth && window.coldAuth.isPlaceholderEmail(user.email);
+          // An 'email' identity exists for Roblox sign-ups too (createUser
+          // takes an email), but a synthetic @roblox.coldd.internal address
+          // isn't a usable, recoverable login - treat only a real one as set.
+          var hasRealEmail = identities.some(function (i) { return i.provider === 'email'; }) && !placeholder;
           var discordIdentity = identities.filter(function (i) { return i.provider === 'discord'; })[0];
-          document.getElementById('linkedEmailStatus').textContent = hasEmail ? 'Set - used to sign in' : 'Not set';
+          document.getElementById('linkedEmailStatus').textContent = hasRealEmail ? 'Set - used to sign in' : 'Not set';
+          var emailBtn = document.getElementById('linkedEmailBtn');
+          if (emailBtn) {
+            emailBtn.hidden = hasRealEmail;
+            emailBtn.textContent = 'Set up';
+          }
 
           var googleIdentity = identities.filter(function (i) { return i.provider === 'google'; })[0];
-          var baseCount = (hasEmail ? 1 : 0) + (discordIdentity ? 1 : 0) + (googleIdentity ? 1 : 0);
+          var baseCount = (hasRealEmail ? 1 : 0) + (discordIdentity ? 1 : 0) + (googleIdentity ? 1 : 0);
           window.coldAuth.robloxLinkStatus().then(function (rres) {
             var robloxLinked = !!(rres && rres.linked);
             var totalMethods = baseCount + (robloxLinked ? 1 : 0);
@@ -4243,6 +4261,94 @@
           });
         });
       }
+
+      // ================================================================
+      // CLAIM ACCOUNT - add a real email + password to a Roblox-first
+      // account. The banner is dismissible (per browser); the form under
+      // Account Settings > Linked accounts is always available.
+      // ================================================================
+      (function () {
+        var CLAIM_DISMISS_KEY = 'coldd_claim_banner_dismissed';
+        var banner = document.getElementById('dashClaimBanner');
+        var form = document.getElementById('claimForm');
+        var btn = document.getElementById('linkedEmailBtn');
+        if (!form) return;
+        var step1 = document.getElementById('claimStep1');
+        var step2 = document.getElementById('claimStep2');
+        var emailIn = document.getElementById('claim-email');
+        var codeIn = document.getElementById('claim-code');
+        var pwIn = document.getElementById('claim-password');
+        var msg = document.getElementById('claimMsg');
+        var sendBtn = document.getElementById('claimSendBtn');
+        var verifyBtn = document.getElementById('claimVerifyBtn');
+        var backBtn = document.getElementById('claimBackBtn');
+        var pendingEmail = null;
+
+        function say(t, ok) { if (msg) { msg.textContent = t || ''; msg.classList.toggle('show', !!t); msg.classList.toggle('ok', !!ok); } }
+        function reset() {
+          step1.hidden = false; step2.hidden = true; pendingEmail = null;
+          if (codeIn) codeIn.value = ''; if (pwIn) pwIn.value = '';
+          say('');
+        }
+        function openForm() {
+          form.hidden = false; reset();
+          form.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          if (emailIn) emailIn.focus();
+        }
+
+        if (btn) btn.addEventListener('click', function () { form.hidden ? openForm() : (form.hidden = true); });
+        if (backBtn) backBtn.addEventListener('click', reset);
+
+        if (sendBtn) sendBtn.addEventListener('click', function () {
+          var email = (emailIn.value || '').trim();
+          if (!email || !window.coldAuth) { say('Enter an email address.'); return; }
+          setBtnLoading(sendBtn, true); say('');
+          window.coldAuth.claimSend(email).then(function (res) {
+            setBtnLoading(sendBtn, false);
+            if (res.error || !res.data || !res.data.ok) { say((res.data && res.data.error) || 'Could not send a code.'); return; }
+            pendingEmail = email;
+            var echo = document.getElementById('claimEmailEcho'); if (echo) echo.textContent = email;
+            step1.hidden = true; step2.hidden = false;
+            if (codeIn) codeIn.focus();
+          }).catch(function () { setBtnLoading(sendBtn, false); say('Could not send a code.'); });
+        });
+
+        if (verifyBtn) verifyBtn.addEventListener('click', function () {
+          var code = (codeIn.value || '').trim();
+          var pw = pwIn.value || '';
+          if (!code) { say('Enter the code from your email.'); return; }
+          if (pw.length < 8 || !/[A-Za-z]/.test(pw) || !/[0-9]/.test(pw)) { say('Password needs at least 8 characters, a letter and a number.'); return; }
+          setBtnLoading(verifyBtn, true); say('');
+          window.coldAuth.claimVerify(pendingEmail, code, pw).then(function (res) {
+            setBtnLoading(verifyBtn, false);
+            if (res.error || !res.data || !res.data.ok) { say((res.data && res.data.error) || 'Could not finish setup.'); return; }
+            say('Done - your email and password are set. You can now sign in with them.', true);
+            try { localStorage.setItem(CLAIM_DISMISS_KEY, '1'); } catch (e) {}
+            if (banner) banner.hidden = true;
+            setTimeout(function () { form.hidden = true; if (typeof renderLinkedAccounts === 'function') renderLinkedAccounts(); if (typeof loadSecurity === 'function') loadSecurity(); }, 1600);
+          }).catch(function () { setBtnLoading(verifyBtn, false); say('Could not finish setup.'); });
+        });
+
+        // Banner: show only for accounts that still need to claim, and only
+        // if not already dismissed in this browser.
+        if (banner && window.coldAuth && window.coldAuth.needsClaim) {
+          var dismissed = false;
+          try { dismissed = localStorage.getItem(CLAIM_DISMISS_KEY) === '1'; } catch (e) {}
+          if (!dismissed) window.coldAuth.needsClaim().then(function (needs) { if (needs) banner.hidden = false; });
+          var goBtn = document.getElementById('dashClaimBannerGo');
+          var xBtn = document.getElementById('dashClaimBannerX');
+          if (goBtn) goBtn.addEventListener('click', function () {
+            var navLink = document.querySelector('.dash-nav [data-panel="account"]');
+            if (navLink) navLink.click();
+            var acTab = document.querySelector('#acTabs [data-actab="account"]'); if (acTab) acTab.click();
+            setTimeout(openForm, 150);
+          });
+          if (xBtn) xBtn.addEventListener('click', function () {
+            try { localStorage.setItem(CLAIM_DISMISS_KEY, '1'); } catch (e) {}
+            banner.hidden = true;
+          });
+        }
+      })();
 
       var so = document.getElementById('dashSignout');
       var soOverlay = document.getElementById('signoutOverlay');

@@ -295,8 +295,11 @@
     // otherwise leave #coUserEmail / #dashEmail truly empty forever, so the
     // grey placeholder bar pulsed under the name indefinitely. Same trick as
     // paintAvatar() below.
+    // A synthetic roblox-<id>@roblox.coldd.internal address is not a real
+    // email - never show it as one (nav, dashboard header, checkout).
+    var shownEmail = (p.email && !/@roblox\.coldd\.internal$/i.test(p.email)) ? p.email : '';
     document.querySelectorAll('#dashName, #coUserName').forEach(function (el) { el.textContent = displayName || '​'; });
-    document.querySelectorAll('#dashEmail, #coUserEmail').forEach(function (el) { el.textContent = p.email || '​'; });
+    document.querySelectorAll('#dashEmail, #coUserEmail').forEach(function (el) { el.textContent = shownEmail || '​'; });
 
     function paintAvatar(url) {
       document.querySelectorAll('#dashAvatar, #coAvatar, #acAvatarPreview').forEach(function (el) {
@@ -512,6 +515,35 @@
     },
     updatePassword: function (password) {
       return client.auth.updateUser({ password: password });
+    },
+    // A Roblox-first sign-up gets a synthetic, undeliverable
+    // roblox-<id>@roblox.coldd.internal address - treat that as "no email".
+    // Discord / Google always hand over a real one.
+    isPlaceholderEmail: function (email) {
+      return !email || /@roblox\.coldd\.internal$/i.test(email);
+    },
+    // Resolves to true when the signed-in account has no real email on
+    // record and should be prompted to claim it.
+    needsClaim: function () {
+      return client.auth.getUser().then(function (r) {
+        var u = r && r.data && r.data.user;
+        if (!u) return false;
+        return !u.email || /@roblox\.coldd\.internal$/i.test(u.email);
+      }).catch(function () { return false; });
+    },
+    claimSend: function (email) {
+      return client.functions.invoke('claim-account', { body: { action: 'send', email: email } });
+    },
+    claimVerify: function (email, code, password) {
+      return client.functions.invoke('claim-account', { body: { action: 'verify', email: email, code: code, password: password } }).then(function (res) {
+        if (!res.error && res.data && res.data.ok) {
+          return client.auth.getUser().then(function (r) {
+            if (r.data && r.data.user) return upsertBasicProfile(r.data.user).then(function () { return res; });
+            return res;
+          });
+        }
+        return res;
+      });
     },
     upsertBasicProfile: upsertBasicProfile,
     signOut: function () {

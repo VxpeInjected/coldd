@@ -7,7 +7,10 @@
 // (loaded on every page). No PII: session_id is a random client-generated
 // id that resets every browser session, not tied to any account.
 //
-// Body: { sessionId, path }
+// Body: { sessionId, path, visitorId }
+// visitorId is a second random client id, this one persisted in
+// localStorage rather than sessionStorage, so a repeat visit on a later
+// day can be told apart from a brand-new visitor. Still no PII.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -39,9 +42,10 @@ Deno.serve(async (req: Request) => {
     const body = await req.json().catch(() => ({}));
     const sessionId = String(body.sessionId || "").slice(0, 64);
     const path = String(body.path || "").slice(0, 200);
+    const visitorId = String(body.visitorId || "").slice(0, 64) || null;
     if (!sessionId) return json({ ok: true });
 
-    await admin.from("page_views").insert({ session_id: sessionId, path });
+    await admin.from("page_views").insert({ session_id: sessionId, path, visitor_id: visitorId });
     return json({ ok: true });
   } catch (err) {
     console.error("[track-pageview] error:", err);

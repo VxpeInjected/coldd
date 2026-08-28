@@ -129,8 +129,17 @@
       try {
         var sid = sessionStorage.getItem('coldd_session_id');
         if (!sid) { sid = Math.random().toString(36).slice(2) + Date.now().toString(36); sessionStorage.setItem('coldd_session_id', sid); }
+        // Persistent (localStorage) counterpart to the per-session id, so
+        // the admin traffic panel can tell a returning visitor from a new
+        // one. Still a random opaque id, no PII, only written with the
+        // same analytics consent that gates the beacon itself.
+        var vid = null;
+        try {
+          vid = localStorage.getItem('coldd_visitor_id');
+          if (!vid) { vid = Math.random().toString(36).slice(2) + Date.now().toString(36); localStorage.setItem('coldd_visitor_id', vid); }
+        } catch (e) {}
         if (window.coldSupabase) {
-          window.coldSupabase.functions.invoke('track-pageview', { body: { sessionId: sid, path: location.pathname } }).catch(function () {});
+          window.coldSupabase.functions.invoke('track-pageview', { body: { sessionId: sid, path: location.pathname, visitorId: vid } }).catch(function () {});
         }
       } catch (e) {}
     }

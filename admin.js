@@ -598,17 +598,27 @@
   // session (RLS: page_views_select_admin). Grouped into one {date,
   // sessions, pageviews} bucket per day client-side.
   var TRAFFIC = [];
+  var TRAFFIC_PAGES = [];   // [{ path, views, sessions }] over the 120d pull, top first
+  var TRAFFIC_VISITORS = null; // { total, returning, rate } over the 120d pull
   function refreshTraffic() {
     if (!window.coldSupabase) return Promise.resolve();
     var cutoff = daysAgo(119).toISOString();
-    return window.coldSupabase.from('page_views').select('session_id, created_at').gte('created_at', cutoff).limit(50000).then(function (res) {
+    return window.coldSupabase.from('page_views').select('session_id, created_at, path, visitor_id').gte('created_at', cutoff).limit(50000).then(function (res) {
       if (res.error) { console.error('[admin] failed to load traffic:', res.error.message); return; }
-      var byDay = {};
+      var byDay = {}, byPath = {}, visitorDays = {};
       (res.data || []).forEach(function (row) {
         var day = row.created_at.slice(0, 10);
         if (!byDay[day]) byDay[day] = { pageviews: 0, sessions: {} };
         byDay[day].pageviews++;
         byDay[day].sessions[row.session_id] = true;
+        var p = row.path || '/';
+        if (!byPath[p]) byPath[p] = { path: p, views: 0, sessions: {} };
+        byPath[p].views++;
+        byPath[p].sessions[row.session_id] = true;
+        if (row.visitor_id) {
+          if (!visitorDays[row.visitor_id]) visitorDays[row.visitor_id] = {};
+          visitorDays[row.visitor_id][day] = true;
+        }
       });
       var out = [];
       for (var d = 119; d >= 0; d--) {
@@ -618,6 +628,12 @@
         out.push({ date: iso, sessions: bucket ? Object.keys(bucket.sessions).length : 0, pageviews: bucket ? bucket.pageviews : 0 });
       }
       TRAFFIC = out;
+      TRAFFIC_PAGES = Object.keys(byPath).map(function (k) {
+        return { path: byPath[k].path, views: byPath[k].views, sessions: Object.keys(byPath[k].sessions).length };
+      }).sort(function (a, b) { return b.views - a.views; });
+      var vids = Object.keys(visitorDays);
+      var returning = vids.filter(function (v) { return Object.keys(visitorDays[v]).length > 1; }).length;
+      TRAFFIC_VISITORS = vids.length ? { total: vids.length, returning: returning, rate: returning / vids.length * 100 } : null;
       if (curPanel === 'analytics') renderAnalytics();
     if (curPanel === 'marketing') renderMarketing();
       if (curPanel === 'home') renderHome();
@@ -2446,9 +2462,18 @@
     var trafficRows = TRAFFIC.slice(Math.max(0, TRAFFIC.length - (RANGE_DAYS || 120)));
     var totalViews = trafficRows.reduce(function (s, r) { return s + r.pageviews; }, 0);
     var totalSessions = trafficRows.reduce(function (s, r) { return s + r.sessions; }, 0);
+    var retLabel = TRAFFIC_VISITORS ? pct(TRAFFIC_VISITORS.rate) : '—';
+    var retSub = TRAFFIC_VISITORS ? (TRAFFIC_VISITORS.returning.toLocaleString('en-US') + ' of ' + TRAFFIC_VISITORS.total.toLocaleString('en-US') + ' · 120d') : 'gathering data';
     $('admTrafficStats').innerHTML =
       '<div class="dash-stat glass"><span class="ds-label">Pageviews</span><span class="ds-num">' + totalViews.toLocaleString('en-US') + '</span></div>' +
-      '<div class="dash-stat glass"><span class="ds-label">Sessions</span><span class="ds-num">' + totalSessions.toLocaleString('en-US') + '</span></div>';
+      '<div class="dash-stat glass"><span class="ds-label">Sessions</span><span class="ds-num">' + totalSessions.toLocaleString('en-US') + '</span></div>' +
+      '<div class="dash-stat glass"><span class="ds-label">Returning visitors</span><span class="ds-num">' + retLabel + '</span><span class="ds-sub">' + retSub + '</span></div>';
+
+    if ($('admTopPagesBody')) {
+      $('admTopPagesBody').innerHTML = TRAFFIC_PAGES.slice(0, 12).map(function (p) {
+        return '<tr><td class="dt-mono">' + esc(p.path) + '</td><td>' + p.views.toLocaleString('en-US') + '</td><td>' + p.sessions.toLocaleString('en-US') + '</td></tr>';
+      }).join('') || '<tr><td colspan="3" class="adm-empty">No traffic yet.</td></tr>';
+    }
 
     $('admAbandonedBody').innerHTML = ABANDONED.slice(0, 12).map(function (a) {
       return '<tr><td>' + fmtDate(new Date(a.date)) + '</td><td>' + esc(a.title) + '</td><td>' + usd(a.value) + '</td><td>' + (a.email ? esc(a.email) : '<span class="adm-sub">unknown</span>') + '</td></tr>';
@@ -5598,6 +5623,11 @@
     });
   });
   setInterval(refreshLiveSessions, 30000);
+  // Site visits / pageviews / top pages were a once-on-boot pull. Re-pull
+  // every 5 min so the Analytics and home numbers stay current for a tab
+  // left open, same unconditional-interval pattern as live sessions (each
+  // render call already no-ops unless its panel is showing).
+  setInterval(refreshTraffic, 5 * 60 * 1000);
   // AdBlox stats used to only load once on boot, or on the manual Refresh
   // button - same polling pattern as refreshLiveSessions above (an
   // unconditional interval; the function itself already only re-renders

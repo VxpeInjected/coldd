@@ -55,14 +55,23 @@ Deno.serve(async (req: Request) => {
     const mode = ["open", "maintenance"].includes(body.mode) ? body.mode : null;
     if (!mode) return json({ ok: false, error: "Invalid mode." }, 400);
 
+    const patch: Record<string, unknown> = {
+      mode,
+      maintenance_message: body.message != null ? String(body.message).slice(0, 300) : null,
+      maintenance_ends_at: body.endsAt || null,
+      updated_at: new Date().toISOString(),
+    };
+    // An explicit choice from this panel wins over Developer Mode's
+    // automatic flipping: setting maintenance by hand also switches
+    // Developer Mode off (turn it back on when you want the auto-behaviour
+    // again). Setting "open" by hand refreshes the activity clock so a
+    // cron run doesn't immediately undo it.
+    if (mode === "maintenance") patch.dev_mode = false;
+    else patch.dev_mode_active_at = new Date().toISOString();
+
     const { error: updateErr } = await admin
       .from("site_status")
-      .update({
-        mode,
-        maintenance_message: body.message != null ? String(body.message).slice(0, 300) : null,
-        maintenance_ends_at: body.endsAt || null,
-        updated_at: new Date().toISOString(),
-      })
+      .update(patch)
       .eq("id", true);
     if (updateErr) return json({ ok: false, error: "Could not update site status." }, 500);
 

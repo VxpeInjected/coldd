@@ -788,6 +788,9 @@
   var AUDIT_PERSIST_ERROR = null;
 
   function logAudit(action) {
+    // A logged action is real work - keep Developer Mode's site-open clock
+    // fresh. (No-op server-side unless dev mode is on.)
+    try { if (typeof devHeartbeat === 'function') devHeartbeat(); } catch (e) {}
     var entry = { ts: new Date().toISOString(), actor: currentRole().name, action: action };
     AUDIT.unshift(entry);
     if (AUDIT.length > 300) AUDIT.length = 300;
@@ -5047,12 +5050,32 @@
     var maintFields = $('admSiteMaintFields');
     if (maintFields) maintFields.hidden = mode !== 'maintenance';
   }
+  var devMode = false;
+  function applyDevModeUI(status) {
+    var on = !!(status && status.dev_mode);
+    devMode = on;
+    var badge = $('admDevModeBadge');
+    if (badge) { badge.textContent = on ? 'On' : 'Off'; badge.className = 'dt-badge ' + (on ? 'ok' : ''); }
+    var btn = $('admDevModeToggle');
+    if (btn) { btn.textContent = on ? 'Turn off Developer Mode' : 'Turn on Developer Mode'; btn.disabled = false; }
+    var st = $('admDevModeStatus');
+    if (st) {
+      if (on && status && status.dev_mode_active_at) {
+        var idleMin = Math.round((Date.now() - new Date(status.dev_mode_active_at).getTime()) / 60000);
+        var leftMin = Math.max(0, 55 - idleMin);
+        st.textContent = status.mode === 'open'
+          ? 'Site is open. Returns to maintenance in ~' + leftMin + ' min if no admin activity.'
+          : 'Site is in maintenance. It will open on your next action here.';
+      } else { st.textContent = ''; }
+    }
+  }
   function refreshSiteStatus() {
     if (!window.coldSupabase) return Promise.resolve();
     return window.coldSupabase.from('site_status').select('*').eq('id', true).maybeSingle().then(function (res) {
       var data = res && res.data;
       siteMode = (data && data.mode) || 'open';
       applySiteModeUI(siteMode);
+      applyDevModeUI(data);
       if (data) {
         var msgEl = $('admSiteMaintMsg'); if (msgEl) msgEl.value = data.maintenance_message || '';
         var endsEl = $('admSiteMaintEnds');
@@ -5060,6 +5083,32 @@
       }
     });
   }
+  // Developer Mode heartbeat: tells the server an admin is actively
+  // working so the site stays open (and flips maintenance->open if it
+  // was closed). Fired on load, on a timer while the panel is open, and
+  // opportunistically whenever a real action is logged.
+  var _lastHeartbeat = 0;
+  function devHeartbeat(force) {
+    if (!window.coldSupabase) return;
+    var now = Date.now();
+    if (!force && now - _lastHeartbeat < 60000) return; // at most once a minute
+    _lastHeartbeat = now;
+    invokeAdminFn('admin-dev-mode', { action: 'heartbeat' }, '')
+      .then(function (d) { if (d && d.status) { siteMode = d.status.mode; applySiteModeUI(siteMode); applyDevModeUI(d.status); } })
+      .catch(function () {});
+  }
+  var admDevModeToggle = $('admDevModeToggle');
+  if (admDevModeToggle) admDevModeToggle.addEventListener('click', function () {
+    if (!can('owner')) { alert('Only the owner can change Developer Mode.'); return; }
+    admDevModeToggle.disabled = true;
+    invokeAdminFn('admin-dev-mode', { action: devMode ? 'disable' : 'enable' }, 'Could not update Developer Mode.')
+      .then(function (d) {
+        logAudit((devMode ? 'Disabled' : 'Enabled') + ' Developer Mode');
+        if (d && d.status) { siteMode = d.status.mode; applySiteModeUI(siteMode); applyDevModeUI(d.status); }
+        return refreshSiteStatus();
+      })
+      .catch(function (err) { admDevModeToggle.disabled = false; var m = $('admSiteMsg'); if (m) m.textContent = err.message; });
+  });
   document.querySelectorAll('.adm-site-mode-btn').forEach(function (b) {
     b.addEventListener('click', function () {
       siteMode = b.getAttribute('data-mode');
@@ -5914,6 +5963,10 @@
   // render call already no-ops unless its panel is showing).
   setInterval(refreshTraffic, 5 * 60 * 1000);
   setInterval(refreshClientEvents, 5 * 60 * 1000);
+  // Developer Mode heartbeat - keeps the site open while this dashboard is
+  // open, and every logged action refreshes it too (see logAudit).
+  devHeartbeat(true);
+  setInterval(function () { devHeartbeat(true); }, 5 * 60 * 1000);
   // AdBlox stats used to only load once on boot, or on the manual Refresh
   // button - same polling pattern as refreshLiveSessions above (an
   // unconditional interval; the function itself already only re-renders

@@ -101,10 +101,14 @@ Deno.serve(async (req: Request) => {
       .select("email, email_unsub_token")
       .eq("marketing_unsubscribed", false)
       .not("email", "is", null)
+      // Roblox sign-ups carry a synthetic, undeliverable
+      // roblox-<id>@roblox.coldd.internal address - sending to it only
+      // generates bounces, which hurt domain reputation.
+      .not("email", "ilike", "%@roblox.coldd.internal")
       .or("banned.is.null,banned.eq.false");
     if (recErr) return json({ ok: false, error: "Could not load recipients." }, 500);
 
-    const audience = (recipients || []).filter((r) => !!r.email);
+    const audience = (recipients || []).filter((r) => !!r.email && !/@roblox\.coldd\.internal$/i.test(r.email));
 
     const { data: campaign, error: campaignErr } = await admin
       .from("email_campaigns")

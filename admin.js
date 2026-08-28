@@ -366,6 +366,7 @@
             if (o.currency !== 'robux') earnedUSD += o.total * 0.2;
           });
           return {
+            ownerId: r.id,
             code: r.referral_code,
             owner: r.username || (r.email ? r.email.split('@')[0] : 'user'),
             clicks: r.referral_clicks || 0,
@@ -2262,27 +2263,90 @@
      ================================================================ */
   var EMAIL_STATS = { total: 0, subscribed: 0, unsubscribed: 0 };
   var EMAIL_CAMPAIGNS = [];
-  var EMAIL_RECIPIENTS = []; // { email, status: 'subscribed'|'unsubscribed'|'banned', joined }
+  var EMAIL_RECIPIENTS = []; // { email, username, status, joined, provider, synthetic, referredBy }
   var EMAIL_CONFIGURED = null; // null = not checked yet
+  var SYNTH_EMAIL_RE = /@roblox\.coldd\.internal$/i;
 
   function refreshEmailStats() {
     if (!window.coldSupabase) return Promise.resolve();
-    // Same columns the send path filters on (admin-send-campaign), so the
-    // list below shows exactly who a campaign would actually reach.
-    return window.coldSupabase.from('profiles').select('email, marketing_unsubscribed, banned, created_at').limit(20000).then(function (res) {
+    // Same filter the send path uses (admin-send-campaign), so the list
+    // shows who a campaign would actually reach - minus the synthetic
+    // Roblox addresses, which are on file but never sent to.
+    return window.coldSupabase.from('profiles')
+      .select('id, email, username, marketing_unsubscribed, banned, created_at, discord_id, roblox_id, referred_by')
+      .limit(20000).then(function (res) {
       if (res.error) { console.error('[admin] failed to load subscriber stats:', res.error.message); return; }
-      var rows = res.data || [];
-      var unsub = rows.filter(function (r) { return r.marketing_unsubscribed; }).length;
-      EMAIL_STATS = { total: rows.length, subscribed: rows.length - unsub, unsubscribed: unsub };
-      EMAIL_RECIPIENTS = rows.filter(function (r) { return r.email; }).map(function (r) {
+      var rows = (res.data || []).filter(function (r) { return r.email; });
+      EMAIL_RECIPIENTS = rows.map(function (r) {
+        var synthetic = SYNTH_EMAIL_RE.test(r.email);
         return {
+          id: r.id,
           email: r.email,
-          status: r.banned ? 'banned' : r.marketing_unsubscribed ? 'unsubscribed' : 'subscribed',
+          username: r.username || null,
+          synthetic: synthetic,
+          provider: r.roblox_id ? 'Roblox' : r.discord_id ? 'Discord' : 'Email / Google',
+          referredBy: r.referred_by || null,
+          status: r.banned ? 'banned' : synthetic ? 'norealemail' : r.marketing_unsubscribed ? 'unsubscribed' : 'subscribed',
           joined: r.created_at || null
         };
       }).sort(function (a, b) { return (b.joined || '').localeCompare(a.joined || ''); });
+      // Totals reflect real, mailable addresses only.
+      var real = EMAIL_RECIPIENTS.filter(function (r) { return !r.synthetic; });
+      var unsub = real.filter(function (r) { return r.status === 'unsubscribed' || r.status === 'banned'; }).length;
+      EMAIL_STATS = { total: real.length, subscribed: real.filter(function (r) { return r.status === 'subscribed'; }).length, unsubscribed: real.filter(function (r) { return r.status === 'unsubscribed'; }).length };
+      void unsub;
       if (curPanel === 'marketing') renderEmailMarketing();
     });
+  }
+  // What we can say about how an address ended up on the marketing list.
+  // coldd runs an opt-out model (no separate opt-in table), so for every
+  // account the basis is "registration + not unsubscribed"; the provider
+  // and dates are the specifics.
+  function emailConsentInfo(r) {
+    var lines = [];
+    lines.push(['Account', (r.username || '—') + (r.synthetic ? '' : '')]);
+    lines.push(['Signed up', r.joined ? fmtDateTime(new Date(r.joined)) + ' · via ' + r.provider : '—']);
+    lines.push(['On the list because', 'Added automatically on account creation (opt-out model). Consent basis: account registration; has not unsubscribed.']);
+    lines.push(['Marketing status', r.status === 'subscribed' ? 'Subscribed'
+      : r.status === 'unsubscribed' ? 'Unsubscribed'
+      : r.status === 'banned' ? 'Banned (excluded)'
+      : 'No real email — excluded from all sends']);
+    if (r.synthetic) lines.push(['Note', 'This is a placeholder Roblox address (roblox-<id>@roblox.coldd.internal), not a real inbox. It is stored as the login identifier only and is never emailed.']);
+    if (r.referredBy) {
+      var ref = REFERRALS.filter(function (x) { return x.ownerId === r.referredBy; })[0];
+      lines.push(['Referred by', ref ? ref.owner : r.referredBy]);
+    }
+    return lines;
+  }
+  // Per-recipient campaign history from email_events (Resend webhook).
+  function emailEventsFor(email) {
+    var lc = String(email || '').toLowerCase();
+    var mine = EMAIL_EVENT_ROWS.filter(function (e) { return (e.recipient || '').toLowerCase() === lc; });
+    var totals = { sent: 0, delivered: 0, opened: 0, clicked: 0, bounced: 0, complained: 0 };
+    var byCampaign = {};
+    mine.forEach(function (e) {
+      var t = (e.type || '').replace('email.', '');
+      if (totals[t] != null) totals[t]++;
+      var k = e.campaign_id || '_none';
+      if (!byCampaign[k]) byCampaign[k] = { campaignId: e.campaign_id, first: e.occurred_at, types: {} };
+      byCampaign[k].types[t] = e.occurred_at;
+      if (e.occurred_at < byCampaign[k].first) byCampaign[k].first = e.occurred_at;
+    });
+    var campaigns = Object.keys(byCampaign).map(function (k) {
+      var c = byCampaign[k];
+      var meta = EMAIL_CAMPAIGNS.filter(function (x) { return x.id === c.campaignId; })[0];
+      return {
+        subject: meta ? meta.subject : (c.campaignId ? 'Campaign ' + String(c.campaignId).slice(0, 8) : 'Lifecycle / automated email'),
+        sentAt: c.types.sent || c.types.delivered || c.first,
+        delivered: !!c.types.delivered,
+        opened: c.types.opened || null,
+        clicked: c.types.clicked || null,
+        bounced: !!c.types.bounced
+      };
+    }).sort(function (a, b) { return (b.sentAt || '').localeCompare(a.sentAt || ''); });
+    var openRate = totals.delivered ? totals.opened / totals.delivered * 100 : null;
+    var clickRate = totals.delivered ? totals.clicked / totals.delivered * 100 : null;
+    return { totals: totals, openRate: openRate, clickRate: clickRate, campaigns: campaigns, any: mine.length > 0 };
   }
   function refreshEmailCampaigns() {
     if (!window.coldSupabase) return Promise.resolve();
@@ -2409,23 +2473,82 @@
     var badge = {
       subscribed: '<span class="dt-badge ok">Subscribed</span>',
       unsubscribed: '<span class="dt-badge">Unsubscribed</span>',
-      banned: '<span class="dt-badge err">Banned</span>'
+      banned: '<span class="dt-badge err">Banned</span>',
+      norealemail: '<span class="dt-badge warn">No real email</span>'
     };
     var rows = emailListFiltered();
     var shown = rows.slice(0, EMAIL_LIST_CAP);
     body.innerHTML = shown.map(function (r) {
-      return '<tr><td>' + esc(r.email) + '</td><td>' + (badge[r.status] || '') + '</td><td>' +
+      return '<tr><td><button type="button" class="adm-email-info" data-email="' + esc(r.email) + '" title="Consent &amp; email history">' +
+          '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>' +
+        '</button><span class="adm-email-addr">' + esc(r.email) + '</span></td>' +
+        '<td>' + (badge[r.status] || '') + '</td><td>' +
         (r.joined ? fmtDate(new Date(r.joined)) : '—') + '</td></tr>';
     }).join('') || '<tr><td colspan="3" class="adm-empty">No matching addresses.</td></tr>';
     var note = $('admEmailListNote');
     if (note) {
       var sendable = EMAIL_RECIPIENTS.filter(function (r) { return r.status === 'subscribed'; }).length;
-      var base = sendable.toLocaleString('en-US') + ' sendable of ' + EMAIL_RECIPIENTS.length.toLocaleString('en-US') + ' with an email';
+      var base = sendable.toLocaleString('en-US') + ' sendable of ' + EMAIL_RECIPIENTS.length.toLocaleString('en-US') + ' with an address';
       note.textContent = rows.length > shown.length
         ? 'Showing first ' + shown.length + ' of ' + rows.length.toLocaleString('en-US') + ' matches - narrow the search to see the rest. ' + base + '.'
         : base + '.';
     }
   }
+
+  // Per-address consent + email-history popout.
+  function openEmailInfo(email) {
+    var r = EMAIL_RECIPIENTS.filter(function (x) { return x.email === email; })[0];
+    if (!r) return;
+    var ov = $('admEmailInfoOverlay'); if (!ov) return;
+    $('admEmailInfoTitle').textContent = r.email;
+    $('admEmailInfoSub').innerHTML = (r.username ? esc(r.username) + ' · ' : '') + esc(r.provider) +
+      ' · <span class="dt-badge ' + (r.status === 'subscribed' ? 'ok' : r.status === 'norealemail' ? 'warn' : '') + '">' +
+      (r.status === 'subscribed' ? 'Subscribed' : r.status === 'unsubscribed' ? 'Unsubscribed' : r.status === 'banned' ? 'Banned' : 'No real email') + '</span>';
+
+    $('admEmailInfoConsent').innerHTML = emailConsentInfo(r).map(function (row) {
+      return '<div class="adm-kv"><span>' + esc(row[0]) + '</span><span>' + esc(row[1]) + '</span></div>';
+    }).join('');
+
+    var ev = emailEventsFor(r.email);
+    var t = ev.totals;
+    if (!ev.any) {
+      $('admEmailInfoStats').innerHTML = '<p class="adm-sub" style="margin:0;">No campaign emails have been sent to this address yet' +
+        (EMAIL_EVENT_ROWS.length ? '.' : ' (delivery tracking starts once the Resend webhook is connected).') + '</p>';
+      $('admEmailInfoHistory').innerHTML = '';
+    } else {
+      $('admEmailInfoStats').innerHTML = statGrid([
+        statTile('Sent', num(t.sent || t.delivered), null, ''),
+        statTile('Delivered', num(t.delivered), t.bounced ? num(t.bounced) + ' bounced' : null, ''),
+        statTile('Opened', num(t.opened), ev.openRate != null ? pct(ev.openRate) + ' rate' : null, ''),
+        statTile('Clicked', num(t.clicked), ev.clickRate != null ? pct(ev.clickRate) + ' rate' : null, ''),
+        statTile('Marked spam', num(t.complained), null, '')
+      ]);
+      $('admEmailInfoHistory').innerHTML = '<div class="adm-mini-head">Emails sent to this address</div>' +
+        ev.campaigns.map(function (c) {
+          var chips = [];
+          if (c.bounced) chips.push('<span class="dt-badge err">Bounced</span>');
+          else if (c.delivered) chips.push('<span class="dt-badge ok">Delivered</span>');
+          if (c.opened) chips.push('<span class="dt-badge">Opened</span>');
+          if (c.clicked) chips.push('<span class="dt-badge">Clicked</span>');
+          return '<details class="adm-collapse" data-collapse-key="em-' + esc(c.subject) + '" style="border:1px solid var(--hairline);border-radius:10px;padding:12px 14px;margin-top:8px;">' +
+            '<summary style="display:flex;justify-content:space-between;gap:12px;align-items:center;cursor:pointer;list-style:none;">' +
+              '<span>' + esc(c.subject) + '</span>' +
+              '<span class="adm-sub" style="flex:0 0 auto;">' + (c.sentAt ? fmtDate(new Date(c.sentAt)) : '—') + '</span>' +
+            '</summary>' +
+            '<div style="margin-top:10px;display:flex;flex-wrap:wrap;gap:6px;">' + (chips.join('') || '<span class="adm-sub">No delivery events recorded</span>') + '</div>' +
+            (c.opened ? '<p class="adm-sub" style="margin:8px 0 0;">Opened ' + fmtDateTime(new Date(c.opened)) + '</p>' : '') +
+            (c.clicked ? '<p class="adm-sub" style="margin:4px 0 0;">Clicked a link ' + fmtDateTime(new Date(c.clicked)) + '</p>' : '') +
+          '</details>';
+        }).join('');
+    }
+    ov.hidden = false;
+  }
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest('.adm-email-info');
+    if (b) { e.preventDefault(); openEmailInfo(b.getAttribute('data-email')); return; }
+    var ov = $('admEmailInfoOverlay');
+    if (ov && !ov.hidden && (e.target === ov || e.target.closest('#admEmailInfoClose'))) ov.hidden = true;
+  });
 
   // Two source modes share one textarea: 'simple' runs it through the
   // markdown-lite converter above, 'html' sends it through untouched (the

@@ -3163,6 +3163,18 @@ body.dash-body .backdrop, body.dash-body .scrim { display: none; }
 .adm-vidtable td:first-child { max-width: 240px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .adm-vidtable td { font-variant-numeric: tabular-nums; }
 #admCouponTotals { margin-bottom: 16px; }
+.adm-email-info {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 22px; height: 22px; margin-right: 9px; vertical-align: middle;
+  border: 1px solid var(--hairline); border-radius: 6px; background: transparent;
+  color: var(--fg-3); cursor: pointer; flex: 0 0 auto;
+}
+.adm-email-info:hover { color: var(--accent); border-color: var(--accent); }
+.adm-email-addr { vertical-align: middle; }
+.adm-kv-list { display: flex; flex-direction: column; gap: 2px; margin: 4px 0 6px; }
+.adm-kv { display: grid; grid-template-columns: 140px 1fr; gap: 14px; padding: 8px 0; border-top: 1px solid var(--hairline); font-size: 13px; }
+.adm-kv:first-child { border-top: 0; }
+.adm-kv > span:first-child { color: var(--fg-3); }
 .adm-campaign-url { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 11px; word-break: break-all; }
 .adm-catlist { margin-top: 12px; display: flex; flex-direction: column; gap: 8px; }
 .adm-catrow { display: flex; justify-content: space-between; font-size: 13px; padding: 6px 0; border-top: 1px solid var(--hairline); }

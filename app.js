@@ -193,7 +193,7 @@
           '</form>' +
           '<p class="mkt-popup-msg" id="mktPopupMsg"></p>' +
           '<p class="mkt-popup-fine">By continuing you agree to receive marketing emails from coldd. No spam, unsubscribe any time.</p>' +
-          '<button class="mkt-popup-no" type="button" id="mktPopupNo">No thank you</button>' +
+          '<button class="mkt-popup-no" type="button" id="mktPopupNo">I don\'t want a discount</button>' +
           '</div>';
         document.body.appendChild(overlay);
 

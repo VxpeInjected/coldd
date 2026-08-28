@@ -3103,6 +3103,14 @@ body.dash-body .backdrop, body.dash-body .scrim { display: none; }
 .adm-spark-card { margin-top: 12px; padding: 10px 12px; border: 1px solid var(--hairline); border-radius: 10px; background: rgba(255,255,255,0.02); }
 .adm-spark-head { display: flex; justify-content: space-between; align-items: baseline; font-size: 12px; font-weight: 600; color: var(--fg-2); margin-bottom: 4px; }
 .adm-spark { display: block; width: 100%; }
+.adm-mini-head { margin: 18px 0 8px; font-size: 12px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--fg-2); }
+.adm-mixbar { display: flex; height: 14px; border-radius: 7px; overflow: hidden; background: var(--surface-2, rgba(255,255,255,0.04)); }
+.adm-mixseg { display: block; min-width: 2px; transition: width .3s ease; }
+.adm-mixkey { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 8px; font-size: 12px; color: var(--fg-2); }
+.adm-mixkey span { display: inline-flex; align-items: center; gap: 6px; }
+.adm-mixkey i { width: 9px; height: 9px; border-radius: 2px; display: inline-block; }
+.adm-vidtable td:first-child { max-width: 240px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.adm-vidtable td { font-variant-numeric: tabular-nums; }
 .adm-campaign-url { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 11px; word-break: break-all; }
 .adm-catlist { margin-top: 12px; display: flex; flex-direction: column; gap: 8px; }
 .adm-catrow { display: flex; justify-content: space-between; font-size: 13px; padding: 6px 0; border-top: 1px solid var(--hairline); }

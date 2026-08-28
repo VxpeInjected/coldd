@@ -1241,9 +1241,16 @@
 
     var joins = discordJoinsInRange();
     var owed = referralsOwedInfo();
+    // "Total audience" replaces the old Discord-only member tile - it rolls
+    // up every connected channel (Discord + X + YouTube + TikTok) with its
+    // growth over the selected range. Falls back to the Discord number
+    // alone until the social stats have loaded.
+    var aud1 = totalAudience();
     $('admHomeStatsSecondary').innerHTML = [
       statTile('Live sessions', LIVE_SESSIONS, 'active in the last 5 min', ''),
-      statTile('Discord members', DISCORD_STATS.memberCount != null ? DISCORD_STATS.memberCount.toLocaleString('en-US') : '—', DISCORD_STATS.onlineCount != null ? (DISCORD_STATS.onlineCount.toLocaleString('en-US') + ' online') : '', ''),
+      aud1.channels.length
+        ? deltaTile('Total audience', num(aud1.total), aud1.delta, aud1.channels.length + ' channel' + (aud1.channels.length === 1 ? '' : 's'))
+        : statTile('Total audience', DISCORD_STATS.memberCount != null ? num(DISCORD_STATS.memberCount) : '—', 'loading channels…', ''),
       statTile('Discord joins', joins == null ? '—' : (joins > 0 ? '+' : '') + joins.toLocaleString('en-US'), joins == null ? 'Gathering history' : (RANGE_DAYS ? 'net over selected range' : 'net since tracking began'), ''),
       statTile('Referrals owed', aud(owed.usdTotal), owed.count ? (owed.count + ' request' + (owed.count === 1 ? '' : 's') + ' pending') : 'Nothing pending', '', { panel: 'analytics', title: owed.names.length ? 'Requested by: ' + owed.names.join(', ') : '' })
     ].join('');
@@ -1488,7 +1495,8 @@
       deltaTile('Followers', num(s.followersCount), dFollow),
       statTile('Follower growth', dFollow ? signed(dFollow.abs) : '—', socialRangeLabel(), dFollow && dFollow.pct != null ? socialDeltaSpan(dFollow) : ''),
       statTile('Posts published', dPosts ? signed(dPosts.abs) : '—', socialRangeLabel(), ''),
-      statTile('Posts', num(s.tweetCount), 'lifetime', '')
+      statTile('Posts', num(s.tweetCount), 'lifetime', ''),
+      statTile('Last post', relTime(s.latestPostAt), s.latestPostAt ? '' : 'no recent post', '')
     ];
     var eng = s.engagement;
     var engTiles = eng ? [
@@ -1499,9 +1507,16 @@
       statTile('Avg / post', num(eng.avgInteractionsPerPost), num(eng.avgImpressionsPerPost) + ' impressions', ''),
       statTile('Bookmarks', num(eng.bookmarks), 'last ' + eng.sampleSize + ' posts', '')
     ] : [];
+    var profileTiles = [
+      statTile('Following', num(s.followingCount), null, ''),
+      statTile('Times listed', num(s.listedCount), 'X Lists including this account', ''),
+      statTile('Likes given', num(s.likeCount), 'lifetime', '')
+    ];
     return statGrid(tiles) +
       engagementSection('Recent post engagement', eng ? '' : 'Needs the paid X API tier that allows reading posts', engTiles) +
-      sparkCard('Followers', histRange(h).map(function (r) { return r.followers; }));
+      engagementSection('Profile', '', profileTiles) +
+      sparkCard('Followers', histRange(h).map(function (r) { return r.followers; })) +
+      sparkCard('Impressions / recent posts', histRange(h).map(function (r) { return r.extra && r.extra.recentImpressions; }), { color: 'var(--price)' });
   }
 
   function youtubePanel() {
@@ -1517,7 +1532,8 @@
       statTile('Videos published', dVideos ? signed(dVideos.abs) : '—', socialRangeLabel(), ''),
       statTile('Lifetime views / video', num(s.lifetimeViewsPerVideo), 'all ' + num(s.videoCount) + ' videos', ''),
       statTile('Views / new video', viewsPerNewVid == null ? '—' : num(viewsPerNewVid), socialRangeLabel(), ''),
-      statTile('Subs / new video', subsPerNewVid == null ? '—' : num(subsPerNewVid), socialRangeLabel(), '')
+      statTile('Subs / new video', subsPerNewVid == null ? '—' : num(subsPerNewVid), socialRangeLabel(), ''),
+      statTile('Last upload', relTime(s.latestPostAt), s.latestPostAt ? '' : 'no recent upload', '')
     ];
     var eng = s.engagement;
     var engTiles = eng ? [
@@ -1530,7 +1546,8 @@
     return statGrid(tiles) +
       engagementSection('Recent video engagement', '', engTiles) +
       sparkCard('Subscribers', histRange(h).map(function (r) { return r.followers; })) +
-      sparkCard('Total views', histRange(h).map(function (r) { return r.extra && r.extra.viewCount; }), { color: 'var(--price)' });
+      sparkCard('Total views', histRange(h).map(function (r) { return r.extra && r.extra.viewCount; }), { color: 'var(--price)' }) +
+      videoTable((s.recentVideos || []).map(function (v) { return { title: v.title, publishedAt: v.publishedAt, views: v.views, likes: v.likes, comments: v.comments }; }), ['views', 'likes', 'comments']);
   }
 
   function tiktokPanel() {
@@ -1543,7 +1560,8 @@
       statTile('Follower growth', dFollow ? signed(dFollow.abs) : '—', socialRangeLabel(), dFollow && dFollow.pct != null ? socialDeltaSpan(dFollow) : ''),
       deltaTile('Total likes', num(s.likesCount), dLikes),
       statTile('Videos posted', dVideos ? signed(dVideos.abs) : '—', socialRangeLabel(), ''),
-      statTile('Likes / video', num(s.lifetimeLikesPerVideo), 'lifetime average', '')
+      statTile('Likes / video', num(s.lifetimeLikesPerVideo), 'lifetime average', ''),
+      statTile('Last post', relTime(s.latestPostAt), s.latestPostAt ? '' : 'no recent post', '')
     ];
     var eng = s.engagement;
     var engTiles = eng ? [
@@ -1555,7 +1573,137 @@
     ] : [];
     return statGrid(tiles) +
       engagementSection('Recent video engagement', eng ? '' : 'Reconnect TikTok to grant the video.list scope', engTiles) +
-      sparkCard('Followers', histRange(h).map(function (r) { return r.followers; }));
+      sparkCard('Followers', histRange(h).map(function (r) { return r.followers; })) +
+      videoTable(s.recentVideos, ['views', 'likes', 'comments', 'shares']);
+  }
+
+  /* ----------------------------------------------------------------
+     SOCIAL: cross-channel roll-ups (Audience overview card) + shared
+     helpers for the per-video tables and "last post" tiles.
+     ---------------------------------------------------------------- */
+  function relTime(iso) {
+    if (!iso) return '—';
+    var then = new Date(iso).getTime();
+    if (isNaN(then)) return '—';
+    var s = Math.max(0, (Date.now() - then) / 1000);
+    if (s < 3600) return Math.round(s / 60) + 'm ago';
+    if (s < 86400) return Math.round(s / 3600) + 'h ago';
+    if (s < 86400 * 30) return Math.round(s / 86400) + 'd ago';
+    return Math.round(s / (86400 * 30)) + 'mo ago';
+  }
+  function videoTable(vids, cols) {
+    if (!Array.isArray(vids) || !vids.length) return '';
+    var head = '<th>Video</th><th>Posted</th>' + cols.map(function (c) { return '<th>' + esc(c.charAt(0).toUpperCase() + c.slice(1)) + '</th>'; }).join('');
+    var rows = vids.slice(0, 12).map(function (v) {
+      var title = (v.title && String(v.title).trim()) || v.id || 'Untitled';
+      return '<tr><td title="' + esc(title) + '">' + esc(title.length > 44 ? title.slice(0, 42) + '…' : title) + '</td>' +
+        '<td>' + esc(relTime(v.postedAt || v.publishedAt)) + '</td>' +
+        cols.map(function (c) { return '<td>' + num(v[c]) + '</td>'; }).join('') + '</tr>';
+    }).join('');
+    return '<div class="adm-mini-head">Recent videos</div><div class="dash-tablewrap"><table class="dash-table adm-vidtable"><thead><tr>' + head + '</tr></thead><tbody>' + rows + '</tbody></table></div>';
+  }
+
+  // Every connected channel with its current audience size, range history
+  // (normalised to {snapshot_date, followers, extra}), engagement rate and
+  // last-post time. Channels that aren't connected are simply absent.
+  function connectedChannels() {
+    var out = [];
+    if (DISCORD_STATS.memberCount != null) out.push({
+      key: 'discord', name: 'Discord', color: '#5865F2', count: DISCORD_STATS.memberCount,
+      history: (DISCORD_STATS.history || []).map(function (r) { return { snapshot_date: r.snapshot_date, followers: r.member_count }; }),
+      engRate: null, latestPostAt: null
+    });
+    if (X_STATS && X_STATS.configured) out.push({
+      key: 'x', name: 'X', color: '#8a8f98', count: X_STATS.followersCount, history: X_STATS.history || [],
+      engRate: X_STATS.engagement ? X_STATS.engagement.engagementRate : null, latestPostAt: X_STATS.latestPostAt || null
+    });
+    if (YOUTUBE_STATS && YOUTUBE_STATS.configured && YOUTUBE_STATS.subscriberCount != null) out.push({
+      key: 'youtube', name: 'YouTube', color: '#f0555a', count: YOUTUBE_STATS.subscriberCount, history: YOUTUBE_STATS.history || [],
+      engRate: YOUTUBE_STATS.engagement ? YOUTUBE_STATS.engagement.engagementRate : null, latestPostAt: YOUTUBE_STATS.latestPostAt || null
+    });
+    if (TIKTOK_STATS && TIKTOK_STATS.configured) out.push({
+      key: 'tiktok', name: 'TikTok', color: '#45cf8e', count: TIKTOK_STATS.followerCount, history: TIKTOK_STATS.history || [],
+      engRate: TIKTOK_STATS.engagement ? TIKTOK_STATS.engagement.engagementRate : null, latestPostAt: TIKTOK_STATS.latestPostAt || null
+    });
+    return out;
+  }
+  // { total, delta, channels } - delta is null unless every channel has a
+  // baseline snapshot at/before the range start.
+  function totalAudience() {
+    var chans = connectedChannels();
+    var total = 0, prevTotal = 0, havePrev = chans.length > 0;
+    chans.forEach(function (c) {
+      total += c.count || 0;
+      var d = histDelta(c.history, function (r) { return r.followers; });
+      if (d) prevTotal += d.base; else { havePrev = false; }
+    });
+    return {
+      total: total,
+      delta: havePrev ? { abs: total - prevTotal, pct: prevTotal ? (total - prevTotal) / prevTotal * 100 : null } : null,
+      channels: chans
+    };
+  }
+  function contentPublishedInRange(c) {
+    var d = histDelta(c.history, function (r) {
+      if (!r.extra) return null;
+      return r.extra.tweetCount != null ? r.extra.tweetCount : r.extra.videoCount;
+    });
+    return d && d.abs > 0 ? d.abs : 0;
+  }
+
+  function renderAudienceOverview() {
+    var el = $('admAudienceOverview'); if (!el) return;
+    var ta = totalAudience();
+    var chans = ta.channels;
+    if (!chans.length) { el.innerHTML = '<p class="adm-empty">No channels connected yet.</p>'; return; }
+
+    var rates = chans.filter(function (c) { return c.engRate != null; });
+    var blended = rates.length
+      ? Math.round(rates.reduce(function (s, c) { return s + c.engRate; }, 0) / rates.length * 100) / 100
+      : null;
+
+    var tiles = [
+      deltaTile('Total audience', num(ta.total), ta.delta),
+      statTile('Audience growth', ta.delta ? signed(ta.delta.abs) : '—', socialRangeLabel(),
+        ta.delta && ta.delta.pct != null ? socialDeltaSpan(ta.delta) : ''),
+      statTile('Blended engagement', blended != null ? blended + '%' : '—',
+        rates.length ? rates.length + ' of ' + chans.length + ' channels' : 'no engagement data yet', '')
+    ];
+
+    // R3 - audience mix
+    var mix = '<div class="adm-mini-head">Audience mix</div><div class="adm-mixbar">' + chans.map(function (c) {
+      var w = ta.total ? c.count / ta.total * 100 : 0;
+      return '<span class="adm-mixseg" style="width:' + w.toFixed(2) + '%;background:' + c.color + ';" title="' + esc(c.name + ' · ' + num(c.count)) + '"></span>';
+    }).join('') + '</div><div class="adm-mixkey">' + chans.map(function (c) {
+      var w = ta.total ? Math.round(c.count / ta.total * 100) : 0;
+      return '<span><i style="background:' + c.color + '"></i>' + esc(c.name) + ' · ' + w + '%</span>';
+    }).join('') + '</div>';
+
+    // R5 - content published this range, by channel
+    var outSeries = chans.map(function (c) { var v = contentPublishedInRange(c); return { label: c.name, v: v, tip: v + ' published' }; });
+    var r5 = outSeries.some(function (d) { return d.v > 0; })
+      ? '<div class="adm-mini-head">Content published · ' + esc(socialRangeLabel()) + '</div>' + svgBars(outSeries, { height: 108 })
+      : '';
+
+    // R7 - engagement rate by channel
+    var engSeries = rates.map(function (c) { return { label: c.name, v: c.engRate, tip: c.engRate + '%' }; });
+    var r7 = engSeries.length
+      ? '<div class="adm-mini-head">Engagement rate by channel</div>' + svgBars(engSeries, { height: 96, color: 'var(--price)' })
+      : '';
+
+    // R6 - new followers by channel
+    var r6rows = chans.map(function (c) {
+      var d = histDelta(c.history, function (r) { return r.followers; });
+      return { name: c.name, count: c.count, d: d, last: c.latestPostAt };
+    }).sort(function (a, b) { return (b.d ? b.d.abs : -1e12) - (a.d ? a.d.abs : -1e12); });
+    var r6 = '<div class="adm-mini-head">Growth by channel</div><div class="dash-tablewrap"><table class="dash-table"><thead><tr><th>Channel</th><th>Audience</th><th>Change</th><th>Last post</th></tr></thead><tbody>' +
+      r6rows.map(function (r) {
+        return '<tr><td>' + esc(r.name) + '</td><td>' + num(r.count) + '</td><td>' +
+          (r.d ? socialDeltaSpan(r.d) : '<span class="adm-sub">—</span>') + '</td><td>' +
+          (r.last ? esc(relTime(r.last)) : '<span class="adm-sub">—</span>') + '</td></tr>';
+      }).join('') + '</tbody></table></div>';
+
+    el.innerHTML = statGrid(tiles) + mix + r5 + r7 + r6;
   }
 
   // Re-rendering a container via innerHTML throws away the open/closed
@@ -1756,6 +1904,8 @@
         statTile('Owed to affiliates', usd(owed), null, '')
       ].join('');
     }
+
+    renderAudienceOverview();
 
     if ($('admMktChannels')) {
       setHtmlPreservingCollapse($('admMktChannels'), MKT_CHANNELS.map(channelRow).join(''));

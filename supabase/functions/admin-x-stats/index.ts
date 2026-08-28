@@ -90,6 +90,7 @@ Deno.serve(async (req: Request) => {
     // exactly this case - but can lag or read 0, so the rate is only
     // reported when impressions are actually present.
     let engagement: Record<string, number> | null = null;
+    let latestPostAt: string | null = null;
     if (userId) {
       try {
         const tRes = await fetch(
@@ -102,6 +103,7 @@ Deno.serve(async (req: Request) => {
           if (tweets.length) {
             let imp = 0, likes = 0, rts = 0, replies = 0, quotes = 0, bookmarks = 0;
             for (const tw of tweets) {
+              if (tw.created_at && (!latestPostAt || tw.created_at > latestPostAt)) latestPostAt = tw.created_at;
               const m = tw.public_metrics ?? {};
               imp += Number(m.impression_count ?? 0);
               likes += Number(m.like_count ?? 0);
@@ -142,7 +144,7 @@ Deno.serve(async (req: Request) => {
     await upsertSocialSnapshot(admin, "x", followersCount, extra);
     const history = await getSocialHistory(admin, "x");
 
-    return json({ ok: true, configured: true, followersCount, tweetCount, followingCount, likeCount, listedCount, engagement, history });
+    return json({ ok: true, configured: true, followersCount, tweetCount, followingCount, likeCount, listedCount, latestPostAt, engagement, history });
   } catch (err) {
     console.error("[admin-x-stats] error:", err);
     return json({ ok: false, error: "Server error." }, 500);

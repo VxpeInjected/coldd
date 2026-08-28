@@ -169,9 +169,11 @@ Deno.serve(async (req: Request) => {
     // requests it) - if the stored token predates that scope the call
     // returns scope_not_authorized and we just skip the engagement block.
     let engagement: Record<string, number | null> | null = null;
+    let recentVideos: Array<Record<string, unknown>> = [];
+    let latestPostAt: string | null = null;
     try {
       const vJson = await tiktokCall(
-        "https://open.tiktokapis.com/v2/video/list/?fields=id,like_count,comment_count,share_count,view_count",
+        "https://open.tiktokapis.com/v2/video/list/?fields=id,title,create_time,like_count,comment_count,share_count,view_count",
         accessToken,
         { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ max_count: 20 }) },
       );
@@ -180,10 +182,14 @@ Deno.serve(async (req: Request) => {
         if (vids.length) {
           let views = 0, likes = 0, comments = 0, shares = 0;
           for (const v of vids) {
-            views += Number(v.view_count ?? 0);
-            likes += Number(v.like_count ?? 0);
-            comments += Number(v.comment_count ?? 0);
-            shares += Number(v.share_count ?? 0);
+            const vViews = Number(v.view_count ?? 0);
+            const vLikes = Number(v.like_count ?? 0);
+            const vComments = Number(v.comment_count ?? 0);
+            const vShares = Number(v.share_count ?? 0);
+            views += vViews; likes += vLikes; comments += vComments; shares += vShares;
+            const posted = v.create_time ? new Date(v.create_time * 1000).toISOString() : null;
+            if (posted && (!latestPostAt || posted > latestPostAt)) latestPostAt = posted;
+            recentVideos.push({ id: v.id, title: v.title ?? "", postedAt: posted, views: vViews, likes: vLikes, comments: vComments, shares: vShares });
           }
           const interactions = likes + comments + shares;
           engagement = {
@@ -212,7 +218,7 @@ Deno.serve(async (req: Request) => {
     await upsertSocialSnapshot(admin, "tiktok", followerCount, extra);
     const history = await getSocialHistory(admin, "tiktok");
 
-    return json({ ok: true, configured: true, followerCount, likesCount, videoCount, lifetimeLikesPerVideo, engagement, history });
+    return json({ ok: true, configured: true, followerCount, likesCount, videoCount, lifetimeLikesPerVideo, latestPostAt, engagement, recentVideos, history });
   } catch (err) {
     console.error("[admin-tiktok-stats] error:", err);
     return json({ ok: false, error: "Server error." }, 500);

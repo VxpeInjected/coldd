@@ -143,7 +143,13 @@ Deno.serve(async (req: Request) => {
     await upsertSocialSnapshot(admin, "youtube", subscriberCount, extra);
     const history = await getSocialHistory(admin, "youtube");
 
-    return json({ ok: true, configured: true, subscriberCount, viewCount, videoCount, lifetimeViewsPerVideo, engagement, recentVideos, history });
+    const latestPostAt = recentVideos
+      .map((v) => v.publishedAt as string | null)
+      .filter(Boolean)
+      .sort()
+      .pop() ?? null;
+
+    return json({ ok: true, configured: true, subscriberCount, viewCount, videoCount, lifetimeViewsPerVideo, latestPostAt, engagement, recentVideos, history });
   } catch (err) {
     console.error("[admin-youtube-stats] error:", err);
     return json({ ok: false, error: "Server error." }, 500);

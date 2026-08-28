@@ -2154,6 +2154,53 @@
       if (curPanel === 'marketing') renderEmailMarketing();
     });
   }
+  // Resend delivery events (public.email_events, written by resend-webhook).
+  // Grouped per campaign for open/click rates, kept raw for the
+  // revenue-attribution window.
+  var EMAIL_EVENTS_BY_CAMPAIGN = {};
+  var EMAIL_EVENT_ROWS = [];
+  function refreshEmailEvents() {
+    if (!window.coldSupabase) return Promise.resolve();
+    var cutoff = daysAgo(180).toISOString();
+    return window.coldSupabase.from('email_events').select('type, recipient, campaign_id, occurred_at').gte('occurred_at', cutoff).limit(50000).then(function (res) {
+      if (res.error) { console.error('[admin] failed to load email events:', res.error.message); return; }
+      EMAIL_EVENT_ROWS = res.data || [];
+      var by = {};
+      EMAIL_EVENT_ROWS.forEach(function (e) {
+        var k = e.campaign_id || '_none';
+        if (!by[k]) by[k] = { sent: 0, delivered: 0, opened: 0, clicked: 0, bounced: 0, complained: 0, openers: {}, clickers: {} };
+        var r = (e.recipient || '').toLowerCase();
+        if (e.type === 'email.sent') by[k].sent++;
+        else if (e.type === 'email.delivered') by[k].delivered++;
+        else if (e.type === 'email.opened') { by[k].opened++; if (r) by[k].openers[r] = true; }
+        else if (e.type === 'email.clicked') { by[k].clicked++; if (r) by[k].clickers[r] = true; }
+        else if (e.type === 'email.bounced') by[k].bounced++;
+        else if (e.type === 'email.complained') by[k].complained++;
+      });
+      EMAIL_EVENTS_BY_CAMPAIGN = by;
+      if (curPanel === 'marketing') renderEmailMarketing();
+    });
+  }
+  // Completed orders in range whose buyer received a marketing email in the
+  // 7 days before the order. A directional attribution, not a hard claim -
+  // last-touch-ish within a window.
+  function emailAttributedRevenue() {
+    var byRcpt = {};
+    EMAIL_EVENT_ROWS.forEach(function (e) {
+      if ((e.type !== 'email.delivered' && e.type !== 'email.sent') || !e.recipient) return;
+      var r = e.recipient.toLowerCase();
+      (byRcpt[r] = byRcpt[r] || []).push(new Date(e.occurred_at).getTime());
+    });
+    var WIN = 7 * 86400000, rev = 0, count = 0;
+    completedInRange().forEach(function (o) {
+      if (!o.userEmail) return;
+      var sends = byRcpt[o.userEmail.toLowerCase()];
+      if (!sends) return;
+      var ot = new Date(o.date).getTime();
+      if (sends.some(function (t) { return t <= ot && ot - t <= WIN; })) { rev += Number(o.total) || 0; count++; }
+    });
+    return { usd: rev, count: count };
+  }
   function refreshEmailConfigStatus() {
     return invokeAdminFn('admin-send-campaign', { action: 'status' }, '').then(function (data) {
       EMAIL_CONFIGURED = !!data.configured;
@@ -2181,10 +2228,12 @@
     }
 
     if ($('admEmailStats')) {
+      var att = emailAttributedRevenue();
       $('admEmailStats').innerHTML = [
         statTile('Total accounts', EMAIL_STATS.total.toLocaleString('en-US'), null, ''),
         statTile('Subscribed', EMAIL_STATS.subscribed.toLocaleString('en-US'), 'opted in by default', ''),
-        statTile('Unsubscribed', EMAIL_STATS.unsubscribed.toLocaleString('en-US'), null, '')
+        statTile('Unsubscribed', EMAIL_STATS.unsubscribed.toLocaleString('en-US'), null, ''),
+        statTile('Revenue from email', usd(att.usd), att.count + ' order' + (att.count === 1 ? '' : 's') + ' within 7d of a send', '')
       ].join('');
     }
 
@@ -2198,8 +2247,15 @@
     if (body) {
       body.innerHTML = EMAIL_CAMPAIGNS.map(function (c) {
         var status = c.status === 'sent' ? '<span class="dt-badge ok">Sent</span>' : c.status === 'failed' ? '<span class="dt-badge err">Failed</span>' : c.status === 'sending' ? '<span class="dt-badge warn">Sending</span>' : '<span class="dt-badge">Draft</span>';
-        return '<tr><td>' + fmtDateTime(new Date(c.created_at)) + '</td><td>' + esc(c.subject) + '</td><td>' + status + '</td><td>' + (c.sent_count || 0) + ' / ' + (c.recipient_count || 0) + '</td><td>' + (c.failed_count || 0) + '</td></tr>';
-      }).join('') || '<tr><td colspan="5" class="adm-empty">No campaigns sent yet.</td></tr>';
+        var ev = EMAIL_EVENTS_BY_CAMPAIGN[c.id];
+        var base = ev ? (ev.delivered || ev.sent || c.sent_count || 0) : (c.sent_count || 0);
+        function rate(users) {
+          if (!ev || !base) return '<span class="adm-sub">—</span>';
+          var n = Object.keys(users).length;
+          return pct(n / base * 100) + ' <span class="adm-sub">(' + n + ')</span>';
+        }
+        return '<tr><td>' + fmtDateTime(new Date(c.created_at)) + '</td><td>' + esc(c.subject) + '</td><td>' + status + '</td><td>' + (c.sent_count || 0) + ' / ' + (c.recipient_count || 0) + '</td><td>' + (c.failed_count || 0) + '</td><td>' + rate(ev ? ev.openers : {}) + '</td><td>' + rate(ev ? ev.clickers : {}) + '</td></tr>';
+      }).join('') || '<tr><td colspan="7" class="adm-empty">No campaigns sent yet.</td></tr>';
     }
   }
 
@@ -5697,6 +5753,7 @@
   refreshAdbloxStats();
   refreshEmailStats();
   refreshEmailCampaigns();
+  refreshEmailEvents();
   loadUnreleasedFiles();
   refreshResellers();
   refreshEmailConfigStatus();

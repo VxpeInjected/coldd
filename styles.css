@@ -1565,6 +1565,10 @@ body.no-scroll { overflow: hidden; }
   box-shadow: 0 1px 0 rgba(255,255,255,0.05) inset, 0 20px 46px -26px var(--ink-75);
 }
 .pd-buycard { border: 1px solid var(--hairline); border-radius: var(--r-sm); padding: 20px; }
+.pd-admin-bar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 12px;
+  padding: 10px 12px; border: 1px dashed rgba(255,77,68,0.4); border-radius: var(--r-sm); background: rgba(255,77,68,0.05); }
+.pd-admin-label { font-size: 10px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent); margin-right: 2px; }
+.pd-admin-bar .btn { padding: 7px 12px; font-size: 12.5px; }
 .pd-price-row { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
 .pd-price-main { display: flex; align-items: baseline; gap: 10px; }
 .pd-price { font-size: 30px; font-weight: 800; color: var(--price); letter-spacing: -0.02em; }

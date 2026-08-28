@@ -2681,6 +2681,22 @@
           if (pdTitle) pdTitle.innerHTML = esc(p.title) + ' <span class="pd-ver">' + version + '</span>';
           if (pdSub) pdSub.textContent = p.desc || '';
 
+          // Admin-only quick links into the admin panel for this exact
+          // product (deep-linked - /admin reads ?product=&action=).
+          var pdAdminBar = document.getElementById('pdAdminBar');
+          if (pdAdminBar && !pdAdminBar.dataset.wired && window.coldAuth && window.coldAuth.checkIsAdmin) {
+            pdAdminBar.dataset.wired = '1';
+            window.coldAuth.checkIsAdmin().then(function (info) {
+              if (!info || !info.isAdmin) return;
+              var eid = encodeURIComponent(p.id);
+              var e = document.getElementById('pdAdminEdit');
+              var u = document.getElementById('pdAdminUpdate');
+              if (e) e.href = '/admin?product=' + eid + '&action=edit';
+              if (u) u.href = '/admin?product=' + eid + '&action=update';
+              pdAdminBar.hidden = false;
+            }).catch(function () {});
+          }
+
           var g = gallery(p);
           curGallery = g;
           if (pdThumbs) {

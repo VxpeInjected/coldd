@@ -6136,6 +6136,30 @@
      INIT
      ================================================================ */
   showPanel('home');
+
+  // Deep-link from the public product page's admin bar:
+  //   /admin?product=<id>&action=edit   -> open that product's edit form
+  //   /admin?product=<id>&action=update -> open Push Update for it
+  // The catalog loads async, so poll findProduct() briefly before giving up.
+  (function productDeepLink() {
+    var pid, action;
+    try {
+      var qp = new URLSearchParams(location.search);
+      pid = qp.get('product');
+      action = qp.get('action') === 'update' ? 'update' : 'edit';
+    } catch (e) { return; }
+    if (!pid) return;
+    var tries = 0;
+    (function wait() {
+      if (findProduct(pid)) {
+        if (action === 'update') { openUpdatePanel(); selectUpdateProduct(pid); }
+        else openProductEdit(pid);
+      } else if (tries++ < 40) {
+        setTimeout(wait, 150);
+      }
+    })();
+  })();
+
   // Sync the range buttons (markup hard-codes 30D active) to the persisted
   // RANGE_DAYS so the highlighted period always matches the figures shown.
   setRange(RANGE_DAYS);

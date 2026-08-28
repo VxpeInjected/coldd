@@ -91,6 +91,8 @@ export async function pickContainer(admin: any): Promise<RobloxContainer | null>
 
 export const ROBUX_PER_USD = 80; // matches app.js's ROBUX_PER_USD/admin.js's fallback
 
+export const RESELL_MULT = 3; // must match _shared/coupon.ts / app.js
+
 export type RobuxCartItem = { slug: string; qty: number; licence?: string };
 export type RobuxPricedLine = {
   slug: string;
@@ -99,7 +101,29 @@ export type RobuxPricedLine = {
   unitPriceUsd: number;
   qty: number;
   productId: string;
+  licence: string;
 };
+
+// Robux price for one licence of a product, mirroring the standard
+// licence's logic: an admin-set Robux price wins; otherwise convert the
+// licence's USD price at ROBUX_PER_USD. `> 0` (not `!= null`) so a stray
+// 0 in the field falls back to the estimate rather than selling for free.
+// deno-lint-ignore no-explicit-any
+export function robuxUnitPrice(product: any, resell: boolean): { unitRobux: number; unitPriceUsd: number } {
+  if (resell) {
+    // Resell USD basis matches _shared/coupon.ts priceItems (the flat 3x)
+    // so the two never disagree on the same order.
+    const resellUsd = Math.round(Number(product.price_usd) * RESELL_MULT);
+    const unitRobux = Number(product.resell_robux_price) > 0
+      ? Number(product.resell_robux_price)
+      : Math.round(resellUsd * ROBUX_PER_USD);
+    return { unitRobux, unitPriceUsd: resellUsd };
+  }
+  const unitRobux = Number(product.robux_price) > 0
+    ? Number(product.robux_price)
+    : Math.round(Number(product.price_usd) * ROBUX_PER_USD);
+  return { unitRobux, unitPriceUsd: Number(product.price_usd) };
+}
 
 // Robux-specific pricing: only requires the product to be a Roblox item
 // (not resell), and rejects resell licences - Robux pricing doesn't
@@ -125,7 +149,7 @@ export async function priceRobuxItems(
   const slugs = Array.from(new Set(items.map((i) => String(i.slug || ""))));
   const { data: products, error } = await admin
     .from("products")
-    .select("id, slug, title, price_usd, robux_price, platform")
+    .select("id, slug, title, price_usd, robux_price, platform, resell_available, resell_robux_price")
     .in("slug", slugs)
     .eq("is_active", true);
   if (error) return { ok: false, error: "Could not load products." };
@@ -136,25 +160,24 @@ export async function priceRobuxItems(
   for (const raw of items) {
     const slug = String(raw.slug || "");
     const qty = Math.max(1, Math.min(20, Math.floor(Number(raw.qty) || 1)));
-    if (raw.licence === "resell") return { ok: false, error: "Robux checkout doesn't support resell-licence items." };
+    const isResell = raw.licence === "resell";
     const product = bySlug.get(slug);
     if (!product) return { ok: false, error: `"${slug}" is no longer available.` };
     if (product.platform !== "Roblox") {
       return { ok: false, error: `${product.title} isn't available for Robux checkout yet.` };
     }
-    // > 0, not != null: a product with robux_price stored as exactly 0
-    // is bad admin data, not an intentional "free in Robux" price - this
-    // is the actual charge, so treating 0 as real here would either sell
-    // the product for nothing or (if it's the only cart item) fail the
-    // whole order outright once the total <= 0 check below runs.
-    const unitRobux = Number(product.robux_price) > 0 ? Number(product.robux_price) : Math.round(Number(product.price_usd) * ROBUX_PER_USD);
+    if (isResell && !product.resell_available) {
+      return { ok: false, error: `${product.title} doesn't offer a resell licence.` };
+    }
+    const { unitRobux, unitPriceUsd } = robuxUnitPrice(product, isResell);
     lines.push({
       slug,
-      title: product.title,
+      title: product.title + (isResell ? " (Resell licence)" : ""),
       unitRobux,
-      unitPriceUsd: Number(product.price_usd),
+      unitPriceUsd,
       qty,
       productId: product.id,
+      licence: isResell ? "resell" : "standard",
     });
   }
 

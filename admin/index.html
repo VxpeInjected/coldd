@@ -474,6 +474,10 @@
                 <label class="adm-field" id="admEditResellPriceWrap" hidden style="margin-top:12px;max-width:260px;">
                   <span>Resell licence price (USD)</span><input type="number" min="0" step="0.01" id="admEditResellPrice" class="adm-input" />
                 </label>
+                <label class="adm-field" id="admEditResellRobuxPriceWrap" hidden style="margin-top:12px;max-width:260px;">
+                  <span>Resell licence price (Robux)</span><input type="number" min="0" step="1" id="admEditResellRobuxPrice" class="adm-input" />
+                  <span class="adm-note" style="margin-top:4px;">Leave blank to convert the resell USD price automatically.</span>
+                </label>
                 <label class="adm-field-check"><input type="checkbox" id="admEditReleased" /> <span>Released (visible on storefront)</span></label>
                 <label class="adm-field-check"><input type="checkbox" id="admEditPriority" /> <span>Priority (boost in the catalog's Recommended sort)</span></label>
                 <label class="adm-field-check"><input type="checkbox" id="admEditFeatured" /> <span>Featured (shown in the homepage "Featured products" section)</span></label>
@@ -1368,6 +1372,6 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.2/dist/umd/supabase.min.js" integrity="sha384-B2duOBIryCXbX4eDE4BdJwtNkQMRQde3o6IsjfPW28E6aH1CYE96hHeZRG3zY56O" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script src="/supabase-init.js?v=20260828b"></script>
   <script src="/site-gate.js?v=20260820b"></script>
-  <script src="/catalog.js?v=20260828c" data-then="/app.js?v=20260828k,/blog.js?v=20260828a,/reviews.js?v=20260729a,/admin.js?v=20260828w"></script>
+  <script src="/catalog.js?v=20260828d" data-then="/app.js?v=20260828k,/blog.js?v=20260828a,/reviews.js?v=20260729a,/admin.js?v=20260828x"></script>
 </body>
 </html>

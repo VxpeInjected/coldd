@@ -180,7 +180,7 @@ Deno.serve(async (req: Request) => {
         product_id: li.productId,
         product_slug: li.slug,
         title: li.title,
-        licence: "standard",
+        licence: li.licence || "standard",
         unit_price_usd: li.unitPriceUsd,
         qty: li.qty,
       })),

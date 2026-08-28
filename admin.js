@@ -920,6 +920,7 @@
       video: row.video || '',
       resell: !!row.resell_available,
       resellPrice: row.resell_price_usd != null ? Number(row.resell_price_usd) : null,
+      resellRobuxPrice: row.resell_robux_price != null ? Number(row.resell_robux_price) : null,
       robuxPrice: row.robux_price != null ? Number(row.robux_price) : null,
       wasPrice: row.was_price != null ? Number(row.was_price) : null,
       priority: !!row.priority,
@@ -976,6 +977,7 @@
       video: p.video,
       resell: p.resell,
       resellPrice: p.resellPrice,
+      resellRobuxPrice: p.resellRobuxPrice,
       robuxPrice: p.robuxPrice,
       wasPrice: p.wasPrice,
       priority: p.priority,
@@ -3395,7 +3397,9 @@
     $('admEditLongDesc').value = p.longDesc || '';
     $('admEditResell').checked = !!p.resell;
     $('admEditResellPrice').value = p.resellPrice != null ? p.resellPrice : '';
+    $('admEditResellRobuxPrice').value = p.resellRobuxPrice != null ? p.resellRobuxPrice : '';
     $('admEditResellPriceWrap').hidden = !p.resell;
+    $('admEditResellRobuxPriceWrap').hidden = !p.resell;
     $('admEditReleased').checked = !!p.visible;
     $('admEditDeleteBtn').hidden = false;
     if ($('admLegalDownloadBtn')) $('admLegalDownloadBtn').hidden = false;
@@ -3619,7 +3623,7 @@
   var editPriceInput = $('admEditPrice');
   if (editPriceInput) editPriceInput.addEventListener('input', updateDevexHint);
   var editResellBox = $('admEditResell');
-  if (editResellBox) editResellBox.addEventListener('change', function () { $('admEditResellPriceWrap').hidden = !editResellBox.checked; });
+  if (editResellBox) editResellBox.addEventListener('change', function () { var h = !editResellBox.checked; $('admEditResellPriceWrap').hidden = h; $('admEditResellRobuxPriceWrap').hidden = h; });
   var editFeaturedBox = $('admEditFeatured');
   if (editFeaturedBox) editFeaturedBox.addEventListener('change', function () { $('admEditFeaturedOrderWrap').hidden = !editFeaturedBox.checked; });
 
@@ -3701,7 +3705,9 @@
     $('admEditLongDesc').value = '';
     $('admEditResell').checked = false;
     $('admEditResellPrice').value = '';
+    $('admEditResellRobuxPrice').value = '';
     $('admEditResellPriceWrap').hidden = true;
+    $('admEditResellRobuxPriceWrap').hidden = true;
     $('admEditReleased').checked = false;
     $('admEditDeleteBtn').hidden = true;
     if ($('admLegalDownloadBtn')) $('admLegalDownloadBtn').hidden = true;
@@ -3763,6 +3769,7 @@
       longDesc: $('admEditLongDesc').value.trim(),
       resell: $('admEditResell').checked,
       resellPrice: $('admEditResell').checked && $('admEditResellPrice').value !== '' ? Math.max(0, parseFloat($('admEditResellPrice').value) || 0) : null,
+      resellRobuxPrice: $('admEditResell').checked && $('admEditResellRobuxPrice').value !== '' ? Math.max(0, Math.round(parseFloat($('admEditResellRobuxPrice').value) || 0)) : null,
       visible: $('admEditReleased').checked,
       image: $('admEditThumbUrl').value.trim(),
       gallery: editGallery.slice(),

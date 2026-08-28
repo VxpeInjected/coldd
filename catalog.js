@@ -398,6 +398,7 @@
       createdAt: row.created_at || null,
       robuxPrice: row.robux_price != null ? Number(row.robux_price) : null,
       resellPrice: row.resell_price_usd != null ? Number(row.resell_price_usd) : null,
+      resellRobuxPrice: row.resell_robux_price != null ? Number(row.resell_robux_price) : null,
       tech: row.tech || {},
       versions: row.versions || [],
       longDesc: row.long_description || '',

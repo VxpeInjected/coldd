@@ -31,6 +31,17 @@ import { downloadName, publicSignedUrl } from "../_shared/download.ts";
 const ALLOWED_ORIGIN = "https://coldd.dev";
 const SIGNED_URL_TTL_SECONDS = 120;
 
+// A guest order has no account to prove ownership against, so the Stripe
+// session id in the success-page URL is the only capability - and a URL
+// gets forwarded, screenshotted, pasted in Discord "to prove a purchase",
+// and left in shared browser history. Treat it as a short-lived
+// just-paid convenience, not a permanent no-account download token: after
+// this window the guest has to create an account with their order email
+// (which the receipt and success page both tell them to do) to keep
+// downloading. A signed-in owner is never affected - they go through the
+// account-ownership path below regardless of the link's age.
+const GUEST_LINK_WINDOW_MS = 24 * 60 * 60 * 1000;
+
 function corsHeaders() {
   return {
     "Access-Control-Allow-Origin": ALLOWED_ORIGIN,
@@ -66,7 +77,7 @@ Deno.serve(async (req: Request) => {
     if (sessionId) {
       const { data: order, error: orderErr } = await admin
         .from("orders")
-        .select("status, user_id, order_items(product_slug)")
+        .select("status, user_id, paid_at, created_at, order_items(product_slug)")
         .eq("stripe_checkout_session_id", sessionId)
         .maybeSingle();
       if (orderErr) return json({ ok: false, error: "Could not verify ownership." }, 500);
@@ -90,7 +101,20 @@ Deno.serve(async (req: Request) => {
         const { data: sessionUserData } = await sessionUserClient.auth.getUser();
         owned = matchesOrder && sessionUserData?.user?.id === order.user_id;
       } else {
-        owned = matchesOrder;
+        // Genuine guest order - the session id is the only proof, so it
+        // only counts for a short window after payment. Past that, whoever
+        // holds the link (buyer included) makes a free account with the
+        // order email to keep downloading.
+        const paidTs = order ? Date.parse(order.paid_at || order.created_at || "") : NaN;
+        const fresh = Number.isFinite(paidTs) && (Date.now() - paidTs) < GUEST_LINK_WINDOW_MS;
+        if (matchesOrder && !fresh) {
+          return json({
+            ok: false,
+            code: "LINK_EXPIRED",
+            error: "This download link has expired. Create a free account with the email you used at checkout to download your purchases any time.",
+          }, 403);
+        }
+        owned = matchesOrder && fresh;
       }
     } else {
       if (!authHeader) return json({ ok: false, error: "Please sign in." }, 401);

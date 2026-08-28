@@ -5815,7 +5815,22 @@
             window.coldSupabase.functions.invoke('get-download-url', { body: { slug: it.product_slug, sessionId: sessionId } })
               .then(function (res) {
                 var data = res && res.data;
-                if (!data || !data.ok) { btn.textContent = (data && data.error) || 'Could not get download.'; return; }
+                if (!data || !data.ok) {
+                  if (data && data.code === 'LINK_EXPIRED') {
+                    btn.disabled = false; btn.textContent = prev;
+                    var note = card.querySelector('.dl-expired');
+                    if (!note) {
+                      note = document.createElement('p');
+                      note.className = 'dl-expired';
+                      note.innerHTML = 'This confirmation link has expired. <a href="/signup">Create a free account</a> with your checkout email to download any time.';
+                      card.appendChild(note);
+                    }
+                    return;
+                  }
+                  btn.disabled = false;
+                  btn.textContent = (data && data.error) || 'Could not get download.';
+                  return;
+                }
                 return triggerFileDownload(data.url, data.filename).then(function () { btn.disabled = false; btn.textContent = prev; });
               })
               .catch(function () { btn.disabled = false; btn.textContent = prev; });

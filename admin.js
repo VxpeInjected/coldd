@@ -600,11 +600,13 @@
   var TRAFFIC = [];
   var TRAFFIC_PAGES = [];   // [{ path, views, sessions }] over the 120d pull, top first
   var TRAFFIC_VISITORS = null; // { total, returning, rate } over the 120d pull
+  var TRAFFIC_ROWS = [];    // [{ s: session_id, p: path, d: created_at }] - for the range-aware funnel
   function refreshTraffic() {
     if (!window.coldSupabase) return Promise.resolve();
     var cutoff = daysAgo(119).toISOString();
     return window.coldSupabase.from('page_views').select('session_id, created_at, path, visitor_id').gte('created_at', cutoff).limit(50000).then(function (res) {
       if (res.error) { console.error('[admin] failed to load traffic:', res.error.message); return; }
+      TRAFFIC_ROWS = (res.data || []).map(function (r) { return { s: r.session_id, p: r.path || '', d: r.created_at }; });
       var byDay = {}, byPath = {}, visitorDays = {};
       (res.data || []).forEach(function (row) {
         var day = row.created_at.slice(0, 10);
@@ -637,6 +639,20 @@
       if (curPanel === 'analytics') renderAnalytics();
     if (curPanel === 'marketing') renderMarketing();
       if (curPanel === 'home') renderHome();
+    });
+  }
+
+  // Funnel + on-site search, from public.client_events (add_to_cart /
+  // checkout_started / search - written by track-event). Same 120-day
+  // window as traffic; the render filters to the active range.
+  var CLIENT_EVENT_ROWS = [];
+  function refreshClientEvents() {
+    if (!window.coldSupabase) return Promise.resolve();
+    var cutoff = daysAgo(119).toISOString();
+    return window.coldSupabase.from('client_events').select('type, session_id, meta, created_at').gte('created_at', cutoff).limit(50000).then(function (res) {
+      if (res.error) { console.error('[admin] failed to load client events:', res.error.message); return; }
+      CLIENT_EVENT_ROWS = (res.data || []).map(function (r) { return { type: r.type, s: r.session_id, meta: r.meta || {}, d: r.created_at }; });
+      if (curPanel === 'analytics') renderAnalytics();
     });
   }
 
@@ -1207,6 +1223,45 @@
       });
     });
     return map;
+  }
+
+  // Visit -> product -> cart -> checkout -> paid, by distinct session over
+  // the active range. Visitors/product/checkout come from page_views;
+  // "added to cart" from client_events; "paid" is the completed order
+  // count (orders carry no session id, so that last step isn't session-
+  // deduped - it's a straight count).
+  function funnelCounts() {
+    var start = RANGE_DAYS ? rangeStart() : new Date(0);
+    var sess = {}, prod = {}, chk = {}, cart = {};
+    TRAFFIC_ROWS.forEach(function (r) {
+      if (!r.s || new Date(r.d) < start) return;
+      sess[r.s] = true;
+      if (r.p.indexOf('/product') === 0) prod[r.s] = true;
+      if (r.p === '/checkout') chk[r.s] = true;
+    });
+    CLIENT_EVENT_ROWS.forEach(function (e) {
+      if (e.type === 'add_to_cart' && e.s && new Date(e.d) >= start) cart[e.s] = true;
+    });
+    return {
+      visitors: Object.keys(sess).length,
+      product: Object.keys(prod).length,
+      cart: Object.keys(cart).length,
+      checkout: Object.keys(chk).length,
+      paid: completedInRange().length
+    };
+  }
+  function topSearches(limit) {
+    var start = RANGE_DAYS ? rangeStart() : new Date(0);
+    var map = {};
+    CLIENT_EVENT_ROWS.forEach(function (e) {
+      if (e.type !== 'search' || !e.meta || !e.meta.q || new Date(e.d) < start) return;
+      var q = String(e.meta.q).toLowerCase().trim();
+      if (!map[q]) map[q] = { q: q, count: 0, noResults: 0 };
+      map[q].count++;
+      if (e.meta.results === 0) map[q].noResults++;
+    });
+    return Object.keys(map).map(function (k) { return map[k]; })
+      .sort(function (a, b) { return b.count - a.count; }).slice(0, limit || 15);
   }
   function conversionRate() {
     var days = RANGE_DAYS || 120;
@@ -2473,6 +2528,36 @@
       $('admTopPagesBody').innerHTML = TRAFFIC_PAGES.slice(0, 12).map(function (p) {
         return '<tr><td class="dt-mono">' + esc(p.path) + '</td><td>' + p.views.toLocaleString('en-US') + '</td><td>' + p.sessions.toLocaleString('en-US') + '</td></tr>';
       }).join('') || '<tr><td colspan="3" class="adm-empty">No traffic yet.</td></tr>';
+    }
+
+    if ($('admFunnel')) {
+      var fn = funnelCounts();
+      var steps = [
+        { label: 'Visitors', v: fn.visitors },
+        { label: 'Viewed product', v: fn.product },
+        { label: 'Added to cart', v: fn.cart },
+        { label: 'Reached checkout', v: fn.checkout },
+        { label: 'Paid', v: fn.paid }
+      ];
+      var conv = [];
+      for (var fi = 1; fi < steps.length; fi++) {
+        var ffrom = steps[fi - 1].v, fto = steps[fi].v;
+        conv.push('<div class="adm-catrow"><span>' + esc(steps[fi - 1].label + ' → ' + steps[fi].label) + '</span><span>' + (ffrom ? pct(fto / ffrom * 100) : '—') + '</span></div>');
+      }
+      $('admFunnel').innerHTML = statGrid([
+        statTile('Visitor → paid', steps[0].v ? pct(fn.paid / steps[0].v * 100) : '—', 'over selected range', ''),
+        statTile('Cart → checkout', fn.cart ? pct(fn.checkout / fn.cart * 100) : '—', null, ''),
+        statTile('Checkout → paid', fn.checkout ? pct(fn.paid / fn.checkout * 100) : '—', null, '')
+      ]) + svgBars(steps.map(function (s) { return { label: s.label, v: s.v, tip: s.v.toLocaleString('en-US') + ' · ' + s.label }; }), { height: 150 }) +
+        '<div class="adm-catlist">' + conv.join('') + '</div>';
+      attachChartTooltip($('admFunnel'));
+    }
+
+    if ($('admSearchBody')) {
+      var ts = topSearches(15);
+      $('admSearchBody').innerHTML = ts.map(function (s) {
+        return '<tr><td>' + esc(s.q) + '</td><td>' + s.count + '</td><td>' + (s.noResults ? '<span class="dt-badge warn">' + s.noResults + ' no-result</span>' : '<span class="adm-sub">—</span>') + '</td></tr>';
+      }).join('') || '<tr><td colspan="3" class="adm-empty">No searches logged yet.</td></tr>';
     }
 
     $('admAbandonedBody').innerHTML = ABANDONED.slice(0, 12).map(function (a) {
@@ -5601,6 +5686,7 @@
   refreshReleases();
   refreshSaleEvents();
   refreshTraffic();
+  refreshClientEvents();
   refreshAbandoned();
   refreshStaff();
   refreshRobloxCookieHealth();
@@ -5628,6 +5714,7 @@
   // left open, same unconditional-interval pattern as live sessions (each
   // render call already no-ops unless its panel is showing).
   setInterval(refreshTraffic, 5 * 60 * 1000);
+  setInterval(refreshClientEvents, 5 * 60 * 1000);
   // AdBlox stats used to only load once on boot, or on the manual Refresh
   // button - same polling pattern as refreshLiveSessions above (an
   // unconditional interval; the function itself already only re-renders

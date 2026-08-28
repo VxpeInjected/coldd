@@ -149,6 +149,24 @@
     window.addEventListener('coldd:consent', send);
   })();
 
+  // Site-wide funnel/interaction beacon. window.coldTrack('add_to_cart',
+  // { id, price }) / ('checkout_started') / ('search', { q, results }).
+  // Same consent gate and same session/visitor ids as the pageview beacon;
+  // fire-and-forget, never throws into the caller.
+  window.coldTrack = function (type, meta) {
+    try {
+      if (!window.coldConsent || !window.coldConsent.allows('analytics')) return;
+      var sid = null, vid = null;
+      try { sid = sessionStorage.getItem('coldd_session_id'); } catch (e) {}
+      try { vid = localStorage.getItem('coldd_visitor_id'); } catch (e) {}
+      if (window.coldSupabase) {
+        window.coldSupabase.functions.invoke('track-event', {
+          body: { type: type, sessionId: sid, visitorId: vid, meta: meta || {} }
+        }).catch(function () {});
+      }
+    } catch (e) {}
+  };
+
   window.__CATEGORIES = [{"label": "Resell License", "slug": "resell", "platform": "Roblox", "page": "/assets"}, {"label": "Finished Games & Templates", "slug": "game-templates", "platform": "Roblox", "page": "/assets"}, {"label": "Maps", "slug": "maps", "platform": "Roblox", "page": "/assets"}, {"label": "Scripts & UI", "slug": "scripts-ui", "platform": "Roblox", "page": "/assets"}, {"label": "Graphics", "slug": "graphics", "platform": "Roblox", "page": "/assets"}, {"label": "Buildings", "slug": "buildings", "platform": "Roblox", "page": "/assets"}, {"label": "Assets", "slug": "assets", "platform": "Roblox", "page": "/assets"}, {"label": "Uniforms & Gear", "slug": "uniforms-gear", "platform": "Roblox", "page": "/assets"}, {"label": "Boats", "slug": "boats", "platform": "Roblox", "page": "/assets"}, {"label": "Weapons", "slug": "weapons", "platform": "Roblox", "page": "/assets"}, {"label": "Vehicles", "slug": "vehicles", "platform": "Roblox", "page": "/assets"}, {"label": "Animations & VFX", "slug": "animations-vfx", "platform": "Roblox", "page": "/assets"}, {"label": "Hubs", "slug": "hubs", "platform": "Minecraft", "page": "/minecraft"}, {"label": "Lobbies", "slug": "lobbies", "platform": "Minecraft", "page": "/minecraft"}, {"label": "Maps", "slug": "maps", "platform": "Minecraft", "page": "/minecraft"}, {"label": "Builds", "slug": "builds", "platform": "Minecraft", "page": "/minecraft"}, {"label": "Plugins", "slug": "plugins", "platform": "Minecraft", "page": "/minecraft"}, {"label": "Full Setups", "slug": "setups", "platform": "Minecraft", "page": "/minecraft"}];
 
   // Currency conversion (window.__money/__usd/__robux/__fiat/__currencyMode,

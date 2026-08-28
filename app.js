@@ -783,15 +783,31 @@
         showPanel();
       }
 
+      // Log a search once the query settles (1.4s idle) or on Enter, not
+      // per keystroke - and never the same query twice in a row.
+      var lastLoggedQuery = '', searchLogTimer = null;
+      function logSearch() {
+        var q = input.value.trim();
+        if (!q || q.length < 2 || q.toLowerCase() === lastLoggedQuery) return;
+        lastLoggedQuery = q.toLowerCase();
+        var n = list ? list.querySelectorAll('.sresult').length : 0;
+        if (window.coldTrack) window.coldTrack('search', { q: q, results: n });
+      }
+
       btn.addEventListener('mousedown', function (e) { if (isOpen()) e.preventDefault(); });
       btn.addEventListener('click', function (e) { e.preventDefault(); isOpen() ? close() : open(); });
-      input.addEventListener('input', runSearch);
+      input.addEventListener('input', function () {
+        runSearch();
+        clearTimeout(searchLogTimer);
+        searchLogTimer = setTimeout(logSearch, 1400);
+      });
       input.addEventListener('focus', function () { if (input.value.trim()) runSearch(); });
       input.addEventListener('blur', function () { setTimeout(function () { if (isOpen()) close(); }, 120); });
       input.addEventListener('keydown', function (e) {
         if (e.key === 'Escape') { e.preventDefault(); close(); }
         if (e.key === 'Enter') {
           e.preventDefault();
+          clearTimeout(searchLogTimer); logSearch();
           const first = list && list.querySelector('.sresult');
           if (first) first.click();
         }
@@ -2069,7 +2085,10 @@
         // Already in the cart - a digital licence isn't a quantity, so
         // clicking Add to cart again on the same item is a no-op rather
         // than stacking a second copy.
-        if (!found) cart.push({ id: id, title: item.title, price: item.price, image: item.image, tag: item.tag || '', licence: lic, qty: 1 });
+        if (!found) {
+          cart.push({ id: id, title: item.title, price: item.price, image: item.image, tag: item.tag || '', licence: lic, qty: 1 });
+          if (window.coldTrack) window.coldTrack('add_to_cart', { id: item.id, price: item.price });
+        }
         save(); updateBadge(); renderCart();
       }
       window.__cartAdd = add;
@@ -4261,6 +4280,9 @@
         try { window.dispatchEvent(new CustomEvent('coldd:cart-sync', { detail: { source: 'checkout' } })); } catch (e) {}
       }
       var cart = load();
+      // Funnel: reaching the checkout page with a non-empty cart. Fires
+      // once per page load; the paid step is the orders table.
+      if (cart.length && window.coldTrack) window.coldTrack('checkout_started', { value: subtotal() });
       // Same fix as the cart drawer (app.js's other IIFE): if the drawer
       // (or any other cart instance on this page) changes the cart, reload
       // from localStorage and re-render so this page never builds the

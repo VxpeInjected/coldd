@@ -3004,11 +3004,19 @@
   var ADM_ICON_COPY = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
   var ADM_ICON_CHECK = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
 
+  // Units actually sold for a product: completed, paid orders only - not
+  // pending/failed attempts, refunds, or free admin grants - and counting
+  // line-item quantities, not one-per-order. Matches the "completed &&
+  // source !== 'granted'" basis every revenue figure in this panel uses.
   function purchaseCount(id) {
-    return ORDERS.filter(function (o) {
-      if (o.status === 'refunded') return false;
-      return (o.items || []).some(function (it) { return it.product_slug === id; });
-    }).length;
+    var n = 0;
+    ORDERS.forEach(function (o) {
+      if (o.status !== 'completed' || o.source === 'granted') return;
+      (o.items || []).forEach(function (it) {
+        if (it.product_slug === id) n += Math.max(1, Number(it.qty) || 1);
+      });
+    });
+    return n;
   }
   function sortProducts(list) {
     var mode = PROD_SORT || 'newest';

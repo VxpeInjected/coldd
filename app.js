@@ -5816,7 +5816,7 @@
           btn.addEventListener('click', function () {
             var prev = btn.textContent;
             btn.disabled = true; btn.textContent = 'Preparing…';
-            window.coldSupabase.functions.invoke('get-download-url', { body: { slug: it.product_slug, sessionId: sessionId } })
+            window.coldSupabase.functions.invoke('get-download-url', { body: sessionId ? { slug: it.product_slug, sessionId: sessionId } : { slug: it.product_slug, orderId: robuxOrderIdParam } })
               .then(function (res) {
                 var data = res && res.data;
                 if (!data || !data.ok) {

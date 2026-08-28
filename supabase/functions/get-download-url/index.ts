@@ -12,18 +12,22 @@
 // policies, so this signed URL is the only way a file ever leaves it.
 //
 // Guest checkout support: a guest has no session, so ownership can't be
-// proven via auth.uid(). If the caller passes the Stripe checkout session id
-// instead (which success.html has, from the success_url redirect), that's
-// accepted as proof ONLY for a genuinely guest order (orders.user_id null) -
-// for an order tied to a real account, the session id is just a lookup key,
-// not a bearer token: the caller still has to be signed in as that account.
-// Without that, a buyer forwarding their own success-page link (say, to
-// prove a purchase, or by accident) would hand whoever they sent it to a
-// permanent, no-account-needed download - the session id doesn't expire on
-// coldd's side and was never meant to double as "anyone holding this link
-// owns the file forever." A signed-in caller can still omit it entirely and
-// use their normal owned-orders lookup (e.g. redownloading later from the
-// dashboard).
+// proven via auth.uid(). The success page identifies the just-completed
+// order with whatever the payment provider handed back - a Stripe
+// `session_id`, or an `order_id` for PayPal / crypto / Robux. Either one
+// is accepted as proof of ownership, but:
+//   - only for a genuinely guest order (orders.user_id null). An order
+//     tied to an account always requires the caller to be signed in as
+//     that account; the id in the URL is just a lookup key, never a
+//     bearer token.
+//   - only for GUEST_LINK_WINDOW_MS after payment. A success-page URL
+//     gets forwarded, screenshotted, pasted in Discord "to prove a
+//     purchase" and left in shared history - it was never meant to be a
+//     permanent no-account download link. Past the window the guest makes
+//     a free account with their checkout email (which the receipt and
+//     success page both tell them to do) to keep downloading.
+// A signed-in caller can omit both ids and use their normal owned-orders
+// lookup (e.g. redownloading later from the dashboard).
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { downloadName, publicSignedUrl } from "../_shared/download.ts";
@@ -31,15 +35,6 @@ import { downloadName, publicSignedUrl } from "../_shared/download.ts";
 const ALLOWED_ORIGIN = "https://coldd.dev";
 const SIGNED_URL_TTL_SECONDS = 120;
 
-// A guest order has no account to prove ownership against, so the Stripe
-// session id in the success-page URL is the only capability - and a URL
-// gets forwarded, screenshotted, pasted in Discord "to prove a purchase",
-// and left in shared browser history. Treat it as a short-lived
-// just-paid convenience, not a permanent no-account download token: after
-// this window the guest has to create an account with their order email
-// (which the receipt and success page both tell them to do) to keep
-// downloading. A signed-in owner is never affected - they go through the
-// account-ownership path below regardless of the link's age.
 const GUEST_LINK_WINDOW_MS = 24 * 60 * 60 * 1000;
 
 function corsHeaders() {
@@ -69,31 +64,33 @@ Deno.serve(async (req: Request) => {
     const body = await req.json().catch(() => ({}));
     const slug = String(body.slug || "");
     const sessionId = String(body.sessionId || "");
+    // v4 UUID only - a non-uuid orderId would throw a Postgres 22P02.
+    const orderId = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(body.orderId || ""))
+      ? String(body.orderId)
+      : "";
     if (!slug) return json({ ok: false, error: "Missing product." }, 400);
 
     const admin = createClient(supabaseUrl, serviceKey);
 
     let owned = false;
-    if (sessionId) {
-      const { data: order, error: orderErr } = await admin
+    if (sessionId || orderId) {
+      // Same capability model whether the success page identified the order
+      // by Stripe session id (card) or order id (PayPal / crypto / Robux).
+      const q = admin
         .from("orders")
-        .select("status, user_id, paid_at, created_at, order_items(product_slug)")
-        .eq("stripe_checkout_session_id", sessionId)
-        .maybeSingle();
+        .select("status, user_id, paid_at, created_at, order_items(product_slug)");
+      const { data: order, error: orderErr } = await (
+        sessionId ? q.eq("stripe_checkout_session_id", sessionId) : q.eq("id", orderId)
+      ).maybeSingle();
       if (orderErr) return json({ ok: false, error: "Could not verify ownership." }, 500);
       const matchesOrder = !!order && order.status === "paid" &&
         (order.order_items || []).some((i: { product_slug: string }) => i.product_slug === slug);
 
       if (order?.user_id) {
-        // Not a guest order - the session id alone can no longer be trusted
-        // as proof by itself. It's meant to be a short-lived convenience for
-        // the person who just paid (the success page has it right there in
-        // the URL), not a permanent bearer token - anyone the buyer forwards
-        // that link to would otherwise get the same download forever, no
-        // account needed. A real account exists on this order, so require
-        // the caller to actually be signed in as that account; a genuinely
-        // guest order (no user_id) has no account to check against, so the
-        // session id stays the only possible proof for that case.
+        // Account order (every Robux order, plus any signed-in card/PayPal
+        // one). The id in the URL is only a lookup key - the caller has to
+        // actually be signed in as the buyer, so forwarding the success
+        // link gets the recipient nothing.
         if (!authHeader) return json({ ok: false, error: "Please sign in to download this." }, 401);
         const sessionUserClient = createClient(supabaseUrl, anonKey, {
           global: { headers: { Authorization: authHeader } },
@@ -101,10 +98,10 @@ Deno.serve(async (req: Request) => {
         const { data: sessionUserData } = await sessionUserClient.auth.getUser();
         owned = matchesOrder && sessionUserData?.user?.id === order.user_id;
       } else {
-        // Genuine guest order - the session id is the only proof, so it
-        // only counts for a short window after payment. Past that, whoever
-        // holds the link (buyer included) makes a free account with the
-        // order email to keep downloading.
+        // Genuine guest order (guest card / PayPal / crypto) - the id is
+        // the only possible proof, so it only counts for a short window
+        // after payment. Past that, whoever holds the link (buyer
+        // included) makes a free account with the order email.
         const paidTs = order ? Date.parse(order.paid_at || order.created_at || "") : NaN;
         const fresh = Number.isFinite(paidTs) && (Date.now() - paidTs) < GUEST_LINK_WINDOW_MS;
         if (matchesOrder && !fresh) {

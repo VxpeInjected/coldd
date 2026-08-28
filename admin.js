@@ -1296,10 +1296,10 @@
      rather than rendering invented numbers.
      ================================================================ */
   var MKT_CHANNELS = [
-    { key: 'discord', name: 'Discord', note: 'Member and presence counts.' },
-    { key: 'x', name: 'X (Twitter)', note: 'Followers, impressions, post reach.', needs: 'Needs TWITTER_BEARER_TOKEN + TWITTER_USERNAME secrets' },
-    { key: 'youtube', name: 'YouTube', note: 'Subscribers, views, watch time.', needs: 'Needs YOUTUBE_API_KEY + YOUTUBE_CHANNEL_ID secrets' },
-    { key: 'tiktok', name: 'TikTok', note: 'Followers and video views.', needs: 'Not connected yet - click Connect TikTok to authorize.' }
+    { key: 'discord', name: 'Discord', note: 'Members, presence, growth and daily swings.' },
+    { key: 'x', name: 'X (Twitter)', note: 'Followers, posting cadence and recent-post engagement.', needs: 'Needs TWITTER_BEARER_TOKEN + TWITTER_USERNAME secrets' },
+    { key: 'youtube', name: 'YouTube', note: 'Subscribers, views, uploads and per-video engagement.', needs: 'Needs YOUTUBE_API_KEY + YOUTUBE_CHANNEL_ID secrets' },
+    { key: 'tiktok', name: 'TikTok', note: 'Followers, likes, uploads and per-video engagement.', needs: 'Not connected yet - click Connect TikTok to authorize.' }
   ];
 
   // TIKTOK_CLIENT_KEY is the public half of the OAuth pair (as opposed to
@@ -1314,7 +1314,10 @@
     var state = Math.random().toString(36).slice(2) + Date.now().toString(36);
     var params = new URLSearchParams({
       client_key: TIKTOK_CLIENT_KEY,
-      scope: 'user.info.basic,user.info.stats',
+      // video.list is what lets admin-tiktok-stats read per-video
+      // view/like/comment/share counts for the engagement tiles; the two
+      // user.info scopes cover the follower/likes/video totals.
+      scope: 'user.info.basic,user.info.stats,video.list',
       response_type: 'code',
       redirect_uri: TIKTOK_REDIRECT_URI,
       state: state
@@ -1337,43 +1340,222 @@
     });
   }
 
-  // One line per platform was never going to hold more than a follower
-  // count - each connected channel now expands into its own stat grid
-  // (same statTile()/dash-stats pattern as every other panel), collapsed
-  // by default so four platforms don't turn "Channels" into the tallest
-  // card on the page.
-  function socialStatTiles(key) {
-    if (key === 'discord') {
-      var joins = discordJoinsInRange();
-      return [
-        statTile('Members', DISCORD_STATS.memberCount.toLocaleString('en-US'), null, ''),
-        statTile('Online now', DISCORD_STATS.onlineCount != null ? DISCORD_STATS.onlineCount.toLocaleString('en-US') : '—', null, ''),
-        statTile('Net joins', joins == null ? '—' : (joins > 0 ? '+' : '') + joins.toLocaleString('en-US'), joins == null ? 'Gathering history' : (RANGE_DAYS ? 'over selected range' : 'since tracking began'), '')
-      ];
+  /* ----------------------------------------------------------------
+     SOCIAL: range-aware history maths
+
+     Every platform stores one daily snapshot (social_media_stats /
+     discord_member_snapshots). followers/member_count sit on the row;
+     the richer counts (posts, views, videos, likes, engagement rate)
+     live in the row's `extra` blob. These helpers turn that series into
+     the "over the selected range" deltas, averages and sparklines the
+     channel dropdowns show.
+     ---------------------------------------------------------------- */
+  function socialRangeStartKey() {
+    return (RANGE_DAYS ? rangeStart() : new Date(0)).toISOString().slice(0, 10);
+  }
+  function socialRangeLabel() { return RANGE_DAYS ? 'over selected range' : 'since tracking began'; }
+  function histRange(history) {
+    var k = socialRangeStartKey();
+    return (history || []).filter(function (r) { return r.snapshot_date >= k; });
+  }
+  function histBaseline(history, get) {
+    var k = socialRangeStartKey(), base = null;
+    for (var i = 0; i < (history || []).length; i++) {
+      if (history[i].snapshot_date <= k) base = history[i]; else break;
     }
-    if (key === 'youtube') {
-      return [
-        statTile('Subscribers', YOUTUBE_STATS.subscriberCount != null ? YOUTUBE_STATS.subscriberCount.toLocaleString('en-US') : '—', null, ''),
-        statTile('Total views', YOUTUBE_STATS.viewCount.toLocaleString('en-US'), null, ''),
-        statTile('Videos', YOUTUBE_STATS.videoCount.toLocaleString('en-US'), null, '')
-      ];
+    if (!base && history && history.length) base = history[0];
+    var v = base ? get(base) : null;
+    return (v == null || isNaN(v)) ? null : Number(v);
+  }
+  function histCurrent(history, get) {
+    if (!history || !history.length) return null;
+    var v = get(history[history.length - 1]);
+    return (v == null || isNaN(v)) ? null : Number(v);
+  }
+  // { abs, pct, cur, base } for a numeric getter over the active range, or
+  // null when there isn't enough history yet to say.
+  function histDelta(history, get) {
+    var cur = histCurrent(history, get), base = histBaseline(history, get);
+    if (cur == null || base == null) return null;
+    return { abs: cur - base, pct: base ? (cur - base) / base * 100 : null, cur: cur, base: base };
+  }
+  function rangeDayCount(history) {
+    var rows = histRange(history);
+    if (rows.length >= 2) {
+      var a = new Date(rows[0].snapshot_date), b = new Date(rows[rows.length - 1].snapshot_date);
+      return Math.max(1, Math.round((b - a) / 86400000));
     }
-    if (key === 'x') {
-      return [
-        statTile('Followers', X_STATS.followersCount.toLocaleString('en-US'), null, ''),
-        statTile('Posts', X_STATS.tweetCount.toLocaleString('en-US'), null, ''),
-        statTile('Likes given', X_STATS.likeCount.toLocaleString('en-US'), null, ''),
-        statTile('Following', X_STATS.followingCount.toLocaleString('en-US'), null, '')
-      ];
+    return RANGE_DAYS || Math.max(1, rows.length);
+  }
+  function biggestSwing(history, get) {
+    var rows = histRange(history);
+    if (rows.length < 2) return null;
+    var up = null, down = null;
+    for (var i = 1; i < rows.length; i++) {
+      var diff = Number(get(rows[i])) - Number(get(rows[i - 1]));
+      if (isNaN(diff)) continue;
+      if (up == null || diff > up.diff) up = { diff: diff, date: rows[i].snapshot_date };
+      if (down == null || diff < down.diff) down = { diff: diff, date: rows[i].snapshot_date };
     }
-    if (key === 'tiktok') {
-      return [
-        statTile('Followers', TIKTOK_STATS.followerCount.toLocaleString('en-US'), null, ''),
-        statTile('Likes', TIKTOK_STATS.likesCount.toLocaleString('en-US'), null, ''),
-        statTile('Videos', TIKTOK_STATS.videoCount.toLocaleString('en-US'), null, '')
-      ];
-    }
-    return [];
+    return up ? { up: up, down: down } : null;
+  }
+  function socialDeltaSpan(d) {
+    if (!d || d.abs == null) return '';
+    var cls = d.abs > 0 ? 'up' : d.abs < 0 ? 'down' : 'flat';
+    var arrow = cls === 'up' ? '▲' : cls === 'down' ? '▼' : '—';
+    var pctPart = (d.pct != null && isFinite(d.pct)) ? ' · ' + Math.abs(Math.round(d.pct * 10) / 10) + '%' : '';
+    return '<span class="ds-delta ' + cls + '">' + arrow + ' ' + (d.abs > 0 ? '+' : '') + Math.round(d.abs).toLocaleString('en-US') + pctPart + '</span>';
+  }
+  function num(n) { return (Number(n) || 0).toLocaleString('en-US'); }
+  function signed(n) { n = Math.round(Number(n) || 0); return (n > 0 ? '+' : '') + n.toLocaleString('en-US'); }
+  function signed1(n) { n = Math.round((Number(n) || 0) * 10) / 10; return (n > 0 ? '+' : '') + n.toLocaleString('en-US'); }
+  function deltaTile(label, main, d, sub) { return statTile(label, main, sub || socialRangeLabel(), socialDeltaSpan(d)); }
+
+  // Minimal inline sparkline (no axes/labels - the tile above carries the
+  // number). Returns '' for < 2 points so a brand-new channel doesn't
+  // render an empty box.
+  function sparkline(values, opts) {
+    values = (values || []).map(Number).filter(function (v) { return !isNaN(v); });
+    if (values.length < 2) return '';
+    opts = opts || {};
+    var w = 320, h = 44, pad = 3;
+    var min = Math.min.apply(null, values), max = Math.max.apply(null, values);
+    var span = (max - min) || 1;
+    var stepX = (w - pad * 2) / (values.length - 1);
+    var pts = values.map(function (v, i) {
+      return (pad + i * stepX).toFixed(1) + ',' + (h - pad - ((v - min) / span) * (h - pad * 2)).toFixed(1);
+    }).join(' ');
+    return '<svg class="adm-spark" viewBox="0 0 ' + w + ' ' + h + '" preserveAspectRatio="none" height="' + h + '">' +
+      '<polyline points="' + pts + '" fill="none" stroke="' + (opts.color || 'var(--accent)') + '" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" />' +
+      '</svg>';
+  }
+  function sparkCard(title, values, opts) {
+    var s = sparkline(values, opts);
+    if (!s) return '';
+    var first = values[0], last = values[values.length - 1];
+    return '<div class="adm-spark-card"><div class="adm-spark-head"><span>' + esc(title) + '</span>' +
+      '<span class="adm-sub">' + num(first) + ' → ' + num(last) + '</span></div>' + s + '</div>';
+  }
+  function statGrid(tiles) { return '<div class="dash-stats">' + tiles.filter(Boolean).join('') + '</div>'; }
+  function engagementSection(title, sub, tiles) {
+    tiles = tiles.filter(Boolean);
+    if (!tiles.length) return '';
+    return '<div class="adm-social-sub"><span>' + esc(title) + '</span>' + (sub ? '<span class="adm-sub">' + esc(sub) + '</span>' : '') + '</div>' + statGrid(tiles);
+  }
+
+  // Each connected channel expands into its own stat block: the primary
+  // grid (followers/growth/cadence), a recent-content engagement grid
+  // where the API allows it, and trend sparklines.
+  function socialPanelBody(key) {
+    if (key === 'discord') return discordPanel();
+    if (key === 'x') return xPanel();
+    if (key === 'youtube') return youtubePanel();
+    if (key === 'tiktok') return tiktokPanel();
+    return '';
+  }
+
+  function discordPanel() {
+    var h = DISCORD_STATS.history || [];
+    var mem = function (r) { return r.member_count; };
+    var onl = function (r) { return r.online_count; };
+    var dMem = histDelta(h, mem);
+    var inr = histRange(h);
+    var onlineVals = inr.map(function (r) { return r.online_count; }).filter(function (v) { return v != null && !isNaN(v); }).map(Number);
+    var avgOnline = onlineVals.length ? Math.round(onlineVals.reduce(function (s, v) { return s + v; }, 0) / onlineVals.length) : null;
+    var peakOnline = onlineVals.length ? Math.max.apply(null, onlineVals) : null;
+    var perDay = dMem ? dMem.abs / rangeDayCount(h) : null;
+    var swing = biggestSwing(h, mem);
+    var tiles = [
+      deltaTile('Members', num(DISCORD_STATS.memberCount), dMem),
+      statTile('Online now', DISCORD_STATS.onlineCount != null ? num(DISCORD_STATS.onlineCount) : '—', null, ''),
+      statTile('Net members', dMem ? signed(dMem.abs) : '—', socialRangeLabel(), dMem && dMem.pct != null ? socialDeltaSpan(dMem) : ''),
+      statTile('Avg / day', perDay == null ? '—' : signed1(perDay), socialRangeLabel(), ''),
+      statTile('Avg online', avgOnline == null ? '—' : num(avgOnline), socialRangeLabel(), ''),
+      statTile('Peak online', peakOnline == null ? '—' : num(peakOnline), socialRangeLabel(), ''),
+      statTile('Biggest day', swing && swing.up ? signed(swing.up.diff) : '—',
+        swing && swing.down && swing.down.diff < 0 ? signed(swing.down.diff) + ' worst day' : null, '')
+    ];
+    return statGrid(tiles) +
+      sparkCard('Members', inr.map(function (r) { return r.member_count; })) +
+      sparkCard('Online', onlineVals, { color: 'var(--price)' });
+  }
+
+  function xPanel() {
+    var s = X_STATS, h = s.history || [];
+    var dFollow = histDelta(h, function (r) { return r.followers; });
+    var dPosts = histDelta(h, function (r) { return r.extra && r.extra.tweetCount; });
+    var tiles = [
+      deltaTile('Followers', num(s.followersCount), dFollow),
+      statTile('Follower growth', dFollow ? signed(dFollow.abs) : '—', socialRangeLabel(), dFollow && dFollow.pct != null ? socialDeltaSpan(dFollow) : ''),
+      statTile('Posts published', dPosts ? signed(dPosts.abs) : '—', socialRangeLabel(), ''),
+      statTile('Posts', num(s.tweetCount), 'lifetime', '')
+    ];
+    var eng = s.engagement;
+    var engTiles = eng ? [
+      statTile('Impressions', num(eng.impressions), 'last ' + eng.sampleSize + ' posts', ''),
+      statTile('Interactions', num(eng.interactions), 'likes + reposts + replies + quotes', ''),
+      statTile('Engagement rate', eng.engagementRate != null ? eng.engagementRate + '%' : '—',
+        eng.engagementRate == null ? 'X did not report impressions' : 'interactions ÷ impressions', ''),
+      statTile('Avg / post', num(eng.avgInteractionsPerPost), num(eng.avgImpressionsPerPost) + ' impressions', ''),
+      statTile('Bookmarks', num(eng.bookmarks), 'last ' + eng.sampleSize + ' posts', '')
+    ] : [];
+    return statGrid(tiles) +
+      engagementSection('Recent post engagement', eng ? '' : 'Needs the paid X API tier that allows reading posts', engTiles) +
+      sparkCard('Followers', histRange(h).map(function (r) { return r.followers; }));
+  }
+
+  function youtubePanel() {
+    var s = YOUTUBE_STATS, h = s.history || [];
+    var dSubs = histDelta(h, function (r) { return r.followers; });
+    var dViews = histDelta(h, function (r) { return r.extra && r.extra.viewCount; });
+    var dVideos = histDelta(h, function (r) { return r.extra && r.extra.videoCount; });
+    var viewsPerNewVid = (dViews && dVideos && dVideos.abs > 0) ? Math.round(dViews.abs / dVideos.abs) : null;
+    var subsPerNewVid = (dSubs && dVideos && dVideos.abs > 0) ? Math.round(dSubs.abs / dVideos.abs) : null;
+    var tiles = [
+      deltaTile('Subscribers', s.subscriberCount != null ? num(s.subscriberCount) : '—', dSubs),
+      deltaTile('Total views', num(s.viewCount), dViews),
+      statTile('Videos published', dVideos ? signed(dVideos.abs) : '—', socialRangeLabel(), ''),
+      statTile('Lifetime views / video', num(s.lifetimeViewsPerVideo), 'all ' + num(s.videoCount) + ' videos', ''),
+      statTile('Views / new video', viewsPerNewVid == null ? '—' : num(viewsPerNewVid), socialRangeLabel(), ''),
+      statTile('Subs / new video', subsPerNewVid == null ? '—' : num(subsPerNewVid), socialRangeLabel(), '')
+    ];
+    var eng = s.engagement;
+    var engTiles = eng ? [
+      statTile('Recent views', num(eng.views), 'last ' + eng.sampleSize + ' videos', ''),
+      statTile('Likes', num(eng.likes), num(eng.avgLikesPerVideo) + ' avg / video', ''),
+      statTile('Comments', num(eng.comments), num(eng.avgCommentsPerVideo) + ' avg / video', ''),
+      statTile('Engagement rate', eng.engagementRate != null ? eng.engagementRate + '%' : '—', '(likes + comments) ÷ views', ''),
+      statTile('Avg views / video', num(eng.avgViewsPerVideo), 'last ' + eng.sampleSize + ' videos', '')
+    ] : [];
+    return statGrid(tiles) +
+      engagementSection('Recent video engagement', '', engTiles) +
+      sparkCard('Subscribers', histRange(h).map(function (r) { return r.followers; })) +
+      sparkCard('Total views', histRange(h).map(function (r) { return r.extra && r.extra.viewCount; }), { color: 'var(--price)' });
+  }
+
+  function tiktokPanel() {
+    var s = TIKTOK_STATS, h = s.history || [];
+    var dFollow = histDelta(h, function (r) { return r.followers; });
+    var dLikes = histDelta(h, function (r) { return r.extra && r.extra.likesCount; });
+    var dVideos = histDelta(h, function (r) { return r.extra && r.extra.videoCount; });
+    var tiles = [
+      deltaTile('Followers', num(s.followerCount), dFollow),
+      statTile('Follower growth', dFollow ? signed(dFollow.abs) : '—', socialRangeLabel(), dFollow && dFollow.pct != null ? socialDeltaSpan(dFollow) : ''),
+      deltaTile('Total likes', num(s.likesCount), dLikes),
+      statTile('Videos posted', dVideos ? signed(dVideos.abs) : '—', socialRangeLabel(), ''),
+      statTile('Likes / video', num(s.lifetimeLikesPerVideo), 'lifetime average', '')
+    ];
+    var eng = s.engagement;
+    var engTiles = eng ? [
+      statTile('Recent views', num(eng.views), 'last ' + eng.sampleSize + ' videos', ''),
+      statTile('Avg views / video', num(eng.avgViewsPerVideo), null, ''),
+      statTile('Interactions', num(eng.interactions), 'likes + comments + shares', ''),
+      statTile('Engagement rate', eng.engagementRate != null ? eng.engagementRate + '%' : '—', 'interactions ÷ views', ''),
+      statTile('Shares', num(eng.shares), 'last ' + eng.sampleSize + ' videos', '')
+    ] : [];
+    return statGrid(tiles) +
+      engagementSection('Recent video engagement', eng ? '' : 'Reconnect TikTok to grant the video.list scope', engTiles) +
+      sparkCard('Followers', histRange(h).map(function (r) { return r.followers; }));
   }
 
   // Re-rendering a container via innerHTML throws away the open/closed
@@ -1430,7 +1612,7 @@
 
     return '<details class="adm-collapse adm-channel-collapse" data-collapse-key="chan-' + esc(c.key) + '">' +
       '<summary class="adm-channel-row">' + summaryInner + '</summary>' +
-      '<div class="adm-collapse-body"><div class="dash-stats">' + socialStatTiles(c.key).join('') + '</div></div>' +
+      '<div class="adm-collapse-body">' + socialPanelBody(c.key) + '</div>' +
       '</details>';
   }
 

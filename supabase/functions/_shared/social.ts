@@ -23,9 +23,13 @@ export async function upsertSocialSnapshot(
 }
 
 export async function getSocialHistory(admin: SupabaseClient, platform: string) {
+  // Returns the `extra` blob alongside followers so the dashboard can chart
+  // trends for the richer per-platform metrics (posts, views, likes, …),
+  // not just the follower line. Older callers that only read
+  // {snapshot_date, followers} keep working unchanged.
   const { data } = await admin
     .from("social_media_stats")
-    .select("snapshot_date, followers")
+    .select("snapshot_date, followers, extra")
     .eq("platform", platform)
     .order("snapshot_date", { ascending: true })
     .limit(400);

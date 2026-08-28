@@ -68,8 +68,9 @@ Deno.serve(async (req: Request) => {
     const accessToken = Deno.env.get("TIKTOK_ACCESS_TOKEN");
     if (!accessToken) return json({ ok: true, configured: false });
 
+    const bearer = { Authorization: `Bearer ${accessToken}` };
     const url = "https://open.tiktokapis.com/v2/user/info/?fields=follower_count,likes_count,video_count";
-    const res = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
+    const res = await fetch(url, { headers: bearer });
     if (!res.ok) {
       console.error("[admin-tiktok-stats] TikTok API error:", res.status, await res.text().catch(() => ""));
       // A stale/expired token is the most likely real-world failure here -
@@ -84,11 +85,59 @@ Deno.serve(async (req: Request) => {
     const followerCount = Number(info.follower_count ?? 0);
     const likesCount = Number(info.likes_count ?? 0);
     const videoCount = Number(info.video_count ?? 0);
+    const lifetimeLikesPerVideo = videoCount > 0 ? Math.round((likesCount / videoCount) * 10) / 10 : 0;
 
-    await upsertSocialSnapshot(admin, "tiktok", followerCount, { likesCount, videoCount });
+    // Per-video engagement via the Display API's video/list. Needs the
+    // extra `video.list` OAuth scope (the authorize URL in admin.js
+    // requests it) - if the stored token predates that scope the call
+    // returns scope_not_authorized and we just skip the engagement block.
+    let engagement: Record<string, number | null> | null = null;
+    try {
+      const vRes = await fetch(
+        "https://open.tiktokapis.com/v2/video/list/?fields=id,like_count,comment_count,share_count,view_count",
+        { method: "POST", headers: { ...bearer, "Content-Type": "application/json" }, body: JSON.stringify({ max_count: 20 }) },
+      );
+      if (vRes.ok) {
+        const vJson = await vRes.json();
+        const vids: any[] = vJson?.data?.videos ?? [];
+        if (vids.length) {
+          let views = 0, likes = 0, comments = 0, shares = 0;
+          for (const v of vids) {
+            views += Number(v.view_count ?? 0);
+            likes += Number(v.like_count ?? 0);
+            comments += Number(v.comment_count ?? 0);
+            shares += Number(v.share_count ?? 0);
+          }
+          const interactions = likes + comments + shares;
+          engagement = {
+            sampleSize: vids.length,
+            views,
+            likes,
+            comments,
+            shares,
+            interactions,
+            avgViewsPerVideo: Math.round(views / vids.length),
+            avgLikesPerVideo: Math.round((likes / vids.length) * 10) / 10,
+            engagementRate: views > 0 ? Math.round((interactions / views) * 10000) / 100 : null,
+          };
+        }
+      } else {
+        console.warn("[admin-tiktok-stats] video/list unavailable:", vRes.status, await vRes.text().catch(() => ""));
+      }
+    } catch (e) {
+      console.warn("[admin-tiktok-stats] engagement fetch failed:", e);
+    }
+
+    const extra: Record<string, unknown> = { likesCount, videoCount, lifetimeLikesPerVideo };
+    if (engagement) {
+      extra.recentViews = engagement.views;
+      extra.recentInteractions = engagement.interactions;
+      extra.engagementRate = engagement.engagementRate;
+    }
+    await upsertSocialSnapshot(admin, "tiktok", followerCount, extra);
     const history = await getSocialHistory(admin, "tiktok");
 
-    return json({ ok: true, configured: true, followerCount, likesCount, videoCount, history });
+    return json({ ok: true, configured: true, followerCount, likesCount, videoCount, lifetimeLikesPerVideo, engagement, history });
   } catch (err) {
     console.error("[admin-tiktok-stats] error:", err);
     return json({ ok: false, error: "Server error." }, 500);

@@ -64,14 +64,16 @@ Deno.serve(async (req: Request) => {
     const username = Deno.env.get("TWITTER_USERNAME");
     if (!bearerToken || !username) return json({ ok: true, configured: false });
 
+    const auth = { Authorization: `Bearer ${bearerToken}` };
     const url = `https://api.twitter.com/2/users/by/username/${encodeURIComponent(username)}?user.fields=public_metrics`;
-    const res = await fetch(url, { headers: { Authorization: `Bearer ${bearerToken}` } });
+    const res = await fetch(url, { headers: auth });
     if (!res.ok) {
       console.error("[admin-x-stats] X API error:", res.status, await res.text().catch(() => ""));
       return json({ ok: false, error: "Could not reach X." }, 502);
     }
     const data = await res.json();
     const metrics = data?.data?.public_metrics;
+    const userId = data?.data?.id;
     if (!metrics) return json({ ok: false, error: "Account not found." }, 404);
 
     const followersCount = Number(metrics.followers_count ?? 0);
@@ -80,10 +82,67 @@ Deno.serve(async (req: Request) => {
     const likeCount = Number(metrics.like_count ?? 0);
     const listedCount = Number(metrics.listed_count ?? 0);
 
-    await upsertSocialSnapshot(admin, "x", followersCount, { tweetCount, followingCount, likeCount, listedCount });
+    // Recent-tweet engagement. Needs the users/:id/tweets read endpoint,
+    // which the paid Basic tier and up allow; on a tier that blocks it the
+    // call 403s and we simply omit the engagement block rather than fail
+    // the whole stats pull. impression_count in public_metrics is only
+    // populated for the authenticated account's own posts - which is
+    // exactly this case - but can lag or read 0, so the rate is only
+    // reported when impressions are actually present.
+    let engagement: Record<string, number> | null = null;
+    if (userId) {
+      try {
+        const tRes = await fetch(
+          `https://api.twitter.com/2/users/${userId}/tweets?max_results=100&exclude=retweets,replies&tweet.fields=public_metrics,created_at`,
+          { headers: auth },
+        );
+        if (tRes.ok) {
+          const tJson = await tRes.json();
+          const tweets: any[] = Array.isArray(tJson?.data) ? tJson.data : [];
+          if (tweets.length) {
+            let imp = 0, likes = 0, rts = 0, replies = 0, quotes = 0, bookmarks = 0;
+            for (const tw of tweets) {
+              const m = tw.public_metrics ?? {};
+              imp += Number(m.impression_count ?? 0);
+              likes += Number(m.like_count ?? 0);
+              rts += Number(m.retweet_count ?? 0);
+              replies += Number(m.reply_count ?? 0);
+              quotes += Number(m.quote_count ?? 0);
+              bookmarks += Number(m.bookmark_count ?? 0);
+            }
+            const interactions = likes + rts + replies + quotes;
+            engagement = {
+              sampleSize: tweets.length,
+              impressions: imp,
+              likes,
+              retweets: rts,
+              replies,
+              quotes,
+              bookmarks,
+              interactions,
+              avgImpressionsPerPost: Math.round(imp / tweets.length),
+              avgInteractionsPerPost: Math.round((interactions / tweets.length) * 10) / 10,
+              engagementRate: imp > 0 ? Math.round((interactions / imp) * 10000) / 100 : null,
+            } as Record<string, number>;
+          }
+        } else {
+          console.warn("[admin-x-stats] tweets endpoint unavailable:", tRes.status);
+        }
+      } catch (e) {
+        console.warn("[admin-x-stats] engagement fetch failed:", e);
+      }
+    }
+
+    const extra: Record<string, unknown> = { tweetCount, followingCount, likeCount, listedCount };
+    if (engagement) {
+      extra.recentImpressions = engagement.impressions;
+      extra.recentInteractions = engagement.interactions;
+      extra.engagementRate = engagement.engagementRate;
+    }
+    await upsertSocialSnapshot(admin, "x", followersCount, extra);
     const history = await getSocialHistory(admin, "x");
 
-    return json({ ok: true, configured: true, followersCount, tweetCount, followingCount, likeCount, listedCount, history });
+    return json({ ok: true, configured: true, followersCount, tweetCount, followingCount, likeCount, listedCount, engagement, history });
   } catch (err) {
     console.error("[admin-x-stats] error:", err);
     return json({ ok: false, error: "Server error." }, 500);

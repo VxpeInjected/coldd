@@ -3096,8 +3096,13 @@ body.dash-body .backdrop, body.dash-body .scrim { display: none; }
 .adm-channel-val { color: var(--fg); font-weight: 700; margin-left: auto; }
 .adm-channel-trail { display: flex; align-items: center; gap: 10px; flex: 0 0 auto; }
 .adm-channel-collapse > summary.adm-channel-row { padding-bottom: 13px; }
-.adm-channel-collapse .adm-collapse-body { margin-top: 0; padding-bottom: 13px; }
+.adm-channel-collapse .adm-collapse-body { margin-top: 0; padding-bottom: 13px; max-height: none; overflow: visible; }
 .adm-channel-collapse .adm-collapse-body .dash-stats { grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); }
+.adm-social-sub { display: flex; align-items: baseline; gap: 8px; margin: 16px 0 8px; font-size: 12px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--fg-2); }
+.adm-social-sub .adm-sub { font-weight: 500; letter-spacing: 0; text-transform: none; }
+.adm-spark-card { margin-top: 12px; padding: 10px 12px; border: 1px solid var(--hairline); border-radius: 10px; background: rgba(255,255,255,0.02); }
+.adm-spark-head { display: flex; justify-content: space-between; align-items: baseline; font-size: 12px; font-weight: 600; color: var(--fg-2); margin-bottom: 4px; }
+.adm-spark { display: block; width: 100%; }
 .adm-campaign-url { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 11px; word-break: break-all; }
 .adm-catlist { margin-top: 12px; display: flex; flex-direction: column; gap: 8px; }
 .adm-catrow { display: flex; justify-content: space-between; font-size: 13px; padding: 6px 0; border-top: 1px solid var(--hairline); }

@@ -79,7 +79,7 @@ Deno.serve(async (req: Request) => {
 
     const { data: history } = await admin
       .from("discord_member_snapshots")
-      .select("snapshot_date, member_count")
+      .select("snapshot_date, member_count, online_count")
       .order("snapshot_date", { ascending: true })
       .limit(400);
 

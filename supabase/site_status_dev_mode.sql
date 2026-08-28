@@ -8,6 +8,12 @@
 --
 -- Manually setting "maintenance" from the Site Access panel switches
 -- dev_mode off (admin-set-site-status) - an explicit choice wins.
+--
+-- Automated site work also counts as activity via the dev-heartbeat edge
+-- function: set DEV_HEARTBEAT_SECRET and point a GitHub push webhook at
+--   https://ekinmytmudjwfaqaqswp.supabase.co/functions/v1/dev-heartbeat
+-- (content type application/json, "push" event, secret = DEV_HEARTBEAT_SECRET).
+-- Every push to main then refreshes the clock / re-opens the site.
 
 alter table public.site_status
   add column if not exists dev_mode boolean not null default false,

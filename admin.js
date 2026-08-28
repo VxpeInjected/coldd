@@ -5064,8 +5064,8 @@
         var idleMin = Math.round((Date.now() - new Date(status.dev_mode_active_at).getTime()) / 60000);
         var leftMin = Math.max(0, 55 - idleMin);
         st.textContent = status.mode === 'open'
-          ? 'Site is open. Returns to maintenance in ~' + leftMin + ' min if no admin activity.'
-          : 'Site is in maintenance. It will open on your next action here.';
+          ? 'Site is open. Returns to maintenance in ~' + leftMin + ' min without more admin activity or a code push.'
+          : 'Site is in maintenance. It reopens on your next action here (or the next push to main).';
       } else { st.textContent = ''; }
     }
   }

@@ -1040,9 +1040,16 @@
      AGGREGATION (all computed live from ORDERS for the active range)
      ================================================================ */
   function ordersInRange() { return ORDERS.filter(function (o) { return inRange(o.date); }); }
-  function completedInRange() { return ordersInRange().filter(function (o) { return o.status === 'completed'; }); }
+  // Sales-performance aggregations (revenue, order count, AOV, conversion,
+  // best sellers, coupon stats) count real purchases only. A source:'granted'
+  // row is a free admin comp - $0, no coupon, no checkout - and folding it in
+  // inflated the order count over what Recent Orders shows and pulled AOV /
+  // conversion toward zero. Grants still appear in full in the Orders panel.
+  function completedInRange() {
+    return ordersInRange().filter(function (o) { return o.status === 'completed' && o.source !== 'granted'; });
+  }
   function completedInWindow(start, end) {
-    return ORDERS.filter(function (o) { var d = new Date(o.date); return o.status === 'completed' && d >= start && d < end; });
+    return ORDERS.filter(function (o) { var d = new Date(o.date); return o.status === 'completed' && o.source !== 'granted' && d >= start && d < end; });
   }
   // Real USD and real Robux totals (not the USD-equivalent record-keeping
   // figure robux orders also carry) - for revenue stat tiles, not display
@@ -1263,6 +1270,11 @@
     var recent = ORDERS.filter(function (o) { return o.status === 'completed' && o.source !== 'granted'; }).slice().sort(function (a, b) { return new Date(b.date) - new Date(a.date); }).slice(0, 6);
     $('admHomeRecent').innerHTML = recent.map(orderRowHTML).join('') || '<p class="adm-empty">No completed orders yet.</p>';
 
+    // Keep the range buttons in sync with the persisted RANGE_DAYS. The
+    // markup hard-codes 30D as active, so without this the Home dashboard
+    // could show 30D highlighted while actually rendering a different
+    // stored range - the figures looked "stuck" until a click ran setRange.
+    document.querySelectorAll('#admHomeRange button').forEach(function (b) { b.classList.toggle('active', +b.getAttribute('data-range') === RANGE_DAYS); });
   }
   function orderRowHTML(o) {
     return '<div class="dash-row"><span class="dr-thumb" style="background-image:url(\'' + o.image + '\')"></span>' +
@@ -5099,6 +5111,9 @@
      INIT
      ================================================================ */
   showPanel('home');
+  // Sync the range buttons (markup hard-codes 30D active) to the persisted
+  // RANGE_DAYS so the highlighted period always matches the figures shown.
+  setRange(RANGE_DAYS);
   refreshProducts().then(function () {
     return refreshOrders().then(function () { refreshAdminReferrals(); refreshPayouts(); });
   });

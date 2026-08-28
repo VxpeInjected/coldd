@@ -1917,45 +1917,45 @@
       // Roblox's DevEx markup and can differ from a flat conversion).
       // product.html already prefers that real price when set; the cart/
       // checkout need to do the same instead of showing a generic
-      // estimate. Robux pricing doesn't support resell licences (matches
-      // product.html, which shows "Not available" for that combo).
+      // estimate. Resell licences ARE sold in Robux now - they use
+      // products.resell_robux_price when set, falling back to the resell
+      // USD price (or 3x list) flat-converted, matching _shared/roblox.ts's
+      // robuxUnitPrice(product, true).
       var ROBUX_PER_USD_FALLBACK = 80; // matches _shared/roblox.ts's ROBUX_PER_USD
-      function catalogRobuxPrice(id) {
-        var baseId = String(id).replace(/--resell$/, '').replace(/--bundle$/, '');
+      function catalogRobuxPrice(id, licence) {
+        var raw = String(id);
+        var baseId = raw.replace(/--resell$/, '').replace(/--bundle$/, '');
+        var isResell = licence === 'resell' || /--resell$/.test(raw);
         var p = (window.__CATALOG || []).filter(function (c) { return c.id === baseId; })[0];
+        if (!p) return null;
+        if (isResell) {
+          // Always a real number for resell (never null): a resell licence
+          // is now always buyable in Robux, either at its admin-set
+          // resell_robux_price or the flat-converted resell USD price.
+          if (p.resellRobuxPrice > 0) return p.resellRobuxPrice;
+          var usd = p.resellPrice != null ? p.resellPrice : p.priceNum * 3;
+          return Math.round(usd * ROBUX_PER_USD_FALLBACK);
+        }
         // > 0, not != null: an admin-set robux_price of 0 is never really
         // intended (nothing should cost real money in USD and be free in
         // Robux) - treating it as "no override" instead of "R$ 0" is what
         // stops one bad field value from making a product unsellable via
         // Robux instead of just falling back to the flat estimate.
-        return p && p.robuxPrice > 0 ? p.robuxPrice : null;
+        return p.robuxPrice > 0 ? p.robuxPrice : null;
       }
       function itemUnitMoney(item) {
         var robuxMode = window.__currencyMode && window.__currencyMode() === 'robux';
-        if (robuxMode && item.licence !== 'resell') {
-          var rbx = catalogRobuxPrice(item.id);
+        if (robuxMode) {
+          var rbx = catalogRobuxPrice(item.id, item.licence);
           if (rbx != null) return 'R$ ' + Math.round(rbx).toLocaleString('en-US');
-        }
-        // A resell licence is never sold in Robux, so it must show USD even in
-        // Robux mode. Falling through to money() applied the flat 80-per-dollar
-        // display estimate and quoted a Robux price for something that cannot
-        // be bought with Robux at all.
-        if (robuxMode && item.licence === 'resell') {
-          return window.__usd ? window.__usd(item.price) : ('$' + item.price);
         }
         return money(item.price);
       }
       function subtotalMoney() {
         if (window.__currencyMode && window.__currencyMode() === 'robux') {
-          // A cart holding any resell item cannot total in Robux, so the whole
-          // subtotal falls back to USD rather than silently estimating one.
-          var hasResell = cart.some(function (i) { return i.licence === 'resell'; });
-          if (hasResell) {
-            return window.__usd ? window.__usd(subtotal()) : ('$' + subtotal());
-          }
           var total = 0, allPriced = true;
           cart.forEach(function (i) {
-            var rbx = catalogRobuxPrice(i.id);
+            var rbx = catalogRobuxPrice(i.id, i.licence);
             if (rbx == null) { allPriced = false; return; }
             total += rbx * i.qty;
           });
@@ -2010,8 +2010,7 @@
       function robuxSubtotalWithFallback() {
         var total = 0;
         cart.forEach(function (i) {
-          if (i.licence === 'resell') return;
-          var rbx = catalogRobuxPrice(i.id);
+          var rbx = catalogRobuxPrice(i.id, i.licence);
           if (rbx == null) rbx = Math.round(i.price * ROBUX_PER_USD_FALLBACK);
           total += rbx * i.qty;
         });
@@ -2031,8 +2030,7 @@
         // preview can never promise a discount the order doesn't actually
         // give, or vice versa.
         var robuxMode = window.__currencyMode && window.__currencyMode() === 'robux';
-        var hasResell = cart.some(function (i) { return i.licence === 'resell'; });
-        var useRobux = robuxMode && !hasResell && cart.length > 0;
+        var useRobux = robuxMode && cart.length > 0;
         var rbxSub = useRobux ? robuxSubtotalWithFallback() : null;
         var sub = useRobux ? rbxSub : subtotal();
         if (sub <= 0) { box.hidden = true; box.innerHTML = ''; return; }
@@ -2462,7 +2460,6 @@
         function refreshPrice() {
           if (!cur) return;
           var isResell = cur.licence === 'resell';
-          var showRbx = !isResell;
           var resellUsd = cur.resellPrice != null ? cur.resellPrice : Math.round(cur.priceNum * RESELL_MULT);
           var base = isResell ? resellUsd : cur.priceNum;
           cur.price = base; cur.licence = cur.licence;
@@ -2471,21 +2468,19 @@
             if (!isResell && cur.was > cur.priceNum) { pdPriceWas.textContent = fiat(cur.was); pdPriceWas.hidden = false; }
             else pdPriceWas.hidden = true;
           }
-          if (pdPriceRbx) { pdPriceRbx.textContent = showRbx ? (cur.robuxPrice > 0 ? robuxRaw(cur.robuxPrice) : robux(base)) : ''; pdPriceRbx.hidden = !showRbx; }
-          if (pdPriceNote) pdPriceNote.hidden = !showRbx;
+          // Resell licences are sold in Robux now too - use resell_robux_price
+          // when the admin set one, else flat-convert the resell USD price.
+          var rbxOverride = isResell ? (cur.resellRobuxPrice > 0 ? cur.resellRobuxPrice : 0) : (cur.robuxPrice > 0 ? cur.robuxPrice : 0);
+          if (pdPriceRbx) { pdPriceRbx.textContent = rbxOverride > 0 ? robuxRaw(rbxOverride) : robux(base); pdPriceRbx.hidden = false; }
+          if (pdPriceNote) pdPriceNote.hidden = false;
           if (pdSale) pdSale.hidden = !(cur.was > cur.priceNum);
           var robuxMode = window.__currencyMode ? window.__currencyMode() === 'robux' : false;
           licPriceEls.forEach(function (el) {
             var isResellOpt = el.getAttribute('data-licprice') === 'resell';
-            // Resell licences are not sold in Robux, but "Not available" read
-            // as though the licence itself were unavailable rather than just
-            // that one currency. Showing the real USD price is honest and
-            // still buyable - the buyer simply pays for it by card.
-            if (isResellOpt && robuxMode) {
-              el.textContent = window.__usd ? window.__usd(resellUsd) : ('$' + resellUsd);
-              return;
+            if (robuxMode) {
+              var ov = isResellOpt ? (cur.resellRobuxPrice > 0 ? cur.resellRobuxPrice : 0) : (cur.robuxPrice > 0 ? cur.robuxPrice : 0);
+              if (ov > 0) { el.textContent = robuxRaw(ov); return; }
             }
-            if (!isResellOpt && robuxMode && cur.robuxPrice > 0) { el.textContent = robuxRaw(cur.robuxPrice); return; }
             var pp = isResellOpt ? resellUsd : cur.priceNum;
             el.textContent = window.__money ? window.__money(pp) : fiat(pp);
           });
@@ -2664,7 +2659,8 @@
           cur = { id: p.id, title: p.title, image: p.image, tag: p.cat, priceNum: p.priceNum, was: p.was || 0,
                   price: p.priceNum, licence: 'standard', resell: p.resell, platform: p.platform,
                   robuxPrice: p.robuxPrice != null ? p.robuxPrice : null,
-                  resellPrice: p.resellPrice != null ? p.resellPrice : null };
+                  resellPrice: p.resellPrice != null ? p.resellPrice : null,
+                  resellRobuxPrice: p.resellRobuxPrice != null ? p.resellRobuxPrice : null };
 
           var catSlug = catSlugFor(p);
           var crumb = '<a href="/">Home</a><span>›</span>' +
@@ -4514,26 +4510,37 @@
       // Same fix as the cart drawer (app.js's other IIFE): don't
       // estimate Robux with a flat 80-per-$1 conversion - use each
       // product's real admin-configured robux_price when set. Resell
-      // licences aren't priced in Robux (matches product.html).
+      // licences ARE priced in Robux now (resell_robux_price, else the
+      // resell USD price flat-converted) - matches _shared/roblox.ts's
+      // robuxUnitPrice(product, true) and priceRobuxItems(items, true).
       // ROBUX_PER_USD_FALLBACK is `var`-scoped per IIFE (see app.js's other
       // one), so it has to be declared again here rather than shared -
       // without this line, any cart item missing a real robux_price threw
       // a ReferenceError the moment renderPayAmounts/renderRobuxEstimate
       // hit the fallback branch below.
       var ROBUX_PER_USD_FALLBACK = 80; // matches _shared/roblox.ts's ROBUX_PER_USD
-      function catalogRobuxPrice(id) {
-        var baseId = String(id).replace(/--resell$/, '').replace(/--bundle$/, '');
+      function catalogRobuxPrice(id, licence) {
+        var raw = String(id);
+        var baseId = raw.replace(/--resell$/, '').replace(/--bundle$/, '');
+        var isResell = licence === 'resell' || /--resell$/.test(raw);
         var p = (window.__CATALOG || []).filter(function (c) { return c.id === baseId; })[0];
+        if (!p) return null;
+        if (isResell) {
+          // Never null for resell: it's always buyable in Robux now.
+          if (p.resellRobuxPrice > 0) return p.resellRobuxPrice;
+          var usd = p.resellPrice != null ? p.resellPrice : p.priceNum * 3;
+          return Math.round(usd * ROBUX_PER_USD_FALLBACK);
+        }
         // > 0, not != null: a stored robux_price of 0 is bad data, not an
         // intentional free-in-Robux price - falls back to the flat
         // estimate instead of quoting R$0 for a product that costs real
         // money, and instead of failing the whole Robux order (server
         // rejects a total <= 0) if that were the only item in the cart.
-        return p && p.robuxPrice > 0 ? p.robuxPrice : null;
+        return p.robuxPrice > 0 ? p.robuxPrice : null;
       }
       function lineMoney(item) {
-        if (window.__currencyMode && window.__currencyMode() === 'robux' && item.licence !== 'resell') {
-          var rbx = catalogRobuxPrice(item.id);
+        if (window.__currencyMode && window.__currencyMode() === 'robux') {
+          var rbx = catalogRobuxPrice(item.id, item.licence);
           if (rbx != null) return 'R$ ' + Math.round(rbx * item.qty).toLocaleString('en-US');
         }
         return money(item.price * item.qty);
@@ -4548,8 +4555,7 @@
       function robuxSubtotalRaw() {
         var total = 0;
         cart.forEach(function (i) {
-          if (i.licence === 'resell') return;
-          var rbx = catalogRobuxPrice(i.id);
+          var rbx = catalogRobuxPrice(i.id, i.licence);
           if (rbx == null) rbx = Math.round(i.price * ROBUX_PER_USD_FALLBACK);
           total += rbx * i.qty;
         });
@@ -4673,8 +4679,7 @@
         // preview can never promise a discount the order doesn't actually
         // give, or vice versa.
         var robuxMode = window.__currencyMode && window.__currencyMode() === 'robux';
-        var hasResell = cart.some(function (i) { return i.licence === 'resell'; });
-        var useRobux = robuxMode && !hasResell && cart.length > 0;
+        var useRobux = robuxMode && cart.length > 0;
         var sub = useRobux ? robuxSubtotalRaw() : subtotal();
         if (sub <= 0) { box.hidden = true; return; }
         box.hidden = false;
@@ -4800,12 +4805,9 @@
         // Robux mode now evaluates and combines the discount entirely in
         // Robux terms (computeRobuxDiscount, matching create-robux-order's
         // spendTierDiscountRobux) rather than converting a USD figure -
-        // see renderTierBanner's comment for why. hasResell/cart.length
-        // guards match the same conditions the resell-popup and Robux
-        // payment panel already gate on elsewhere on this page.
+        // see renderTierBanner's comment for why.
         var robuxMode = window.__currencyMode && window.__currencyMode() === 'robux';
-        var hasResell = cart.some(function (i) { return i.licence === 'resell'; });
-        var useRobux = robuxMode && !hasResell && cart.length > 0;
+        var useRobux = robuxMode && cart.length > 0;
         var rbxSub = useRobux ? robuxSubtotalRaw() : null;
         var rr = rbxSub != null ? computeRobuxDiscount(rbxSub) : null;
         var discLine = document.getElementById('coDiscLine');
@@ -4871,8 +4873,7 @@
         // Robux prices" report.
         var robuxRow = 0;
         cart.forEach(function (i) {
-          if (i.licence === 'resell') return; // never sold in Robux, matches priceRobuxItems
-          var rbx = catalogRobuxPrice(i.id);
+          var rbx = catalogRobuxPrice(i.id, i.licence);
           if (rbx == null) rbx = Math.round(i.price * ROBUX_PER_USD_FALLBACK);
           robuxRow += rbx * i.qty;
         });
@@ -5085,21 +5086,12 @@
         var buyBlock = document.getElementById('coRobuxBuyBlock');
         if (!resellBlock || !linkBlock || !buyBlock) return;
 
-        // Robux pricing doesn't support resell licences (matches
-        // product.html) - resell items just aren't part of the Robux
-        // order, not a hard block on the whole cart. Only fully block if
-        // EVERY item in the cart is resell (nothing left to buy via Robux).
-        // Derived from the id suffix, same as cartToItems() below, NOT
-        // trusted off item.licence directly - a cart hydrated from an
-        // older localStorage snapshot can have items whose id already
-        // carries the --resell suffix but whose licence field was never
-        // set, which would have let a resell item slip into the Robux
-        // estimate and (had cartToItems used the same shortcut) the order.
-        var isRobuxEligible = function (i) { return i.id.indexOf('--resell') === -1; };
-        var robuxCartItems = cart.filter(isRobuxEligible);
-        var robuxItems = cartToItems().filter(function (i) { return i.licence !== 'resell'; });
-        var hasResell = robuxItems.length !== cart.length;
-        resellBlock.hidden = !hasResell;
+        // Resell licences are sold in Robux now (resell_robux_price, else
+        // the resell USD price flat-converted) - every cart line is part of
+        // the Robux order, so the old resell-exclusion notice never shows.
+        var robuxCartItems = cart;
+        var robuxItems = cartToItems();
+        resellBlock.hidden = true;
         linkBlock.hidden = true;
         buyBlock.hidden = true;
         if (!robuxItems.length || !window.coldAuth) return;
@@ -5165,7 +5157,7 @@
         var totalEl = document.getElementById('coRobuxTotal');
         var total = 0;
         robuxCartItems.forEach(function (i) {
-          var rbx = catalogRobuxPrice(i.id);
+          var rbx = catalogRobuxPrice(i.id, i.licence);
           if (rbx == null) rbx = Math.round(i.price * ROBUX_PER_USD_FALLBACK);
           total += rbx * i.qty;
         });
@@ -5388,7 +5380,7 @@
             if (msg) { msg.className = 'co-msg err show'; msg.textContent = 'Link your Roblox account first.'; }
             return;
           }
-          var robuxItems = cartToItems().filter(function (i) { return i.licence !== 'resell'; });
+          var robuxItems = cartToItems();
           if (!robuxItems.length) {
             if (msg) { msg.className = 'co-msg err show'; msg.textContent = 'Your cart has nothing that can be bought with Robux.'; }
             return;
@@ -5481,7 +5473,10 @@
         if (!overlay || !grid) { onDone(); return; }
         var cat = window.__CATALOG || [];
         var robuxMode = window.__currencyMode && window.__currencyMode() === 'robux';
-        var resellMoney = function (n) { return robuxMode ? (window.__usd ? window.__usd(n) : ('$' + n)) : money(n); };
+        // Resell rights are buyable in Robux now, so the "+X" upgrade delta
+        // shows in Robux when that's the active currency (flat-converted -
+        // this is a nudge, the real line price is computed server-side).
+        var resellMoney = function (n) { return robuxMode ? ('R$ ' + Math.round(n * ROBUX_PER_USD_FALLBACK).toLocaleString('en-US')) : money(n); };
         var selected = {};
         candidates.forEach(function (i) { selected[i.id] = true; });
         function paint() {

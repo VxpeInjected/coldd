@@ -89,6 +89,9 @@ Deno.serve(async (req: Request) => {
     const body = await req.json().catch(() => ({}));
     const email = String(body.email || "").trim().toLowerCase();
     if (!validEmail(email)) return json({ ok: false, error: "Enter a real email address." }, 400);
+    // Where the opt-in came from, for the consent record. Defaults to the
+    // site popup; the signup form passes 'signup'.
+    const source = ["popup", "signup", "checkout"].includes(String(body.source)) ? String(body.source) : "popup";
 
     // Optional session - only used to sync notification_prefs for a
     // signed-in visitor. A guest claiming a code is completely normal here.
@@ -112,7 +115,7 @@ Deno.serve(async (req: Request) => {
     await admin.from("marketing_optins").upsert({
       email,
       user_id: userId,
-      source: "popup",
+      source,
       subscribed_at: new Date().toISOString(),
       discount_code: code,
     });

@@ -62,6 +62,7 @@ SIGNUP = ('    <div class="glass auth-card">\n'
           + pw_field('su-conf', 'confirm', 'Confirm password', 'new-password')
           + '        <label class="auth-check"><input type="checkbox" name="tos" /> <span>I agree to the <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>.</span></label>\n'
           '        <span class="auth-err" data-for="tos"></span>\n'
+          '        <label class="auth-check"><input type="checkbox" name="marketing" /> <span>Email me deals, drops, and product updates &mdash; and get <strong>10% off</strong> your first order.</span></label>\n'
           '        <button class="btn btn-primary auth-submit" type="submit">Create account</button>\n'
           '        <div class="auth-msg"></div>\n'
           '      </form>\n'

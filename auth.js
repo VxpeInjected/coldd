@@ -117,6 +117,7 @@
   var resendBtn = document.getElementById('btnResendCode');
   var backBtn = document.getElementById('btnBackToSignup');
   var pendingEmail = '';
+  var pendingMarketingOptIn = false; // carried from the signup form to the verify step
   var resendTimer = null;
   var RESEND_SECONDS = 30;
 
@@ -209,6 +210,8 @@
     var te = su.querySelector('.auth-err[data-for="tos"]');
     if (tos && !tos.checked) { if (te) te.textContent = 'Please accept the Terms to continue.'; ok = false; } else if (te) te.textContent = '';
     if (!ok || !window.coldAuth) return;
+    var mkt = su.querySelector('[name="marketing"]');
+    pendingMarketingOptIn = !!(mkt && mkt.checked);
 
     setLoading(su, true);
     withMinDelay(window.coldAuth.signUpEmail(email, pass, username), 1500).then(function (res) {
@@ -241,6 +244,15 @@
         return;
       }
       fieldErr(sv, 'code', '');
+      // Record the signup-form marketing opt-in now that there's a real
+      // verified session - marketing-signup dedupes by email, mints the
+      // 10%-off welcome code, syncs notification_prefs.promotions, and
+      // emails the code. Fire-and-forget: it must never block the redirect.
+      if (pendingMarketingOptIn && window.coldSupabase) {
+        try {
+          window.coldSupabase.functions.invoke('marketing-signup', { body: { email: pendingEmail, source: 'signup' } }).catch(function () {});
+        } catch (e) {}
+      }
       location.href = '/dashboard';
     }).catch(function () {
       setLoading(sv, false);

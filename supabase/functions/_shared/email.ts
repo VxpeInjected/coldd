@@ -90,7 +90,15 @@ export async function sendSingle(to: string, subject: string, html: string, head
   return { ok: true };
 }
 
-export type BatchEmail = { to: string; subject: string; html: string; headers?: Record<string, string> };
+export type BatchEmail = {
+  to: string;
+  subject: string;
+  html: string;
+  headers?: Record<string, string>;
+  // Resend tags - surfaced back on the delivery webhook payloads, which is
+  // how email_events rows get linked to the campaign that sent them.
+  tags?: { name: string; value: string }[];
+};
 
 /**
  * Sends up to 100 emails in one Resend batch call. Larger lists must be
@@ -110,6 +118,7 @@ export async function sendBatch(emails: BatchEmail[]): Promise<{ ok: true; sent:
     body: JSON.stringify(emails.map((e) => {
       const item: Record<string, unknown> = { from: FROM_ADDRESS, reply_to: REPLY_TO, to: e.to, subject: e.subject, html: e.html, text: htmlToText(e.html) };
       if (e.headers && Object.keys(e.headers).length) item.headers = e.headers;
+      if (e.tags && e.tags.length) item.tags = e.tags;
       return item;
     })),
   });

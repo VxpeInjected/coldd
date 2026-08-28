@@ -132,6 +132,7 @@ Deno.serve(async (req: Request) => {
           subject,
           html: wrapCampaignEmail(bodyHtml, u),
           headers: unsubscribeHeaders(u),
+          tags: [{ name: "campaign_id", value: campaign.id }],
         };
       });
       const result = await sendBatch(emails);

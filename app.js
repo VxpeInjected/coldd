@@ -4357,6 +4357,13 @@
           window.coldAuth.claimVerify(pendingEmail, code, pw).then(function (res) {
             setBtnLoading(verifyBtn, false);
             if (res.error || !res.data || !res.data.ok) { say((res.data && res.data.error) || 'Could not finish setup.'); return; }
+            // Marketing opt-in from the claim form - now that there's a real
+            // email on the account. source:'signup' is consent-only (no
+            // discount code). Fire-and-forget, must not block the flow.
+            var mkt = document.getElementById('claim-marketing');
+            if (mkt && mkt.checked && pendingEmail && window.coldSupabase) {
+              try { window.coldSupabase.functions.invoke('marketing-signup', { body: { email: pendingEmail, source: 'signup' } }).catch(function () {}); } catch (e) {}
+            }
             say('Done - your email and password are set. You can now sign in with them.', true);
             try { localStorage.setItem(CLAIM_DISMISS_KEY, '1'); } catch (e) {}
             if (banner) banner.hidden = true;

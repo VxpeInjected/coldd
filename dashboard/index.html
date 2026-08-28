@@ -300,6 +300,7 @@
                 <p class="auth-hint" style="margin:0 0 10px;">Enter the code we sent to <strong id="claimEmailEcho"></strong> and choose a password.</p>
                 <div class="auth-field" data-for="code"><label for="claim-code">Verification code</label><input id="claim-code" name="code" type="text" autocomplete="one-time-code" /><span class="auth-err"></span></div>
                 <div class="auth-field" data-for="password"><label for="claim-password">Password</label><input id="claim-password" name="password" type="password" autocomplete="new-password" /><span class="auth-err"></span></div>
+                <label class="auth-check" style="margin:2px 0 4px;"><input type="checkbox" id="claim-marketing" /> <span>Email me deals and drops (optional).</span></label>
                 <div style="display:flex;gap:10px;">
                   <button class="btn btn-primary" type="button" id="claimVerifyBtn" style="width:auto;"><span class="btn-label">Finish setup</span><span class="btn-spinner" hidden></span></button>
                   <button class="btn btn-ghost" type="button" id="claimBackBtn">Back</button>
@@ -582,7 +583,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.2/dist/umd/supabase.min.js" integrity="sha384-B2duOBIryCXbX4eDE4BdJwtNkQMRQde3o6IsjfPW28E6aH1CYE96hHeZRG3zY56O" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script src="/supabase-init.js?v=20260828a"></script>
   <script src="/site-gate.js?v=20260820b"></script>
-  <script src="/catalog.js?v=20260828b" data-then="/app.js?v=20260828d"></script>
+  <script src="/catalog.js?v=20260828b" data-then="/app.js?v=20260828e"></script>
   <script>
     // Cart badge/total sync from localStorage, ahead of app.js. The fab
     // markup above ships hardcoded at "0"/"$0", and the cart module that

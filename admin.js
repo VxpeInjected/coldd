@@ -1376,6 +1376,23 @@
     return [];
   }
 
+  // Re-rendering a container via innerHTML throws away the open/closed
+  // state of every <details> inside it. renderMarketing() runs on a 10s
+  // poll (AdBlox auto-refresh), so an expanded channel dropdown would snap
+  // shut a few seconds after you opened it. Snapshot which
+  // <details data-collapse-key> are open, swap the HTML, then restore them.
+  function setHtmlPreservingCollapse(el, html) {
+    if (!el) return;
+    var wasOpen = {};
+    el.querySelectorAll('details[data-collapse-key]').forEach(function (d) {
+      if (d.open) wasOpen[d.getAttribute('data-collapse-key')] = true;
+    });
+    el.innerHTML = html;
+    el.querySelectorAll('details[data-collapse-key]').forEach(function (d) {
+      if (wasOpen[d.getAttribute('data-collapse-key')]) d.open = true;
+    });
+  }
+
   function channelRow(c) {
     var connected = false, value = '', sub = c.note;
     if (c.key === 'discord' && DISCORD_STATS.memberCount != null) {
@@ -1411,7 +1428,7 @@
 
     if (!connected) return '<div class="adm-channel-row">' + summaryInner + '</div>';
 
-    return '<details class="adm-collapse adm-channel-collapse">' +
+    return '<details class="adm-collapse adm-channel-collapse" data-collapse-key="chan-' + esc(c.key) + '">' +
       '<summary class="adm-channel-row">' + summaryInner + '</summary>' +
       '<div class="adm-collapse-body"><div class="dash-stats">' + socialStatTiles(c.key).join('') + '</div></div>' +
       '</details>';
@@ -1559,7 +1576,7 @@
     }
 
     if ($('admMktChannels')) {
-      $('admMktChannels').innerHTML = MKT_CHANNELS.map(channelRow).join('');
+      setHtmlPreservingCollapse($('admMktChannels'), MKT_CHANNELS.map(channelRow).join(''));
     }
 
     renderCampaigns();
@@ -1892,10 +1909,10 @@
 
   function renderAutomations() {
     var el = $('admAutomationsBody'); if (!el) return;
-    el.innerHTML = AUTOMATION_META.map(function (meta) {
+    var html = AUTOMATION_META.map(function (meta) {
       var a = AUTOMATIONS[meta.key] || { enabled: false, delay_hours: 24, subject: '', body_md: '' };
       var statusBadge = a.enabled ? '<span class="dt-badge ok">On</span>' : '<span class="dt-badge">Off</span>';
-      return '<details class="adm-collapse" style="background:rgba(255,255,255,0.02);margin-top:14px;padding:16px 18px;border-radius:10px;">' +
+      return '<details class="adm-collapse" data-collapse-key="auto-' + esc(meta.key) + '" style="background:rgba(255,255,255,0.02);margin-top:14px;padding:16px 18px;border-radius:10px;">' +
         '<summary class="dash-card-head" style="margin-bottom:0;"><div><h2 style="font-size:14px;">' + esc(meta.label) + '</h2></div><span style="display:flex;align-items:center;gap:10px;">' + statusBadge + '<svg class="adm-collapse-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></span></summary>' +
         '<div class="adm-form adm-collapse-body" style="flex-direction:column;align-items:stretch;gap:10px;max-height:none;margin-top:14px;" data-automation-key="' + meta.key + '">' +
         '<label class="adm-field-check"><input type="checkbox" class="am-enabled"' + (a.enabled ? ' checked' : '') + ' /><span>Enabled</span></label>' +
@@ -1908,6 +1925,7 @@
         '<iframe class="adm-campaign-preview-frame am-preview-frame" title="Automation email preview" sandbox=""></iframe></div>' +
         '</div></details>';
     }).join('');
+    setHtmlPreservingCollapse(el, html);
 
     el.querySelectorAll('.am-save').forEach(function (btn) {
       btn.addEventListener('click', function () {

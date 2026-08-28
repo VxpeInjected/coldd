@@ -1587,6 +1587,19 @@
     return '<div class="adm-spark-card"><div class="adm-spark-head"><span>' + esc(title) + '</span>' +
       '<span class="adm-sub">' + num(first) + ' → ' + num(last) + '</span></div>' + s + '</div>';
   }
+  // Per-day positive change of a cumulative-ish metric across the range -
+  // e.g. impressions on the trailing-100-posts window snapshotted daily,
+  // where the day-over-day rise ≈ impressions picked up that day.
+  function dailyDeltaSeries(history, get) {
+    var rows = histRange(history);
+    var out = [];
+    for (var i = 1; i < rows.length; i++) {
+      var a = Number(get(rows[i - 1])), b = Number(get(rows[i]));
+      var v = (isNaN(a) || isNaN(b)) ? 0 : Math.max(0, b - a);
+      out.push({ label: fmtDate(new Date(rows[i].snapshot_date)), v: v, tip: num(v) });
+    }
+    return out;
+  }
   function statGrid(tiles) { return '<div class="dash-stats">' + tiles.filter(Boolean).join('') + '</div>'; }
   function engagementSection(title, sub, tiles) {
     tiles = tiles.filter(Boolean);
@@ -1656,11 +1669,15 @@
       statTile('Times listed', num(s.listedCount), 'X Lists including this account', ''),
       statTile('Likes given', num(s.likeCount), 'lifetime', '')
     ];
+    var impSeries = dailyDeltaSeries(h, function (r) { return r.extra && r.extra.recentImpressions; });
+    var impChart = impSeries.some(function (d) { return d.v > 0; })
+      ? '<div class="adm-mini-head">Impressions gained · daily (recent posts)</div>' + svgBars(impSeries, { height: 108, color: 'var(--price)' })
+      : '';
     return statGrid(tiles) +
       engagementSection('Recent post engagement', eng ? '' : 'Needs the paid X API tier that allows reading posts', engTiles) +
       engagementSection('Profile', '', profileTiles) +
       sparkCard('Followers', histRange(h).map(function (r) { return r.followers; })) +
-      sparkCard('Impressions / recent posts', histRange(h).map(function (r) { return r.extra && r.extra.recentImpressions; }), { color: 'var(--price)' });
+      impChart;
   }
 
   function youtubePanel() {

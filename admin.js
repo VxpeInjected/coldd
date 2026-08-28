@@ -1480,16 +1480,30 @@
   // { configured: false } when its secrets aren't set yet, rather than an
   // error, so the channel row can show a real "what's missing" hint
   // instead of a bare "Not connected" badge with no next step.
-  var YOUTUBE_STATS = null, X_STATS = null, TIKTOK_STATS = null;
+  var YOUTUBE_STATS = null, X_STATS = null, TIKTOK_STATS = null, YT_ANALYTICS = null;
   function refreshSocialStats() {
     return Promise.all([
       invokeAdminFn('admin-youtube-stats', {}).then(function (d) { YOUTUBE_STATS = d; }).catch(function () { YOUTUBE_STATS = null; }),
       invokeAdminFn('admin-x-stats', {}).then(function (d) { X_STATS = d; }).catch(function () { X_STATS = null; }),
-      invokeAdminFn('admin-tiktok-stats', {}).then(function (d) { TIKTOK_STATS = d; }).catch(function () { TIKTOK_STATS = null; })
+      invokeAdminFn('admin-tiktok-stats', {}).then(function (d) { TIKTOK_STATS = d; }).catch(function () { TIKTOK_STATS = null; }),
+      invokeAdminFn('admin-youtube-analytics', { days: 28 }).then(function (d) { YT_ANALYTICS = d; }).catch(function () { YT_ANALYTICS = null; })
     ]).then(function () {
       if (curPanel === 'marketing') renderMarketing();
     });
   }
+  // Kicks off the Google OAuth consent flow for the YouTube Analytics API.
+  // The client id lives in a secret, so the authorize URL is built
+  // server-side (youtube-oauth-url) and we just redirect to it.
+  function connectYoutubeAnalytics(btn) {
+    if (btn) { btn.disabled = true; btn.textContent = 'Opening Google…'; }
+    invokeAdminFn('youtube-oauth-url', { redirectUri: 'https://coldd.dev/youtube-callback' }, 'Could not start the YouTube connect flow.')
+      .then(function (d) { if (d && d.url) location.href = d.url; else throw new Error('No URL returned.'); })
+      .catch(function (err) { if (btn) { btn.disabled = false; btn.textContent = 'Connect YouTube Analytics'; } alert(err.message); });
+  }
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest('#admConnectYtAnalytics');
+    if (b) { e.preventDefault(); connectYoutubeAnalytics(b); }
+  });
 
   /* ----------------------------------------------------------------
      SOCIAL: range-aware history maths
@@ -1706,9 +1720,34 @@
     ] : [];
     return statGrid(tiles) +
       engagementSection('Recent video engagement', '', engTiles) +
+      youtubeAnalyticsSection() +
       sparkCard('Subscribers', histRange(h).map(function (r) { return r.followers; })) +
       sparkCard('Total views', histRange(h).map(function (r) { return r.extra && r.extra.viewCount; }), { color: 'var(--price)' }) +
       videoTable((s.recentVideos || []).map(function (v) { return { title: v.title, publishedAt: v.publishedAt, views: v.views, likes: v.likes, comments: v.comments }; }), ['views', 'likes', 'comments']);
+  }
+  // The OAuth-only YouTube Analytics block: watch time, retention, traffic
+  // sources. Shows a connect button until /youtube-callback has run.
+  function youtubeAnalyticsSection() {
+    var connectBtn = '<div class="adm-social-sub"><span>Audience &amp; retention</span></div>' +
+      '<p class="adm-note" style="margin:0 0 10px;">Watch time, average view duration, % viewed and traffic sources need a one-time Google sign-in.</p>' +
+      '<button type="button" id="admConnectYtAnalytics" class="btn btn-ghost adm-btn-sm">Connect YouTube Analytics</button>';
+    if (!YT_ANALYTICS || !YT_ANALYTICS.ok || !YT_ANALYTICS.configured || !YT_ANALYTICS.watch) {
+      return (YT_ANALYTICS && YT_ANALYTICS.configured === false) || !YT_ANALYTICS ? connectBtn : '';
+    }
+    var w = YT_ANALYTICS.watch;
+    function hms(sec) { sec = Math.round(sec); var m = Math.floor(sec / 60); return m + ':' + String(sec % 60).padStart(2, '0'); }
+    var tiles = [
+      statTile('Watch time', num(Math.round(w.minutesWatched)) + ' min', 'last ' + w.days + ' days', ''),
+      statTile('Avg view duration', hms(w.avgViewDuration), null, ''),
+      statTile('Avg % viewed', (Math.round(w.avgViewPercentage * 10) / 10) + '%', 'retention', ''),
+      statTile('Net subscribers', signed(w.subscribersGained - w.subscribersLost), '+' + num(w.subscribersGained) + ' / -' + num(w.subscribersLost), '')
+    ];
+    var ts = YT_ANALYTICS.trafficSources || [];
+    var tsTable = ts.length
+      ? '<div class="adm-mini-head">Traffic sources · last ' + w.days + ' days</div><div class="dash-tablewrap"><table class="dash-table"><thead><tr><th>Source</th><th>Views</th><th>Watch min</th></tr></thead><tbody>' +
+        ts.map(function (r) { return '<tr><td>' + esc(r.source) + '</td><td>' + num(r.views) + '</td><td>' + num(Math.round(r.minutesWatched)) + '</td></tr>'; }).join('') + '</tbody></table></div>'
+      : '';
+    return '<div class="adm-social-sub"><span>Audience &amp; retention</span><span class="adm-sub">YouTube Analytics · ~2-day lag</span></div>' + statGrid(tiles) + tsTable;
   }
 
   function tiktokPanel() {

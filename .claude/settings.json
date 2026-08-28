@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "git -C \"${CLAUDE_PROJECT_DIR:-.}\" pull --ff-only --no-rebase 2>&1 || true",
+            "timeout": 25,
+            "statusMessage": "Syncing repo (git pull)..."
+          }
+        ]
+      }
+    ]
+  }
+}

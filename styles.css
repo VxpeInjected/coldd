@@ -4061,10 +4061,20 @@ html.auth-in .nav-notif[hidden] { display: block; }
 #robuxModalWaiting { text-align: center; padding: 12px 4px 4px; }
 .robux-modal-spin { display: flex; justify-content: center; margin-bottom: 18px; }
 .robux-modal-status { font-size: 15.5px; font-weight: 700; color: var(--fg); margin: 0 0 8px; }
-.robux-modal-hint { font-size: 13px; color: var(--fg-3); line-height: 1.5; margin: 0 0 22px; }
+.robux-modal-hint { font-size: 13px; color: var(--fg-3); line-height: 1.5; margin: 0 0 14px; }
+.robux-modal-warn { font-size: 13px; line-height: 1.5; color: var(--warn); margin: 0 0 22px;
+  padding: 10px 12px; border-radius: var(--r-sm); background: rgba(240,175,90,0.08); border: 1px solid rgba(240,175,90,0.22); }
 
 #robuxModalDone { text-align: center; padding: 8px 4px 4px; }
-.robux-modal-msg { font-size: 14.5px; line-height: 1.6; color: var(--fg-2); margin: 0 0 20px; }
+.robux-modal-msg { font-size: 14.5px; line-height: 1.6; color: var(--fg-2); margin: 0 0 18px; }
 .robux-modal-msg.err { color: var(--warn); }
+.robux-modal-help { text-align: left; margin: 0 0 20px; padding: 14px 16px; border-radius: var(--r-sm);
+  background: rgba(255,255,255,0.03); border: 1px solid var(--hairline); }
+.robux-modal-help-head { font-size: 13px; font-weight: 700; color: var(--fg-2); margin: 0 0 8px; }
+.robux-modal-help ul { margin: 0 0 12px; padding-left: 20px; display: flex; flex-direction: column; gap: 7px; }
+.robux-modal-help li { font-size: 12.5px; line-height: 1.5; color: var(--fg-3); }
+.robux-modal-help li strong { color: var(--fg-2); }
+.robux-modal-help-contact { font-size: 12.5px; line-height: 1.5; color: var(--fg-3); margin: 0; }
+.robux-modal-help-contact a { color: var(--accent); font-weight: 600; text-decoration: none; }
 
 @media (max-width: 480px) { .robux-modal { padding: 26px 20px 22px; } }

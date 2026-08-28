@@ -16,7 +16,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
 
-  <link rel="stylesheet" href="/styles.css?v=20260828i" />
+  <link rel="stylesheet" href="/styles.css?v=20260828j" />
 </head>
 <body>
   <div class="backdrop"></div>
@@ -301,7 +301,7 @@
           <li>Purchase the gamepass for the exact total shown.</li>
           <li>Come back here and click <strong>I've purchased the gamepass</strong>. We'll check automatically from there - no need to keep clicking.</li>
         </ol>
-        <p class="robux-modal-owned-note"><strong>Already own this exact gamepass?</strong> Delete it from your Roblox inventory first, then buy it again - Roblox won't charge you for something you already own, so we can only confirm a fresh purchase.</p>
+        <p class="robux-modal-owned-note"><strong>Already own this exact gamepass?</strong> Delete it from your Roblox inventory first, then buy it again.</p>
         <p class="robux-modal-total">Total: <strong id="robuxModalTotal">—</strong></p>
         <div class="robux-modal-actions">
           <a class="btn btn-ghost" id="robuxModalBuyBtn" href="#" target="_blank" rel="noopener" aria-disabled="true">Buy on Roblox</a>
@@ -313,11 +313,21 @@
         <div class="robux-modal-spin"><span class="cb-spin"></span></div>
         <p class="robux-modal-status" id="robuxModalStatusText">Checking for your purchase…</p>
         <p class="robux-modal-hint" id="robuxModalHint">This can take a minute or two - we're checking automatically, you don't need to do anything else.</p>
+        <p class="robux-modal-warn"><strong>Do not click off this page or your order could fail.</strong></p>
         <button class="btn btn-ghost" id="robuxModalCancelWait" type="button">Cancel and go back</button>
       </div>
 
       <div id="robuxModalDone" hidden>
         <p class="robux-modal-msg" id="robuxModalDoneMsg"></p>
+        <div class="robux-modal-help">
+          <p class="robux-modal-help-head">Before trying again, double-check:</p>
+          <ul>
+            <li>You clicked <strong>OK</strong> on the Roblox purchase pop-up - not Cancel.</li>
+            <li>You bought the gamepass for the <strong>exact total</strong> shown here.</li>
+            <li>You bought it from the <strong>Buy on Roblox</strong> link above, not an older copy.</li>
+          </ul>
+          <p class="robux-modal-help-contact">Something gone wrong? <a href="/contact">Contact us</a> or ask in our <a href="https://discord.gg/coldd" target="_blank" rel="noopener">Discord</a> - include your order details and we'll sort it.</p>
+        </div>
         <button class="btn btn-primary" id="robuxModalRetryBtn" type="button">Try again</button>
       </div>
     </div>

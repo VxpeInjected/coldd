@@ -679,22 +679,26 @@
     if (curPanel === 'marketing') renderMarketing();
     }).catch(function (err) { console.error('[admin] discord stats:', err.message); });
   }
-  // Net members gained/lost since the start of the selected range. Discord's
-  // API has no history of its own - only ever the current total - so this
-  // diffs against our own daily snapshots (discord_member_snapshots,
-  // populated by admin-discord-stats itself). Returns null (not 0) when
-  // there's no snapshot at or before the range start, since that means
-  // "we don't know yet", not "no change".
+  // Net members gained/lost over the selected range. Discord's API has no
+  // history of its own - only the current total - so this diffs against
+  // our own daily snapshots (discord_member_snapshots). When the range
+  // starts before our earliest snapshot, it falls back to that earliest
+  // snapshot and flags the result `partial` so the label can say "since
+  // <date>" instead of pretending to cover the whole range.
+  // Returns { joins, sinceKey, partial } or null when there's no history
+  // at all yet.
   function discordJoinsInRange() {
-    if (DISCORD_STATS.memberCount == null || !DISCORD_STATS.history.length) return null;
-    var startKey = (RANGE_DAYS ? daysAgoStart(RANGE_DAYS) : new Date(DISCORD_STATS.history[0].snapshot_date)).toISOString().slice(0, 10);
-    var baseline = null;
-    for (var i = 0; i < DISCORD_STATS.history.length; i++) {
-      if (DISCORD_STATS.history[i].snapshot_date <= startKey) baseline = DISCORD_STATS.history[i].member_count;
+    var hist = DISCORD_STATS.history || [];
+    if (DISCORD_STATS.memberCount == null || !hist.length) return null;
+    var startKey = (RANGE_DAYS ? rangeStart() : new Date(hist[0].snapshot_date)).toISOString().slice(0, 10);
+    var baseline = null, baseKey = null;
+    for (var i = 0; i < hist.length; i++) {
+      if (hist[i].snapshot_date <= startKey) { baseline = hist[i].member_count; baseKey = hist[i].snapshot_date; }
       else break;
     }
-    if (baseline == null) return null;
-    return DISCORD_STATS.memberCount - baseline;
+    var partial = false;
+    if (baseline == null) { baseline = hist[0].member_count; baseKey = hist[0].snapshot_date; partial = RANGE_DAYS ? true : false; }
+    return { joins: DISCORD_STATS.memberCount - baseline, sinceKey: baseKey, partial: partial };
   }
 
   var ADBLOX_STATS = null;
@@ -1030,43 +1034,79 @@
       var y = h - bh;
       var op = 0.42 + 0.58 * (max ? d.v / max : 0);
       var tipText = esc(d.label) + ': ' + esc(d.tip != null ? d.tip : d.v);
-      return '<rect class="adm-chart-bar" x="' + x.toFixed(1) + '" y="' + y.toFixed(1) + '" width="' + bw.toFixed(1) + '" height="' + bh.toFixed(1) + '" rx="2" fill="' + (opts.color || 'var(--accent)') + '" opacity="' + op.toFixed(2) + '" data-tip="' + tipText + '"><title>' + tipText + '</title></rect>';
+      return '<rect class="adm-chart-bar" x="' + x.toFixed(1) + '" y="' + y.toFixed(1) + '" width="' + bw.toFixed(1) + '" height="' + bh.toFixed(1) + '" rx="2" fill="' + (opts.color || 'var(--accent)') + '" opacity="' + op.toFixed(2) + '" data-tip="' + tipText + '"></rect>';
     }).join('');
     return '<svg viewBox="0 0 ' + w + ' ' + h + '" class="adm-chart" preserveAspectRatio="none">' + bars + '</svg>';
   }
 
-  // Shared floating tooltip for chart bars - the native SVG <title> tooltip
-  // is slow to appear and unstyled, so this reads the same data-tip and
-  // follows the cursor instead. Call once per rendered chart container.
-  var chartTip = null;
-  function chartTipEl() {
-    if (!chartTip) {
-      chartTip = document.createElement('div');
-      chartTip.className = 'adm-chart-tip';
-      chartTip.hidden = true;
-      document.body.appendChild(chartTip);
+  // Donut / pie with a legend. segments: [{ label, value, color, display?,
+  // tip? }] - `display` is trusted markup for the legend value cell,
+  // `tip` overrides the hover text. Zero/negative segments are dropped.
+  function donutChart(segments, opts) {
+    opts = opts || {};
+    segments = (segments || []).filter(function (s) { return s.value > 0; });
+    var total = segments.reduce(function (a, s) { return a + s.value; }, 0);
+    if (!total) return '<p class="adm-empty">No data in this range.</p>';
+    var size = 168, c = size / 2, r = 64, sw = 28, circ = 2 * Math.PI * r, off = 0;
+    var arcs = segments.map(function (s) {
+      var dash = (s.value / total) * circ;
+      var pctS = Math.round(s.value / total * 100);
+      var tip = s.tip || (s.label + ' · ' + (s.plain != null ? s.plain : s.value) + ' · ' + pctS + '%');
+      var seg = '<circle class="adm-donut-seg" cx="' + c + '" cy="' + c + '" r="' + r + '" fill="none" stroke="' + s.color + '" stroke-width="' + sw +
+        '" stroke-dasharray="' + dash.toFixed(2) + ' ' + (circ - dash).toFixed(2) + '" stroke-dashoffset="' + (-off).toFixed(2) +
+        '" data-tip="' + esc(tip) + '"></circle>';
+      off += dash;
+      return seg;
+    }).join('');
+    var center = opts.centerLabel
+      ? '<text x="' + c + '" y="' + (c - 3) + '" class="adm-donut-c1">' + esc(opts.centerLabel) + '</text>' +
+        '<text x="' + c + '" y="' + (c + 13) + '" class="adm-donut-c2">' + esc(opts.centerSub || '') + '</text>'
+      : '';
+    var legend = '<div class="adm-donut-key">' + segments.map(function (s) {
+      return '<span><i style="background:' + s.color + '"></i><span class="adm-donut-lbl">' + esc(s.label) + '</span>' +
+        '<b>' + (s.display != null ? s.display : esc(String(s.value))) + '</b>' +
+        '<em>' + Math.round(s.value / total * 100) + '%</em></span>';
+    }).join('') + '</div>';
+    return '<div class="adm-donut-wrap"><svg class="adm-donut" viewBox="0 0 ' + size + ' ' + size + '">' +
+      '<g transform="rotate(-90 ' + c + ' ' + c + ')">' + arcs + '</g>' + center + '</svg>' + legend + '</div>';
+  }
+
+  // One delegated cursor-following tooltip for every chart on the page -
+  // bars, donut segments, sparkline points. Survives the panel re-renders
+  // (Marketing polls every 10s, Analytics on data refresh) that a
+  // per-container listener wouldn't. The native <title> is dropped in
+  // favour of this since it's slow and unstyled.
+  var CHART_HIT = '.adm-chart-bar, .adm-donut-seg, .adm-spark-pt';
+  (function () {
+    var tipEl = null;
+    function tip() {
+      if (!tipEl) { tipEl = document.createElement('div'); tipEl.className = 'adm-chart-tip'; tipEl.hidden = true; document.body.appendChild(tipEl); }
+      return tipEl;
     }
-    return chartTip;
-  }
-  function attachChartTooltip(container) {
-    if (!container || container._tipBound) return;
-    container._tipBound = true;
-    var tip = chartTipEl();
-    container.addEventListener('mousemove', function (e) {
-      var bar = e.target.closest && e.target.closest('.adm-chart-bar');
-      if (!bar) { tip.hidden = true; return; }
-      tip.hidden = false;
-      tip.textContent = bar.getAttribute('data-tip');
-      tip.style.left = (e.clientX + 14) + 'px';
-      tip.style.top = (e.clientY + 14) + 'px';
-      bar.classList.add('hover');
-      container.querySelectorAll('.adm-chart-bar.hover').forEach(function (b) { if (b !== bar) b.classList.remove('hover'); });
+    function clearHover() {
+      document.querySelectorAll('.adm-chart-bar.hover, .adm-donut-seg.hover, .adm-spark-pt.hover').forEach(function (x) { x.classList.remove('hover'); });
+    }
+    document.addEventListener('mousemove', function (e) {
+      var t = e.target.closest ? e.target.closest(CHART_HIT) : null;
+      var box = tip();
+      if (!t || !t.getAttribute('data-tip')) {
+        if (!box.hidden) { box.hidden = true; clearHover(); }
+        return;
+      }
+      box.hidden = false;
+      box.textContent = t.getAttribute('data-tip');
+      box.style.left = (e.clientX + 14) + 'px';
+      box.style.top = (e.clientY + 14) + 'px';
+      if (!t.classList.contains('hover')) {
+        clearHover();
+        t.classList.add('hover');
+      }
     });
-    container.addEventListener('mouseleave', function () {
-      tip.hidden = true;
-      container.querySelectorAll('.adm-chart-bar.hover').forEach(function (b) { b.classList.remove('hover'); });
-    });
-  }
+    document.addEventListener('mouseleave', function () { var box = tip(); box.hidden = true; clearHover(); }, true);
+  })();
+  // Kept as a no-op - charts are wired globally now, but call sites still
+  // invoke it.
+  function attachChartTooltip() {}
 
   /* ================================================================
      AGGREGATION (all computed live from ORDERS for the active range)
@@ -1173,11 +1213,14 @@
     var map = {};
     completedInRange().forEach(function (o) {
       var k = paymentMethodLabel(o);
-      map[k] = (map[k] || 0) + (Number(o.total) || 0);
+      if (!map[k]) map[k] = { usd: 0, robux: 0 };
+      map[k].usd += Number(o.total) || 0;
+      if (o.currency === 'robux') map[k].robux += Number(o.totalRobux) || 0;
     });
-    var total = Object.keys(map).reduce(function (s, k) { return s + map[k]; }, 0);
-    return Object.keys(map).map(function (k) { return { label: k, v: map[k], pct: total ? map[k] / total * 100 : 0 }; })
-      .sort(function (a, b) { return b.v - a.v; });
+    var total = Object.keys(map).reduce(function (s, k) { return s + map[k].usd; }, 0);
+    return Object.keys(map).map(function (k) {
+      return { label: k, v: map[k].usd, robux: map[k].robux, pct: total ? map[k].usd / total * 100 : 0 };
+    }).sort(function (a, b) { return b.v - a.v; });
   }
   function repeatCustomerStats() {
     var byUser = {};
@@ -1395,7 +1438,9 @@
       aud1.channels.length
         ? deltaTile('Total audience', num(aud1.total), aud1.delta, aud1.channels.length + ' channel' + (aud1.channels.length === 1 ? '' : 's'))
         : statTile('Total audience', DISCORD_STATS.memberCount != null ? num(DISCORD_STATS.memberCount) : '—', 'loading channels…', ''),
-      statTile('Discord joins', joins == null ? '—' : (joins > 0 ? '+' : '') + joins.toLocaleString('en-US'), joins == null ? 'Gathering history' : (RANGE_DAYS ? 'net over selected range' : 'net since tracking began'), ''),
+      statTile('Discord joins',
+        joins == null ? '—' : (joins.joins > 0 ? '+' : '') + joins.joins.toLocaleString('en-US'),
+        joins == null ? 'Gathering history' : (joins.partial ? 'since ' + joins.sinceKey : (RANGE_DAYS ? 'net over selected range' : 'net since tracking began')), ''),
       statTile('Referrals owed', aud(owed.usdTotal), owed.count ? (owed.count + ' request' + (owed.count === 1 ? '' : 's') + ' pending') : 'Nothing pending', '', { panel: 'analytics', title: owed.names.length ? 'Requested by: ' + owed.names.join(', ') : '' })
     ].join('');
 
@@ -1583,18 +1628,27 @@
     values = (values || []).map(Number).filter(function (v) { return !isNaN(v); });
     if (values.length < 2) return '';
     opts = opts || {};
-    var w = 320, h = 44, pad = 3;
+    var w = 320, h = 44, pad = 4;
     var min = Math.min.apply(null, values), max = Math.max.apply(null, values);
     var span = (max - min) || 1;
     var stepX = (w - pad * 2) / (values.length - 1);
-    var pts = values.map(function (v, i) {
-      return (pad + i * stepX).toFixed(1) + ',' + (h - pad - ((v - min) / span) * (h - pad * 2)).toFixed(1);
-    }).join(' ');
+    var color = opts.color || 'var(--accent)';
+    var co = values.map(function (v, i) {
+      return { x: pad + i * stepX, y: h - pad - ((v - min) / span) * (h - pad * 2), v: v };
+    });
+    var line = co.map(function (p) { return p.x.toFixed(1) + ',' + p.y.toFixed(1); }).join(' ');
+    var lbl = opts.label ? opts.label + ': ' : '';
+    var pts = co.map(function (p) {
+      return '<circle class="adm-spark-pt" cx="' + p.x.toFixed(1) + '" cy="' + p.y.toFixed(1) + '" r="6" data-tip="' + esc(lbl + num(p.v)) + '"></circle>' +
+        '<circle class="adm-spark-dot" cx="' + p.x.toFixed(1) + '" cy="' + p.y.toFixed(1) + '" r="1.8" fill="' + color + '"></circle>';
+    }).join('');
     return '<svg class="adm-spark" viewBox="0 0 ' + w + ' ' + h + '" preserveAspectRatio="none" height="' + h + '">' +
-      '<polyline points="' + pts + '" fill="none" stroke="' + (opts.color || 'var(--accent)') + '" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" />' +
-      '</svg>';
+      '<polyline points="' + line + '" fill="none" stroke="' + color + '" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" />' +
+      pts + '</svg>';
   }
   function sparkCard(title, values, opts) {
+    opts = opts || {};
+    if (!opts.label) opts.label = title;
     var s = sparkline(values, opts);
     if (!s) return '';
     var first = values[0], last = values[values.length - 1];
@@ -2599,13 +2653,14 @@
         statTile('Avg order value', usd(avgOrderValue()), 'over selected range', '')
       ]);
       if (methods.length) {
-        bd += '<div class="adm-mini-head">Revenue by payment method · USD-equivalent</div><div class="adm-mixbar">' +
-          methods.map(function (m) { return '<span class="adm-mixseg" style="width:' + m.pct.toFixed(2) + '%;background:' + methodColor(m.label) + ';" title="' + esc(m.label + ' · ' + usd(m.v)) + '"></span>'; }).join('') +
-          '</div><div class="adm-mixkey">' + methods.map(function (m) { return '<span><i style="background:' + methodColor(m.label) + '"></i>' + esc(m.label) + ' · ' + usd(m.v) + ' (' + Math.round(m.pct) + '%)</span>'; }).join('') + '</div>';
+        bd += '<div class="adm-mini-head">Revenue by payment method · USD-equivalent</div>' +
+          donutChart(methods.map(function (m) {
+            var disp = m.label === 'Robux' ? robuxRaw(m.robux) : usd(m.v);
+            return { label: m.label, value: m.v, color: methodColor(m.label), display: esc(disp), plain: disp };
+          }), { centerLabel: usd(methods.reduce(function (s, m) { return s + m.v; }, 0)), centerSub: 'total' });
       }
       bd += '<div class="adm-mini-head">Average order value · daily</div>' + svgBars(aovDailySeries(), { height: 110, color: 'var(--price)' });
       $('admRevBreakdown').innerHTML = bd;
-      attachChartTooltip($('admRevBreakdown'));
     }
 
     var best = bestSellers(6);
@@ -2616,13 +2671,19 @@
     }).join('') : '<p class="adm-empty">No completed orders in this range.</p>';
 
     var byCat = revenueByCategory();
-    $('admCatChart').innerHTML = byCat.length ? svgBars(byCat.map(function (c) { return { label: c.label, v: c.v, tip: usd(c.v) }; }), { height: 120 }) : '<p class="adm-empty">No data.</p>';
-    attachChartTooltip($('admCatChart'));
     var prevCat = win ? categoryRevenueWindow(prevOrders) : null;
-    $('admCatList').innerHTML = byCat.map(function (c) {
-      var delta = prevCat ? ' ' + pctDelta(c.v, prevCat[c.label] || 0) : '';
-      return '<div class="adm-catrow"><span>' + esc(c.label) + '</span><span>' + usd(c.v) + delta + '</span></div>';
-    }).join('');
+    var catTotal = byCat.reduce(function (s, c) { return s + c.v; }, 0);
+    var catPalette = ['var(--accent)', '#3b7bbf', '#e8b84b', 'var(--price)', '#9b6dd6', '#5fb0a5', '#d67c4a', '#8a8f98'];
+    $('admCatChart').innerHTML = byCat.length ? donutChart(byCat.map(function (c, i) {
+      var pv = prevCat ? (prevCat[c.label] || 0) : null;
+      var deltaTxt = (pv != null && pv > 0) ? ' · ' + (c.v >= pv ? '+' : '') + Math.round((c.v - pv) / pv * 100) + '% vs prev' : '';
+      return {
+        label: c.label, value: c.v, color: catPalette[i % catPalette.length],
+        display: esc(usd(c.v)), plain: usd(c.v),
+        tip: c.label + ' · ' + usd(c.v) + ' · ' + (catTotal ? Math.round(c.v / catTotal * 100) : 0) + '%' + deltaTxt
+      };
+    }), { centerLabel: usd(catTotal), centerSub: 'revenue' }) : '<p class="adm-empty">No data in this range.</p>';
+    if ($('admCatList')) $('admCatList').innerHTML = '';
 
     $('admTrafficChart').innerHTML = svgBars(trafficSeries(), { color: 'var(--price)' });
     attachChartTooltip($('admTrafficChart'));

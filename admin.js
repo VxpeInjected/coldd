@@ -328,7 +328,7 @@
   }
 
   // Sale Events replace the site's hardcoded "Spring Sale" announcement
-  // banner (assets.html/minecraft.html) with real admin-managed data - the
+  // banner with real admin-managed data - the
   // seed below matches that banner's original copy so nothing visually
   // changes until an admin edits or adds an event.
   var SALE_EVENTS = [];
@@ -3094,11 +3094,9 @@
   /* ---- Product edit panel ---- */
   var ADM_ICON_TRASH = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>';
   var CATEGORIES_BY_PLATFORM = {
-    Roblox: ['Finished Games & Templates', 'Maps', 'Scripts & UI', 'Graphics', 'Buildings', 'Assets', 'Uniforms & Gear', 'Boats', 'Weapons', 'Vehicles', 'Animations & VFX'],
-    Minecraft: ['Hubs', 'Lobbies', 'Maps', 'Builds', 'Plugins', 'Full Setups']
+    Roblox: ['Finished Games & Templates', 'Maps', 'Scripts & UI', 'Graphics', 'Buildings', 'Assets', 'Uniforms & Gear', 'Boats', 'Weapons', 'Vehicles', 'Animations & VFX']
   };
-  // Mirrors the sidebar subcategory filter tree on assets.html/minecraft.html
-  // (Minecraft categories have no subcategories at all, hence no entries here).
+  // Mirrors the sidebar subcategory filter tree on the shop page.
   var SUBCATS_BY_CAT = {
     'Finished Games & Templates': [['finished-games', 'Finished Games'], ['game-templates', 'Game Templates']],
     'Maps': [['cities-towns', 'Cities & Towns'], ['houses-estates', 'Houses & Estates'], ['military-government', 'Military & Government'], ['nature-terrain', 'Nature & Terrain'], ['scpf', 'SCPF'], ['sci-fi', 'Sci-Fi'], ['airports-aviation', 'Airports & Aviation'], ['medieval', 'Medieval'], ['lobby-spawns', 'Lobby & Spawns'], ['cafes-retail', 'Cafes & Retail'], ['ugc-showcase-homestores', 'UGC Showcase & Homestores'], ['combat', 'Combat'], ['low-poly-simulator', 'Low Poly & Simulator']],
@@ -3304,8 +3302,6 @@
     var hint = $('admEditDevexHint'); if (!hint) return;
     var platform = ($('admEditPlatform') || {}).value;
     var usdPrice = parseFloat($('admEditPrice').value) || 0;
-    // Robux/DevEx pricing only applies to Roblox products, so Minecraft
-    // products shouldn't show a nonsensical Robux conversion hint.
     hint.textContent = (platform === 'Roblox' && usdPrice > 0)
       ? ('DevEx equivalent of ' + usd(usdPrice) + ' ≈ R$ ' + Math.round(usdPrice / DEVEX_USD_PER_ROBUX).toLocaleString('en-US'))
       : '';
@@ -5619,7 +5615,7 @@
   var tutDifficultyDropdown = makeDropdown($('admNewTutDifficultyDD'), { valueInput: $('admNewTutDifficulty') });
   tutDifficultyDropdown.setOptions(['Beginner', 'Intermediate', 'Advanced'], 'Beginner');
   var tutPlatformDropdown = makeDropdown($('admNewTutPlatformDD'), { valueInput: $('admNewTutPlatform') });
-  tutPlatformDropdown.setOptions(['Roblox', 'Minecraft', 'Both'], 'Roblox');
+  tutPlatformDropdown.setOptions(['Roblox'], 'Roblox');
   function fillTutForm(t) {
     $('admTutEditId').value = t.id;
     $('admNewTutTitle').value = t.title;

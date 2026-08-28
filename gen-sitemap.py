@@ -31,7 +31,6 @@ TIMEOUT = 20
 STATIC_PAGES = [
     ('/', 'weekly', '1.0'),
     ('/assets', 'weekly', '0.9'),
-    ('/minecraft', 'weekly', '0.9'),
     ('/blog', 'weekly', '0.7'),
     ('/blog?view=tutorials', 'weekly', '0.7'),
     ('/releases', 'weekly', '0.6'),

@@ -731,8 +731,7 @@
 
       const PAGES = [
         { label: 'Home', href: '/' },
-        { label: 'Roblox', href: '/assets' },
-        { label: 'Minecraft', href: '/minecraft' },
+        { label: 'Shop', href: '/assets' },
         { label: 'About Us', href: '/about' }
       ];
       function groupHeader(label) {
@@ -962,9 +961,8 @@
         }
         if (mega.classList.contains('open')) position();
       }
-      // Click only, not hover - a hover-triggered switch meant just passing
-      // the mouse over "Minecraft" on the way to a Roblox category silently
-      // swapped the whole panel out from under the cursor.
+      // Click only, not hover - a hover-triggered switch used to swap the
+      // panel out from under the cursor on the way to a category.
       tabs.forEach(function (t) {
         t.addEventListener('click', function () { setPlatform(t.getAttribute('data-platform')); });
       });
@@ -1158,7 +1156,7 @@
         (function reconcileGrid() {
           function escHtml(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
           function fmtPriceStr(n) { return '$' + (n % 1 === 0 ? n : n.toFixed(2)); }
-          var shopPlatform = base === '/minecraft' ? 'Minecraft' : 'Roblox';
+          var shopPlatform = 'Roblox';
           var catSlugByLabel = {};
           (window.__CATEGORIES || []).forEach(function (c) { if (c.platform === shopPlatform) catSlugByLabel[c.label] = c.slug; });
           var starsHtmlFor = window.__coldRating.starsHtmlFor;
@@ -1472,7 +1470,7 @@
             // reconcileGrid's own shopPlatform is scoped to its own inner
             // function, not shared with this one - same derivation from
             // the same `base` const, just recomputed here.
-            var platform = base === '/minecraft' ? 'Minecraft' : 'Roblox';
+            var platform = 'Roblox';
             var key = platform + '|' + (el.getAttribute('data-catlabel') || '');
             if (userCategories.has(key)) interestBoost = 25;
           }
@@ -1835,7 +1833,7 @@
       document.addEventListener('click', function (e) {
         const a = e.target.closest('a'); if (!a || a.target === '_blank') return;
         const href = a.getAttribute('href') || '';
-        if (!/^\/(assets|minecraft|about|blog|post|tutorial|releases)?(\?|#|$)/.test(href)) return;
+        if (!/^\/(assets|about|blog|post|tutorial|releases)?(\?|#|$)/.test(href)) return;
 
         const here = location.pathname.split('/').pop() || '/';
         const target = href.split(/[?#]/)[0] || '/';
@@ -2206,7 +2204,6 @@
           var du = priceEl.getAttribute('data-usd');
           price = du != null ? (parseFloat(du) || 0) : (parseFloat(priceEl.textContent.replace(/[^0-9.]/g, '')) || 0);
         }
-        var mc = !!card.closest('#view-minecraft') || /minecraft/i.test(location.pathname);
         var cardId = card.getAttribute('data-id') || title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
         // Matches product.html: prefer the admin-configured resell price
         // over the flat 3x estimate when the catalog has one set, so
@@ -2215,7 +2212,7 @@
         return { id: cardId, title: title, price: price,
                  image: m ? m[1] : '', tag: tag,
                  desc: descEl ? descEl.textContent.trim() : '',
-                 platform: mc ? 'Minecraft' : 'Roblox',
+                 platform: 'Roblox',
                  resell: card.getAttribute('data-resell') === 'yes',
                  resellPrice: catalogProd && catalogProd.resellPrice != null ? catalogProd.resellPrice : null };
       }
@@ -2420,7 +2417,6 @@
             ['Can I edit or update this product?', 'Yes, you can update, modify or edit any part of our products to fit within your games and projects.'],
             ['Can I pay in robux instead of real currency?', 'Yes you can purchase with robux on-site by simply selecting the robux purchase option. Keep in mind that real currency (USD) purchases are 50% cheaper than robux pricing.']
           ];
-          if (p.platform === 'Minecraft') { list.splice(10, 1); list.splice(2, 1); }
           return list;
         }
 
@@ -2466,7 +2462,7 @@
         function refreshPrice() {
           if (!cur) return;
           var isResell = cur.licence === 'resell';
-          var showRbx = cur.platform !== 'Minecraft' && !isResell;
+          var showRbx = !isResell;
           var resellUsd = cur.resellPrice != null ? cur.resellPrice : Math.round(cur.priceNum * RESELL_MULT);
           var base = isResell ? resellUsd : cur.priceNum;
           cur.price = base; cur.licence = cur.licence;

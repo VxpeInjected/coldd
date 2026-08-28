@@ -13,12 +13,6 @@
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://coldd.dev/minecraft</loc>
-    <lastmod>2026-08-10</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
     <loc>https://coldd.dev/blog</loc>
     <lastmod>2026-08-10</lastmod>
     <changefreq>weekly</changefreq>

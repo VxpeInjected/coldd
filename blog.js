@@ -170,48 +170,6 @@
         '## Lock the layout before detailing starts',
         'Once the blockout passes playtesting, treat the footprint as fixed. Detail work that has to be torn out because the layout changed underneath it is the most common source of wasted build time.'
       ].join('\n\n')
-    },
-    {
-      id: 'tut-8', slug: 'configuring-a-skyblock-economy-plugin', title: 'Configuring a Skyblock economy plugin',
-      summary: 'Starting balances, sell-price curves, and the inflation traps that quietly ruin a Skyblock server’s economy within a month.',
-      cover: '/minecraft.jpg', track: 'Server Setup', difficulty: 'Intermediate', platform: 'Minecraft', order: 1, estMins: 16, visible: true, video: '',
-      body: [
-        'A Skyblock economy that feels fine on day one and breaks by week three is almost always an inflation problem, not a bug.',
-        '## Keep starting balances low',
-        'A generous starting balance feels welcoming but devalues everything a new player earns in their first hour. Start players near zero and let early quests be the income, not a handout.',
-        '## Sell prices should decay with volume',
-        'If cobblestone sells for a flat price forever, a single player with a cobble generator can flood the market and crash your economy’s meaning. A decaying sell curve keeps grinding worthwhile without breaking the ceiling.',
-        '## Add currency sinks before you add currency sources',
-        'Every new way to earn money needs a matching way to spend it — upgrades, cosmetics, cooldown skips. An economy with sources and no sinks only goes one direction: worthless money by month two.'
-      ].join('\n\n')
-    },
-    {
-      id: 'tut-9', slug: 'cross-version-compatibility-1-20-to-1-21', title: 'Cross-version compatibility, 1.20 to 1.21',
-      summary: 'What actually breaks between Minecraft versions, and how to keep one server running for both without maintaining two builds.',
-      cover: '/minecraft.jpg', track: 'Server Setup', difficulty: 'Advanced', platform: 'Minecraft', order: 2, estMins: 13, visible: true, video: '',
-      body: [
-        'Most cross-version breakage isn’t the game version — it’s plugins and data packs assuming a block ID or NBT structure that changed underneath them.',
-        '## Pin your plugin versions, not just the server jar',
-        'A plugin that "still loads" on a new version isn’t proof it still works correctly. Check each plugin’s changelog for the target version specifically before trusting it in production.',
-        '## Use a version-bridging proxy for mixed clients',
-        'If you need 1.20 and 1.21 clients on the same server, a protocol-translation proxy in front of the server is far more maintainable than trying to support both natively.',
-        '## Snapshot before every version bump',
-        'A full world and plugin-config backup before upgrading costs a few minutes. Discovering an incompatibility after the upgrade with no rollback costs a weekend.'
-      ].join('\n\n')
-    },
-    {
-      id: 'tut-10', slug: 'backing-up-a-server-without-downtime', title: 'Backing up a server without downtime',
-      summary: 'A backup routine that doesn’t freeze the world, doesn’t corrupt saves, and doesn’t require anyone to remember to run it.',
-      cover: '/frostline.jpg', track: 'Server Setup', difficulty: 'Beginner', platform: 'Minecraft', order: 3, estMins: 7, visible: true, video: '',
-      body: [
-        'A backup you have to remember to run is a backup that won’t exist the one time you actually need it.',
-        '## Flush before you copy',
-        'Force a world save (`save-all flush`) immediately before copying world files. Copying a world mid-write is the single most common cause of a "restored" backup that’s actually corrupted.',
-        '## Schedule it, don’t rely on memory',
-        'A cron job or scheduled task beats a sticky note every time. Nightly is the right cadence for most small servers — frequent enough to matter, infrequent enough not to eat disk space.',
-        '## Keep at least three generations',
-        'One backup protects you from data loss. Three protects you from a backup you didn’t notice was already corrupted — you can still fall back one generation further.'
-      ].join('\n\n')
     }
   ];
 
@@ -304,19 +262,6 @@
         '## Schema discipline matters more without a schema enforcer',
         'A real database rejects a malformed row. A DataStore will happily save whatever table you hand it, which means the discipline of versioning and validating your own data shape has to come from you, not the platform.',
         'The full walkthrough — UpdateAsync, retry backoff, BindToClose, schema versioning — is in the DataStore tutorial if you want the implementation, not just the philosophy.'
-      ].join('\n\n')
-    },
-    {
-      id: 'post-8', slug: 'what-we-learned-running-40-skyblock-servers', title: 'What we learned running 40 Skyblock servers',
-      dek: 'Every Skyblock Network Hub sale comes with support, which means we’ve watched roughly forty economies succeed or quietly break over the past year.',
-      cover: '/minecraft.jpg', category: 'Craft', tags: ['Minecraft', 'Server Setup'], author: 'Priya N.', date: '2026-07-17', readMins: 5, featured: true, visible: true,
-      body: [
-        'Supporting the Skyblock Network Hub means we end up in the Discord of roughly forty different servers running it. The economies that survive and the ones that quietly die by month two split on a small number of decisions.',
-        '## The servers that failed almost always started generous',
-        'A high starting balance feels like good hospitality. In every case we watched go wrong, it also meant the early game had nothing left to sell for, because players already had money for it.',
-        '## The servers that lasted had sinks before they had sources',
-        'Every surviving economy we tracked added at least one meaningful currency sink — cosmetic, convenience, or cooldown-based — before adding a new way to earn money, not after.',
-        'We wrote up the specific configuration choices in the Skyblock economy tutorial. This post is the pattern; that one is the checklist.'
       ].join('\n\n')
     }
   ];

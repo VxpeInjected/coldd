@@ -519,7 +519,7 @@
         url('builds.jpg') center / cover no-repeat, #0f1014; }
     .tile.t-scripts { background:
         linear-gradient(180deg, rgba(10,11,14,0.30) 0%, rgba(10,11,14,0.58) 58%, rgba(10,11,14,0.90) 100%),
-        url('minecraft.jpg') center / cover no-repeat, #0f1014; }
+        url('premade.jpg') center / cover no-repeat, #0f1014; }
     .tile.t-products { background:
         linear-gradient(110deg, rgba(10,11,14,0.78) 0%, rgba(10,11,14,0.50) 45%, rgba(10,11,14,0.30) 100%),
         url('products.jpg') center / cover no-repeat, #0f1014; }
@@ -4097,6 +4097,10 @@ html.auth-in .nav-notif[hidden] { display: block; }
 .robux-modal-help-contact a { color: var(--accent); font-weight: 600; text-decoration: none; }
 
 @media (max-width: 480px) { .robux-modal { padding: 26px 20px 22px; } }
+
+/* Roblox-only now - the mega-menu's platform tab row holds a single tab,
+   so it's just a redundant label above the categories. */
+.nav-mega-tabs { display: none; }
 
 /* Admin sticky corner toast - save / failure feedback */
 .adm-toast { position: fixed; right: 20px; bottom: 20px; z-index: 9000; max-width: 340px;

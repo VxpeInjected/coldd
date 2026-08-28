@@ -1565,10 +1565,23 @@ body.no-scroll { overflow: hidden; }
   box-shadow: 0 1px 0 rgba(255,255,255,0.05) inset, 0 20px 46px -26px var(--ink-75);
 }
 .pd-buycard { border: 1px solid var(--hairline); border-radius: var(--r-sm); padding: 20px; }
-.pd-admin-bar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 12px;
-  padding: 10px 12px; border: 1px dashed rgba(255,77,68,0.4); border-radius: var(--r-sm); background: rgba(255,77,68,0.05); }
-.pd-admin-label { font-size: 10px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent); margin-right: 2px; }
-.pd-admin-bar .btn { padding: 7px 12px; font-size: 12.5px; }
+.pd-admin-bar { display: flex; align-items: center; gap: 6px; margin-bottom: 14px;
+  padding: 6px 6px 6px 12px; border: 1px solid var(--hairline); border-radius: 999px;
+  background: color-mix(in srgb, var(--accent) 7%, var(--surface, #16181d)); }
+.pd-admin-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); flex: none; box-shadow: 0 0 0 3px rgba(255,77,68,0.18); }
+.pd-admin-label { font-size: 11px; font-weight: 700; letter-spacing: 0.02em; color: var(--fg-2); margin-right: auto; padding-left: 2px; }
+.pd-admin-act { display: inline-flex; align-items: center; gap: 5px; padding: 6px 11px; border-radius: 999px;
+  font-size: 12px; font-weight: 600; color: var(--fg); text-decoration: none; background: rgba(255,255,255,0.06); border: 1px solid var(--hairline); }
+.pd-admin-act svg { opacity: 0.8; }
+@media (hover: hover) and (pointer: fine) { .pd-admin-act:hover { background: rgba(255,255,255,0.11); } }
+.pd-admin-x { flex: none; width: 24px; height: 24px; display: grid; place-items: center; border: none;
+  border-radius: 50%; background: none; color: var(--fg-3); cursor: pointer; }
+@media (hover: hover) and (pointer: fine) { .pd-admin-x:hover { color: var(--fg); background: rgba(255,255,255,0.08); } }
+
+/* Admin product-edit floating save - stays reachable while scrolling a long form */
+.adm-sticky-save { position: fixed; top: 74px; right: 26px; z-index: 60; min-height: 40px; padding: 9px 20px;
+  box-shadow: 0 8px 26px rgba(0,0,0,0.45); }
+@media (max-width: 760px) { .adm-sticky-save { top: auto; bottom: 16px; right: 16px; } }
 .pd-price-row { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
 .pd-price-main { display: flex; align-items: baseline; gap: 10px; }
 .pd-price { font-size: 30px; font-weight: 800; color: var(--price); letter-spacing: -0.02em; }

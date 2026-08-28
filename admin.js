@@ -3405,6 +3405,7 @@
     if ($('admLegalDownloadBtn')) $('admLegalDownloadBtn').hidden = false;
     $('admEditHeading').textContent = 'Edit: ' + p.title;
     $('admEditSaveBtn').textContent = 'Save changes';
+    if ($('admEditStickySave')) $('admEditStickySave').querySelector('.btn-label').textContent = 'Save changes';
     $('admEditMsg').textContent = '';
     updateDevexHint();
 
@@ -3710,6 +3711,7 @@
     if ($('admLegalDownloadBtn')) $('admLegalDownloadBtn').hidden = true;
     $('admEditHeading').textContent = 'Create new product';
     $('admEditSaveBtn').textContent = 'Create product';
+    if ($('admEditStickySave')) $('admEditStickySave').querySelector('.btn-label').textContent = 'Create product';
     $('admEditMsg').textContent = '';
     updateDevexHint();
 
@@ -3790,6 +3792,15 @@
     };
   }
 
+  // Floating top-right save button - mirrors the form's own submit so the
+  // admin doesn't have to scroll to the bottom of a long edit form.
+  var editStickySave = $('admEditStickySave');
+  if (editStickySave) editStickySave.addEventListener('click', function () {
+    var f = $('admEditForm');
+    if (f && f.requestSubmit) f.requestSubmit();
+    else if (f) f.dispatchEvent(new Event('submit', { cancelable: true }));
+  });
+
   var editForm = $('admEditForm');
   if (editForm) editForm.addEventListener('submit', function (e) {
     e.preventDefault();
@@ -3798,7 +3809,17 @@
     var isCreate = !id;
     var platform = $('admEditPlatform').value;
     var msg = $('admEditMsg');
-    var saveBtn = $('admEditSaveBtn');
+    var realSaveBtn = $('admEditSaveBtn');
+    var stickySave = $('admEditStickySave');
+    // A stand-in for the real save button that also drives the floating
+    // top-right one (disabled state + its spinner), since the rest of this
+    // handler only ever toggles saveBtn.disabled.
+    var saveBtn = {
+      set disabled(v) {
+        if (realSaveBtn) realSaveBtn.disabled = v;
+        if (stickySave) { stickySave.disabled = v; var sp = stickySave.querySelector('.btn-spinner'); if (sp) sp.hidden = !v; var lb = stickySave.querySelector('.btn-label'); if (lb) lb.hidden = v; }
+      }
+    };
 
     if (isCreate) {
       var title = $('admEditTitleInput').value.trim();

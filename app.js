@@ -2683,11 +2683,24 @@
 
           // Admin-only quick links into the admin panel for this exact
           // product (deep-linked - /admin reads ?product=&action=).
+          // Hidden per-browser via the X (for screen-sharing a demo);
+          // ?adminbar=1 in the URL clears that and brings it back.
           var pdAdminBar = document.getElementById('pdAdminBar');
           if (pdAdminBar && !pdAdminBar.dataset.wired && window.coldAuth && window.coldAuth.checkIsAdmin) {
             pdAdminBar.dataset.wired = '1';
+            var ADMIN_BAR_HIDE_KEY = 'coldd_pd_admin_hidden';
+            try {
+              if (/[?&]adminbar=1/.test(location.search)) localStorage.removeItem(ADMIN_BAR_HIDE_KEY);
+            } catch (e) {}
+            var barHidden = false;
+            try { barHidden = localStorage.getItem(ADMIN_BAR_HIDE_KEY) === '1'; } catch (e) {}
+            var xBtn = document.getElementById('pdAdminBarX');
+            if (xBtn) xBtn.addEventListener('click', function () {
+              pdAdminBar.hidden = true;
+              try { localStorage.setItem(ADMIN_BAR_HIDE_KEY, '1'); } catch (e) {}
+            });
             window.coldAuth.checkIsAdmin().then(function (info) {
-              if (!info || !info.isAdmin) return;
+              if (!info || !info.isAdmin || barHidden) return;
               var eid = encodeURIComponent(p.id);
               var e = document.getElementById('pdAdminEdit');
               var u = document.getElementById('pdAdminUpdate');

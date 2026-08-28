@@ -3,12 +3,13 @@
 // Deploy with:
 //   supabase functions deploy marketing-signup --no-verify-jwt
 //
-// Backs the site-wide "get 10% off for your email" popup - NOT the
-// checkout marketing checkbox anymore (that one's consent-only, no
-// incentive). Auth is optional: a signed-out visitor can claim a code
-// just by typing an email; a signed-in one also gets
-// profiles.notification_prefs.promotions synced so it shows up in their
-// own Notifications settings.
+// The 10% discount is minted for ONE entry point only: the site-wide
+// "get 10% off for your email" popup (source=popup). The signup checkbox
+// (source=signup) and the checkout box (source=checkout) are
+// consent-only - they record the opt-in and mint no code. Auth is
+// optional: a signed-out visitor can claim a popup code just by typing an
+// email; a signed-in one also gets profiles.notification_prefs.promotions
+// synced so it shows up in their own Notifications settings.
 //
 // Re-submitting the same email returns the SAME code it already has
 // (marketing_optins.discount_code) rather than minting a new one every
@@ -103,8 +104,39 @@ Deno.serve(async (req: Request) => {
       if (userData?.user) userId = userData.user.id;
     }
 
-    const { data: existing } = await admin.from("marketing_optins").select("discount_code").eq("email", email).maybeSingle();
+    // Sync the signed-in visitor's own Notifications setting so the opt-in
+    // is visible and revocable from the account they're in - regardless of
+    // where it came from.
+    const syncPromotions = async () => {
+      if (!userId) return;
+      const { data: profile } = await admin.from("profiles").select("notification_prefs").eq("id", userId).maybeSingle();
+      const prefs = Object.assign({}, profile?.notification_prefs || {}, { promotions: true });
+      await admin.from("profiles").update({ notification_prefs: prefs }).eq("id", userId);
+    };
+
+    const { data: existing } = await admin
+      .from("marketing_optins").select("discount_code").eq("email", email).maybeSingle();
+
+    // The discount is a POPUP-only incentive. The signup checkbox and the
+    // checkout box are consent-only now - they record the opt-in (and
+    // resurrect it if the address had unsubscribed) but mint no code.
+    if (source !== "popup") {
+      await admin.from("marketing_optins").upsert({
+        email,
+        user_id: userId,
+        source,
+        subscribed_at: new Date().toISOString(),
+        unsubscribed_at: null,
+      });
+      await syncPromotions();
+      return json({ ok: true, code: null, alreadySubscribed: !!existing });
+    }
+
+    // Popup path. A repeat submission re-sends the code they already have
+    // rather than minting a fresh single-use one every time.
     if (existing?.discount_code) {
+      await admin.from("marketing_optins").update({ unsubscribed_at: null }).eq("email", email);
+      await syncPromotions();
       await emailWelcomeCode(email, existing.discount_code, true);
       return json({ ok: true, code: existing.discount_code, alreadySubscribed: true });
     }
@@ -117,15 +149,11 @@ Deno.serve(async (req: Request) => {
       user_id: userId,
       source,
       subscribed_at: new Date().toISOString(),
+      unsubscribed_at: null,
       discount_code: code,
     });
 
-    if (userId) {
-      const { data: profile } = await admin.from("profiles").select("notification_prefs").eq("id", userId).maybeSingle();
-      const prefs = Object.assign({}, profile?.notification_prefs || {}, { promotions: true });
-      await admin.from("profiles").update({ notification_prefs: prefs }).eq("id", userId);
-    }
-
+    await syncPromotions();
     await emailWelcomeCode(email, code, false);
 
     return json({ ok: true, code, alreadySubscribed: false });

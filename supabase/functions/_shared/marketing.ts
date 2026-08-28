@@ -33,6 +33,8 @@ export async function recordMarketingOptIn(admin: any, email: string | null | un
       user_id: userId || null,
       source: "checkout",
       subscribed_at: new Date().toISOString(),
+      // Ticking the box again after a prior unsubscribe re-opts them in.
+      unsubscribed_at: null,
     });
     if (userId) {
       const { data: profile } = await admin.from("profiles").select("notification_prefs").eq("id", userId).maybeSingle();

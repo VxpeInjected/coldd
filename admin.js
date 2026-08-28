@@ -2261,87 +2261,93 @@
   /* ================================================================
      EMAIL MARKETING (part of the Marketing panel)
      ================================================================ */
-  var EMAIL_STATS = { total: 0, subscribed: 0, unsubscribed: 0 };
+  var EMAIL_STATS = { total: 0, optedIn: 0, unsubscribed: 0, allAccounts: 0 };
   var EMAIL_CAMPAIGNS = [];
-  var EMAIL_RECIPIENTS = []; // { email, username, status, joined, provider, synthetic, referredBy }
+  var EMAIL_RECIPIENTS = []; // consented addresses only: { email, username, status, joined, provider, optInSource, optInAt, unsubscribed, referredBy }
   var EMAIL_CONFIGURED = null; // null = not checked yet
+  var EMAIL_CAN_ANNOUNCE = false; // caller is whitelisted to send announcements
   var SYNTH_EMAIL_RE = /@roblox\.coldd\.internal$/i;
 
-  var MARKETING_OPTINS = {}; // lowercased email -> { source, subscribed_at, discount_code }
+  var MARKETING_OPTINS = []; // [{ email, source, subscribed_at, discount_code, unsubscribed_at }]
   function refreshMarketingOptins() {
     if (!window.coldSupabase) return Promise.resolve();
-    return window.coldSupabase.from('marketing_optins').select('email, source, subscribed_at, discount_code').limit(20000).then(function (res) {
+    return window.coldSupabase.from('marketing_optins')
+      .select('email, source, subscribed_at, discount_code, unsubscribed_at').limit(20000).then(function (res) {
       if (res.error) { console.error('[admin] failed to load marketing opt-ins:', res.error.message); return; }
-      var m = {};
-      (res.data || []).forEach(function (r) { if (r.email) m[r.email.toLowerCase()] = r; });
-      MARKETING_OPTINS = m;
+      MARKETING_OPTINS = (res.data || []).filter(function (r) { return r.email; });
     });
   }
   function refreshEmailStats() {
     if (!window.coldSupabase) return Promise.resolve();
-    // profiles carries the opt-OUT flag (marketing_unsubscribed) and the
-    // account facts; marketing_optins carries the real opt-IN records
-    // (checkout box / discount popup / signup form). Load both.
+    // The email list is the marketing CONSENT ledger - marketing_optins
+    // (checkout box / discount popup / signup form) plus any account whose
+    // Notifications > promotions toggle is on. Non-consented accounts and
+    // synthetic Roblox logins are not part of it. profiles is loaded only
+    // to enrich each consented address with account facts (name, provider,
+    // ban state) and to fold in toggle-based opt-ins.
     return refreshMarketingOptins().then(function () {
     return window.coldSupabase.from('profiles')
       .select('id, email, username, marketing_unsubscribed, banned, created_at, discord_id, roblox_id, referred_by, notification_prefs')
       .limit(20000).then(function (res) {
       if (res.error) { console.error('[admin] failed to load subscriber stats:', res.error.message); return; }
-      var rows = (res.data || []).filter(function (r) { return r.email; });
-      EMAIL_RECIPIENTS = rows.map(function (r) {
-        var synthetic = SYNTH_EMAIL_RE.test(r.email);
-        var optin = MARKETING_OPTINS[r.email.toLowerCase()] || null;
+      var profiles = (res.data || []).filter(function (r) { return r.email; });
+      var byEmail = {};
+      profiles.forEach(function (r) { byEmail[r.email.toLowerCase()] = r; });
+      EMAIL_STATS.allAccounts = profiles.filter(function (r) { return !SYNTH_EMAIL_RE.test(r.email); }).length;
+
+      // Start from the opt-in rows, keyed by lowercased email.
+      var merged = {};
+      MARKETING_OPTINS.forEach(function (o) {
+        var lc = o.email.toLowerCase();
+        if (SYNTH_EMAIL_RE.test(lc)) return;
+        merged[lc] = { email: o.email, optInSource: o.source || 'unknown', optInAt: o.subscribed_at || null, unsubscribed: !!o.unsubscribed_at };
+      });
+      // Fold in accounts opted in via the promotions toggle only.
+      profiles.forEach(function (r) {
+        var lc = r.email.toLowerCase();
+        if (SYNTH_EMAIL_RE.test(lc)) return;
         var promos = !!(r.notification_prefs && r.notification_prefs.promotions);
+        if (!promos || merged[lc]) return;
+        merged[lc] = { email: r.email, optInSource: 'account settings', optInAt: null, unsubscribed: !!r.marketing_unsubscribed };
+      });
+
+      EMAIL_RECIPIENTS = Object.keys(merged).map(function (lc) {
+        var m = merged[lc];
+        var p = byEmail[lc] || null;
+        var unsub = m.unsubscribed || !!(p && p.marketing_unsubscribed);
+        var banned = !!(p && p.banned);
         return {
-          id: r.id,
-          email: r.email,
-          username: r.username || null,
-          synthetic: synthetic,
-          provider: r.roblox_id ? 'Roblox' : r.discord_id ? 'Discord' : 'Email / Google',
-          referredBy: r.referred_by || null,
-          unsubscribed: !!r.marketing_unsubscribed,
-          optedIn: !!(optin || promos),
-          optInSource: optin ? optin.source : (promos ? 'account settings' : null),
-          optInAt: optin ? optin.subscribed_at : null,
-          status: r.banned ? 'banned' : synthetic ? 'norealemail' : r.marketing_unsubscribed ? 'unsubscribed' : (optin || promos) ? 'optedin' : 'subscribed',
-          joined: r.created_at || null
+          email: m.email,
+          username: p ? (p.username || null) : null,
+          provider: p ? (p.roblox_id ? 'Roblox' : p.discord_id ? 'Discord' : 'Email / Google') : 'Guest (no account)',
+          referredBy: p ? (p.referred_by || null) : null,
+          optInSource: m.optInSource,
+          optInAt: m.optInAt,
+          joined: p ? (p.created_at || null) : (m.optInAt || null),
+          unsubscribed: unsub,
+          status: banned ? 'banned' : unsub ? 'unsubscribed' : 'optedin'
         };
-      }).sort(function (a, b) { return (b.joined || '').localeCompare(a.joined || ''); });
-      // Totals reflect real, mailable addresses only.
-      var real = EMAIL_RECIPIENTS.filter(function (r) { return !r.synthetic; });
-      EMAIL_STATS = {
-        total: real.length,
-        subscribed: real.filter(function (r) { return r.status === 'subscribed' || r.status === 'optedin'; }).length,
-        optedIn: real.filter(function (r) { return r.optedIn && !r.unsubscribed; }).length,
-        unsubscribed: real.filter(function (r) { return r.unsubscribed; }).length
-      };
+      }).sort(function (a, b) { return (b.optInAt || b.joined || '').localeCompare(a.optInAt || a.joined || ''); });
+
+      EMAIL_STATS.total = EMAIL_RECIPIENTS.length;
+      EMAIL_STATS.optedIn = EMAIL_RECIPIENTS.filter(function (r) { return r.status === 'optedin'; }).length;
+      EMAIL_STATS.unsubscribed = EMAIL_RECIPIENTS.filter(function (r) { return r.unsubscribed; }).length;
       if (curPanel === 'marketing') renderEmailMarketing();
     });
     });
   }
-  // How this address relates to marketing. Two layers: an explicit opt-IN
-  // (checkout box / discount popup / signup form -> marketing_optins, or
-  // the Notifications settings promotions toggle), and the opt-OUT flag
-  // that governs general campaigns. Discount-bearing emails require the
-  // opt-in; general campaigns currently go to everyone not unsubscribed.
+  // Every address in this list is a real marketing opt-in - the popout
+  // just shows where/when it came from and whether it was later withdrawn.
   function emailConsentInfo(r) {
     var lines = [];
-    lines.push(['Account', (r.username || '—')]);
-    lines.push(['Signed up', r.joined ? fmtDateTime(new Date(r.joined)) + ' · via ' + r.provider : '—']);
-    if (r.optedIn) {
-      lines.push(['Opted in', (r.optInAt ? fmtDateTime(new Date(r.optInAt)) + ' · ' : '') + 'via ' + (r.optInSource || 'unknown') +
-        (r.unsubscribed ? ' (later unsubscribed)' : '')]);
-      lines.push(['Consent basis', 'Explicit opt-in — receives promotional and discount emails.']);
-    } else {
-      lines.push(['Opted in', 'No — never checked a marketing box or the promotions toggle']);
-      lines.push(['Consent basis', 'Opt-out model only: on the general campaign list because the account exists and has not unsubscribed. Excluded from any discount-bearing email.']);
-    }
+    lines.push(['Account', (r.username || (r.provider === 'Guest (no account)' ? 'Guest checkout / popup — no account' : '—'))]);
+    if (r.joined) lines.push(['Signed up', fmtDateTime(new Date(r.joined)) + ' · via ' + r.provider]);
+    lines.push(['Opted in', (r.optInAt ? fmtDateTime(new Date(r.optInAt)) + ' · ' : '') + 'via ' + (r.optInSource || 'unknown') +
+      (r.unsubscribed ? ' (later unsubscribed)' : '')]);
+    lines.push(['Consent basis', 'Explicit marketing opt-in.' + (r.unsubscribed ? ' Withdrawn — excluded from all marketing sends.' : ' Receives marketing and discount emails.')]);
     lines.push(['Marketing status', r.status === 'optedin' ? 'Opted in'
-      : r.status === 'subscribed' ? 'On campaign list (opt-out)'
       : r.status === 'unsubscribed' ? 'Unsubscribed'
-      : r.status === 'banned' ? 'Banned (excluded)'
-      : 'No real email — excluded from all sends']);
-    if (r.synthetic) lines.push(['Note', 'This is a placeholder Roblox address (roblox-<id>@roblox.coldd.internal), not a real inbox. It is stored as the login identifier only and is never emailed.']);
+      : 'Banned (excluded)']);
     if (r.referredBy) {
       var ref = REFERRALS.filter(function (x) { return x.ownerId === r.referredBy; })[0];
       lines.push(['Referred by', ref ? ref.owner : r.referredBy]);
@@ -2436,6 +2442,9 @@
   function refreshEmailConfigStatus() {
     return invokeAdminFn('admin-send-campaign', { action: 'status' }, '').then(function (data) {
       EMAIL_CONFIGURED = !!data.configured;
+      EMAIL_CAN_ANNOUNCE = !!data.canAnnounce;
+      var aw = $('admCampaignAudienceWrap');
+      if (aw) aw.hidden = !EMAIL_CAN_ANNOUNCE;
       if (curPanel === 'marketing') renderEmailMarketing();
     }).catch(function () { EMAIL_CONFIGURED = null; });
   }
@@ -2462,10 +2471,9 @@
     if ($('admEmailStats')) {
       var att = emailAttributedRevenue();
       $('admEmailStats').innerHTML = [
-        statTile('Accounts with an email', EMAIL_STATS.total.toLocaleString('en-US'), 'real, mailable addresses', ''),
-        statTile('Opted in', EMAIL_STATS.optedIn.toLocaleString('en-US'), 'checkout / popup / signup — gets discount emails', ''),
-        statTile('Campaign list', EMAIL_STATS.subscribed.toLocaleString('en-US'), 'not unsubscribed — general campaigns (opt-out)', ''),
-        statTile('Unsubscribed', EMAIL_STATS.unsubscribed.toLocaleString('en-US'), null, ''),
+        statTile('Opted in', EMAIL_STATS.optedIn.toLocaleString('en-US'), 'consented — every marketing send goes here', ''),
+        statTile('Unsubscribed', EMAIL_STATS.unsubscribed.toLocaleString('en-US'), 'opted in, then withdrew', ''),
+        statTile('All accounts', EMAIL_STATS.allAccounts.toLocaleString('en-US'), 'reachable by an announcement, regardless of opt-in', ''),
         statTile('Revenue from email', usd(att.usd), att.count + ' order' + (att.count === 1 ? '' : 's') + ' within 7d of a send', '')
       ].join('');
     }
@@ -2503,10 +2511,8 @@
     if (!body) return;
     var badge = {
       optedin: '<span class="dt-badge ok">Opted in</span>',
-      subscribed: '<span class="dt-badge">Campaign list</span>',
       unsubscribed: '<span class="dt-badge">Unsubscribed</span>',
-      banned: '<span class="dt-badge err">Banned</span>',
-      norealemail: '<span class="dt-badge warn">No real email</span>'
+      banned: '<span class="dt-badge err">Banned</span>'
     };
     var rows = emailListFiltered();
     var shown = rows.slice(0, EMAIL_LIST_CAP);
@@ -2519,12 +2525,12 @@
     }).join('') || '<tr><td colspan="3" class="adm-empty">No matching addresses.</td></tr>';
     var note = $('admEmailListNote');
     if (note) {
-      var optedIn = EMAIL_RECIPIENTS.filter(function (r) { return r.optedIn && !r.unsubscribed && !r.synthetic; }).length;
-      var campaignList = EMAIL_RECIPIENTS.filter(function (r) { return !r.synthetic && !r.unsubscribed && r.status !== 'banned'; }).length;
-      var base = optedIn.toLocaleString('en-US') + ' opted in · ' + campaignList.toLocaleString('en-US') + ' on the general campaign list';
+      var base = EMAIL_STATS.optedIn.toLocaleString('en-US') + ' opted in' +
+        (EMAIL_STATS.unsubscribed ? ' · ' + EMAIL_STATS.unsubscribed.toLocaleString('en-US') + ' later unsubscribed' : '') +
+        '. Consented addresses only — non-opted-in accounts and Roblox logins are not shown.';
       note.textContent = rows.length > shown.length
-        ? 'Showing first ' + shown.length + ' of ' + rows.length.toLocaleString('en-US') + ' matches - narrow the search to see the rest. ' + base + '.'
-        : base + '.';
+        ? 'Showing first ' + shown.length + ' of ' + rows.length.toLocaleString('en-US') + ' matches - narrow the search to see the rest. ' + base
+        : base;
     }
   }
 
@@ -2534,9 +2540,9 @@
     if (!r) return;
     var ov = $('admEmailInfoOverlay'); if (!ov) return;
     $('admEmailInfoTitle').textContent = r.email;
-    var stLabel = { optedin: 'Opted in', subscribed: 'Campaign list', unsubscribed: 'Unsubscribed', banned: 'Banned', norealemail: 'No real email' }[r.status] || r.status;
+    var stLabel = { optedin: 'Opted in', unsubscribed: 'Unsubscribed', banned: 'Banned' }[r.status] || r.status;
     $('admEmailInfoSub').innerHTML = (r.username ? esc(r.username) + ' · ' : '') + esc(r.provider) +
-      ' · <span class="dt-badge ' + (r.status === 'optedin' ? 'ok' : r.status === 'norealemail' ? 'warn' : '') + '">' + esc(stLabel) + '</span>';
+      ' · <span class="dt-badge ' + (r.status === 'optedin' ? 'ok' : r.status === 'banned' ? 'err' : '') + '">' + esc(stLabel) + '</span>';
 
     $('admEmailInfoConsent').innerHTML = emailConsentInfo(r).map(function (row) {
       return '<div class="adm-kv"><span>' + esc(row[0]) + '</span><span>' + esc(row[1]) + '</span></div>';
@@ -2588,10 +2594,28 @@
   // admin is authoring real markup directly). Whichever mode is active
   // decides what bodyHtml() returns and what the preview iframe renders.
   var campaignMode = 'simple';
+  var campaignAudience = 'marketing'; // 'marketing' | 'announcement'
   function campaignBodyHtml() {
     var raw = $('admCampaignBody').value;
     return campaignMode === 'html' ? raw : simpleMarkdownToHtml(raw);
   }
+  var campaignAudienceSwitch = document.querySelector('.adm-campaign-audience');
+  if (campaignAudienceSwitch) campaignAudienceSwitch.addEventListener('click', function (e) {
+    var btn = e.target.closest('.bt-opt');
+    if (!btn) return;
+    campaignAudience = btn.getAttribute('data-audience');
+    campaignAudienceSwitch.querySelectorAll('.bt-opt').forEach(function (o) {
+      var active = o === btn;
+      o.classList.toggle('active', active);
+      o.setAttribute('aria-selected', active ? 'true' : 'false');
+    });
+    var sendLabel = $('admCampaignSendBtn') && $('admCampaignSendBtn').querySelector('.btn-label');
+    if (sendLabel) sendLabel.textContent = campaignAudience === 'announcement' ? 'Send announcement' : 'Send to opted-in subscribers';
+    var hint = $('admCampaignAudienceHint');
+    if (hint) hint.textContent = campaignAudience === 'announcement'
+      ? 'Goes to every account (' + (EMAIL_STATS.allAccounts || 0).toLocaleString('en-US') + ') regardless of opt-in. For service messages only — ToS changes, outages.'
+      : 'Goes to the ' + (EMAIL_STATS.optedIn || 0).toLocaleString('en-US') + ' opted-in subscribers only.';
+  });
   var campaignModeSwitch = document.querySelector('.adm-campaign-mode');
   if (campaignModeSwitch) campaignModeSwitch.addEventListener('click', function (e) {
     var btn = e.target.closest('.bt-opt');
@@ -2655,15 +2679,25 @@
       var bodyText = $('admCampaignBody').value;
       var msg = $('admCampaignMsg');
       if (!subject || !bodyText.trim()) { if (msg) msg.textContent = 'Write a subject and body first.'; return; }
-      var count = EMAIL_STATS.subscribed || 0;
-      if (!confirm('Send "' + subject + '" to ' + count + ' subscribed account' + (count === 1 ? '' : 's') + '? This cannot be undone.')) return;
+      var isAnnounce = campaignAudience === 'announcement';
+      if (isAnnounce && !EMAIL_CAN_ANNOUNCE) { if (msg) msg.textContent = 'Announcements can only be sent from the site owner account.'; return; }
+      var count = isAnnounce ? (EMAIL_STATS.allAccounts || 0) : (EMAIL_STATS.optedIn || 0);
+      if (!count) { if (msg) msg.textContent = 'No recipients for this audience.'; return; }
+      if (isAnnounce) {
+        // Two separate confirms - an announcement ignores marketing consent
+        // and reaches everyone, so it should never go out on one misclick.
+        if (!confirm('ANNOUNCEMENT — this emails ALL ' + count.toLocaleString('en-US') + ' accounts, opted in or not.\n\nSubject: "' + subject + '"\n\nContinue?')) return;
+        if (!confirm('Are you sure? This cannot be undone and is not a marketing email — send it only for things every user must know (ToS changes, outages).')) return;
+      } else {
+        if (!confirm('Send "' + subject + '" to ' + count.toLocaleString('en-US') + ' opted-in subscriber' + (count === 1 ? '' : 's') + '? This cannot be undone.')) return;
+      }
 
       var sendBtn = $('admCampaignSendBtn');
       sendBtn.disabled = true;
       if (msg) msg.textContent = 'Sending…';
-      invokeAdminFn('admin-send-campaign', { action: 'send', subject: subject, bodyHtml: campaignBodyHtml() }, 'Could not send campaign.').then(function (data) {
+      invokeAdminFn('admin-send-campaign', { action: 'send', subject: subject, bodyHtml: campaignBodyHtml(), audience: campaignAudience }, 'Could not send campaign.').then(function (data) {
         if (msg) msg.textContent = 'Sent to ' + data.sentCount + ' of ' + data.recipientCount + (data.failedCount ? ' (' + data.failedCount + ' failed)' : '') + '.';
-        logAudit('Sent email campaign "' + subject + '" to ' + data.sentCount + ' recipients');
+        logAudit('Sent ' + (isAnnounce ? 'announcement' : 'marketing') + ' email "' + subject + '" to ' + data.sentCount + ' recipients');
         campaignForm.reset();
         return refreshEmailCampaigns();
       }).catch(function (err) {
@@ -2696,7 +2730,7 @@
   if (emailListSearch) emailListSearch.addEventListener('input', renderEmailList);
   var emailListCopyBtn = $('admEmailListCopyBtn');
   if (emailListCopyBtn) emailListCopyBtn.addEventListener('click', function () {
-    var addrs = EMAIL_RECIPIENTS.filter(function (r) { return r.optedIn && !r.unsubscribed && !r.synthetic; })
+    var addrs = EMAIL_RECIPIENTS.filter(function (r) { return r.status === 'optedin'; })
       .map(function (r) { return r.email; });
     if (!addrs.length) { emailListCopyBtn.textContent = 'No opted-in addresses'; }
     else {

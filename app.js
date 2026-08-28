@@ -136,8 +136,9 @@
     // and mints a real one-time code via marketing-signup rather than a
     // discount that only ever existed as a checkbox label.
     (function () {
-      var SEEN_KEY = 'coldd_mkt_popup_seen';
-      var CODE_KEY = 'coldd_mkt_popup_code';
+      var SEEN_KEY = 'coldd_mkt_popup_seen';       // set on an explicit "No thanks" - full 30-day snooze
+      var CODE_KEY = 'coldd_mkt_popup_code';        // set once a code is claimed - never ask again
+      var MIN_KEY = 'coldd_mkt_popup_min';          // set when the popup is X'd - stays as a corner tab
       var SNOOZE_DAYS = 30;
       var SHOW_DELAY_MS = 20000;
 
@@ -145,13 +146,36 @@
       // with an unrelated offer) or any account/admin flow.
       if (/^\/(checkout|dashboard|admin|signin|signup|forgot|reset|lock)(\/|$)/.test(location.pathname)) return;
 
+      var minimized = false;
       try {
         if (localStorage.getItem(CODE_KEY)) return; // already claimed a code, never ask again
+        minimized = localStorage.getItem(MIN_KEY) === '1';
         var seenAt = parseInt(localStorage.getItem(SEEN_KEY) || '0', 10);
+        // An explicit "No thanks" snoozes everything, tab included.
         if (seenAt && (Date.now() - seenAt) / 86400000 < SNOOZE_DAYS) return;
       } catch (e) {}
 
-      function markSeen() { try { localStorage.setItem(SEEN_KEY, String(Date.now())); } catch (e) {} }
+      function lsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+      function lsDel(k) { try { localStorage.removeItem(k); } catch (e) {} }
+      function markSeen() { lsSet(SEEN_KEY, String(Date.now())); lsDel(MIN_KEY); }
+
+      var tabEl = null;
+      // The corner tab: what an X'd popup collapses to. Persists across
+      // pages (MIN_KEY) and only goes away on "No thanks" or a claimed code.
+      function showTab() {
+        lsSet(MIN_KEY, '1');
+        if (tabEl) return;
+        tabEl = document.createElement('button');
+        tabEl.type = 'button';
+        tabEl.className = 'mkt-claim-tab';
+        tabEl.textContent = 'Claim discount now';
+        tabEl.addEventListener('click', function () { hideTab(false); buildPopup(); });
+        document.body.appendChild(tabEl);
+      }
+      function hideTab(clearFlag) {
+        if (tabEl) { tabEl.remove(); tabEl = null; }
+        if (clearFlag) lsDel(MIN_KEY);
+      }
 
       function buildPopup() {
         var overlay = document.createElement('div');
@@ -169,12 +193,17 @@
           '</form>' +
           '<p class="mkt-popup-msg" id="mktPopupMsg"></p>' +
           '<p class="mkt-popup-fine">By continuing you agree to receive marketing emails from coldd. No spam, unsubscribe any time.</p>' +
+          '<button class="mkt-popup-no" type="button" id="mktPopupNo">No thank you</button>' +
           '</div>';
         document.body.appendChild(overlay);
 
-        function close() { overlay.remove(); markSeen(); }
-        overlay.addEventListener('click', function (e) { if (e.target === overlay) close(); });
-        overlay.querySelector('.mkt-popup-x').addEventListener('click', close);
+        // X / click-outside = minimize to the corner tab. Only "No thanks"
+        // (below) or a claimed code dismisses it for real.
+        function minimize() { overlay.remove(); showTab(); }
+        function decline() { overlay.remove(); hideTab(false); markSeen(); }
+        overlay.addEventListener('click', function (e) { if (e.target === overlay) minimize(); });
+        overlay.querySelector('.mkt-popup-x').addEventListener('click', minimize);
+        overlay.querySelector('#mktPopupNo').addEventListener('click', decline);
 
         var form = overlay.querySelector('#mktPopupForm');
         var msgEl = overlay.querySelector('#mktPopupMsg');
@@ -185,16 +214,18 @@
           var btn = form.querySelector('button[type="submit"]');
           var spinner = btn.querySelector('.btn-spinner');
           btn.disabled = true; if (spinner) spinner.hidden = false;
-          window.coldSupabase.functions.invoke('marketing-signup', { body: { email: email } }).then(function (res) {
+          window.coldSupabase.functions.invoke('marketing-signup', { body: { email: email, source: 'popup' } }).then(function (res) {
             btn.disabled = false; if (spinner) spinner.hidden = true;
             var data = res && res.data;
-            if (res.error || !data || !data.ok) {
+            if (res.error || !data || !data.ok || !data.code) {
               msgEl.className = 'mkt-popup-msg err';
               msgEl.textContent = (data && data.error) || 'Could not generate a code. Please try again.';
               return;
             }
-            try { localStorage.setItem(CODE_KEY, data.code); } catch (err) {}
+            lsSet(CODE_KEY, data.code);
+            hideTab(true);
             form.hidden = true;
+            var no = overlay.querySelector('#mktPopupNo'); if (no) no.hidden = true;
             msgEl.className = 'mkt-popup-msg ok';
             msgEl.innerHTML = '<span class="mkt-popup-code">' + data.code + '</span>Use this at checkout - we\'ve emailed it to you and saved it to this browser.';
           }).catch(function () {
@@ -204,6 +235,10 @@
           });
         });
       }
+
+      // Already X'd once on a previous page - come back as the tab straight
+      // away, no 20s wait, no auto-reopen of the full popup.
+      if (minimized) { showTab(); return; }
 
       setTimeout(function () {
         // A signed-in visitor who's already opted into promotions doesn't

@@ -78,18 +78,39 @@ Deno.serve(async (req: Request) => {
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const admin = createClient(supabaseUrl, serviceKey);
 
-    const { data, error } = await admin
+    // A campaign recipient is identified by one of two tokens:
+    //   profiles.email_unsub_token       - an account
+    //   marketing_optins.unsub_token     - a guest opt-in (popup / guest
+    //                                      checkout) with no account
+    // Try the account first, then the opt-in ledger. Honouring both keeps
+    // one link working whether or not the address ever became an account.
+    const { data: profileRow, error: profileErr } = await admin
       .from("profiles")
       .update({ marketing_unsubscribed: true })
       .eq("email_unsub_token", token)
       .select("id")
       .maybeSingle();
 
-    if (error) {
-      console.error("[email-unsubscribe] error:", error.message);
+    if (profileErr) {
+      console.error("[email-unsubscribe] error:", profileErr.message);
       return page(`<p style="margin:14px 0 0;font-size:16px;color:#ffffff;">Something went wrong. Try again later.</p>`, 500);
     }
-    if (!data) {
+
+    // Also stamp the consent ledger if this address has an opt-in row
+    // (an account holder can have both). unsubscribed_at is what the
+    // marketing send filters on.
+    const { data: optinRow, error: optinErr } = await admin
+      .from("marketing_optins")
+      .update({ unsubscribed_at: new Date().toISOString() })
+      .eq("unsub_token", token)
+      .select("email")
+      .maybeSingle();
+
+    if (optinErr && optinErr.code !== "22P02") {
+      console.error("[email-unsubscribe] optin error:", optinErr.message);
+    }
+
+    if (!profileRow && !optinRow) {
       return page(`<p style="margin:14px 0 0;font-size:16px;color:#ffffff;">That link is invalid.</p>`, 404);
     }
 

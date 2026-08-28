@@ -3745,10 +3745,25 @@ body.auth-page .backdrop, body.auth-page .scrim { position: fixed; inset: 0; hei
 .mkt-popup-code { display: inline-block; padding: 8px 14px; border-radius: var(--r-ctl); background: var(--ok-tint);
   border: 1px solid rgba(107,216,138,0.3); color: var(--price); font-size: 15px; font-weight: 700; letter-spacing: 0.04em; }
 .mkt-popup-modal .mkt-popup-fine { font-size: 11px; font-weight: 400; color: var(--fg-3); margin: 18px 0 0; padding-top: 16px; border-top: 1px solid var(--hairline); }
+/* Explicit decline - the only thing (besides claiming a code) that stops
+   the popup coming back as the corner tab. */
+.mkt-popup-no { display: block; margin: 14px auto 0; padding: 4px 8px; background: none; border: none;
+  color: var(--fg-3); font-size: 12px; font-weight: 500; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
+@media (hover: hover) and (pointer: fine) { .mkt-popup-no:hover { color: var(--fg-2); } }
+
+/* Corner tab an X'd popup collapses to. Sits just above the bottom edge,
+   below the overlay's z-index so a reopened popup covers it. */
+.mkt-claim-tab { position: fixed; right: 18px; bottom: 18px; z-index: 380;
+  padding: 11px 18px; border: none; border-radius: 999px; cursor: pointer;
+  font-family: inherit; font-size: 13px; font-weight: 700; letter-spacing: -0.01em; color: #fff;
+  background: linear-gradient(135deg, #cc0011, #ff3344); box-shadow: 0 6px 22px rgba(0,0,0,0.4);
+  animation: ovIn .2s var(--ease); }
+@media (hover: hover) and (pointer: fine) { .mkt-claim-tab:hover { filter: brightness(1.08); } }
 @media (max-width: 480px) {
   .mkt-popup-modal { padding: 30px 22px 24px; }
   .mkt-popup-field { flex-direction: column; }
   .mkt-popup-field .btn { width: 100%; }
+  .mkt-claim-tab { right: 12px; bottom: 12px; font-size: 12px; padding: 10px 15px; }
 }
 
 /* password strength meter + checklist */

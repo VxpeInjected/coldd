@@ -16,7 +16,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
 
-  <link rel="stylesheet" href="/styles.css?v=20260828h" />
+  <link rel="stylesheet" href="/styles.css?v=20260828i" />
 </head>
 <body class="adm-body">
   <div class="backdrop"></div>
@@ -342,6 +342,13 @@
 
               <div class="dash-card-head" style="margin-top:22px;"><h2>New campaign</h2></div>
               <form class="adm-form" id="admCampaignForm" style="flex-direction:column;align-items:stretch;gap:10px;">
+                <div id="admCampaignAudienceWrap" hidden>
+                  <div class="bt-switch adm-campaign-audience" style="margin-bottom:6px;" role="tablist" aria-label="Audience">
+                    <button class="bt-opt active" type="button" data-audience="marketing" role="tab" aria-selected="true">Marketing</button>
+                    <button class="bt-opt" type="button" data-audience="announcement" role="tab" aria-selected="false">Announcement</button>
+                  </div>
+                  <p class="adm-note" id="admCampaignAudienceHint" style="margin:0 0 4px;">Goes to opted-in subscribers only.</p>
+                </div>
                 <label class="adm-field"><span>Subject</span><input type="text" id="admCampaignSubject" class="adm-input" placeholder="What's new at coldd" required /></label>
                 <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between;">
                   <div class="bt-switch adm-campaign-mode" style="margin-bottom:0;" role="tablist" aria-label="Body format">
@@ -359,7 +366,7 @@
                   <input type="email" id="admCampaignTestEmail" class="adm-input" placeholder="test@example.com" style="max-width:220px;" />
                   <button class="btn btn-ghost adm-btn-sm" id="admCampaignTestBtn" type="button">Send test</button>
                   <span style="flex:1;"></span>
-                  <button class="btn btn-primary adm-btn-sm" id="admCampaignSendBtn" type="submit"><span class="btn-label">Send to all subscribers</span><span class="btn-spinner" hidden></span></button>
+                  <button class="btn btn-primary adm-btn-sm" id="admCampaignSendBtn" type="submit"><span class="btn-label">Send to opted-in subscribers</span><span class="btn-spinner" hidden></span></button>
                 </div>
                 <div class="adm-edit-msg" id="admCampaignMsg"></div>
               </form>
@@ -1373,6 +1380,6 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.2/dist/umd/supabase.min.js" integrity="sha384-B2duOBIryCXbX4eDE4BdJwtNkQMRQde3o6IsjfPW28E6aH1CYE96hHeZRG3zY56O" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script src="/supabase-init.js?v=20260828a"></script>
   <script src="/site-gate.js?v=20260820b"></script>
-  <script src="/catalog.js?v=20260828b" data-then="/app.js?v=20260828b,/blog.js?v=20260812a,/reviews.js?v=20260729a,/admin.js?v=20260828q"></script>
+  <script src="/catalog.js?v=20260828b" data-then="/app.js?v=20260828c,/blog.js?v=20260812a,/reviews.js?v=20260729a,/admin.js?v=20260828r"></script>
 </body>
 </html>

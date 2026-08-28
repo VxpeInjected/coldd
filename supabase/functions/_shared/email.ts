@@ -174,6 +174,55 @@ Need help? Contact <a href="mailto:support@coldd.dev" style="color:#ff3344;text-
 </body></html>`;
 }
 
+/**
+ * Service announcement shell (ToS changes, outages, policy updates). Same
+ * visual frame as wrapCampaignEmail, but the footer says plainly that this
+ * is a required service message that goes to every account, not marketing -
+ * so it isn't dressed up as something the recipient opted into. A
+ * List-Unsubscribe link is still included because Gmail/Yahoo require one
+ * on any bulk send for it to land in the inbox at all; it points at the
+ * normal endpoint (which only stops *marketing*), and the footer is honest
+ * about that.
+ */
+export function wrapAnnouncementEmail(bodyHtml: string, unsubscribeUrl: string): string {
+  return `<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+<body style="margin:0;padding:0;background-color:#030303;">
+<table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#030303;padding:44px 0 56px;">
+<tr><td align="center">
+<table width="560" cellpadding="0" cellspacing="0" border="0" style="width:560px;background-color:#0b0b0b;border-radius:8px;overflow:hidden;">
+<tr><td style="background:linear-gradient(90deg,#ff2233 0%,#ff6677 50%,#ff2233 100%);height:3px;line-height:3px;font-size:3px;">&nbsp;</td></tr>
+
+<tr><td style="padding:40px 44px 8px;">
+<p style="margin:0;font-size:9px;letter-spacing:4px;color:#ff3344;text-transform:uppercase;font-weight:700;font-family:Arial,Helvetica,sans-serif;">coldd Development &nbsp;&middot;&nbsp; Service announcement</p>
+</td></tr>
+
+<tr><td style="padding:18px 44px 30px;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.7;color:#d7d7d7;">
+${bodyHtml}
+</td></tr>
+
+<tr><td style="padding:0 44px;">
+<table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td style="border-top:1px solid rgba(255,51,68,0.2);font-size:0;line-height:0;">&nbsp;</td></tr></table>
+</td></tr>
+
+<tr><td style="padding:24px 44px 40px;">
+<p style="margin:0;font-size:11px;color:#3e3e3e;line-height:1.8;font-family:Arial,Helvetica,sans-serif;">
+You're receiving this because you have a coldd account. This is a required service announcement, not a marketing email, and is sent to every account. To stop promotional email only, <a href="${unsubscribeUrl}" style="color:#ff3344;text-decoration:none;">unsubscribe here</a>.<br>
+Need help? Contact <a href="mailto:support@coldd.dev" style="color:#ff3344;text-decoration:none;">support@coldd.dev</a>.
+</p>
+</td></tr>
+
+<tr><td style="background-color:#070707;border-top:1px solid #141414;padding:18px 44px;">
+<p style="margin:0;font-size:10px;color:#252525;font-family:Arial,Helvetica,sans-serif;">coldd Development &nbsp;&middot;&nbsp; noreply@coldd.dev</p>
+</td></tr>
+
+<tr><td style="background:linear-gradient(90deg,#ff2233 0%,#ff6677 50%,#ff2233 100%);height:2px;line-height:2px;font-size:2px;">&nbsp;</td></tr>
+</table>
+</td></tr>
+</table>
+</body></html>`;
+}
+
 export function escapeHtml(s: string): string {
   return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c] as string));
 }

@@ -8,3 +8,4 @@ test.txt
 
 # local scratch / preview files
 scratchpad/
+.DS_Store

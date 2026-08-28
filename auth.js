@@ -245,9 +245,10 @@
       }
       fieldErr(sv, 'code', '');
       // Record the signup-form marketing opt-in now that there's a real
-      // verified session - marketing-signup dedupes by email, mints the
-      // 10%-off welcome code, syncs notification_prefs.promotions, and
-      // emails the code. Fire-and-forget: it must never block the redirect.
+      // verified session. source:'signup' is consent-only - marketing-signup
+      // records it in marketing_optins and syncs notification_prefs.promotions
+      // but mints NO discount code (the 10% code is popup-only). Fire-and-
+      // forget: it must never block the redirect.
       if (pendingMarketingOptIn && window.coldSupabase) {
         try {
           window.coldSupabase.functions.invoke('marketing-signup', { body: { email: pendingEmail, source: 'signup' } }).catch(function () {});

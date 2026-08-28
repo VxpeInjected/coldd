@@ -188,11 +188,8 @@
           </label>
           <button class="btn btn-ghost dash-filter-clear" id="dashPurchClear" type="button">Clear filters</button>
         </div>
-        <div class="dash-card glass dash-tablewrap">
-          <table class="dash-table">
-            <thead><tr><th>Date</th><th>Product</th><th>Order</th><th>Amount</th><th>Status</th></tr></thead>
-            <tbody id="dashPurchasesBody"><tr><td colspan="5">Loading…</td></tr></tbody>
-          </table>
+        <div class="dash-card glass">
+          <div class="dash-rows" id="dashPurchasesBody"><p class="dash-empty-note">Loading…</p></div>
         </div>
       </section>
       <section class="dash-panel" id="panel-owned" hidden>
@@ -583,7 +580,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.2/dist/umd/supabase.min.js" integrity="sha384-B2duOBIryCXbX4eDE4BdJwtNkQMRQde3o6IsjfPW28E6aH1CYE96hHeZRG3zY56O" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script src="/supabase-init.js?v=20260828a"></script>
   <script src="/site-gate.js?v=20260820b"></script>
-  <script src="/catalog.js?v=20260828b" data-then="/app.js?v=20260828f"></script>
+  <script src="/catalog.js?v=20260828b" data-then="/app.js?v=20260828g"></script>
   <script>
     // Cart badge/total sync from localStorage, ahead of app.js. The fab
     // markup above ships hardcoded at "0"/"$0", and the cart module that

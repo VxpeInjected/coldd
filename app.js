@@ -3413,7 +3413,7 @@
       function renderPurchasesTable() {
         var body = document.getElementById('dashPurchasesBody');
         if (!body) return;
-        if (!PURCHASE_ROWS.length) { body.innerHTML = '<tr><td colspan="5">No orders yet.</td></tr>'; return; }
+        if (!PURCHASE_ROWS.length) { body.innerHTML = '<p class="dash-empty-note">No purchases yet.</p>'; return; }
 
         var q = ((document.getElementById('dashPurchSearch') || {}).value || '').trim().toLowerCase();
         var fromVal = (document.getElementById('dashPurchFrom') || {}).value || '';
@@ -3442,10 +3442,13 @@
           return true;
         });
 
-        if (!rows.length) { body.innerHTML = '<tr><td colspan="5">No orders match your filters.</td></tr>'; return; }
+        if (!rows.length) { body.innerHTML = '<p class="dash-empty-note">No purchases match your filters.</p>'; return; }
         body.innerHTML = rows.map(function (r) {
           var o = r.order;
           var items = o.order_items || [];
+          var first = items[0];
+          var slug = first ? first.product_slug : '';
+          var img = (first && first.products && first.products.image) ? window.imgUrl(first.products.image) : '/banner.jpg';
           var titles = esc(items.map(function (i) { return i.title; }).join(', ') || '—');
           // A manually-granted order (admin panel's "Manual product grant")
           // writes status:'paid' like any real purchase - correct for
@@ -3461,14 +3464,20 @@
           var receivedAsGift = !gifted && !r.sentAsGift && !!o.purchased_by_user_id;
           var badge = r.sentAsGift ? 'warn' : (gifted || receivedAsGift) ? 'info' : (o.status === 'paid' ? 'ok' : 'warn');
           var label = r.sentAsGift ? 'Sent as gift' : (gifted || receivedAsGift) ? 'Gifted' : (o.status.charAt(0).toUpperCase() + o.status.slice(1));
-          var priceCell = '<span class="p-price" data-fixed>' + orderMoney(o) + '</span>';
           // Support can tell at a glance from the id alone that this was
           // never a real charge to look up in Stripe/PayPal/etc - same
           // short id, just labeled for what it actually is.
           var idCell = (gifted || receivedAsGift) ? shortOrderId(o.id).replace('#', 'GIFT-') : shortOrderId(o.id);
-          return '<tr><td>' + fmtDate(o.created_at) + '</td><td>' + titles + '</td><td class="dt-mono">' + idCell + '</td>' +
-            '<td>' + priceCell + '</td>' +
-            '<td><span class="dt-badge ' + badge + '">' + label + '</span></td></tr>';
+          var actions = slug ? '<a class="btn btn-ghost dr-btn" href="/product?id=' + encodeURIComponent(slug) + '">' + window.msym('visibility') + 'View</a>' : '';
+          if (slug && o.status === 'paid') {
+            actions += '<button class="btn btn-ghost dr-btn dr-download" type="button" data-slug="' + slug + '">' + window.msym('download') + 'Download</button>' +
+              '<a class="btn btn-ghost dr-btn" href="/product?id=' + encodeURIComponent(slug) + '&tab=reviews">' + window.msym('reviews') + 'Review</a>';
+          }
+          return '<div class="dash-row"><span class="dr-thumb" style="background-image:url(\'' + img + '\')"></span>' +
+            '<div class="dr-main"><div class="dr-title">' + titles + '</div>' +
+            '<div class="dr-sub">' + fmtDate(o.created_at) + ' · ' + idCell + ' · <span class="dt-badge ' + badge + '">' + label + '</span></div></div>' +
+            '<span class="p-price" data-fixed>' + orderMoney(o) + '</span>' +
+            '<div class="dr-actions">' + actions + '</div></div>';
         }).join('');
       }
       ['dashPurchSearch', 'dashPurchFrom', 'dashPurchTo', 'dashPurchMinAmt', 'dashPurchMaxAmt', 'dashPurchStatus'].forEach(function (id) {
@@ -3604,11 +3613,14 @@
       var dashOwnedSearchEl = document.getElementById('dashOwnedSearch');
       if (dashOwnedSearchEl) dashOwnedSearchEl.addEventListener('input', renderOwnedGrid);
 
-      var dashRecentPurchasesEl = document.getElementById('dashRecentPurchases');
-      if (dashRecentPurchasesEl) dashRecentPurchasesEl.addEventListener('click', function (e) {
-        var btn = e.target.closest('.dr-download');
-        if (!btn) return;
-        requestDownload(btn.getAttribute('data-slug'), btn);
+      ['dashRecentPurchases', 'dashPurchasesBody'].forEach(function (elId) {
+        var el = document.getElementById(elId);
+        if (!el) return;
+        el.addEventListener('click', function (e) {
+          var btn = e.target.closest('.dr-download');
+          if (!btn) return;
+          requestDownload(btn.getAttribute('data-slug'), btn);
+        });
       });
 
       function loadRealData(userId) {

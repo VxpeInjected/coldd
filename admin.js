@@ -461,6 +461,11 @@
   // admin-manage-order Edge Function (service role) - never written
   // directly from here.
   var ORDERS = [];
+  // Flips true the first time refreshOrders() settles (success or error).
+  // Until then the stat panels render a "Loading…" placeholder instead of
+  // computing every figure from an empty ORDERS array and painting a
+  // misleading 0 that only "fixes itself" once the fetch lands.
+  var ORDERS_LOADED = false;
   function mapOrderRow(row, profile) {
     var items = row.order_items || [];
     var first = items[0] || {};
@@ -520,11 +525,12 @@
     // had already accumulated). Belt-and-suspenders: keeps this list real
     // even if that function is ever re-invoked without being re-enabled here.
     return window.coldSupabase.from('orders').select('*, order_items(*)').not('source', 'in', '("parcel","robux")').order('created_at', { ascending: false }).limit(20000).then(function (res) {
-      if (res.error) { console.error('[admin] failed to load orders:', res.error.message); return; }
+      if (res.error) { console.error('[admin] failed to load orders:', res.error.message); ORDERS_LOADED = true; renderAll(); return; }
       var rows = res.data || [];
       var userIds = rows.map(function (o) { return o.user_id; }).filter(function (v, i, arr) { return v && arr.indexOf(v) === i; });
       if (!userIds.length) {
         ORDERS = rows.map(function (o) { return mapOrderRow(o, null); });
+        ORDERS_LOADED = true;
         renderAll();
         return;
       }
@@ -532,6 +538,7 @@
         var byId = {};
         (pRes.data || []).forEach(function (p) { byId[p.id] = p; });
         ORDERS = rows.map(function (o) { return mapOrderRow(o, byId[o.user_id]); });
+        ORDERS_LOADED = true;
         renderAll();
       });
     });
@@ -938,18 +945,26 @@
   var RANGE_DAYS = lsGet('coldd_admin_range_v1', 30); // 1, 7, 30, 90, 0(=all)
   function inRange(iso) {
     if (!RANGE_DAYS) return true;
-    var d = new Date(iso);
-    return d >= daysAgoStart(RANGE_DAYS);
+    return new Date(iso) >= rangeStart();
   }
   function daysAgoStart(n) { var d = daysAgo(n - 1); d.setHours(0, 0, 0, 0); return d; }
+  // Start of the active range. data-range=1 is a true rolling 24-hour
+  // window (not "since local midnight"); every other value is N calendar
+  // days back to local midnight.
+  function rangeStart() {
+    if (RANGE_DAYS === 1) return new Date(Date.now() - 24 * 60 * 60 * 1000);
+    return daysAgoStart(RANGE_DAYS);
+  }
   // The window immediately before the current range, same length - e.g.
   // for the last 7 days, this is the 7 days before that. No meaningful
   // comparison for "All time", so callers should skip % change there.
   function prevRangeWindow() {
+    if (RANGE_DAYS === 1) {
+      var now = Date.now();
+      return { start: new Date(now - 48 * 60 * 60 * 1000), end: new Date(now - 24 * 60 * 60 * 1000) };
+    }
     var n = RANGE_DAYS || 1;
-    var end = daysAgoStart(n);
-    var start = daysAgoStart(n * 2);
-    return { start: start, end: end };
+    return { start: daysAgoStart(n * 2), end: daysAgoStart(n) };
   }
   function pctDelta(cur, prev) {
     if (!RANGE_DAYS) return '';
@@ -1189,14 +1204,21 @@
     return '<div class="dash-stat glass"' + attrs + title + '><span class="ds-label">' + esc(label) + '</span><span class="ds-num' + numClass + '">' + main + '</span>' +
       (sub ? '<span class="ds-sub">' + sub + '</span>' : '') + (deltaHtml || '') + '</div>';
   }
+  // Placeholder tiles shown while ORDERS is still loading, so the panels
+  // never flash a computed-from-nothing 0.
+  function loadingStats(n) {
+    var one = '<div class="dash-stat glass"><span class="ds-label">Loading…</span><span class="ds-num">—</span></div>';
+    return new Array(n + 1).join(one);
+  }
   function renderHome() {
+    if (!ORDERS_LOADED) { $('admHomeStatsTop').innerHTML = loadingStats(4); return; }
     var curOrders = completedInRange();
     var curRev = websiteRevenue(curOrders);
     var win = RANGE_DAYS ? prevRangeWindow() : null;
     var prevOrders = win ? completedInWindow(win.start, win.end) : [];
     var prevRev = websiteRevenue(prevOrders);
 
-    var curVisits = RANGE_DAYS ? pageviewsInWindow(daysAgoStart(RANGE_DAYS), new Date()) : TRAFFIC.reduce(function (s, r) { return s + r.pageviews; }, 0);
+    var curVisits = RANGE_DAYS ? pageviewsInWindow(rangeStart(), new Date()) : TRAFFIC.reduce(function (s, r) { return s + r.pageviews; }, 0);
     var prevVisits = win ? pageviewsInWindow(win.start, win.end) : 0;
 
     // "Overall" and "Website" were both computed from the same websiteRevenue()
@@ -1924,6 +1946,7 @@
      ANALYTICS PANEL
      ================================================================ */
   function renderAnalytics() {
+    if (!ORDERS_LOADED) { $('admAnStats').innerHTML = loadingStats(6); return; }
     var aov = avgOrderValue();
     var conv = conversionRate();
 
@@ -1932,7 +1955,7 @@
     var win = RANGE_DAYS ? prevRangeWindow() : null;
     var prevOrders = win ? completedInWindow(win.start, win.end) : [];
     var prevRev = websiteRevenue(prevOrders);
-    var curVisits = RANGE_DAYS ? pageviewsInWindow(daysAgoStart(RANGE_DAYS), new Date()) : TRAFFIC.reduce(function (s, r) { return s + r.pageviews; }, 0);
+    var curVisits = RANGE_DAYS ? pageviewsInWindow(rangeStart(), new Date()) : TRAFFIC.reduce(function (s, r) { return s + r.pageviews; }, 0);
     var prevVisits = win ? pageviewsInWindow(win.start, win.end) : 0;
 
     // Store performance only. Audience and channel numbers live in Marketing.

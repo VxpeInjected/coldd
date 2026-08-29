@@ -296,16 +296,21 @@
 
     // A zero-width space, not '', for an empty value: the identity fields
     // carry a CSS skeleton pulse keyed off :empty (see styles.css), which is
-    // only meant to run WHILE the profile is loading. An account with no
-    // email on record (Roblox sign-ins, some username-only accounts) would
-    // otherwise leave #coUserEmail / #dashEmail truly empty forever, so the
-    // grey placeholder bar pulsed under the name indefinitely. Same trick as
+    // only meant to run WHILE the profile is loading. Same trick as
     // paintAvatar() below.
     // A synthetic roblox-<id>@roblox.coldd.internal address is not a real
     // email - never show it as one (nav, dashboard header, checkout).
     var shownEmail = (p.email && !/@roblox\.coldd\.internal$/i.test(p.email)) ? p.email : '';
     document.querySelectorAll('#dashName, #coUserName').forEach(function (el) { el.textContent = displayName || '​'; });
-    document.querySelectorAll('#dashEmail, #coUserEmail').forEach(function (el) { el.textContent = shownEmail || '​'; });
+    // An account with no email on record (Roblox sign-ins, some username-only
+    // accounts) has resolved - it just has no email. Collapse the line rather
+    // than holding it open with a zero-width space: an invisible sub-line
+    // still takes vertical space, which pushed the visible name up so it sat
+    // against the top of the avatar instead of centred beside it.
+    document.querySelectorAll('#dashEmail, #coUserEmail').forEach(function (el) {
+      el.hidden = !shownEmail;
+      el.textContent = shownEmail || '​';
+    });
 
     function paintAvatar(url) {
       document.querySelectorAll('#dashAvatar, #coAvatar, #acAvatarPreview, .account-menu-av').forEach(function (el) {

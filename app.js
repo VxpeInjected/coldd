@@ -1012,6 +1012,63 @@
       return { slugOf: slugOf, starsHtmlFor: starsHtmlFor, applyRating: applyRating };
     })();
 
+    // One spend-tier ladder, shared by the checkout order summary, the
+    // cart drawer and the Place-order offer modal. Given a subtotal
+    // already in the display unit plus the tier table, it returns the
+    // status line + meter markup and the tier / next / gap facts callers
+    // need. The meter is four equal segments, one per tier, so the fill
+    // and the 10/15/20/25% scale under it always line up - the real
+    // thresholds are not evenly spaced, and positioning the labels by
+    // true proportion is what made the old version read like a
+    // spreadsheet.
+    window.__coldTierLadder = (function () {
+      function build(sub, opts) {
+        opts = opts || {};
+        var fmt = opts.fmt || function (n) { return '$' + n; };
+        var rawThr = opts.thresholdFor || function (t) { return t.minSubtotal != null ? t.minSubtotal : t.min; };
+        // Keep each caller's original tier object so their thresholdFor
+        // (which reads .minSubtotal) still works, and precompute the
+        // resolved threshold + pct next to it.
+        var tiers = (opts.tiers || []).map(function (t) {
+          return { pct: t.pct, at: rawThr(t) };
+        }).sort(function (a, b) { return a.at - b.at; });
+        if (!(sub > 0) || !tiers.length) return { hidden: true, html: '', tier: null, next: null, gap: 0 };
+
+        var reached = 0, tier = null, next = null;
+        for (var i = 0; i < tiers.length; i++) { if (sub >= tiers[i].at) { reached = i + 1; tier = tiers[i]; } }
+        for (var j = 0; j < tiers.length; j++) { if (sub < tiers[j].at) { next = tiers[j]; break; } }
+
+        var seg = 100 / tiers.length;
+        var fillPct;
+        if (!next) fillPct = 100;
+        else {
+          var lo = reached === 0 ? 0 : tiers[reached - 1].at;
+          var hi = next.at;
+          var frac = hi > lo ? Math.max(0, Math.min(1, (sub - lo) / (hi - lo))) : 0;
+          fillPct = Math.min(100, (reached + frac) * seg);
+        }
+        var gap = next ? Math.max(0, next.at - sub) : 0;
+        var msg = next
+          ? (tier
+              ? '<b>' + tier.pct + '% off</b> applied — add ' + fmt(gap) + ' for ' + next.pct + '%'
+              : 'Add ' + fmt(gap) + ' to unlock ' + next.pct + '% off')
+          : '<b>' + tier.pct + '% off</b> applied — you’re at the top tier';
+        var tick = tier
+          ? '<svg class="co-tier-tick" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg>'
+          : '';
+        var steps = tiers.map(function (t) {
+          var d = sub >= t.at, n = next && t.at === next.at;
+          return '<span class="co-tier-step' + (d ? ' done' : '') + (n ? ' next' : '') + '">' + t.pct + '%</span>';
+        }).join('');
+        var html =
+          '<div class="co-tier-status' + (tier ? ' unlocked' : '') + '">' + tick + '<span>' + msg + '</span></div>' +
+          '<div class="co-tier-meter"><div class="co-tier-fill" style="width:' + fillPct.toFixed(1) + '%"></div></div>' +
+          '<div class="co-tier-scale">' + steps + '</div>';
+        return { hidden: false, html: html, tier: tier, next: next, gap: gap };
+      }
+      return { build: build };
+    })();
+
     (function () {
       // Featured products and This week's deals used to be hand-written
       // HTML the admin had to edit by hand and keep in sync with real
@@ -2055,61 +2112,32 @@
         // give, or vice versa.
         var robuxMode = window.__currencyMode && window.__currencyMode() === 'robux';
         var useRobux = robuxMode && cart.length > 0;
-        var rbxSub = useRobux ? robuxSubtotalWithFallback() : null;
-        var sub = useRobux ? rbxSub : subtotal();
-        if (sub <= 0) { box.hidden = true; box.innerHTML = ''; return; }
-        var ascending = SPEND_TIERS.slice().sort(function (a, b) { return a.minSubtotal - b.minSubtotal; });
-        var thresholdFor = function (t) { return useRobux ? Math.round(t.minSubtotal * ROBUX_PER_USD_FALLBACK) : t.minSubtotal; };
-        var tier = null;
-        for (var i = ascending.length - 1; i >= 0; i--) { if (sub >= thresholdFor(ascending[i])) { tier = ascending[i]; break; } }
-        var next = null;
-        for (var j = 0; j < ascending.length; j++) { if (sub < thresholdFor(ascending[j])) { next = ascending[j]; break; } }
-        box.hidden = false;
-        box.className = 'cd-tier co-tier' + (tier ? ' co-tier-unlocked' : '');
-        var maxThreshold = thresholdFor(ascending[ascending.length - 1]);
-        var pctToNext = Math.min(100, Math.round((sub / maxThreshold) * 100));
-        var usdStr = window.__usd || function (n) { return '$' + n; };
-        var primaryStr = useRobux ? function (n) { return 'R$ ' + Math.round(n).toLocaleString('en-US'); } : usdStr;
-        var headline = next
-          ? (tier ? (tier.pct + '% off unlocked - spend ' + primaryStr(thresholdFor(next) - sub) + ' more for ' + next.pct + '% off') : ('Spend ' + primaryStr(thresholdFor(next) - sub) + ' more to start saving'))
-          : (tier.pct + '% off unlocked - the best tier in your cart right now.');
-        var dots = ascending.map(function (t) {
-          var thr = thresholdFor(t);
-          var reached = sub >= thr;
-          var isNext = next && t.minSubtotal === next.minSubtotal;
-          var left = Math.min(100, Math.round((thr / maxThreshold) * 100));
-          return '<div class="co-tier-marker' + (reached ? ' done' : '') + (isNext ? ' next' : '') + '" style="left:' + left + '%">' +
-            '<span class="co-tier-dot">' + (reached ? '<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg>' : '') + '</span>' +
-            '</div>';
-        }).join('');
-        // Equal-width legend columns, NOT positioned at each tier's real
-        // proportional point (see the CSS comment) - this ladder's actual
-        // thresholds aren't evenly spaced, so labels placed at their true
-        // points collided whenever two happened to sit close together.
-        var legend = ascending.map(function (t) {
-          var thr = thresholdFor(t);
-          var reached = sub >= thr;
-          var isNext = next && t.minSubtotal === next.minSubtotal;
-          var secondary = useRobux ? usdStr(t.minSubtotal) : ('R$' + Math.round(t.minSubtotal * ROBUX_PER_USD_FALLBACK).toLocaleString('en-US'));
-          return '<div class="co-tier-legend-item' + (reached ? ' done' : '') + (isNext ? ' next' : '') + '">' +
-            t.pct + '%<br>' + primaryStr(thr) + '<span class="co-tier-marker-rbx">≈' + secondary + '</span></div>';
-        }).join('');
+        var sub = useRobux ? robuxSubtotalWithFallback() : subtotal();
+        var res = window.__coldTierLadder.build(sub, {
+          tiers: SPEND_TIERS,
+          thresholdFor: function (t) { return useRobux ? Math.round(t.minSubtotal * ROBUX_PER_USD_FALLBACK) : t.minSubtotal; },
+          fmt: function (n) { return useRobux ? ('R$ ' + Math.round(n).toLocaleString('en-US')) : money(n); }
+        });
+        box.hidden = res.hidden;
+        box.className = 'cd-tier co-tier' + (res.tier ? ' co-tier-unlocked' : '');
+        if (res.hidden) { box.innerHTML = ''; return; }
+        // The gap-closer nudge stays in the drawer - you're still shopping
+        // here, so a one-click "add this to cross the tier" is useful.
+        // Checkout drops it; by then the equivalent lives in the
+        // Place-order offer modal.
         var nudgeHtml = '';
-        if (next) {
-          var pick = cheapestGapCloser(thresholdFor(next) - sub, useRobux);
+        if (res.next) {
+          var pick = cheapestGapCloser(res.gap, useRobux);
           if (pick) {
             var pickPriceStr = useRobux ? ('R$ ' + Math.round(pick.gapPrice).toLocaleString('en-US')) : money(pick.priceNum);
             nudgeHtml = '<div class="co-tier-nudge" data-id="' + esc(pick.id) + '">' +
               '<span class="co-tier-nudge-thumb" style="background-image:url(\'' + pick.image + '\')"></span>' +
               '<div class="co-tier-nudge-body"><div class="co-tier-nudge-title">' + esc(pick.title) + '</div>' +
-              '<div class="co-tier-nudge-sub">' + pickPriceStr + ' - crosses into ' + next.pct + '% off</div></div>' +
+              '<div class="co-tier-nudge-sub">' + pickPriceStr + ' — crosses into ' + res.next.pct + '% off</div></div>' +
               '<button class="btn btn-tinted co-tier-nudge-add" type="button">Add</button></div>';
           }
         }
-        box.innerHTML = '<div class="co-tier-text">' + headline + '</div>' +
-          '<div class="co-tier-track"><div class="co-tier-bar"><div class="co-tier-fill" style="width:' + pctToNext + '%"></div></div>' + dots + '</div>' +
-          '<div class="co-tier-legend">' + legend + '</div>' +
-          nudgeHtml;
+        box.innerHTML = res.html + nudgeHtml;
       }
       var cdTierBannerEl = document.getElementById('cdTierBanner');
       if (cdTierBannerEl) cdTierBannerEl.addEventListener('click', function (e) {
@@ -4716,77 +4744,18 @@
         var robuxMode = robuxView();
         var useRobux = robuxMode && cart.length > 0;
         var sub = useRobux ? robuxSubtotalRaw() : subtotal();
-        if (sub <= 0) { box.hidden = true; return; }
-        box.hidden = false;
-        // Steps ascend by threshold, not the SPEND_TIERS declaration order
-        // (that array is written highest-first so currentSpendTier's first
-        // match wins correctly) - the ladder reads left to right as money
-        // goes up.
-        var ascending = SPEND_TIERS.slice().sort(function (a, b) { return a.minSubtotal - b.minSubtotal; });
-        var thresholdFor = function (t) { return useRobux ? Math.round(t.minSubtotal * ROBUX_PER_USD_FALLBACK) : t.minSubtotal; };
-        var tier = null;
-        for (var i = ascending.length - 1; i >= 0; i--) { if (sub >= thresholdFor(ascending[i])) { tier = ascending[i]; break; } }
-        var next = null;
-        for (var j = 0; j < ascending.length; j++) { if (sub < thresholdFor(ascending[j])) { next = ascending[j]; break; } }
-        box.classList.toggle('co-tier-unlocked', !!tier);
-        var maxThreshold = thresholdFor(ascending[ascending.length - 1]);
-        var pctToNext = Math.min(100, Math.round((sub / maxThreshold) * 100));
-        var usdStr = window.__usd || function (n) { return '$' + n; };
-        var primaryStr = useRobux ? function (n) { return 'R$ ' + Math.round(n).toLocaleString('en-US'); } : usdStr;
-        var headline = next
-          ? (tier ? (tier.pct + '% off unlocked - spend ' + primaryStr(thresholdFor(next) - sub) + ' more for ' + next.pct + '% off') : ('Spend ' + primaryStr(thresholdFor(next) - sub) + ' more to start saving'))
-          : (tier.pct + '% off unlocked - the best tier in your cart right now.');
-        var dots = ascending.map(function (t) {
-          var thr = thresholdFor(t);
-          var reached = sub >= thr;
-          var isNext = next && t.minSubtotal === next.minSubtotal;
-          var left = Math.min(100, Math.round((thr / maxThreshold) * 100));
-          return '<div class="co-tier-marker' + (reached ? ' done' : '') + (isNext ? ' next' : '') + '" style="left:' + left + '%">' +
-            '<span class="co-tier-dot">' + (reached ? '<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg>' : '') + '</span>' +
-            '</div>';
-        }).join('');
-        // Equal-width legend columns, NOT positioned at each tier's real
-        // proportional point (see the CSS comment) - this ladder's actual
-        // thresholds aren't evenly spaced, so labels placed at their true
-        // points collided whenever two happened to sit close together.
-        var legend = ascending.map(function (t) {
-          var thr = thresholdFor(t);
-          var reached = sub >= thr;
-          var isNext = next && t.minSubtotal === next.minSubtotal;
-          var secondary = useRobux ? usdStr(t.minSubtotal) : ('R$' + Math.round(t.minSubtotal * ROBUX_PER_USD_FALLBACK).toLocaleString('en-US'));
-          return '<div class="co-tier-legend-item' + (reached ? ' done' : '') + (isNext ? ' next' : '') + '">' +
-            t.pct + '%<br>' + primaryStr(thr) + '<span class="co-tier-marker-rbx">≈' + secondary + '</span></div>';
-        }).join('');
-        var nudgeHtml = '';
-        if (next) {
-          var pick = cheapestGapCloser(thresholdFor(next) - sub, useRobux);
-          if (pick) {
-            var pickPriceStr = useRobux ? ('R$ ' + Math.round(pick.gapPrice).toLocaleString('en-US')) : money(pick.priceNum);
-            nudgeHtml = '<div class="co-tier-nudge" data-id="' + esc(pick.id) + '">' +
-              '<span class="co-tier-nudge-thumb" style="background-image:url(\'' + pick.image + '\')"></span>' +
-              '<div class="co-tier-nudge-body"><div class="co-tier-nudge-title">' + esc(pick.title) + '</div>' +
-              '<div class="co-tier-nudge-sub">' + pickPriceStr + ' - crosses into ' + next.pct + '% off</div></div>' +
-              '<button class="btn btn-tinted co-tier-nudge-add" type="button">Add</button></div>';
-          }
-        }
-        box.innerHTML = '<div class="co-tier-text">' + headline + '</div>' +
-          '<div class="co-tier-track">' +
-          '<div class="co-tier-bar"><div class="co-tier-fill" style="width:' + pctToNext + '%"></div></div>' +
-          dots +
-          '</div>' +
-          '<div class="co-tier-legend">' + legend + '</div>' +
-          nudgeHtml;
+        var res = window.__coldTierLadder.build(sub, {
+          tiers: SPEND_TIERS,
+          thresholdFor: function (t) { return useRobux ? Math.round(t.minSubtotal * ROBUX_PER_USD_FALLBACK) : t.minSubtotal; },
+          fmt: function (n) { return useRobux ? ('R$ ' + Math.round(n).toLocaleString('en-US')) : money(n); }
+        });
+        box.hidden = res.hidden;
+        box.classList.toggle('co-tier-unlocked', !!res.tier);
+        // The checkout sidebar shows the ladder only - the "add this to
+        // cross the tier" nudge moved into the Place-order offer modal,
+        // where it sits alongside the resell-licence offer.
+        if (!res.hidden) box.innerHTML = res.html;
       }
-      if (document.getElementById('coTierBanner')) document.getElementById('coTierBanner').addEventListener('click', function (e) {
-        var btn = e.target.closest('.co-tier-nudge-add'); if (!btn) return;
-        var row = e.target.closest('.co-tier-nudge'); if (!row) return;
-        var cat = window.__CATALOG || [];
-        var p = cat.filter(function (x) { return x.id === row.getAttribute('data-id'); })[0];
-        if (!p) return;
-        cart.push({ id: p.id, title: p.title, price: p.priceNum, image: p.image, tag: p.cat || '', licence: 'standard', qty: 1 });
-        save(cart);
-        render();
-      });
 
       function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
       // A checkout that fails for a reason the buyer can't just fix
@@ -5475,80 +5444,180 @@
           if (msg) { msg.className = 'co-msg err show'; msg.innerHTML = withSupportLine('Could not check your Roblox account link.'); }
         });
       }
-      // Resell-rights upgrade moved from a passive sidebar row to a popup
-      // that intercepts the actual "Place order" click - a row buried in
-      // the summary column was easy to never notice; a popup right before
-      // the buyer commits is the moment they're already thinking "am I
-      // done adding things." Only ever interrupts once per product, EVER -
-      // not just for this checkout attempt - persisted to localStorage so
-      // it doesn't come back on a later visit either (upgraded or
-      // skipped, either way they've already made the call once).
-      var RESELL_POPUP_SEEN_KEY = 'coldd_resell_popup_seen';
-      var resellPopupSeen = {};
-      try { resellPopupSeen = JSON.parse(localStorage.getItem(RESELL_POPUP_SEEN_KEY) || '{}') || {}; } catch (e) {}
+      // The one interruption before payment worth making: a single modal
+      // on the "Place order" click that offers what the buyer can still
+      // change in one tap - resell-licence upgrades for anything in the
+      // cart that supports one, and, when a spend tier is within reach, a
+      // few cheap things to add that would cross it. Shown at most once
+      // per checkout visit (not persisted - a later visit is a fresh
+      // decision), and never for a Robux order, where resell isn't sold
+      // and the tier maths runs a different path.
+      var offerShown = false;
+
       function resellCandidates() {
         if (typeof payMethod !== 'undefined' && payMethod === 'robux') return [];
         var cat = window.__CATALOG || [];
         return cart.filter(function (i) {
-          if (i.licence === 'resell' || resellPopupSeen[i.id]) return false;
+          if (i.licence === 'resell') return false;
           var p = cat.filter(function (x) { return x.id === i.id; })[0];
           return p && p.resell;
         });
       }
-      function openResellPopup(candidates, onDone) {
-        var overlay = document.getElementById('coResellPopup');
-        var grid = document.getElementById('coResellPopupGrid');
-        if (!overlay || !grid) { onDone(); return; }
+      // Up to `n` of the cheapest catalog products not already in the cart
+      // that would help close the gap to the next tier - priced at least
+      // half the remaining gap so the list reads as "add one of these",
+      // not "add all of them". Same unit as the ladder it's closing.
+      function tierGapPicks(remaining, useRobux, n) {
         var cat = window.__CATALOG || [];
-        var robuxMode = robuxView();
-        // Resell rights are buyable in Robux now, so the "+X" upgrade delta
-        // shows in Robux when that's the active currency (flat-converted -
-        // this is a nudge, the real line price is computed server-side).
-        var resellMoney = function (n) { return robuxMode ? ('R$ ' + Math.round(n * ROBUX_PER_USD_FALLBACK).toLocaleString('en-US')) : money(n); };
-        var selected = {};
-        candidates.forEach(function (i) { selected[i.id] = true; });
-        function paint() {
-          grid.innerHTML = candidates.map(function (i) {
-            var p = cat.filter(function (x) { return x.id === i.id; })[0];
-            if (!p) return '';
-            var resellPrice = p.resellPrice != null ? p.resellPrice : Math.round(p.priceNum * 3);
-            return '<div class="resell-popup-card' + (selected[i.id] ? ' checked' : '') + '" data-slug="' + esc(i.id) + '">' +
-              '<span class="resell-popup-thumb" style="background-image:url(\'' + i.image + '\')"></span>' +
-              '<div class="resell-popup-body">' +
-              '<div class="resell-popup-name">' + esc(i.title) + '</div>' +
-              '<div class="resell-popup-price">+' + resellMoney(resellPrice - i.price) + '</div>' +
-              '<label class="ty-upsell-check"><input type="checkbox" data-slug="' + esc(i.id) + '"' + (selected[i.id] ? ' checked' : '') + ' /> Add resell rights to this order</label>' +
-              '</div></div>';
-          }).join('');
+        var inCart = {};
+        cart.forEach(function (i) { inCart[i.id.replace(/--resell$/, '').replace(/--bundle$/, '').replace(/--crosssell$/, '')] = true; });
+        function priceOf(p) {
+          if (!useRobux) return p.priceNum;
+          var rbx = catalogRobuxPrice(p.id);
+          return rbx != null ? rbx : Math.round(p.priceNum * ROBUX_PER_USD_FALLBACK);
         }
-        paint();
-        grid.onchange = function (e) {
-          var cb = e.target.closest('input[type="checkbox"]'); if (!cb) return;
-          selected[cb.getAttribute('data-slug')] = cb.checked;
-          paint();
+        return cat.filter(function (p) { return !inCart[p.id] && priceOf(p) >= remaining * 0.5; })
+          .map(function (p) { return { p: p, price: priceOf(p) }; })
+          .sort(function (a, b) { return a.price - b.price; })
+          .slice(0, n || 3);
+      }
+      function tierLadderNow() {
+        var useRobux = robuxView();
+        var sub = useRobux ? robuxSubtotalRaw() : subtotal();
+        return {
+          useRobux: useRobux,
+          sub: sub,
+          res: window.__coldTierLadder.build(sub, {
+            tiers: SPEND_TIERS,
+            thresholdFor: function (t) { return useRobux ? Math.round(t.minSubtotal * ROBUX_PER_USD_FALLBACK) : t.minSubtotal; },
+            fmt: function (n) { return useRobux ? ('R$ ' + Math.round(n).toLocaleString('en-US')) : money(n); }
+          })
         };
-        function close() {
-          overlay.hidden = true;
-          candidates.forEach(function (i) { resellPopupSeen[i.id] = true; });
-          try { localStorage.setItem(RESELL_POPUP_SEEN_KEY, JSON.stringify(resellPopupSeen)); } catch (e) {}
+      }
+      function offerHasContent() {
+        if (typeof payMethod !== 'undefined' && payMethod === 'robux') return false;
+        if (resellCandidates().length) return true;
+        var t = tierLadderNow();
+        return !!(t.res.next && tierGapPicks(t.res.gap, t.useRobux, 3).length);
+      }
+      function openOfferModal(onProceed) {
+        var overlay = document.getElementById('coOfferModal');
+        var listEl = document.getElementById('coOfferList');
+        var tierEl = document.getElementById('coOfferTier');
+        var termsWrap = document.getElementById('coOfferTermsWrap');
+        var termsBox = document.getElementById('coOfferTerms');
+        var msgEl = document.getElementById('coOfferMsg');
+        var subEl = document.getElementById('coOfferSubtotal');
+        if (!overlay || !listEl) { onProceed(); return; }
+        var cat = window.__CATALOG || [];
+        var rate = ROBUX_PER_USD_FALLBACK;
+
+        // Snapshot both offer lists once, from the cart as it stands now -
+        // so toggling a row on doesn't make it vanish (it just flips to
+        // "Added"), and the gap picks don't reshuffle under the cursor as
+        // the subtotal moves.
+        var openState = tierLadderNow();
+        var resellSlugs = resellCandidates().map(function (i) { return i.id; });
+        var gapSlugs = (openState.res.next ? tierGapPicks(openState.res.gap, openState.useRobux, 3) : []).map(function (r) { return r.p.id; });
+
+        function resellPriceOf(p) { return p.resellPrice != null ? p.resellPrice : Math.round(p.priceNum * 3); }
+        function priceOf(p, useRobux) {
+          if (!useRobux) return p.priceNum;
+          var rbx = catalogRobuxPrice(p.id);
+          return rbx != null ? rbx : Math.round(p.priceNum * ROBUX_PER_USD_FALLBACK);
         }
-        overlay.hidden = false;
-        document.getElementById('coResellPopupClose').onclick = function () { close(); onDone(); };
-        document.getElementById('coResellPopupSkip').onclick = function () { close(); onDone(); };
-        document.getElementById('coResellPopupContinue').onclick = function () {
-          candidates.forEach(function (i) {
-            if (!selected[i.id]) return;
-            var p = cat.filter(function (x) { return x.id === i.id; })[0];
+        function offerRow(kind, slug, img, name, meta, price, added) {
+          return '<div class="co-offer-row' + (added ? ' added' : '') + '" data-kind="' + kind + '" data-slug="' + esc(slug) + '">' +
+            '<span class="co-offer-thumb" style="background-image:url(\'' + img + '\')"></span>' +
+            '<div class="co-offer-info"><div class="co-offer-name">' + esc(name) + '</div>' +
+            '<div class="co-offer-meta">' + esc(meta) + '</div></div>' +
+            '<div class="co-offer-side"><span class="co-offer-price">' + price + '</span>' +
+            '<button class="btn btn-tinted co-offer-add' + (added ? ' is-added' : '') + '" type="button">' +
+            (added
+              ? '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg>Added'
+              : 'Add') +
+            '</button></div>' +
+            '</div>';
+        }
+        function build() {
+          var t = tierLadderNow();
+          var useRobux = t.useRobux;
+          var fmtMoney = function (n) { return useRobux ? ('R$ ' + Math.round(n).toLocaleString('en-US')) : money(n); };
+          var rows = '';
+          resellSlugs.forEach(function (slug) {
+            var p = cat.filter(function (x) { return x.id === slug; })[0];
             if (!p) return;
-            var resellPrice = p.resellPrice != null ? p.resellPrice : Math.round(p.priceNum * 3);
-            cart = cart.filter(function (x) { return x.id !== i.id; });
-            cart.push({ id: i.id + '--resell', title: p.title, price: resellPrice, image: p.image, tag: p.cat || '', licence: 'resell', qty: 1 });
+            var stdLine = cart.filter(function (x) { return x.id === slug; })[0];
+            var basePrice = stdLine ? stdLine.price : p.priceNum;
+            var deltaUsd = resellPriceOf(p) - basePrice;
+            var delta = useRobux ? Math.round(deltaUsd * rate) : deltaUsd;
+            var added = cart.some(function (x) { return x.id === slug + '--resell'; });
+            rows += offerRow('resell', slug, p.image, p.title, 'Resell licence — sell it under your own storefront', '+' + fmtMoney(delta), added);
           });
-          save(cart);
-          render();
-          close();
-          onDone();
+          tierEl.hidden = t.res.hidden;
+          if (!t.res.hidden) tierEl.innerHTML = t.res.html;
+          gapSlugs.forEach(function (slug) {
+            var p = cat.filter(function (x) { return x.id === slug; })[0];
+            if (!p) return;
+            var added = cart.some(function (x) { return x.id === slug || x.id === slug + '--crosssell'; });
+            var price = priceOf(p, useRobux);
+            var meta = !t.res.next ? 'Adds to your order'
+              : (price >= t.res.gap ? ('Crosses into ' + t.res.next.pct + '% off') : ('Gets you closer to ' + t.res.next.pct + '% off'));
+            rows += offerRow('add', slug, p.image, p.title, meta, fmtMoney(price), added);
+          });
+          listEl.innerHTML = rows || '<p class="co-offer-empty">You’re all set — nothing to add here.</p>';
+          var anyResell = cart.some(function (x) { return x.licence === 'resell'; });
+          if (termsWrap) termsWrap.hidden = !anyResell;
+          if (subEl) subEl.textContent = 'Subtotal ' + fmtMoney(t.sub);
+        }
+        listEl.onclick = function (e) {
+          var btn = e.target.closest('.co-offer-add'); if (!btn) return;
+          var row = e.target.closest('.co-offer-row'); if (!row) return;
+          var kind = row.getAttribute('data-kind'), slug = row.getAttribute('data-slug');
+          var p = cat.filter(function (x) { return x.id === slug; })[0];
+          if (!p) return;
+          if (kind === 'resell') {
+            if (cart.some(function (x) { return x.id === slug + '--resell'; })) {
+              cart = cart.filter(function (x) { return x.id !== slug + '--resell'; });
+              cart.push({ id: slug, title: p.title, price: p.priceNum, image: p.image, tag: p.cat || '', licence: 'standard', qty: 1 });
+            } else {
+              cart = cart.filter(function (x) { return x.id !== slug; });
+              cart.push({ id: slug + '--resell', title: p.title, price: resellPriceOf(p), image: p.image, tag: p.cat || '', licence: 'resell', qty: 1 });
+            }
+          } else {
+            if (cart.some(function (x) { return x.id === slug || x.id === slug + '--crosssell'; })) {
+              cart = cart.filter(function (x) { return x.id !== slug && x.id !== slug + '--crosssell'; });
+            } else {
+              cart.push({ id: slug, title: p.title, price: p.priceNum, image: p.image, tag: p.cat || '', licence: 'standard', qty: 1 });
+            }
+          }
+          save(cart); render(); build();
         };
+        function onKey(e) { if (e.key === 'Escape') close(); }
+        function close() { overlay.hidden = true; document.removeEventListener('keydown', onKey); }
+        document.addEventListener('keydown', onKey);
+        var closeBtn = document.getElementById('coOfferClose');
+        var cancelBtn = document.getElementById('coOfferCancel');
+        if (closeBtn) closeBtn.onclick = function () { close(); };
+        if (cancelBtn) cancelBtn.onclick = function () { close(); };
+        document.getElementById('coOfferPlace').onclick = function () {
+          var anyResell = cart.some(function (x) { return x.licence === 'resell'; });
+          if (anyResell && termsBox && !termsBox.checked) {
+            if (msgEl) msgEl.textContent = 'Please accept the Resell Licence Terms to include resell rights.';
+            if (termsWrap) { termsWrap.classList.remove('shake'); void termsWrap.offsetWidth; termsWrap.classList.add('shake'); }
+            return;
+          }
+          // Mirror the acceptance onto the page's own resell-terms checkbox
+          // so validateBeforeOrder passes without bouncing the buyer back
+          // up the page to a box they already ticked here.
+          if (anyResell) { var real = document.getElementById('coResell'); if (real) real.checked = true; }
+          if (msgEl) msgEl.textContent = '';
+          close();
+          onProceed();
+        };
+        if (msgEl) msgEl.textContent = '';
+        build();
+        overlay.hidden = false;
       }
 
       // Runs the actual "can this order be placed" checks and, on the
@@ -5577,18 +5646,21 @@
         return true;
       }
 
-      // Re-entrant: after the popup resolves, this runs again from the
-      // top rather than jumping straight to proceedToOrder - adding
-      // resell rights makes the resell-terms checkbox appear, and that
-      // checkbox has to actually be re-checked, not skipped just because
-      // it didn't exist the first time validateBeforeOrder ran. Since the
-      // popup marks every offered item "seen" before calling back,
-      // resellCandidates() is empty on this second pass, so it falls
-      // straight through to proceedToOrder once validation passes.
       function tryPlaceOrder() {
         if (!validateBeforeOrder()) return;
-        var candidates = resellCandidates();
-        if (candidates.length) { openResellPopup(candidates, tryPlaceOrder); return; }
+        // The offer modal can add a resell licence, which makes the
+        // resell-terms checkbox required - so re-validate after it closes
+        // rather than proceeding straight through. The modal mirrors its
+        // own terms acceptance onto that checkbox, so a buyer who ticked
+        // it there won't get bounced.
+        if (!offerShown && offerHasContent()) {
+          offerShown = true;
+          openOfferModal(function () {
+            if (!validateBeforeOrder()) return;
+            proceedToOrder();
+          });
+          return;
+        }
         proceedToOrder();
       }
 

@@ -2698,23 +2698,24 @@ html.js .ref-method-btn:focus-visible { outline: 2px solid var(--accent); outlin
 .co-tier-nudge-title { font-size: 12.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .co-tier-nudge-sub { font-size: 11px; color: var(--fg-3); margin-top: 1px; }
 .co-tier-nudge-add { flex: 0 0 auto; min-height: 32px; padding: 0 14px; font-size: 12px; }
-/* Resell-license upgrade and genre cross-sell offers - both live-priced
-   and floor-checked server-side the moment either gets added (same path
-   real cart items go through), this is just the invitation. */
-/* Genre cross-sell - real product cards (image, title, description,
-   price), not a compact link row, since the point is to actually show
-   what's being offered rather than just name-drop it. */
-.co-cross { display: flex; flex-direction: column; gap: 10px; padding: 16px 0; border-top: 1px solid var(--hairline); }
-.co-cross-head { font-size: 13px; font-weight: 700; color: var(--fg-2); margin-bottom: 2px; }
-.co-cross-card { display: flex; gap: 12px; padding: 12px; background: var(--bg-3); border: 1px solid var(--hairline); border-radius: var(--r-sm); }
-.co-cross-thumb { flex: 0 0 72px; width: 72px; height: 72px; border-radius: var(--r-ctl); background: #0f1014 center / cover no-repeat; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08); }
-.co-cross-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
-.co-cross-title { font-size: 14px; font-weight: 700; line-height: 1.3; }
-.co-cross-desc { font-size: 12px; color: var(--fg-3); line-height: 1.45; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-.co-cross-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-top: 4px; }
-.co-cross-price { font-size: 14px; font-weight: 700; color: var(--price); }
-.co-cross-was { font-size: 12px; color: var(--fg-3); text-decoration: line-through; margin-right: 5px; font-weight: 400; }
-.co-cross-add { flex: 0 0 auto; min-height: 32px; padding: 0 14px; font-size: 12px; }
+/* "Add to your order" - relevance-ranked catalogue suggestions
+   (get_checkout_cross_sell), each at the exact 10%-off price the server
+   will honour (never below product_legal.min_sale_usd; skipped entirely
+   for disallow_sales items). Sits right under the tier ladder in the
+   order summary; compact rows, same shape as the offer-modal rows. */
+.co-cross { display: flex; flex-direction: column; gap: 7px; margin: 14px 0 2px; padding-top: 15px; border-top: 1px solid var(--hairline); }
+.co-cross-head { font-size: 12.5px; font-weight: 700; color: var(--fg-2); margin-bottom: 1px; }
+.co-cross-row { display: flex; align-items: center; gap: 11px; padding: 9px 10px;
+  background: var(--bg-2); border: 1px solid var(--hairline); border-radius: var(--r-sm); }
+.co-cross-thumb { flex: 0 0 40px; width: 40px; height: 40px; border-radius: var(--r-ctl);
+  background: #0f1014 center / cover no-repeat; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08); }
+.co-cross-info { flex: 1; min-width: 0; }
+.co-cross-title { font-size: 12.5px; font-weight: 700; line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.co-cross-price { font-size: 12px; font-weight: 700; color: var(--price); margin-top: 2px; display: flex; align-items: baseline; gap: 5px; flex-wrap: wrap; }
+.co-cross-was { color: var(--fg-3); text-decoration: line-through; font-weight: 400; font-size: 11px; }
+.co-cross-off { color: var(--fg-3); font-weight: 600; font-size: 10px; letter-spacing: 0.02em; }
+.co-cross-note { flex-basis: 100%; color: var(--fg-3); font-weight: 500; font-size: 10.5px; }
+.co-cross-add { flex: 0 0 auto; min-height: 30px; padding: 0 15px; font-size: 12px; }
 
 .mkt-popup-modal .mkt-popup-fine a { color: var(--accent); font-weight: 600; text-decoration: none; }
 
@@ -2746,6 +2747,7 @@ html.js .ref-method-btn:focus-visible { outline: 2px solid var(--accent); outlin
   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .co-offer-side { flex: 0 0 auto; display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
 .co-offer-price { font-size: 12.5px; font-weight: 700; color: var(--price); }
+.co-offer-was { color: var(--fg-3); text-decoration: line-through; font-weight: 400; font-size: 11px; margin-right: 4px; }
 .co-offer-add { min-height: 30px; padding: 0 15px; font-size: 12px; display: inline-flex; align-items: center; gap: 5px; }
 .co-offer-add.is-added { color: var(--price); box-shadow: inset 0 0 0 1px rgba(52,224,138,0.4); background: rgba(52,224,138,0.1); }
 @media (hover: hover) and (pointer: fine) { .co-offer-add.is-added:hover { background: rgba(52,224,138,0.16); color: var(--price); } }

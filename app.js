@@ -4911,61 +4911,76 @@
         if (wrap) wrap.hidden = !cart.some(function (i) { return i.licence === 'resell'; });
       }
 
-      // Genre cross-sell: "people also get this" based on the genres
-      // actually in the cart right now (get_checkout_cross_sell, same
-      // dynamic genre detection the dashboard's Recommended for you uses),
-      // not purchase history - works for a guest checkout with none. Added
-      // items carry crossSell:true so priceItems bakes in the discount
-      // server-side (floor-checked the same way every other discount path
-      // here is), instead of trusting a client-computed price.
-      var crossSellCache = null; // slug -> {title, image, price, cat}, refreshed whenever the cart's slug set changes
+      // "Add to your order" suggestions - get_checkout_cross_sell ranks the
+      // whole on-platform catalogue with relevance (shares a genre, then a
+      // category, then a subcategory with something already in the cart)
+      // dominating the site's usual quality/price/revenue conversion score.
+      // Works for guests (reads the cart, not purchase history). The RPC
+      // also returns the exact deal price checkout will honour - 10% off,
+      // never below product_legal.min_sale_usd, and no discount at all when
+      // disallow_sales is set - so the price shown here is the price
+      // charged. Added items still carry crossSell:true and are re-priced
+      // server-side by priceItems; the client number is never trusted.
+      var crossSellCache = null; // [{ id, title, image, cat, list, deal }], refreshed when the cart's slug set changes
       var crossSellCartKey = null;
+      function crossSellPicks() { return crossSellCache || []; }
       function renderCrossSell() {
         var box = document.getElementById('coCrossSell');
-        if (!box || !window.coldSupabase) return;
-        var slugs = Array.from(new Set(cart.map(function (i) { return i.id.replace(/--resell$/, '').replace(/--bundle$/, ''); })));
-        if (!slugs.length) { box.hidden = true; box.innerHTML = ''; return; }
+        if (!window.coldSupabase) return;
+        var slugs = Array.from(new Set(cart.map(function (i) { return i.id.replace(/--resell$/, '').replace(/--bundle$/, '').replace(/--crosssell$/, ''); })));
+        if (!slugs.length) { crossSellCache = []; crossSellCartKey = null; paintCrossSell(); return; }
         var key = slugs.slice().sort().join(',');
         if (key === crossSellCartKey) { paintCrossSell(); return; }
         crossSellCartKey = key;
-        window.coldSupabase.rpc('get_checkout_cross_sell', { p_slugs: slugs, p_limit: 3 }).then(function (res) {
+        window.coldSupabase.rpc('get_checkout_cross_sell', { p_slugs: slugs, p_limit: 4 }).then(function (res) {
           if (key !== crossSellCartKey) return; // cart changed again before this resolved
           var cat = window.__CATALOG || [];
-          var rows = (res.data || []).map(function (r) { return cat.filter(function (x) { return x.id === r.product_slug; })[0]; }).filter(Boolean);
-          // Never suggest something already sitting in the cart.
-          var cartIds = {}; cart.forEach(function (i) { cartIds[i.id.replace(/--resell$/, '').replace(/--bundle$/, '')] = true; });
-          crossSellCache = rows.filter(function (p) { return !cartIds[p.id]; });
+          var cartIds = {}; cart.forEach(function (i) { cartIds[i.id.replace(/--resell$/, '').replace(/--bundle$/, '').replace(/--crosssell$/, '')] = true; });
+          crossSellCache = (res.data || []).map(function (r) {
+            var p = cat.filter(function (x) { return x.id === r.product_slug; })[0];
+            if (!p || cartIds[p.id]) return null;
+            var list = Number(r.list_price_usd);
+            var deal = Number(r.deal_price_usd);
+            return { id: p.id, title: p.title, image: p.image, cat: p.cat || '',
+                     list: isFinite(list) ? list : p.priceNum,
+                     deal: isFinite(deal) && deal > 0 ? deal : p.priceNum };
+          }).filter(Boolean);
           paintCrossSell();
         }).catch(function () { crossSellCache = []; paintCrossSell(); });
+      }
+      function crossSellRowHtml(x, extraNote) {
+        var discounted = x.deal < x.list - 0.005;
+        var priceHtml = discounted
+          ? '<span class="co-cross-was">' + money(x.list) + '</span>' + money(x.deal)
+          : money(x.deal);
+        return '<div class="co-cross-row" data-slug="' + esc(x.id) + '">' +
+          '<span class="co-cross-thumb" style="background-image:url(\'' + x.image + '\')"></span>' +
+          '<div class="co-cross-info"><div class="co-cross-title">' + esc(x.title) + '</div>' +
+          '<div class="co-cross-price">' + priceHtml + (discounted ? '<span class="co-cross-off">10% off</span>' : '') +
+          (extraNote ? '<span class="co-cross-note">' + esc(extraNote) + '</span>' : '') + '</div></div>' +
+          '<button class="btn btn-tinted co-cross-add" type="button">Add</button>' +
+          '</div>';
       }
       function paintCrossSell() {
         var box = document.getElementById('coCrossSell');
         if (!box) return;
-        if (!crossSellCache || !crossSellCache.length) { box.hidden = true; box.innerHTML = ''; return; }
+        var picks = crossSellPicks();
+        if (!picks.length) { box.hidden = true; box.innerHTML = ''; return; }
         box.hidden = false;
-        box.innerHTML = '<div class="co-cross-head">Goes well with your order</div>' +
-          crossSellCache.map(function (p) {
-            var discounted = Math.round(p.priceNum * 0.9 * 100) / 100;
-            return '<div class="co-cross-card" data-slug="' + esc(p.id) + '">' +
-              '<span class="co-cross-thumb" style="background-image:url(\'' + p.image + '\')"></span>' +
-              '<div class="co-cross-body">' +
-              '<div class="co-cross-title">' + esc(p.title) + '</div>' +
-              (p.desc ? '<div class="co-cross-desc">' + esc(p.desc) + '</div>' : '') +
-              '<div class="co-cross-row"><span class="co-cross-price"><span class="co-cross-was">' + money(p.priceNum) + '</span>' + money(discounted) + '</span>' +
-              '<button class="btn btn-tinted co-cross-add" type="button" data-act="cross-sell-add">Add - 10% off</button></div>' +
-              '</div></div>';
-          }).join('');
+        box.innerHTML = '<div class="co-cross-head">Add to your order</div>' +
+          picks.slice(0, 3).map(function (x) { return crossSellRowHtml(x); }).join('');
+      }
+      function addCrossSell(slug) {
+        var x = crossSellPicks().filter(function (p) { return p.id === slug; })[0];
+        if (!x) return;
+        cart.push({ id: x.id + '--crosssell', crossSellSlug: x.id, title: x.title, price: x.deal, image: x.image, tag: x.cat, licence: 'standard', qty: 1 });
+        save(cart);
+        render();
       }
       if (document.getElementById('coCrossSell')) {
         document.getElementById('coCrossSell').addEventListener('click', function (e) {
-          var row = e.target.closest('.co-cross-card'); if (!row) return;
-          var slug = row.getAttribute('data-slug');
-          var p = (crossSellCache || []).filter(function (x) { return x.id === slug; })[0];
-          if (!p) return;
-          var discounted = Math.round(p.priceNum * 0.9 * 100) / 100;
-          cart.push({ id: p.id + '--crosssell', crossSellSlug: p.id, title: p.title, price: discounted, image: p.image, tag: p.cat || '', licence: 'standard', qty: 1 });
-          save(cart);
-          render();
+          var row = e.target.closest('.co-cross-row'); if (!row) return;
+          addCrossSell(row.getAttribute('data-slug'));
         });
       }
 
@@ -5463,24 +5478,6 @@
           return p && p.resell;
         });
       }
-      // Up to `n` of the cheapest catalog products not already in the cart
-      // that would help close the gap to the next tier - priced at least
-      // half the remaining gap so the list reads as "add one of these",
-      // not "add all of them". Same unit as the ladder it's closing.
-      function tierGapPicks(remaining, useRobux, n) {
-        var cat = window.__CATALOG || [];
-        var inCart = {};
-        cart.forEach(function (i) { inCart[i.id.replace(/--resell$/, '').replace(/--bundle$/, '').replace(/--crosssell$/, '')] = true; });
-        function priceOf(p) {
-          if (!useRobux) return p.priceNum;
-          var rbx = catalogRobuxPrice(p.id);
-          return rbx != null ? rbx : Math.round(p.priceNum * ROBUX_PER_USD_FALLBACK);
-        }
-        return cat.filter(function (p) { return !inCart[p.id] && priceOf(p) >= remaining * 0.5; })
-          .map(function (p) { return { p: p, price: priceOf(p) }; })
-          .sort(function (a, b) { return a.price - b.price; })
-          .slice(0, n || 3);
-      }
       function tierLadderNow() {
         var useRobux = robuxView();
         var sub = useRobux ? robuxSubtotalRaw() : subtotal();
@@ -5496,9 +5493,7 @@
       }
       function offerHasContent() {
         if (typeof payMethod !== 'undefined' && payMethod === 'robux') return false;
-        if (resellCandidates().length) return true;
-        var t = tierLadderNow();
-        return !!(t.res.next && tierGapPicks(t.res.gap, t.useRobux, 3).length);
+        return !!(resellCandidates().length || crossSellPicks().length);
       }
       function openOfferModal(onProceed) {
         var overlay = document.getElementById('coOfferModal');
@@ -5514,18 +5509,13 @@
 
         // Snapshot both offer lists once, from the cart as it stands now -
         // so toggling a row on doesn't make it vanish (it just flips to
-        // "Added"), and the gap picks don't reshuffle under the cursor as
-        // the subtotal moves.
-        var openState = tierLadderNow();
+        // "Added"), and the suggestions don't reshuffle under the cursor as
+        // the subtotal moves. addPicks are the same relevance-ranked,
+        // 10%-off "add to your order" suggestions the order summary shows.
         var resellSlugs = resellCandidates().map(function (i) { return i.id; });
-        var gapSlugs = (openState.res.next ? tierGapPicks(openState.res.gap, openState.useRobux, 3) : []).map(function (r) { return r.p.id; });
+        var addPicks = crossSellPicks().slice(0, 3).map(function (x) { return x; });
 
         function resellPriceOf(p) { return p.resellPrice != null ? p.resellPrice : Math.round(p.priceNum * 3); }
-        function priceOf(p, useRobux) {
-          if (!useRobux) return p.priceNum;
-          var rbx = catalogRobuxPrice(p.id);
-          return rbx != null ? rbx : Math.round(p.priceNum * ROBUX_PER_USD_FALLBACK);
-        }
         function offerRow(kind, slug, img, name, meta, price, added) {
           return '<div class="co-offer-row' + (added ? ' added' : '') + '" data-kind="' + kind + '" data-slug="' + esc(slug) + '">' +
             '<span class="co-offer-thumb" style="background-image:url(\'' + img + '\')"></span>' +
@@ -5556,14 +5546,20 @@
           });
           tierEl.hidden = t.res.hidden;
           if (!t.res.hidden) tierEl.innerHTML = t.res.html;
-          gapSlugs.forEach(function (slug) {
-            var p = cat.filter(function (x) { return x.id === slug; })[0];
-            if (!p) return;
-            var added = cart.some(function (x) { return x.id === slug || x.id === slug + '--crosssell'; });
-            var price = priceOf(p, useRobux);
-            var meta = !t.res.next ? 'Adds to your order'
-              : (price >= t.res.gap ? ('Crosses into ' + t.res.next.pct + '% off') : ('Gets you closer to ' + t.res.next.pct + '% off'));
-            rows += offerRow('add', slug, p.image, p.title, meta, fmtMoney(price), added);
+          addPicks.forEach(function (x) {
+            var added = cart.some(function (c) { return c.id === x.id || c.id === x.id + '--crosssell'; });
+            var dealDisp = useRobux ? Math.round(x.deal * rate) : x.deal;
+            var listDisp = useRobux ? Math.round(x.list * rate) : x.list;
+            var discounted = x.deal < x.list - 0.005;
+            var priceHtml = discounted
+              ? '<span class="co-offer-was">' + fmtMoney(listDisp) + '</span>' + fmtMoney(dealDisp)
+              : fmtMoney(dealDisp);
+            // A note only when adding this item would actually clear the
+            // next tier - otherwise the discount shown is the whole story.
+            var meta = (t.res.next && x.deal >= t.res.gap && !useRobux)
+              ? ('10% off — crosses into ' + t.res.next.pct + '% off')
+              : (discounted ? '10% off — adds to your order' : 'Adds to your order');
+            rows += offerRow('add', x.id, x.image, x.title, meta, priceHtml, added);
           });
           listEl.innerHTML = rows || '<p class="co-offer-empty">You’re all set — nothing to add here.</p>';
           var anyResell = cart.some(function (x) { return x.licence === 'resell'; });
@@ -5588,7 +5584,12 @@
             if (cart.some(function (x) { return x.id === slug || x.id === slug + '--crosssell'; })) {
               cart = cart.filter(function (x) { return x.id !== slug && x.id !== slug + '--crosssell'; });
             } else {
-              cart.push({ id: slug, title: p.title, price: p.priceNum, image: p.image, tag: p.cat || '', licence: 'standard', qty: 1 });
+              // Add at the cross-sell deal price and flag it (cartToItems
+              // sends crossSell:true; priceItems re-checks the 10% against
+              // min_sale_usd / disallow_sales server-side).
+              var pick = addPicks.filter(function (a) { return a.id === slug; })[0];
+              cart.push({ id: slug + '--crosssell', crossSellSlug: slug, title: p.title,
+                price: pick ? pick.deal : p.priceNum, image: p.image, tag: p.cat || '', licence: 'standard', qty: 1 });
             }
           }
           save(cart); render(); build();

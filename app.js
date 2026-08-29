@@ -1056,9 +1056,11 @@
         var tick = tier
           ? '<svg class="co-tier-tick" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg>'
           : '';
+        var amt = opts.fmtThreshold || fmt;
         var steps = tiers.map(function (t) {
           var d = sub >= t.at, n = next && t.at === next.at;
-          return '<span class="co-tier-step' + (d ? ' done' : '') + (n ? ' next' : '') + '">' + t.pct + '%</span>';
+          return '<span class="co-tier-step' + (d ? ' done' : '') + (n ? ' next' : '') + '">' +
+            '<b>' + amt(t.at) + '</b><i>' + t.pct + '% off</i></span>';
         }).join('');
         var html =
           '<div class="co-tier-status' + (tier ? ' unlocked' : '') + '">' + tick + '<span>' + msg + '</span></div>' +
@@ -1066,7 +1068,32 @@
           '<div class="co-tier-scale">' + steps + '</div>';
         return { hidden: false, html: html, tier: tier, next: next, gap: gap };
       }
-      return { build: build };
+      // Render a built ladder into `box`, animating the meter fill from
+      // wherever it was last time (or 0 on first paint) to its new width -
+      // so adding an item slides the bar rather than snapping it.
+      function apply(box, res) {
+        if (!box) return;
+        if (res.hidden) { box.hidden = true; box.innerHTML = ''; box.removeAttribute('data-fill'); return; }
+        box.hidden = false;
+        var prev = box.getAttribute('data-fill');
+        box.innerHTML = res.html;
+        var fill = box.querySelector('.co-tier-fill');
+        if (fill) {
+          var target = fill.style.width;
+          if (!window.matchMedia || !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+            // Set the start width, force the browser to commit it, then set
+            // the target - the reflow between the two is what makes the
+            // transition run. Not requestAnimationFrame: rAF callbacks are
+            // paused while the tab is hidden, which would leave the bar
+            // stuck at its start width.
+            fill.style.width = (prev != null ? prev : '0%');
+            void fill.offsetWidth;
+            fill.style.width = target;
+          }
+          box.setAttribute('data-fill', target);
+        }
+      }
+      return { build: build, apply: apply };
     })();
 
     (function () {
@@ -2110,34 +2137,32 @@
         // total against Robux-equivalent thresholds instead, so this
         // preview can never promise a discount the order doesn't actually
         // give, or vice versa.
-        var robuxMode = window.__currencyMode && window.__currencyMode() === 'robux';
-        var useRobux = robuxMode && cart.length > 0;
+        var useRobux = (window.__currencyMode && window.__currencyMode() === 'robux') && cart.length > 0;
         var sub = useRobux ? robuxSubtotalWithFallback() : subtotal();
         var res = window.__coldTierLadder.build(sub, {
           tiers: SPEND_TIERS,
           thresholdFor: function (t) { return useRobux ? Math.round(t.minSubtotal * ROBUX_PER_USD_FALLBACK) : t.minSubtotal; },
-          fmt: function (n) { return useRobux ? ('R$ ' + Math.round(n).toLocaleString('en-US')) : money(n); }
+          fmt: function (n) { return useRobux ? ('R$ ' + Math.round(n).toLocaleString('en-US')) : money(n); },
+          fmtThreshold: function (n) { return useRobux ? ('R$ ' + Math.round(n).toLocaleString('en-US')) : ('$' + Math.round(n)); }
         });
-        box.hidden = res.hidden;
         box.className = 'cd-tier co-tier' + (res.tier ? ' co-tier-unlocked' : '');
-        if (res.hidden) { box.innerHTML = ''; return; }
+        window.__coldTierLadder.apply(box, res);
+        if (res.hidden) return;
         // The gap-closer nudge stays in the drawer - you're still shopping
         // here, so a one-click "add this to cross the tier" is useful.
         // Checkout drops it; by then the equivalent lives in the
         // Place-order offer modal.
-        var nudgeHtml = '';
         if (res.next) {
           var pick = cheapestGapCloser(res.gap, useRobux);
           if (pick) {
             var pickPriceStr = useRobux ? ('R$ ' + Math.round(pick.gapPrice).toLocaleString('en-US')) : money(pick.priceNum);
-            nudgeHtml = '<div class="co-tier-nudge" data-id="' + esc(pick.id) + '">' +
+            box.insertAdjacentHTML('beforeend', '<div class="co-tier-nudge" data-id="' + esc(pick.id) + '">' +
               '<span class="co-tier-nudge-thumb" style="background-image:url(\'' + pick.image + '\')"></span>' +
               '<div class="co-tier-nudge-body"><div class="co-tier-nudge-title">' + esc(pick.title) + '</div>' +
-              '<div class="co-tier-nudge-sub">' + pickPriceStr + ' — crosses into ' + res.next.pct + '% off</div></div>' +
-              '<button class="btn btn-tinted co-tier-nudge-add" type="button">Add</button></div>';
+              '<div class="co-tier-nudge-sub">' + pickPriceStr + ', crosses into ' + res.next.pct + '% off</div></div>' +
+              '<button class="btn btn-tinted co-tier-nudge-add" type="button">Add</button></div>');
           }
         }
-        box.innerHTML = res.html + nudgeHtml;
       }
       var cdTierBannerEl = document.getElementById('cdTierBanner');
       if (cdTierBannerEl) cdTierBannerEl.addEventListener('click', function (e) {
@@ -4514,6 +4539,14 @@
         if (!window.__currencyMode || window.__currencyMode() !== 'robux') return false;
         return typeof payMethod === 'undefined' || payMethod === 'robux';
       }
+      // The tier ladder and the Build-more-for-less upsell price in Robux
+      // whenever *either* the Robux display currency or the Robux checkout
+      // method is chosen - selecting "pay with Robux" should flip those to
+      // R$ even if the visitor never touched the currency switcher.
+      function robuxPricing() {
+        return (window.__currencyMode && window.__currencyMode() === 'robux') ||
+               (typeof payMethod !== 'undefined' && payMethod === 'robux');
+      }
       // Digital licences aren't a quantity - forced to 1 here too so a cart
       // saved by an older version of this file (back when the drawer's
       // +/- stepper existed) can't still check out at qty > 1.
@@ -4741,20 +4774,16 @@
         // total against Robux-equivalent thresholds instead, so this
         // preview can never promise a discount the order doesn't actually
         // give, or vice versa.
-        var robuxMode = robuxView();
-        var useRobux = robuxMode && cart.length > 0;
+        var useRobux = robuxPricing() && cart.length > 0;
         var sub = useRobux ? robuxSubtotalRaw() : subtotal();
         var res = window.__coldTierLadder.build(sub, {
           tiers: SPEND_TIERS,
           thresholdFor: function (t) { return useRobux ? Math.round(t.minSubtotal * ROBUX_PER_USD_FALLBACK) : t.minSubtotal; },
-          fmt: function (n) { return useRobux ? ('R$ ' + Math.round(n).toLocaleString('en-US')) : money(n); }
+          fmt: function (n) { return useRobux ? ('R$ ' + Math.round(n).toLocaleString('en-US')) : money(n); },
+          fmtThreshold: function (n) { return useRobux ? ('R$ ' + Math.round(n).toLocaleString('en-US')) : ('$' + Math.round(n)); }
         });
-        box.hidden = res.hidden;
         box.classList.toggle('co-tier-unlocked', !!res.tier);
-        // The checkout sidebar shows the ladder only - the "add this to
-        // cross the tier" nudge moved into the Place-order offer modal,
-        // where it sits alongside the resell-licence offer.
-        if (!res.hidden) box.innerHTML = res.html;
+        window.__coldTierLadder.apply(box, res);
       }
 
       function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
@@ -4948,16 +4977,24 @@
           paintCrossSell();
         }).catch(function () { crossSellCache = []; paintCrossSell(); });
       }
-      function crossSellRowHtml(x, extraNote) {
-        var discounted = x.deal < x.list - 0.005;
-        var priceHtml = discounted
-          ? '<span class="co-cross-was">' + money(x.list) + '</span>' + money(x.deal)
-          : money(x.deal);
+      function crossSellRowHtml(x) {
+        var rbx = robuxPricing();
+        var discounted = !rbx && x.deal < x.list - 0.005;
+        var priceHtml;
+        if (rbx) {
+          // Robux checkout re-prices from robux_price and doesn't honour
+          // the 10% cross-sell discount - show the plain Robux price.
+          priceHtml = 'R$ ' + Math.round(x.list * ROBUX_PER_USD_FALLBACK).toLocaleString('en-US');
+        } else if (discounted) {
+          priceHtml = '<span class="co-cross-was">' + money(x.list) + '</span>' + money(x.deal) +
+            '<span class="co-cross-off">10% off</span>';
+        } else {
+          priceHtml = money(x.deal);
+        }
         return '<div class="co-cross-row" data-slug="' + esc(x.id) + '">' +
           '<span class="co-cross-thumb" style="background-image:url(\'' + x.image + '\')"></span>' +
           '<div class="co-cross-info"><div class="co-cross-title">' + esc(x.title) + '</div>' +
-          '<div class="co-cross-price">' + priceHtml + (discounted ? '<span class="co-cross-off">10% off</span>' : '') +
-          (extraNote ? '<span class="co-cross-note">' + esc(extraNote) + '</span>' : '') + '</div></div>' +
+          '<div class="co-cross-price">' + priceHtml + '</div></div>' +
           '<button class="btn btn-tinted co-cross-add" type="button">Add</button>' +
           '</div>';
       }
@@ -5358,6 +5395,7 @@
         renderItems();
         renderTotals();
         renderTierBanner();
+        renderCrossSell();
         // Selection is exposed to assistive tech, not just painted. The row
         // group is a radiogroup, so each row has to carry its own state.
         document.querySelectorAll('.co-pay-btn').forEach(function (b) {
@@ -5459,18 +5497,16 @@
           if (msg) { msg.className = 'co-msg err show'; msg.innerHTML = withSupportLine('Could not check your Roblox account link.'); }
         });
       }
-      // The one interruption before payment worth making: a single modal
-      // on the "Place order" click that offers what the buyer can still
-      // change in one tap - resell-licence upgrades for anything in the
-      // cart that supports one, and, when a spend tier is within reach, a
-      // few cheap things to add that would cross it. Shown at most once
-      // per checkout visit (not persisted - a later visit is a fresh
-      // decision), and never for a Robux order, where resell isn't sold
-      // and the tier maths runs a different path.
+      // The "Build more for less" interruption before payment: a single
+      // modal on the "Place order" click - relevance-ranked items to add
+      // to the order, and a one-tap bar to put a resell licence on
+      // everything eligible. Shown at most once per checkout visit (not
+      // persisted - a later visit is a fresh decision). Works for Robux
+      // too: resell IS sold in Robux now (resell_robux_price), and the
+      // spend-tier maths has its own Robux path server-side.
       var offerShown = false;
 
       function resellCandidates() {
-        if (typeof payMethod !== 'undefined' && payMethod === 'robux') return [];
         var cat = window.__CATALOG || [];
         return cart.filter(function (i) {
           if (i.licence === 'resell') return false;
@@ -5479,7 +5515,7 @@
         });
       }
       function tierLadderNow() {
-        var useRobux = robuxView();
+        var useRobux = robuxPricing();
         var sub = useRobux ? robuxSubtotalRaw() : subtotal();
         return {
           useRobux: useRobux,
@@ -5487,12 +5523,12 @@
           res: window.__coldTierLadder.build(sub, {
             tiers: SPEND_TIERS,
             thresholdFor: function (t) { return useRobux ? Math.round(t.minSubtotal * ROBUX_PER_USD_FALLBACK) : t.minSubtotal; },
-            fmt: function (n) { return useRobux ? ('R$ ' + Math.round(n).toLocaleString('en-US')) : money(n); }
+            fmt: function (n) { return useRobux ? ('R$ ' + Math.round(n).toLocaleString('en-US')) : money(n); },
+            fmtThreshold: function (n) { return useRobux ? ('R$ ' + Math.round(n).toLocaleString('en-US')) : ('$' + Math.round(n)); }
           })
         };
       }
       function offerHasContent() {
-        if (typeof payMethod !== 'undefined' && payMethod === 'robux') return false;
         return !!(resellCandidates().length || crossSellPicks().length);
       }
       function openOfferModal(onProceed) {
@@ -5510,87 +5546,117 @@
         // Snapshot both offer lists once, from the cart as it stands now -
         // so toggling a row on doesn't make it vanish (it just flips to
         // "Added"), and the suggestions don't reshuffle under the cursor as
-        // the subtotal moves. addPicks are the same relevance-ranked,
-        // 10%-off "add to your order" suggestions the order summary shows.
+        // the subtotal moves. addPicks are the same relevance-ranked
+        // "add to your order" suggestions the order summary shows.
         var resellSlugs = resellCandidates().map(function (i) { return i.id; });
         var addPicks = crossSellPicks().slice(0, 3).map(function (x) { return x; });
+        var resellEl = document.getElementById('coOfferResell');
 
         function resellPriceOf(p) { return p.resellPrice != null ? p.resellPrice : Math.round(p.priceNum * 3); }
-        function offerRow(kind, slug, img, name, meta, price, added) {
-          return '<div class="co-offer-row' + (added ? ' added' : '') + '" data-kind="' + kind + '" data-slug="' + esc(slug) + '">' +
+        function resellRobuxOf(p, basePrice) {
+          if (p.resellRobuxPrice > 0) return p.resellRobuxPrice;
+          return Math.round((resellPriceOf(p) - (basePrice || 0)) * rate);
+        }
+        function offerRow(slug, img, name, priceHtml, added) {
+          return '<div class="co-offer-row' + (added ? ' added' : '') + '" data-slug="' + esc(slug) + '">' +
             '<span class="co-offer-thumb" style="background-image:url(\'' + img + '\')"></span>' +
             '<div class="co-offer-info"><div class="co-offer-name">' + esc(name) + '</div>' +
-            '<div class="co-offer-meta">' + esc(meta) + '</div></div>' +
-            '<div class="co-offer-side"><span class="co-offer-price">' + price + '</span>' +
+            '<div class="co-offer-price">' + priceHtml + '</div></div>' +
             '<button class="btn btn-tinted co-offer-add' + (added ? ' is-added' : '') + '" type="button">' +
             (added
-              ? '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg>Added'
+              ? '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg>Added'
               : 'Add') +
-            '</button></div>' +
-            '</div>';
+            '</button></div>';
         }
         function build() {
           var t = tierLadderNow();
           var useRobux = t.useRobux;
           var fmtMoney = function (n) { return useRobux ? ('R$ ' + Math.round(n).toLocaleString('en-US')) : money(n); };
-          var rows = '';
-          resellSlugs.forEach(function (slug) {
-            var p = cat.filter(function (x) { return x.id === slug; })[0];
-            if (!p) return;
-            var stdLine = cart.filter(function (x) { return x.id === slug; })[0];
-            var basePrice = stdLine ? stdLine.price : p.priceNum;
-            var deltaUsd = resellPriceOf(p) - basePrice;
-            var delta = useRobux ? Math.round(deltaUsd * rate) : deltaUsd;
-            var added = cart.some(function (x) { return x.id === slug + '--resell'; });
-            rows += offerRow('resell', slug, p.image, p.title, 'Resell licence — sell it under your own storefront', '+' + fmtMoney(delta), added);
-          });
-          tierEl.hidden = t.res.hidden;
-          if (!t.res.hidden) tierEl.innerHTML = t.res.html;
-          addPicks.forEach(function (x) {
+          window.__coldTierLadder.apply(tierEl, t.res);
+
+          // The resell upsell: one bar, not a row per product. Toggling it
+          // puts (or pulls) a resell licence on every eligible item at once.
+          if (resellEl) {
+            if (!resellSlugs.length) { resellEl.hidden = true; resellEl.innerHTML = ''; }
+            else {
+              resellEl.hidden = false;
+              var addedCount = 0, deltaTotal = 0;
+              resellSlugs.forEach(function (slug) {
+                var p = cat.filter(function (x) { return x.id === slug; })[0];
+                if (!p) return;
+                var isAdded = cart.some(function (x) { return x.id === slug + '--resell'; });
+                if (isAdded) addedCount++;
+                var stdLine = cart.filter(function (x) { return x.id === slug; })[0];
+                var basePrice = stdLine ? stdLine.price : p.priceNum;
+                deltaTotal += useRobux ? resellRobuxOf(p, basePrice) : (resellPriceOf(p) - basePrice);
+              });
+              var allAdded = addedCount === resellSlugs.length;
+              var n = resellSlugs.length;
+              resellEl.className = 'co-offer-resell' + (allAdded ? ' added' : '');
+              resellEl.innerHTML =
+                '<div class="cor-copy"><b>Want to sell these products?</b>' +
+                '<span>Add a resell licence to ' + (n === 1 ? 'this item' : ('all ' + n + ' eligible items')) +
+                ' · +' + fmtMoney(deltaTotal) + '</span></div>' +
+                '<button class="btn btn-tinted co-offer-resell-btn' + (allAdded ? ' is-added' : '') + '" type="button">' +
+                (allAdded
+                  ? '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg>Added'
+                  : 'Add') + '</button>';
+            }
+          }
+
+          var rows = addPicks.map(function (x) {
             var added = cart.some(function (c) { return c.id === x.id || c.id === x.id + '--crosssell'; });
-            var dealDisp = useRobux ? Math.round(x.deal * rate) : x.deal;
-            var listDisp = useRobux ? Math.round(x.list * rate) : x.list;
-            var discounted = x.deal < x.list - 0.005;
-            var priceHtml = discounted
-              ? '<span class="co-offer-was">' + fmtMoney(listDisp) + '</span>' + fmtMoney(dealDisp)
-              : fmtMoney(dealDisp);
-            // A note only when adding this item would actually clear the
-            // next tier - otherwise the discount shown is the whole story.
-            var meta = (t.res.next && x.deal >= t.res.gap && !useRobux)
-              ? ('10% off — crosses into ' + t.res.next.pct + '% off')
-              : (discounted ? '10% off — adds to your order' : 'Adds to your order');
-            rows += offerRow('add', x.id, x.image, x.title, meta, priceHtml, added);
-          });
+            var priceHtml;
+            if (useRobux) {
+              // Robux checkout re-prices from robux_price and does not honour
+              // the 10% cross-sell discount, so show the plain Robux price.
+              priceHtml = 'R$ ' + Math.round(x.list * rate).toLocaleString('en-US');
+            } else if (x.deal < x.list - 0.005) {
+              priceHtml = '<span class="co-offer-was">' + money(x.list) + '</span>' + money(x.deal) +
+                '<span class="co-offer-off">10% off</span>';
+            } else {
+              priceHtml = money(x.deal);
+            }
+            return offerRow(x.id, x.image, x.title, priceHtml, added);
+          }).join('');
           listEl.innerHTML = rows || '<p class="co-offer-empty">You’re all set — nothing to add here.</p>';
+
           var anyResell = cart.some(function (x) { return x.licence === 'resell'; });
           if (termsWrap) termsWrap.hidden = !anyResell;
           if (subEl) subEl.textContent = 'Subtotal ' + fmtMoney(t.sub);
         }
-        listEl.onclick = function (e) {
-          var btn = e.target.closest('.co-offer-add'); if (!btn) return;
-          var row = e.target.closest('.co-offer-row'); if (!row) return;
-          var kind = row.getAttribute('data-kind'), slug = row.getAttribute('data-slug');
-          var p = cat.filter(function (x) { return x.id === slug; })[0];
-          if (!p) return;
-          if (kind === 'resell') {
-            if (cart.some(function (x) { return x.id === slug + '--resell'; })) {
+        if (resellEl) resellEl.onclick = function (e) {
+          if (!e.target.closest('.co-offer-resell-btn')) return;
+          var allAdded = resellSlugs.every(function (slug) { return cart.some(function (x) { return x.id === slug + '--resell'; }); });
+          resellSlugs.forEach(function (slug) {
+            var p = cat.filter(function (x) { return x.id === slug; })[0];
+            if (!p) return;
+            var has = cart.some(function (x) { return x.id === slug + '--resell'; });
+            if (allAdded && has) {
               cart = cart.filter(function (x) { return x.id !== slug + '--resell'; });
               cart.push({ id: slug, title: p.title, price: p.priceNum, image: p.image, tag: p.cat || '', licence: 'standard', qty: 1 });
-            } else {
+            } else if (!allAdded && !has) {
               cart = cart.filter(function (x) { return x.id !== slug; });
               cart.push({ id: slug + '--resell', title: p.title, price: resellPriceOf(p), image: p.image, tag: p.cat || '', licence: 'resell', qty: 1 });
             }
+          });
+          save(cart); render(); build();
+        };
+        listEl.onclick = function (e) {
+          var btn = e.target.closest('.co-offer-add'); if (!btn) return;
+          var row = e.target.closest('.co-offer-row'); if (!row) return;
+          var slug = row.getAttribute('data-slug');
+          var p = cat.filter(function (x) { return x.id === slug; })[0];
+          if (!p) return;
+          if (cart.some(function (x) { return x.id === slug || x.id === slug + '--crosssell'; })) {
+            cart = cart.filter(function (x) { return x.id !== slug && x.id !== slug + '--crosssell'; });
           } else {
-            if (cart.some(function (x) { return x.id === slug || x.id === slug + '--crosssell'; })) {
-              cart = cart.filter(function (x) { return x.id !== slug && x.id !== slug + '--crosssell'; });
-            } else {
-              // Add at the cross-sell deal price and flag it (cartToItems
-              // sends crossSell:true; priceItems re-checks the 10% against
-              // min_sale_usd / disallow_sales server-side).
-              var pick = addPicks.filter(function (a) { return a.id === slug; })[0];
-              cart.push({ id: slug + '--crosssell', crossSellSlug: slug, title: p.title,
-                price: pick ? pick.deal : p.priceNum, image: p.image, tag: p.cat || '', licence: 'standard', qty: 1 });
-            }
+            // Add at the cross-sell deal price and flag it (cartToItems
+            // sends crossSell:true; priceItems re-checks the 10% against
+            // min_sale_usd / disallow_sales server-side).
+            var pick = addPicks.filter(function (a) { return a.id === slug; })[0];
+            cart.push({ id: slug + '--crosssell', crossSellSlug: slug, title: p.title,
+              price: pick ? pick.deal : p.priceNum, image: p.image, tag: p.cat || '', licence: 'standard', qty: 1 });
           }
           save(cart); render(); build();
         };
@@ -5759,7 +5825,7 @@
         placeBtnSide.addEventListener('click', function () { placeBtn.click(); });
       }
 
-      window.addEventListener('currencychange', function () { renderTotals(); renderItems(); renderTierBanner(); });
+      window.addEventListener('currencychange', function () { renderTotals(); renderItems(); renderTierBanner(); renderCrossSell(); });
       if (cart.length) scheduleCartSnapshot();
       render();
     })();

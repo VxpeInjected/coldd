@@ -2677,13 +2677,18 @@ html.js .ref-method-btn:focus-visible { outline: 2px solid var(--accent); outlin
   background: rgba(255,255,255,0.06); overflow: hidden; }
 .co-tier-fill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: var(--r-pill);
   background: var(--price); transition: width .55s var(--ease); }
-.co-tier-scale { display: flex; margin-top: 6px; }
-.co-tier-step { flex: 1; text-align: right; font-size: 10px; font-weight: 700; letter-spacing: 0.01em;
-  color: var(--fg-3); transition: color .3s var(--ease); }
-.co-tier-step.done { color: var(--price); }
-.co-tier-step.next { color: var(--fg-1); }
+/* Each step: the dollar (or Robux) threshold on top, the % it unlocks
+   under it - so the buyer can read exactly what each mark on the bar is
+   worth. */
+.co-tier-scale { display: flex; margin-top: 7px; }
+.co-tier-step { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-end; gap: 1px;
+  text-align: right; transition: color .3s var(--ease); color: var(--fg-3); }
+.co-tier-step b { font-size: 11.5px; font-weight: 800; color: var(--fg-2); letter-spacing: -0.01em; }
+.co-tier-step i { font-size: 9.5px; font-weight: 700; font-style: normal; letter-spacing: 0.02em; }
+.co-tier-step.done b, .co-tier-step.done { color: var(--price); }
+.co-tier-step.next b { color: var(--fg-1); }
 @media (prefers-reduced-motion: reduce) {
-  .co-tier-fill, .co-tier-step { transition: none; }
+  .co-tier-fill, .co-tier-step, .co-tier-step b { transition: none; }
 }
 /* Same ladder in the cart drawer (the element carries both classes);
    the drawer keeps its own horizontal margin and, unlike checkout, still
@@ -2719,20 +2724,31 @@ html.js .ref-method-btn:focus-visible { outline: 2px solid var(--accent); outlin
 
 .mkt-popup-modal .mkt-popup-fine a { color: var(--accent); font-weight: 600; text-decoration: none; }
 
-/* Place-order offer modal: the one interruption before payment worth
-   making - resell-licence upgrades and, when a spend tier is close, a
-   few cheap things that would cross it. Built on the confirm-modal
-   shell but left-aligned and taller, with its own scrolling body so a
-   long list never pushes the actions off screen. Everything is added
-   live, one tap per row, and re-priced server-side like any cart item. */
+/* "Build more for less" - the one interruption before payment worth
+   making: relevance-ranked items to add to the order, plus a single bar
+   that puts a resell licence on everything eligible at once. Built on
+   the confirm-modal shell but left-aligned and taller, with its own
+   scrolling body so a long list never pushes the actions off screen.
+   Everything is added live and re-priced server-side like a cart item. */
 .confirm-modal.co-offer { width: 500px; max-width: 96vw; max-height: 88vh; padding: 0; text-align: left;
   display: flex; flex-direction: column; overflow: hidden; }
 .co-offer .mkt-popup-x { top: 15px; right: 15px; }
-.co-offer-title { font-size: 21px; font-weight: 800; letter-spacing: -0.02em; line-height: 1.25; margin: 0; padding: 26px 26px 0; color: var(--fg); }
-.co-offer-sub { font-size: 13.5px; font-weight: 400; color: var(--fg-2); line-height: 1.55; margin: 7px 0 0; padding: 0 26px; }
-.co-offer-tier { margin: 20px 26px 2px; padding: 14px 16px; border-radius: var(--r-sm); background: var(--bg-2); border: 1px solid var(--hairline); }
+.co-offer-title { font-size: 22px; font-weight: 800; letter-spacing: -0.02em; line-height: 1.2; margin: 0; padding: 26px 26px 0; color: var(--fg); }
+.co-offer-tier { margin: 20px 26px 2px; padding: 15px 16px 14px; border-radius: var(--r-sm); background: var(--bg-2); border: 1px solid var(--hairline); }
+.co-offer-tier .co-tier { margin: 0; padding: 0; border: 0; }
 .co-offer-tier .co-tier-status { color: var(--fg-1); }
-.co-offer-list { flex: 1 1 auto; overflow-y: auto; padding: 14px 26px 4px; display: flex; flex-direction: column; gap: 8px; }
+
+/* Resell upsell - one bar, one action: add resell rights to every
+   eligible item in the order. */
+.co-offer-resell { display: flex; align-items: center; gap: 14px; margin: 12px 26px 2px; padding: 13px 15px;
+  border-radius: var(--r-sm); background: var(--bg-2); border: 1px solid var(--hairline); transition: border-color .2s var(--ease); }
+.co-offer-resell.added { border-color: rgba(52,224,138,0.4); }
+.co-offer-resell .cor-copy { flex: 1; min-width: 0; }
+.co-offer-resell .cor-copy b { display: block; font-size: 13.5px; font-weight: 700; color: var(--fg); }
+.co-offer-resell .cor-copy span { display: block; font-size: 12px; color: var(--fg-3); margin-top: 2px; line-height: 1.4; }
+.co-offer-resell-btn { flex: 0 0 auto; min-height: 34px; padding: 0 18px; font-size: 12.5px; display: inline-flex; align-items: center; gap: 5px; }
+
+.co-offer-list { flex: 1 1 auto; overflow-y: auto; padding: 14px 26px 4px; display: flex; flex-direction: column; gap: 9px; }
 .co-offer-empty { font-size: 13px; color: var(--fg-3); padding: 8px 0; margin: 0; }
 .co-offer-row { display: flex; align-items: center; gap: 14px; padding: 13px 14px;
   background: var(--bg-2); border: 1px solid var(--hairline); border-radius: var(--r-sm);
@@ -2743,14 +2759,15 @@ html.js .ref-method-btn:focus-visible { outline: 2px solid var(--accent); outlin
 .co-offer-info { flex: 1; min-width: 0; }
 .co-offer-name { font-size: 14.5px; font-weight: 700; line-height: 1.3;
   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-.co-offer-meta { font-size: 12px; color: var(--fg-3); margin-top: 3px; line-height: 1.35;
-  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-.co-offer-side { flex: 0 0 auto; display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
-.co-offer-price { font-size: 12.5px; font-weight: 700; color: var(--price); }
-.co-offer-was { color: var(--fg-3); text-decoration: line-through; font-weight: 400; font-size: 11px; margin-right: 4px; }
-.co-offer-add { min-height: 30px; padding: 0 15px; font-size: 12px; display: inline-flex; align-items: center; gap: 5px; }
-.co-offer-add.is-added { color: var(--price); box-shadow: inset 0 0 0 1px rgba(52,224,138,0.4); background: rgba(52,224,138,0.1); }
-@media (hover: hover) and (pointer: fine) { .co-offer-add.is-added:hover { background: rgba(52,224,138,0.16); color: var(--price); } }
+.co-offer-price { font-size: 17px; font-weight: 800; color: var(--price); margin-top: 5px;
+  display: flex; align-items: baseline; gap: 7px; flex-wrap: wrap; letter-spacing: -0.01em; }
+.co-offer-was { color: var(--fg-3); text-decoration: line-through; font-weight: 400; font-size: 13px; letter-spacing: 0; }
+.co-offer-off { color: var(--fg-3); font-weight: 600; font-size: 11px; letter-spacing: 0.02em; }
+.co-offer-add { flex: 0 0 auto; min-height: 34px; padding: 0 18px; font-size: 12.5px; display: inline-flex; align-items: center; gap: 5px; }
+.co-offer-add.is-added, .co-offer-resell-btn.is-added { color: var(--price); box-shadow: inset 0 0 0 1px rgba(52,224,138,0.4); background: rgba(52,224,138,0.1); }
+@media (hover: hover) and (pointer: fine) {
+  .co-offer-add.is-added:hover, .co-offer-resell-btn.is-added:hover { background: rgba(52,224,138,0.16); color: var(--price); }
+}
 .co-offer-terms { margin: 12px 26px 0; }
 .co-offer-msg { color: var(--accent); font-size: 12px; font-weight: 600; margin: 8px 26px 0; }
 .co-offer-msg:empty { display: none; }
@@ -2761,11 +2778,10 @@ html.js .ref-method-btn:focus-visible { outline: 2px solid var(--accent); outlin
 .co-offer-subtotal { font-size: 13px; font-weight: 700; color: var(--fg-1); }
 .co-offer-actions { display: flex; gap: 10px; }
 .co-offer-actions .btn { min-height: 42px; padding: 0 20px; }
-@media (prefers-reduced-motion: reduce) { .co-offer-row { transition: none; } .co-offer-terms.shake { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .co-offer-row, .co-offer-resell { transition: none; } .co-offer-terms.shake { animation: none; } }
 @media (max-width: 520px) {
   .co-offer-title { font-size: 19px; padding: 22px 20px 0; }
-  .co-offer-sub { padding-left: 20px; padding-right: 20px; }
-  .co-offer-tier, .co-offer-terms, .co-offer-msg { margin-left: 20px; margin-right: 20px; }
+  .co-offer-tier, .co-offer-resell, .co-offer-terms, .co-offer-msg { margin-left: 20px; margin-right: 20px; }
   .co-offer-list { padding-left: 20px; padding-right: 20px; }
   .co-offer-row { gap: 11px; padding: 10px; }
   .co-offer-thumb { flex-basis: 54px; width: 54px; height: 54px; }

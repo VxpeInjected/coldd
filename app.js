@@ -4516,8 +4516,8 @@
       // ROBUX_PER_USD_FALLBACK is `var`-scoped per IIFE (see app.js's other
       // one), so it has to be declared again here rather than shared -
       // without this line, any cart item missing a real robux_price threw
-      // a ReferenceError the moment renderPayAmounts/renderRobuxEstimate
-      // hit the fallback branch below.
+      // a ReferenceError the moment renderPayAmounts hit the fallback
+      // branch below.
       var ROBUX_PER_USD_FALLBACK = 80; // matches _shared/roblox.ts's ROBUX_PER_USD
       function catalogRobuxPrice(id, licence) {
         var raw = String(id);
@@ -5124,7 +5124,6 @@
             return;
           }
           buyBlock.hidden = false;
-          renderRobuxEstimate(robuxCartItems);
         }).catch(function () { linkBlock.hidden = false; updateRobuxLinkCopy(false); });
       }
       // Same link block, two reasons to show it: never linked at all, vs
@@ -5142,27 +5141,11 @@
         }
         if (btn) btn.textContent = needsRelink ? 'Re-link Roblox account' : 'Continue to Roblox';
       }
-      // Client-side estimate shown before an order exists, using each
-      // product's real robux_price the same way the payment-method row
-      // above does - so this number and the modal's later real total agree
-      // whenever nothing about the cart's pricing is in flux.
-      //
-      // Only the total - this used to also re-list every item with its own
-      // Robux price, right below the Order summary sidebar that's already
-      // listing the exact same items (in Robux too, whenever that's the
-      // active display currency, which anyone paying in Robux almost
-      // always has selected). Two identical item lists stacked on one page
-      // read as a bug, not as two different pieces of information.
-      function renderRobuxEstimate(robuxCartItems) {
-        var totalEl = document.getElementById('coRobuxTotal');
-        var total = 0;
-        robuxCartItems.forEach(function (i) {
-          var rbx = catalogRobuxPrice(i.id, i.licence);
-          if (rbx == null) rbx = Math.round(i.price * ROBUX_PER_USD_FALLBACK);
-          total += rbx * i.qty;
-        });
-        if (totalEl) totalEl.textContent = 'R$ ' + Math.round(total).toLocaleString('en-US');
-      }
+      // The Robux total isn't re-stated in this panel - the Order summary
+      // sidebar already shows the cart total in Robux whenever that's the
+      // active display currency (which anyone paying in Robux almost always
+      // has selected), and the purchase modal shows the real total once the
+      // order exists. Repeating it here read as a bug, not new information.
       var robuxLinkBtn = document.getElementById('coRobuxLinkBtn');
       // Come back to checkout with Robux still selected, rather than landing
       // on the dashboard with a half-finished order behind you.

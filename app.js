@@ -4910,7 +4910,12 @@
         // framing only applies to the first two.
         var settle = document.getElementById('coPaySettle');
         if (!settle) return;
-        var showSettle = payMethod === 'stripe' || payMethod === 'paypal';
+        // Only card/PayPal have a "settles in USD" story to tell - and only
+        // worth telling when the buyer is looking at a non-USD figure. On
+        // USD the note just restates what they already see.
+        var nonUsdView = (window.__currencyMode && window.__currencyMode() === 'robux') ||
+                         (window.__fiatCode && window.__fiatCode() !== 'USD');
+        var showSettle = (payMethod === 'stripe' || payMethod === 'paypal') && nonUsdView;
         settle.hidden = !showSettle;
         if (showSettle) settle.textContent = 'Every payment method settles in USD price (' + usd + ').';
       }

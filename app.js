@@ -1172,6 +1172,30 @@
               existing.setAttribute('data-id', p.id);
               existing.setAttribute('data-priority', p.priority ? 'yes' : 'no');
               if (p.createdAt) existing.setAttribute('data-created', p.createdAt);
+              // Live price wins over whatever the prerendered card shipped
+              // with. An admin price change updates the catalog row but not
+              // the static markup, so without this the grid kept quoting the
+              // old number - and so did the price sort and the price-range
+              // filter, which both read data-price/data-was straight off the
+              // card. syncCardPricing() rebuilds the visible .p-price-row
+              // from these attributes on every refilter, so setting them
+              // here is enough for the displayed price; the sale badge on
+              // the thumb is the one bit it doesn't manage.
+              var exOnSale = p.was > p.priceNum;
+              existing.setAttribute('data-price', p.priceNum);
+              if (exOnSale) existing.setAttribute('data-was', p.was);
+              else existing.removeAttribute('data-was');
+              var exThumb = existing.querySelector('.p-thumb');
+              if (exThumb) {
+                var exOff = exThumb.querySelector('.p-off');
+                if (exOnSale) {
+                  var exPct = '-' + Math.round((1 - p.priceNum / p.was) * 100) + '%';
+                  if (exOff) exOff.textContent = exPct;
+                  else exThumb.insertAdjacentHTML('afterbegin', '<span class="p-off">' + exPct + '</span>');
+                } else if (exOff) {
+                  exOff.remove();
+                }
+              }
               if (p.resell) {
                 existing.setAttribute('data-resell', 'yes');
                 existing.setAttribute('data-resell-price', p.resellPrice != null ? p.resellPrice : Math.round(p.priceNum * RESELL_MULT));

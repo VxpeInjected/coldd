@@ -4475,6 +4475,17 @@
 
       var CART_KEY = 'coldd_cart_v1';
       var money = function (n) { return window.__money ? window.__money(n) : ('$' + n); };
+      // Robux figures in the order summary only make sense while the buyer is
+      // actually paying in Robux. With a real-money method selected (card /
+      // PayPal / crypto - the default is card), R$ prices sitting next to a
+      // charge that settles in USD just read as a mismatch, so the summary,
+      // subtotal, line prices, tier ladder and resell prices all fall back
+      // to money() then. `payMethod` is declared later in this IIFE but only
+      // read here after render() first runs, by which point it is set.
+      function robuxView() {
+        if (!window.__currencyMode || window.__currencyMode() !== 'robux') return false;
+        return typeof payMethod === 'undefined' || payMethod === 'robux';
+      }
       // Digital licences aren't a quantity - forced to 1 here too so a cart
       // saved by an older version of this file (back when the drawer's
       // +/- stepper existed) can't still check out at qty > 1.
@@ -4563,7 +4574,7 @@
         return p.robuxPrice > 0 ? p.robuxPrice : null;
       }
       function lineMoney(item) {
-        if (window.__currencyMode && window.__currencyMode() === 'robux') {
+        if (robuxView()) {
           var rbx = catalogRobuxPrice(item.id, item.licence);
           if (rbx != null) return 'R$ ' + Math.round(rbx * item.qty).toLocaleString('en-US');
         }
@@ -4586,7 +4597,7 @@
         return total;
       }
       function subtotalMoney() {
-        if (window.__currencyMode && window.__currencyMode() === 'robux') {
+        if (robuxView()) {
           var rbxTotal = robuxSubtotalRaw();
           if (rbxTotal != null) return 'R$ ' + Math.round(rbxTotal).toLocaleString('en-US');
         }
@@ -4702,7 +4713,7 @@
         // total against Robux-equivalent thresholds instead, so this
         // preview can never promise a discount the order doesn't actually
         // give, or vice versa.
-        var robuxMode = window.__currencyMode && window.__currencyMode() === 'robux';
+        var robuxMode = robuxView();
         var useRobux = robuxMode && cart.length > 0;
         var sub = useRobux ? robuxSubtotalRaw() : subtotal();
         if (sub <= 0) { box.hidden = true; return; }
@@ -4830,7 +4841,7 @@
         // Robux terms (computeRobuxDiscount, matching create-robux-order's
         // spendTierDiscountRobux) rather than converting a USD figure -
         // see renderTierBanner's comment for why.
-        var robuxMode = window.__currencyMode && window.__currencyMode() === 'robux';
+        var robuxMode = robuxView();
         var useRobux = robuxMode && cart.length > 0;
         var rbxSub = useRobux ? robuxSubtotalRaw() : null;
         var rr = rbxSub != null ? computeRobuxDiscount(rbxSub) : null;
@@ -4911,11 +4922,12 @@
         var settle = document.getElementById('coPaySettle');
         if (!settle) return;
         // Only card/PayPal have a "settles in USD" story to tell - and only
-        // worth telling when the buyer is looking at a non-USD figure. On
-        // USD the note just restates what they already see.
-        var nonUsdView = (window.__currencyMode && window.__currencyMode() === 'robux') ||
-                         (window.__fiatCode && window.__fiatCode() !== 'USD');
-        var showSettle = (payMethod === 'stripe' || payMethod === 'paypal') && nonUsdView;
+        // worth telling when the buyer is looking at a non-USD figure. With a
+        // real-money method selected the summary is already shown in fiat
+        // (robuxView() is false), so the only mismatch left to explain is a
+        // non-USD fiat; on USD the note just restates what's on screen.
+        var showSettle = (payMethod === 'stripe' || payMethod === 'paypal') &&
+                         window.__fiatCode && window.__fiatCode() !== 'USD';
         settle.hidden = !showSettle;
         if (showSettle) settle.textContent = 'Every payment method settles in USD price (' + usd + ').';
       }
@@ -5354,10 +5366,14 @@
           }
         }
         if (method === 'robux') renderRobuxPanel();
-        // The settle line under the payment methods only applies to card/
-        // PayPal - re-run so it shows/hides for the method just picked
-        // instead of only reflecting whatever was selected on page load.
+        // Re-render the summary for the method just picked: the settle line
+        // shows/hides on card vs PayPal, and switching between a real-money
+        // method and Robux flips the whole summary between money() and R$
+        // (see robuxView) - which touches line prices, the subtotal, the
+        // total and the tier ladder, not just the totals block.
+        renderItems();
         renderTotals();
+        renderTierBanner();
         // Selection is exposed to assistive tech, not just painted. The row
         // group is a radiogroup, so each row has to carry its own state.
         document.querySelectorAll('.co-pay-btn').forEach(function (b) {
@@ -5484,7 +5500,7 @@
         var grid = document.getElementById('coResellPopupGrid');
         if (!overlay || !grid) { onDone(); return; }
         var cat = window.__CATALOG || [];
-        var robuxMode = window.__currencyMode && window.__currencyMode() === 'robux';
+        var robuxMode = robuxView();
         // Resell rights are buyable in Robux now, so the "+X" upgrade delta
         // shows in Robux when that's the active currency (flat-converted -
         // this is a nudge, the real line price is computed server-side).

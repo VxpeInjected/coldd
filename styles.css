@@ -1456,6 +1456,9 @@ body.no-scroll { overflow: hidden; }
 
 .product-page { padding-top: 92px; padding-bottom: 84px; }
 .pd { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
+.pd-notfound { max-width: 460px; margin: 60px auto 90px; text-align: center; }
+.pd-notfound h1 { font-size: 26px; font-weight: 800; letter-spacing: -0.02em; margin: 0 0 10px; }
+.pd-notfound p { font-size: 15px; color: var(--fg-2); line-height: 1.6; margin: 0 0 22px; }
 .pd-crumb { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; font-size: 13px; font-weight: 600; margin-bottom: 16px; }
 .pd-crumb a { color: var(--fg-3); text-decoration: none; }
 .pd-crumb a:hover { color: var(--fg); }

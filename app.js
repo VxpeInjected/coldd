@@ -2726,11 +2726,45 @@
             .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
         }
 
+        // Non-destructive: hides the real product markup and drops a
+        // sibling notice in, so a later render() of a valid product can
+        // just clear it and unhide (matters for single-file SPA nav).
+        function setNotFound(on) {
+          var pd = pv.querySelector('.pd');
+          if (!pd) return;
+          var notice = pd.querySelector('.pd-notfound');
+          Array.prototype.forEach.call(pd.children, function (c) {
+            if (!c.classList.contains('pd-notfound')) c.hidden = on;
+          });
+          if (on && !notice) {
+            pd.insertAdjacentHTML('beforeend', '<div class="pd-notfound">' +
+              '<h1>Product not found</h1>' +
+              '<p>We couldn’t find a product for this link — it may have been removed, renamed, or isn’t released yet.</p>' +
+              '<a class="btn btn-primary" href="/assets">Browse the shop</a></div>');
+          } else if (!on && notice) {
+            notice.remove();
+          }
+        }
+        function renderNotFound() {
+          cur = null;
+          setNotFound(true);
+          document.title = 'Product not found - coldd Development';
+          var robots = document.head.querySelector('meta[name="robots"]');
+          if (!robots) { robots = document.createElement('meta'); robots.setAttribute('name', 'robots'); document.head.appendChild(robots); }
+          robots.setAttribute('content', 'noindex, follow');
+        }
         function render(id) {
           var cat = window.__CATALOG || [], p = null, i;
           for (i = 0; i < cat.length; i++) if (cat[i].id === id) { p = cat[i]; break; }
+          // A real id that matches nothing (unreleased product, renamed
+          // slug, typo'd link) must NOT silently fall through to a
+          // different product - that's how an admin clicking one row lands
+          // on another. Only the bare /product entry with no id uses the
+          // first catalog item.
+          if (!p && id) { renderNotFound(); return; }
           if (!p) p = cat[0];
           if (!p) return;
+          setNotFound(false);
           var ups = updatesFor(p);
           var version = ups.length ? ups[0].version : 'v1.0';
           cur = { id: p.id, title: p.title, image: p.image, tag: p.cat, priceNum: p.priceNum, was: p.was || 0,

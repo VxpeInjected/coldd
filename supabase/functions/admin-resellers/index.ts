@@ -61,7 +61,7 @@ Deno.serve(async (req: Request) => {
     if (action === "list") {
       const { data, error } = await admin
         .from("resellers")
-        .select("id, user_id, email, display_name, selling_where, selling_notes, status, source, created_at, products(title, slug), profiles(username, email)")
+        .select("id, user_id, email, display_name, contact_type, contact_value, selling_locations, selling_where, selling_notes, status, source, created_at, products(title, slug), profiles(username, email)")
         .order("created_at", { ascending: false });
       if (error) return json({ ok: false, error: error.message }, 500);
       return json({ ok: true, resellers: data });

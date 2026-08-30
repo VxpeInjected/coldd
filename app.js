@@ -4953,7 +4953,12 @@
           var lic = i.licence === 'resell' ? '<div class="co-item-sub">Resell licence</div>' : '';
           row.innerHTML = '<span class="co-item-thumb" style="background-image:url(\'' + i.image + '\')"></span>' +
             '<div class="co-item-info"><div class="co-item-title">' + esc(i.title) + '</div>' + lic + '</div>' +
-            '<span class="co-item-price">' + lineMoney(i) + '</span>';
+            '<span class="co-item-price">' + lineMoney(i) + '</span>' +
+            '<button class="co-item-x" type="button" aria-label="Remove ' + esc(i.title) + '"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>';
+          row.querySelector('.co-item-x').addEventListener('click', function () {
+            cart = cart.filter(function (x) { return x.id !== i.id; });
+            save(cart); render();
+          });
           itemsEl.appendChild(row);
         });
       }
@@ -6273,13 +6278,18 @@
                 var checked = !!selected[it.slug];
                 var pct = allSelected ? (data.itemPct + data.bundlePct) : data.itemPct;
                 var price = allSelected ? it.bundlePriceUsd : it.itemPriceUsd;
-                return '<div class="ty-upsell-card' + (checked ? ' checked' : '') + '" data-slug="' + it.slug + '">' +
-                  '<span class="ty-upsell-thumb" style="background-image:url(\'' + window.imgUrl(it.image) + '\')"><span class="ty-upsell-off">-' + pct + '%</span></span>' +
-                  '<div class="ty-upsell-body"><div class="ty-upsell-name">' + esc(it.title) + '</div>' +
-                  (it.description ? '<div class="ty-upsell-desc">' + esc(it.description) + '</div>' : '') +
-                  '<div class="ty-upsell-price"><span class="ty-upsell-was">' + money2(it.priceUsd) + '</span>' + money2(price) + '</div>' +
-                  '<label class="ty-upsell-check"><input type="checkbox" data-slug="' + it.slug + '"' + (checked ? ' checked' : '') + ' /> Include this one</label>' +
-                  '</div></div>';
+                return '<div class="dash-card glass dl-item tu-item' + (checked ? ' is-in' : '') + '" data-slug="' + esc(it.slug) + '">' +
+                  '<div class="dl-top">' +
+                    '<span class="dl-thumb" style="background-image:url(\'' + window.imgUrl(it.image) + '\')"></span>' +
+                    '<div class="dl-info">' +
+                      '<div class="dl-name">' + esc(it.title) + '</div>' +
+                      '<div class="dl-meta"><span class="tu-was">' + money2(it.priceUsd) + '</span> <strong class="tu-now">' + money2(price) + '</strong> <span class="tu-off">' + pct + '% off</span></div>' +
+                    '</div>' +
+                    '<div class="dl-actions">' +
+                      '<button class="btn ' + (checked ? 'btn-ghost' : 'btn-primary') + ' tu-toggle" type="button" data-slug="' + esc(it.slug) + '">' + (checked ? 'Remove' : 'Add') + '</button>' +
+                    '</div>' +
+                  '</div>' +
+                  '</div>';
               }).join('');
               var noteEl = document.getElementById('upsellNote');
               if (noteEl) {
@@ -6289,9 +6299,10 @@
               }
             }
             paint();
-            grid.addEventListener('change', function (e) {
-              var cb = e.target.closest('input[type="checkbox"]'); if (!cb) return;
-              selected[cb.getAttribute('data-slug')] = cb.checked;
+            grid.addEventListener('click', function (e) {
+              var btn = e.target.closest('.tu-toggle'); if (!btn) return;
+              var slug = btn.getAttribute('data-slug');
+              selected[slug] = !selected[slug];
               paint();
             });
             var addAllBtn = document.getElementById('upsellAddAll');
@@ -6321,41 +6332,109 @@
         if (!resellerOverlay || !resellerForm) return;
         var hasResell = items.some(function (it) { return it.licence === 'resell'; });
         if (!hasResell) return;
+        // Only skips it once the info has actually been submitted - a
+        // refresh without submitting brings it back, since it's required.
         try { if (localStorage.getItem(resellerShownKey())) return; } catch (e) {}
         resellerOverlay.hidden = false;
       }
-      function dismissResellerPopup() {
-        resellerOverlay.hidden = true;
-        try { localStorage.setItem(resellerShownKey(), '1'); } catch (e) {}
-      }
-      if (resellerOverlay) {
-        var resellerCloseBtn = document.getElementById('resellerClose');
-        if (resellerCloseBtn) resellerCloseBtn.addEventListener('click', dismissResellerPopup);
-        if (resellerForm) resellerForm.addEventListener('submit', function (e) {
+
+      if (resellerOverlay && resellerForm) {
+        var rsContact = document.getElementById('resellerContact');
+        var rsLocWrap = document.getElementById('resellerLocations');
+        var rsContactType = 'email';
+
+        var rsSwitch = document.querySelector('.rs-contact-switch');
+        if (rsSwitch) rsSwitch.addEventListener('click', function (e) {
+          var b = e.target.closest('.bt-opt'); if (!b) return;
+          rsContactType = b.getAttribute('data-ctype');
+          rsSwitch.querySelectorAll('.bt-opt').forEach(function (o) {
+            var on = o === b; o.classList.toggle('active', on); o.setAttribute('aria-selected', on ? 'true' : 'false');
+          });
+          rsContact.type = rsContactType === 'email' ? 'email' : 'text';
+          rsContact.placeholder = rsContactType === 'email' ? 'you@example.com' : 'yourusername or a Discord invite link';
+          rsContact.value = '';
+        });
+
+        function resellerLocRows() { return rsLocWrap ? Array.prototype.slice.call(rsLocWrap.querySelectorAll('.rs-loc-row')) : []; }
+        function syncLocRemoveButtons() {
+          var rows = resellerLocRows();
+          rows.forEach(function (r) {
+            var x = r.querySelector('.rs-loc-x');
+            if (x) x.disabled = rows.length <= 1;
+          });
+        }
+        function addResellerLocRow() {
+          if (!rsLocWrap) return;
+          var row = document.createElement('div');
+          row.className = 'rs-loc-row';
+          row.innerHTML =
+            '<input type="text" class="rs-input rs-loc-platform" autocomplete="off" placeholder="Platform (e.g. Discord server, BuiltByBit, your own site)" />' +
+            '<input type="url" class="rs-input rs-loc-url" autocomplete="off" placeholder="Link to your store / listing" />' +
+            '<button type="button" class="rs-loc-x" aria-label="Remove location"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>';
+          row.querySelector('.rs-loc-x').addEventListener('click', function () {
+            if (resellerLocRows().length <= 1) return;
+            row.remove(); syncLocRemoveButtons();
+          });
+          rsLocWrap.appendChild(row);
+          syncLocRemoveButtons();
+        }
+        var rsAddLoc = document.getElementById('resellerAddLoc');
+        if (rsAddLoc) rsAddLoc.addEventListener('click', addResellerLocRow);
+        addResellerLocRow();
+
+        resellerForm.addEventListener('submit', function (e) {
           e.preventDefault();
           var submitBtn = document.getElementById('resellerSubmit');
           var msgEl = document.getElementById('resellerMsg');
+          var setMsg = function (t) { if (msgEl) msgEl.textContent = t || ''; };
+
+          var contactValue = rsContact.value.trim();
+          if (!contactValue) { setMsg(rsContactType === 'email' ? 'Enter a contact email.' : 'Enter your Discord.'); rsContact.focus(); return; }
+
+          var locations = [];
+          var bad = false;
+          resellerLocRows().forEach(function (r) {
+            var platform = r.querySelector('.rs-loc-platform').value.trim();
+            var url = r.querySelector('.rs-loc-url').value.trim();
+            if (!platform && !url) return;
+            if (!platform || !url) bad = true;
+            else locations.push({ platform: platform, url: url });
+          });
+          if (bad) { setMsg('Every selling location needs both a platform and a link.'); return; }
+          if (!locations.length) { setMsg('Add at least one place you’ll be selling, with a link.'); return; }
+
           var payload = {
-            email: document.getElementById('resellerEmail').value.trim(),
-            sellingWhere: document.getElementById('resellerWhere').value.trim(),
-            sellingNotes: document.getElementById('resellerNotes').value.trim() || null
+            contactType: rsContactType,
+            contactValue: contactValue,
+            sellingLocations: locations,
+            notes: document.getElementById('resellerNotes').value.trim() || null
           };
           if (sessionId) payload.sessionId = sessionId; else payload.orderId = robuxOrderIdParam;
           submitBtn.disabled = true; submitBtn.textContent = 'Submitting…';
+          setMsg('');
           window.coldSupabase.functions.invoke('submit-reseller-info', { body: payload })
             .then(function (res) {
               var data = res && res.data;
               if (!data || !data.ok) {
                 submitBtn.disabled = false; submitBtn.textContent = 'Submit';
-                if (msgEl) msgEl.textContent = (data && data.error) || 'Could not save, please try again.';
+                setMsg((data && data.error) || 'Could not save, please try again.');
                 return;
               }
-              dismissResellerPopup();
+              try { localStorage.setItem(resellerShownKey(), '1'); } catch (e2) {}
+              resellerOverlay.hidden = true;
+              var done = document.getElementById('resellerDoneOverlay');
+              if (done) done.hidden = false;
             })
             .catch(function () {
               submitBtn.disabled = false; submitBtn.textContent = 'Submit';
-              if (msgEl) msgEl.textContent = 'Could not save, please try again.';
+              setMsg('Could not save, please try again.');
             });
+        });
+
+        var resellerDoneClose = document.getElementById('resellerDoneClose');
+        if (resellerDoneClose) resellerDoneClose.addEventListener('click', function () {
+          var done = document.getElementById('resellerDoneOverlay');
+          if (done) done.hidden = true;
         });
       }
 

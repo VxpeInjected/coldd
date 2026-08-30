@@ -3,7 +3,7 @@
 // Deploy with:
 //   supabase functions deploy submit-reseller-info
 //
-// Backs the post-purchase "where are you selling these?" popup on
+// Backs the required post-purchase "Provide seller information" popup on
 // success.html. Same no-auth-check trust model as get-order-by-session:
 // looked up purely by the order's Stripe session id (or orderId for Robux
 // orders) - a guest checkout has no auth.uid() for RLS to match, so
@@ -14,7 +14,10 @@
 // (upserted on order_item_id, so a resubmitted popup - e.g. a second tab -
 // updates the same row instead of duplicating it).
 //
-// Body: { sessionId?, orderId?, email, sellingWhere, sellingNotes? }
+// Body: { sessionId?, orderId?,
+//         contactType: "email"|"discord", contactValue,
+//         sellingLocations: [{ platform, url }, ...],
+//         notes? }
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -35,6 +38,8 @@ function json(body: unknown, status = 200) {
   });
 }
 
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders() });
 
@@ -45,11 +50,27 @@ Deno.serve(async (req: Request) => {
     const body = await req.json().catch(() => ({}));
     const sessionId = String(body.sessionId || "");
     const orderId = String(body.orderId || "");
-    const email = String(body.email || "").trim().slice(0, 200);
-    const sellingWhere = String(body.sellingWhere || "").trim().slice(0, 500);
-    const sellingNotes = body.sellingNotes ? String(body.sellingNotes).trim().slice(0, 2000) : null;
     if (!sessionId && !orderId) return json({ ok: false, error: "Missing order reference." }, 400);
-    if (!email || !sellingWhere) return json({ ok: false, error: "Email and where you're selling are required." }, 400);
+
+    const contactType = body.contactType === "discord" ? "discord" : "email";
+    const contactValue = String(body.contactValue || "").trim().slice(0, 200);
+    if (!contactValue) return json({ ok: false, error: "A contact email or Discord is required." }, 400);
+    if (contactType === "email" && !EMAIL_RE.test(contactValue)) {
+      return json({ ok: false, error: "Enter a valid contact email." }, 400);
+    }
+
+    const rawLocations = Array.isArray(body.sellingLocations) ? body.sellingLocations : [];
+    const locations = rawLocations
+      .map((l: { platform?: unknown; url?: unknown }) => ({
+        platform: String(l && l.platform || "").trim().slice(0, 120),
+        url: String(l && l.url || "").trim().slice(0, 500),
+      }))
+      .filter((l: { platform: string; url: string }) => l.platform && l.url);
+    if (!locations.length) {
+      return json({ ok: false, error: "Add at least one place you'll be selling, with a link." }, 400);
+    }
+
+    const notes = body.notes ? String(body.notes).trim().slice(0, 2000) : null;
 
     const admin = createClient(supabaseUrl, serviceKey);
 
@@ -61,14 +82,20 @@ Deno.serve(async (req: Request) => {
     const resellItems = (order.order_items || []).filter((it: { licence: string }) => it.licence === "resell");
     if (!resellItems.length) return json({ ok: false, error: "No resell licences on this order." }, 400);
 
+    // Human summary for the admin list's existing "selling_where" column.
+    const summary = locations.map((l: { platform: string; url: string }) => `${l.platform}: ${l.url}`).join("  •  ").slice(0, 500);
+
     const rows = resellItems.map((it: { id: string; product_id: string }) => ({
       user_id: order.user_id,
       order_id: order.id,
       order_item_id: it.id,
       product_id: it.product_id,
-      email,
-      selling_where: sellingWhere,
-      selling_notes: sellingNotes,
+      email: contactType === "email" ? contactValue : null,
+      contact_type: contactType,
+      contact_value: contactValue,
+      selling_locations: locations,
+      selling_where: summary,
+      selling_notes: notes,
       source: "purchase",
     }));
 

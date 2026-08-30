@@ -1840,6 +1840,51 @@ body.no-scroll { overflow: hidden; }
   animation: pmIn .3s var(--ease); }
 .pay-title { font-size: 20px; font-weight: 700; letter-spacing: -0.02em; }
 .pay-sub { color: var(--fg-2); font-size: 14px; margin: 8px 0 22px; line-height: 1.5; }
+.pay-sub a { color: var(--accent); text-decoration: none; font-weight: 600; }
+
+/* Required reseller-onboarding popup (success page). No close affordance -
+   the buyer has to give the info before they're allowed to sell. */
+.reseller-modal { width: 480px; max-width: 96vw; text-align: left; max-height: 90vh; overflow-y: auto; }
+.reseller-modal .pay-sub { margin-bottom: 20px; }
+.rs-field { margin-bottom: 18px; }
+.rs-field > label { display: block; font-size: 13px; font-weight: 700; color: var(--fg-1); margin-bottom: 8px; }
+.rs-opt { color: var(--fg-3); font-weight: 400; }
+.rs-req-tag { font-size: 10px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--accent);
+  background: rgba(255,77,68,0.12); border-radius: var(--r-pill); padding: 2px 7px; margin-left: 4px; vertical-align: 1px; }
+.rs-input { width: 100%; min-height: 44px; padding: 0 13px; border-radius: 10px; background: rgba(255,255,255,0.04);
+  border: 1px solid var(--hairline); color: var(--fg); font-family: inherit; font-size: 14px; }
+.rs-input::placeholder { color: var(--fg-3); }
+.rs-input:focus { outline: none; border-color: rgba(255,77,68,0.5); background: rgba(255,255,255,0.06); }
+textarea.rs-input, .reseller-modal textarea { width: 100%; min-height: 84px; padding: 11px 13px; border-radius: 12px;
+  background: rgba(255,255,255,0.04); border: 1px solid var(--hairline); color: var(--fg); font-family: inherit; font-size: 14px; line-height: 1.5; resize: vertical; }
+.reseller-modal textarea::placeholder { color: var(--fg-3); }
+.reseller-modal textarea:focus { outline: none; border-color: rgba(255,77,68,0.5); background: rgba(255,255,255,0.06); }
+.rs-contact-switch { margin-bottom: 8px; }
+.rs-loc-row { display: flex; gap: 8px; margin-bottom: 8px; }
+.rs-loc-row .rs-loc-platform { flex: 0 0 42%; }
+.rs-loc-row .rs-loc-url { flex: 1; min-width: 0; }
+.rs-loc-x { flex: 0 0 auto; width: 34px; border: 1px solid var(--hairline); border-radius: 10px; background: transparent;
+  color: var(--fg-3); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; }
+@media (hover: hover) and (pointer: fine) { .rs-loc-x:hover:not(:disabled) { color: var(--fg-1); border-color: var(--hairline-strong); } }
+.rs-loc-x:disabled { opacity: 0.35; cursor: default; }
+.rs-add-loc { min-height: 34px; padding: 0 14px; font-size: 12.5px; margin-top: 2px; }
+.rs-msg { color: var(--accent); font-size: 12.5px; font-weight: 600; margin: 6px 0 0; min-height: 1em; }
+.rs-msg:empty { min-height: 0; }
+.rs-submit { width: 100%; justify-content: center; margin-top: 14px; }
+.rs-required { font-size: 12px; color: var(--fg-3); text-align: center; margin: 12px 0 0; line-height: 1.5; }
+
+.rs-done-links { display: flex; flex-direction: column; gap: 8px; margin: 18px 0 20px; }
+.rs-done-link { display: flex; flex-direction: column; gap: 2px; padding: 12px 14px; border-radius: var(--r-sm);
+  background: var(--bg-2); border: 1px solid var(--hairline); text-decoration: none; color: var(--fg-1);
+  font-size: 13.5px; font-weight: 700; transition: border-color .15s var(--ease); }
+@media (hover: hover) and (pointer: fine) { .rs-done-link:hover { border-color: var(--hairline-strong); } }
+.rs-done-sub { font-size: 12px; font-weight: 400; color: var(--fg-3); }
+@media (max-width: 520px) {
+  .reseller-modal { padding: 26px 18px; }
+  .rs-loc-row { flex-wrap: wrap; }
+  .rs-loc-row .rs-loc-platform, .rs-loc-row .rs-loc-url { flex-basis: 100%; }
+  .rs-loc-x { width: 100%; height: 34px; }
+}
 /* Several admin popouts (campaign detail, payout, order) use this shell
    with an inline max-width and a .dash-stats grid inside - on a phone the
    fixed 420px width overflowed the viewport and the 4-col stat grid was
@@ -2586,19 +2631,17 @@ html.js .ref-method-btn:focus-visible { outline: 2px solid var(--accent); outlin
 .ty-upsell { text-align: left; margin-top: 28px; padding: 24px; }
 .ty-upsell-title { font-size: 18px; font-weight: 800; letter-spacing: -0.02em; margin: 0 0 6px; }
 .ty-upsell-sub { font-size: 13px; color: var(--fg-2); margin: 0 0 18px; line-height: 1.5; }
-.ty-upsell-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 16px; }
-.ty-upsell-card { border: 1px solid var(--hairline); border-radius: var(--r-ctl); overflow: hidden; background: var(--bg-2);
-  transition: border-color .15s var(--ease); }
-.ty-upsell-card.checked { border-color: rgba(52,224,138,0.45); }
-.ty-upsell-thumb { position: relative; width: 100%; aspect-ratio: 16/10; background: #0f1014 center / cover no-repeat; }
-.ty-upsell-off { position: absolute; top: 10px; left: 10px; z-index: 1; font-size: 12px; font-weight: 800; letter-spacing: 0.02em;
-  color: #fff; padding: 5px 9px; border-radius: 10px; background: var(--accent-deep); box-shadow: 0 6px 16px -6px var(--ink-75); }
-.ty-upsell-body { padding: 12px 14px 14px; display: flex; flex-direction: column; gap: 6px; }
-.ty-upsell-name { font-size: 14px; font-weight: 700; line-height: 1.3; }
-.ty-upsell-desc { font-size: 12px; color: var(--fg-3); line-height: 1.45; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-.ty-upsell-price { font-size: 14px; font-weight: 700; color: var(--price); margin-top: 2px; }
-.ty-upsell-was { font-size: 12px; color: var(--fg-3); text-decoration: line-through; margin-right: 4px; }
-.ty-upsell-check { display: flex; align-items: center; gap: 7px; font-size: 12px; color: var(--fg-2); cursor: pointer; margin-top: 4px; }
+.ty-upsell-list { display: flex; flex-direction: column; gap: 10px; }
+/* Same row shell as the Licenses tab (.dl-item), so the post-purchase
+   upsell reads as "more of your library" rather than an ad block. */
+.tu-item { padding: 14px 16px; transition: border-color .15s var(--ease); }
+.tu-item.is-in { border-color: rgba(52,224,138,0.4); }
+.tu-item .dl-thumb { flex: 0 0 46px; width: 46px; height: 46px; }
+.tu-was { color: var(--fg-3); text-decoration: line-through; margin-right: 5px; }
+.tu-now { color: var(--price); font-weight: 700; }
+.tu-off { display: inline-block; margin-left: 7px; font-size: 11px; font-weight: 800; letter-spacing: 0.02em;
+  color: var(--accent); background: rgba(255,77,68,0.12); padding: 2px 7px; border-radius: var(--r-pill); vertical-align: 1px; }
+.tu-toggle { min-height: 36px; padding: 0 16px; font-size: 13px; }
 .ty-upsell-actions { display: flex; align-items: center; gap: 14px; margin-top: 18px; flex-wrap: wrap; }
 .ty-upsell-selected-note { font-size: 12px; color: var(--fg-3); }
 
@@ -2768,6 +2811,10 @@ html.js .ref-method-btn:focus-visible { outline: 2px solid var(--accent); outlin
 .co-item-title { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .co-item-sub { font-size: 12px; color: var(--fg-3); margin-top: 2px; }
 .co-item-price { font-size: 13px; font-weight: 700; color: var(--price); white-space: nowrap; }
+.co-item-x { flex: 0 0 auto; width: 26px; height: 26px; display: inline-flex; align-items: center; justify-content: center;
+  border: none; background: transparent; color: var(--fg-3); border-radius: var(--r-ctl); cursor: pointer; transition: color .15s var(--ease), background .15s var(--ease); }
+@media (hover: hover) and (pointer: fine) { .co-item-x:hover { color: var(--fg-1); background: rgba(255,255,255,0.07); } }
+.co-item-x:active { transform: scale(0.92); }
 .co-empty { padding: 24px 0; text-align: center; color: var(--fg-3); font-size: 14px; }
 /* Automatic spend-more tier progress - the price just drops once the cart
    clears a threshold. Not a tinted box: one status line over a slim

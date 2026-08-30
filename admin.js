@@ -4432,6 +4432,9 @@
         return {
           id: r.id,
           email: r.email,
+          contactType: r.contact_type || 'email',
+          contactValue: r.contact_value || r.email || '',
+          sellingLocations: Array.isArray(r.selling_locations) ? r.selling_locations : [],
           displayName: r.display_name,
           accountName: r.profiles ? (r.profiles.username || r.profiles.email) : null,
           productTitle: r.products ? r.products.title : null,
@@ -4451,13 +4454,16 @@
     var q = (($('admResellerSearch') || {}).value || '').trim().toLowerCase();
     var rows = RESELLERS.filter(function (r) {
       if (!q) return true;
-      return [r.email, r.displayName, r.accountName, r.productTitle].some(function (v) { return v && v.toLowerCase().indexOf(q) >= 0; });
+      return [r.contactValue, r.email, r.displayName, r.accountName, r.productTitle].some(function (v) { return v && v.toLowerCase().indexOf(q) >= 0; });
     });
     body.innerHTML = rows.map(function (r) {
+      var locs = r.sellingLocations.length
+        ? r.sellingLocations.map(function (l) { return esc(l.platform) + ' — <a href="' + esc(l.url) + '" target="_blank" rel="noopener">' + esc(l.url) + '</a>'; }).join('<br>')
+        : esc(r.sellingWhere || '—');
       return '<tr data-id="' + esc(r.id) + '">' +
-        '<td>' + esc(r.displayName || r.accountName || r.email) + '<div class="adm-sub">' + esc(r.email) + '</div></td>' +
+        '<td>' + esc(r.displayName || r.accountName || r.contactValue) + '<div class="adm-sub">' + esc((r.contactType === 'discord' ? 'Discord: ' : '') + r.contactValue) + '</div></td>' +
         '<td>' + esc(r.productTitle || '—') + '</td>' +
-        '<td>' + esc(r.sellingWhere) + '</td>' +
+        '<td>' + locs + '</td>' +
         '<td><span class="adm-cat-tag">' + (r.source === 'manual' ? 'Manual' : 'Purchase') + '</span></td>' +
         '<td>' + statusBadge(r.status === 'active' ? 'completed' : 'refunded') + '</td>' +
         '<td>' + fmtDate(new Date(r.createdAt)) + '</td>' +

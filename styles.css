@@ -2851,6 +2851,10 @@ html.js .ref-method-btn:focus-visible { outline: 2px solid var(--accent); outlin
 .co-offer-resell { display: flex; align-items: center; gap: 14px; margin: 12px 26px 2px; padding: 13px 15px;
   border-radius: var(--r-sm); background: var(--bg-2); border: 1px solid var(--hairline); transition: border-color .2s var(--ease); }
 .co-offer-resell.added { border-color: rgba(52,224,138,0.4); }
+/* display:flex above is an author rule, so [hidden] alone won't hide it -
+   without this the bar showed as an empty box when there was nothing to
+   upsell (cart already all resell). */
+.co-offer-resell[hidden], .co-offer-tier[hidden], .co-offer-terms[hidden] { display: none; }
 .co-offer-resell .cor-copy { flex: 1; min-width: 0; }
 .co-offer-resell .cor-copy b { display: block; font-size: 13.5px; font-weight: 700; color: var(--fg); }
 .co-offer-resell .cor-copy span { display: block; font-size: 12px; color: var(--fg-3); margin-top: 2px; line-height: 1.4; }

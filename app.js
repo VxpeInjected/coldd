@@ -1832,7 +1832,11 @@
           if (!priceRow) return;
           var resell = card.getAttribute('data-resell') === 'yes';
           var robuxMode = window.__currencyMode ? window.__currencyMode() === 'robux' : false;
-          if (curCat === 'resell' && resell) {
+          var showResell = curCat === 'resell' && resell;
+          // Buy/Add reads this so the cart gets the resell licence + price
+          // the card is actually showing, not the base licence.
+          card.setAttribute('data-lic-mode', showResell ? 'resell' : 'standard');
+          if (showResell) {
             var resellUsd = Number(card.getAttribute('data-resell-price'));
             // Resell licences aren't sold in Robux at all (matches product.html
             // and the cart), so this stays USD even in Robux mode.
@@ -2362,12 +2366,21 @@
         // over the flat 3x estimate when the catalog has one set, so
         // quick-view and the full product page never disagree on price.
         var catalogProd = (window.__CATALOG || []).filter(function (c) { return c.id === cardId; })[0];
-        return { id: cardId, title: title, price: price,
+        var resellPrice = catalogProd && catalogProd.resellPrice != null ? catalogProd.resellPrice
+          : (parseFloat(card.getAttribute('data-resell-price')) || Math.round(price * 3) || null);
+        // On the Resell License filter the card shows the resell price and
+        // syncCardPricing stamps data-lic-mode="resell" - honour that here
+        // so Buy/Add put the resell licence (and its price) in the cart,
+        // not the base one.
+        var wantResell = card.getAttribute('data-lic-mode') === 'resell' && card.getAttribute('data-resell') === 'yes' && resellPrice != null;
+        return { id: cardId, title: title,
+                 price: wantResell ? resellPrice : price,
+                 licence: wantResell ? 'resell' : 'standard',
                  image: m ? m[1] : '', tag: tag,
                  desc: descEl ? descEl.textContent.trim() : '',
                  platform: 'Roblox',
                  resell: card.getAttribute('data-resell') === 'yes',
-                 resellPrice: catalogProd && catalogProd.resellPrice != null ? catalogProd.resellPrice : null };
+                 resellPrice: resellPrice };
       }
       document.addEventListener('click', function (e) {
         if (e.target.closest('.cart-drawer') || e.target.closest('.search-panel')) return;
@@ -5644,7 +5657,15 @@
         };
       }
       function offerHasContent() {
-        return !!(resellCandidates().length || crossSellPicks().length);
+        if (resellCandidates().length) return true;
+        var picks = crossSellPicks();
+        if (!picks.length) return false;
+        var allResell = cart.length > 0 && cart.every(function (i) { return i.licence === 'resell'; });
+        if (!allResell) return true;
+        // All-resell cart: only worth opening if we can upsell resell
+        // licences of something (standard suggestions don't fit).
+        var c = window.__CATALOG || [];
+        return picks.some(function (x) { var p = c.filter(function (q) { return q.id === x.id; })[0]; return p && p.resell; });
       }
       function openOfferModal(onProceed) {
         var overlay = document.getElementById('coOfferModal');
@@ -5664,8 +5685,20 @@
         // the subtotal moves. addPicks are the same relevance-ranked
         // "add to your order" suggestions the order summary shows.
         var resellSlugs = resellCandidates().map(function (i) { return i.id; });
-        var addPicks = crossSellPicks().slice(0, 3).map(function (x) { return x; });
         var resellEl = document.getElementById('coOfferResell');
+        // A cart that's entirely resell licences gets resell licences of
+        // other relevant products upsold to it, not standard ones.
+        var allResell = cart.length > 0 && cart.every(function (i) { return i.licence === 'resell'; });
+        var cartHadResell = cart.some(function (i) { return i.licence === 'resell'; });
+        // True once a resell licence is added from inside this modal - the
+        // modal's own terms checkbox only appears then (a resell licence
+        // added on the product page is covered by the page's checkbox).
+        var modalAddedResell = false;
+        var addPicks = crossSellPicks().filter(function (x) {
+          if (!allResell) return true;
+          var p = (window.__CATALOG || []).filter(function (c) { return c.id === x.id; })[0];
+          return p && p.resell;
+        }).slice(0, 3);
 
         function resellPriceOf(p) { return p.resellPrice != null ? p.resellPrice : Math.round(p.priceNum * 3); }
         function resellRobuxOf(p, basePrice) {
@@ -5720,24 +5753,32 @@
           }
 
           var rows = addPicks.map(function (x) {
-            var added = cart.some(function (c) { return c.id === x.id || c.id === x.id + '--crosssell'; });
-            var priceHtml;
+            if (allResell) {
+              var rp = cat.filter(function (c) { return c.id === x.id; })[0];
+              if (!rp) return '';
+              var added = cart.some(function (c) { return c.id === x.id + '--resell'; });
+              var rpUsd = resellPriceOf(rp);
+              var rpDisp = useRobux ? (rp.resellRobuxPrice > 0 ? rp.resellRobuxPrice : Math.round(rpUsd * rate)) : rpUsd;
+              var priceHtml = fmtMoney(rpDisp) + '<span class="co-offer-off">Resell licence</span>';
+              return offerRow(x.id, x.image, x.title, priceHtml, added);
+            }
+            var added2 = cart.some(function (c) { return c.id === x.id || c.id === x.id + '--crosssell'; });
+            var priceHtml2;
             if (useRobux) {
               // Robux checkout re-prices from robux_price and does not honour
               // the 10% cross-sell discount, so show the plain Robux price.
-              priceHtml = 'R$ ' + Math.round(x.list * rate).toLocaleString('en-US');
+              priceHtml2 = 'R$ ' + Math.round(x.list * rate).toLocaleString('en-US');
             } else if (x.deal < x.list - 0.005) {
-              priceHtml = '<span class="co-offer-was">' + money(x.list) + '</span>' + money(x.deal) +
+              priceHtml2 = '<span class="co-offer-was">' + money(x.list) + '</span>' + money(x.deal) +
                 '<span class="co-offer-off">10% off</span>';
             } else {
-              priceHtml = money(x.deal);
+              priceHtml2 = money(x.deal);
             }
-            return offerRow(x.id, x.image, x.title, priceHtml, added);
+            return offerRow(x.id, x.image, x.title, priceHtml2, added2);
           }).join('');
           listEl.innerHTML = rows || '<p class="co-offer-empty">You’re all set — nothing to add here.</p>';
 
-          var anyResell = cart.some(function (x) { return x.licence === 'resell'; });
-          if (termsWrap) termsWrap.hidden = !anyResell;
+          if (termsWrap) termsWrap.hidden = !modalAddedResell;
           if (subEl) subEl.textContent = 'Subtotal ' + fmtMoney(t.sub);
         }
         if (resellEl) resellEl.onclick = function (e) {
@@ -5753,6 +5794,7 @@
             } else if (!allAdded && !has) {
               cart = cart.filter(function (x) { return x.id !== slug; });
               cart.push({ id: slug + '--resell', title: p.title, price: resellPriceOf(p), image: p.image, tag: p.cat || '', licence: 'resell', qty: 1 });
+              modalAddedResell = true;
             }
           });
           save(cart); render(); build();
@@ -5763,7 +5805,15 @@
           var slug = row.getAttribute('data-slug');
           var p = cat.filter(function (x) { return x.id === slug; })[0];
           if (!p) return;
-          if (cart.some(function (x) { return x.id === slug || x.id === slug + '--crosssell'; })) {
+          if (allResell) {
+            // Upselling resell licences onto an all-resell cart.
+            if (cart.some(function (x) { return x.id === slug + '--resell'; })) {
+              cart = cart.filter(function (x) { return x.id !== slug + '--resell'; });
+            } else {
+              cart.push({ id: slug + '--resell', title: p.title, price: resellPriceOf(p), image: p.image, tag: p.cat || '', licence: 'resell', qty: 1 });
+              modalAddedResell = true;
+            }
+          } else if (cart.some(function (x) { return x.id === slug || x.id === slug + '--crosssell'; })) {
             cart = cart.filter(function (x) { return x.id !== slug && x.id !== slug + '--crosssell'; });
           } else {
             // Add at the cross-sell deal price and flag it (cartToItems
@@ -5783,8 +5833,9 @@
         if (closeBtn) closeBtn.onclick = function () { close(); };
         if (cancelBtn) cancelBtn.onclick = function () { close(); };
         document.getElementById('coOfferPlace').onclick = function () {
-          var anyResell = cart.some(function (x) { return x.licence === 'resell'; });
-          if (anyResell && termsBox && !termsBox.checked) {
+          // Only gate on the modal's own terms box for resell licences
+          // added here - a pre-existing one is the page checkbox's job.
+          if (modalAddedResell && termsBox && !termsBox.checked) {
             if (msgEl) msgEl.textContent = 'Please accept the Resell Licence Terms to include resell rights.';
             if (termsWrap) { termsWrap.classList.remove('shake'); void termsWrap.offsetWidth; termsWrap.classList.add('shake'); }
             return;
@@ -5792,7 +5843,7 @@
           // Mirror the acceptance onto the page's own resell-terms checkbox
           // so validateBeforeOrder passes without bouncing the buyer back
           // up the page to a box they already ticked here.
-          if (anyResell) { var real = document.getElementById('coResell'); if (real) real.checked = true; }
+          if (modalAddedResell) { var real = document.getElementById('coResell'); if (real) real.checked = true; }
           if (msgEl) msgEl.textContent = '';
           close();
           onProceed();

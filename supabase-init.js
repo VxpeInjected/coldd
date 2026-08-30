@@ -557,7 +557,16 @@
       return client.auth.getUser().then(function (r) {
         var u = r && r.data && r.data.user;
         if (!u) return false;
-        return !u.email || /@roblox\.coldd\.internal$/i.test(u.email);
+        // A real, deliverable primary email = already claimable.
+        if (u.email && !/@roblox\.coldd\.internal$/i.test(u.email)) return false;
+        // Any linked identity that isn't the Roblox one (Discord / Google /
+        // email+password) is already a Roblox-independent way back into the
+        // account, so there's nothing left to nag about.
+        var ids = u.identities || [];
+        for (var i = 0; i < ids.length; i++) {
+          if (ids[i] && ids[i].provider && ids[i].provider !== 'roblox') return false;
+        }
+        return true;
       }).catch(function () { return false; });
     },
     claimSend: function (email) {

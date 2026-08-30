@@ -2070,9 +2070,12 @@ body.auth-page { min-height: 100vh; min-height: 100dvh; }
 .dash-claim-banner {
   display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;
   margin-bottom: 20px; padding: 14px 18px; border-radius: 14px;
-  border: 1px solid var(--accent); border-left-width: 3px;
+  border: 1px solid var(--accent);
   background: var(--bg-2);
 }
+/* display:flex above is an author rule and beats the UA [hidden] default,
+   so the dismiss button (which sets .hidden) did nothing. */
+.dash-claim-banner[hidden] { display: none; }
 .dash-claim-banner .dcb-text { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
 .dash-claim-banner .dcb-text strong { font-size: 14px; }
 .dash-claim-banner .dcb-text span { font-size: 12.5px; color: var(--fg-2); }

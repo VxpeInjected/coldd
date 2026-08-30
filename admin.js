@@ -6095,9 +6095,13 @@
       });
     } else if (action === 'delete') {
       if (!confirm('Delete "' + r.title + '"? This removes it from /careers immediately.')) return;
-      window.coldSupabase.from('career_roles').delete().eq('id', r.id).then(function (delRes) {
-        if (delRes.error) { alert(delRes.error.message || 'Could not delete role.'); return; }
+      // .select() so we can tell an RLS/no-match no-op (0 rows, no error -
+      // which is what "can't be deleted" looked like) from a real delete.
+      window.coldSupabase.from('career_roles').delete().eq('id', r.id).select('id').then(function (delRes) {
+        if (delRes.error) { admToast(delRes.error.message || 'Could not delete role.', false); return; }
+        if (!delRes.data || !delRes.data.length) { admToast('Could not delete "' + r.title + '" - you may not have permission.', false); return; }
         logAudit('Deleted career role "' + r.title + '"');
+        admToast('Deleted "' + r.title + '"', true);
         refreshCareerRoles();
       });
     }

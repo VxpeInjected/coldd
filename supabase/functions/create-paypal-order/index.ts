@@ -16,6 +16,7 @@ import { priceItems, resolveCoupon, spendTierDiscount, clampCombinedDiscount } f
 import { resolveCampaignCode } from "../_shared/campaign.ts";
 import { paypalToken, paypalFetch, money, approveLink, paypalEnv } from "../_shared/paypal.ts";
 import { isSiteInMaintenance } from "../_shared/maintenance.ts";
+import { genClaimToken, sha256Hex } from "../_shared/order_access.ts";
 
 const ALLOWED_ORIGIN = "https://coldd.dev";
 
@@ -138,6 +139,14 @@ Deno.serve(async (req: Request) => {
       return json({ ok: false, error: "Could not create order items." }, 500);
     }
 
+    // Guest orders carry a one-time claim token in the return URL (see
+    // _shared/order_access.ts); account orders are gated on the buyer's JWT.
+    const isGuest = !(giftRecipientId || user);
+    const claimToken = isGuest ? genClaimToken() : "";
+    if (isGuest) {
+      await admin.from("orders").update({ claim_token_hash: await sha256Hex(claimToken) }).eq("id", order.id);
+    }
+
     const token = await paypalToken();
     const created = await paypalFetch("/v2/checkout/orders", {
       method: "POST",
@@ -156,7 +165,7 @@ Deno.serve(async (req: Request) => {
           brand_name: "coldd",
           user_action: "PAY_NOW",
           shipping_preference: "NO_SHIPPING", // digital goods only
-          return_url: `${siteUrl}/success/?provider=paypal&orderId=${order.id}`,
+          return_url: `${siteUrl}/success/?provider=paypal&orderId=${order.id}${isGuest ? `&t=${claimToken}` : ""}`,
           cancel_url: `${siteUrl}/checkout/?canceled=1`,
         },
       }),

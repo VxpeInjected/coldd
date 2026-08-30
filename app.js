@@ -6110,6 +6110,11 @@
       }
       var sessionId = new URLSearchParams(location.search).get('session_id');
       var robuxOrderIdParam = new URLSearchParams(location.search).get('order_id');
+      // One-time claim token for GUEST orders - the payment provider's
+      // success redirect carries it as ?t=. Account orders don't have one
+      // (they're gated on the signed-in buyer's JWT instead). Passed to
+      // get-order-by-session / get-download-url / submit-reseller-info.
+      var claimToken = new URLSearchParams(location.search).get('t') || '';
       // PayPal returns here after approval. Approval is NOT payment - the
       // capture below is what actually moves the money, so this page must run
       // it before it can honestly say the order is paid.
@@ -6154,17 +6159,20 @@
           btn.addEventListener('click', function () {
             var prev = btn.textContent;
             btn.disabled = true; btn.textContent = 'Preparing…';
-            window.coldSupabase.functions.invoke('get-download-url', { body: sessionId ? { slug: it.product_slug, sessionId: sessionId } : { slug: it.product_slug, orderId: robuxOrderIdParam } })
+            window.coldSupabase.functions.invoke('get-download-url', { body: sessionId ? { slug: it.product_slug, sessionId: sessionId, token: claimToken } : { slug: it.product_slug, orderId: robuxOrderIdParam, token: claimToken } })
               .then(function (res) {
                 var data = res && res.data;
                 if (!data || !data.ok) {
-                  if (data && data.code === 'LINK_EXPIRED') {
+                  var code = data && data.code;
+                  if (code === 'LINK_EXPIRED' || code === 'LINK_INVALID' || code === 'SIGN_IN_REQUIRED') {
                     btn.disabled = false; btn.textContent = prev;
                     var note = card.querySelector('.dl-expired');
                     if (!note) {
                       note = document.createElement('p');
                       note.className = 'dl-expired';
-                      note.innerHTML = 'This confirmation link has expired. <a href="/signup">Create a free account</a> with your checkout email to download any time.';
+                      note.innerHTML = code === 'SIGN_IN_REQUIRED'
+                        ? 'This order is tied to an account. <a href="/signin">Sign in</a> as the buyer to download.'
+                        : 'This confirmation link can\'t be used to download. <a href="/signup">Create a free account</a> with your checkout email to download any time.';
                       card.appendChild(note);
                     }
                     return;
@@ -6179,6 +6187,18 @@
           });
           itemsEl.appendChild(card);
         });
+      }
+
+      // Guest checkout (no account): the ?t= link is a short-lived,
+      // single-use key, not a permanent download page. Nudge them to claim
+      // a free account with their checkout email so access survives.
+      function showGuestClaimNote() {
+        if (!itemsEl || document.getElementById('tyGuestNote')) return;
+        var note = document.createElement('p');
+        note.id = 'tyGuestNote';
+        note.className = 'ty-guest-note';
+        note.innerHTML = 'You checked out as a guest. This download link expires in 2 hours - <a href="/signup">create a free account</a> with your checkout email to keep access to these files for good.';
+        itemsEl.parentNode.insertBefore(note, itemsEl.nextSibling);
       }
 
       // Crypto is the one case where leaving really is fine (the network
@@ -6206,7 +6226,7 @@
         // not a direct table read - a guest order has no user_id for RLS to
         // match, so this is the only way (guest or signed-in) to see it
         // right after paying.
-        window.coldSupabase.functions.invoke('get-order-by-session', { body: sessionId ? { sessionId: sessionId } : { orderId: robuxOrderIdParam } })
+        window.coldSupabase.functions.invoke('get-order-by-session', { body: sessionId ? { sessionId: sessionId, token: claimToken } : { orderId: robuxOrderIdParam, token: claimToken } })
           .then(function (res) {
             var data = res && res.data;
             if (!data || !data.ok) {
@@ -6232,6 +6252,7 @@
               if (subEl) subEl.textContent = 'Payment confirmed - your files are ready below.';
               confettiBurst();
               renderItems(data.items || []);
+              if (data.guest) showGuestClaimNote();
               maybeShowResellerPopup(data.items || []);
               renderPostPurchaseUpsell();
             } else if (triesLeft > 0) {
@@ -6410,6 +6431,7 @@
             notes: document.getElementById('resellerNotes').value.trim() || null
           };
           if (sessionId) payload.sessionId = sessionId; else payload.orderId = robuxOrderIdParam;
+          payload.token = claimToken;
           submitBtn.disabled = true; submitBtn.textContent = 'Submitting…';
           setMsg('');
           window.coldSupabase.functions.invoke('submit-reseller-info', { body: payload })

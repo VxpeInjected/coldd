@@ -35,6 +35,7 @@ import Stripe from "https://esm.sh/stripe@17?target=deno";
 import { priceItems, resolveCoupon, spendTierDiscount, clampCombinedDiscount } from "../_shared/coupon.ts";
 import { resolveCampaignCode } from "../_shared/campaign.ts";
 import { isSiteInMaintenance } from "../_shared/maintenance.ts";
+import { genClaimToken, sha256Hex } from "../_shared/order_access.ts";
 
 const ALLOWED_ORIGIN = "https://coldd.dev";
 
@@ -174,6 +175,15 @@ Deno.serve(async (req: Request) => {
       return json({ ok: false, error: "Could not create order items." }, 500);
     }
 
+    // Guest orders (no account) carry a one-time claim token in the success
+    // redirect so a bare Stripe session id isn't enough to view or download
+    // the order. Account orders are gated on the buyer's JWT instead.
+    const isGuest = !(giftRecipientId || user);
+    const claimToken = isGuest ? genClaimToken() : "";
+    if (isGuest) {
+      await admin.from("orders").update({ claim_token_hash: await sha256Hex(claimToken) }).eq("id", order.id);
+    }
+
     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY")!, {
       httpClient: Stripe.createFetchHttpClient(),
       apiVersion: "2024-06-20",
@@ -204,7 +214,7 @@ Deno.serve(async (req: Request) => {
           quantity: li.qty,
         })),
         ...(discounts ? { discounts } : {}),
-        success_url: `${siteUrl}/success?session_id={CHECKOUT_SESSION_ID}`,
+        success_url: `${siteUrl}/success?session_id={CHECKOUT_SESSION_ID}${isGuest ? `&t=${claimToken}` : ""}`,
         cancel_url: `${siteUrl}/checkout`,
         metadata: { order_id: order.id },
       });

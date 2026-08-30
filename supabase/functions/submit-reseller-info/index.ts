@@ -20,6 +20,7 @@
 //         notes? }
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { verifyOrderAccess } from "../_shared/order_access.ts";
 
 const ALLOWED_ORIGIN = "https://coldd.dev";
 
@@ -46,10 +47,13 @@ Deno.serve(async (req: Request) => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const authHeader = req.headers.get("Authorization") ?? "";
 
     const body = await req.json().catch(() => ({}));
     const sessionId = String(body.sessionId || "");
     const orderId = String(body.orderId || "");
+    const token = String(body.token || "");
     if (!sessionId && !orderId) return json({ ok: false, error: "Missing order reference." }, 400);
 
     const contactType = body.contactType === "discord" ? "discord" : "email";
@@ -74,10 +78,21 @@ Deno.serve(async (req: Request) => {
 
     const admin = createClient(supabaseUrl, serviceKey);
 
-    const query = admin.from("orders").select("id, user_id, status, order_items(id, product_id, licence)");
+    const query = admin.from("orders").select("id, user_id, purchased_by_user_id, status, paid_at, created_at, claim_token_hash, order_items(id, product_id, licence)");
     const { data: order, error: orderErr } = await (orderId ? query.eq("id", orderId) : query.eq("stripe_checkout_session_id", sessionId)).maybeSingle();
     if (orderErr) return json({ ok: false, error: "Could not look up order." }, 500);
-    if (!order || order.status !== "paid") return json({ ok: false, error: "Order not found." }, 404);
+    if (!order) return json({ ok: false, error: "Order not found." }, 404);
+
+    // Account order -> must be signed in as the buyer. Guest order -> must
+    // present the one-time ?t= claim token. (see _shared/order_access.ts)
+    const getUserId = async (): Promise<string | null> => {
+      if (!authHeader) return null;
+      const userClient = createClient(supabaseUrl, anonKey, { global: { headers: { Authorization: authHeader } } });
+      const { data } = await userClient.auth.getUser();
+      return data?.user?.id ?? null;
+    };
+    const verdict = await verifyOrderAccess(order, getUserId, token, { requirePaid: true });
+    if (!verdict.ok) return json({ ok: false, code: verdict.code, error: verdict.error }, verdict.status);
 
     const resellItems = (order.order_items || []).filter((it: { licence: string }) => it.licence === "resell");
     if (!resellItems.length) return json({ ok: false, error: "No resell licences on this order." }, 400);

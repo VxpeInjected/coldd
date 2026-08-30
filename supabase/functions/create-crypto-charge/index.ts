@@ -15,6 +15,7 @@ import { priceItems, resolveCoupon, spendTierDiscount, clampCombinedDiscount } f
 import { resolveCampaignCode } from "../_shared/campaign.ts";
 import { activeProvider } from "../_shared/crypto.ts";
 import { isSiteInMaintenance } from "../_shared/maintenance.ts";
+import { genClaimToken, sha256Hex } from "../_shared/order_access.ts";
 
 const ALLOWED_ORIGIN = "https://coldd.dev";
 
@@ -135,12 +136,20 @@ Deno.serve(async (req: Request) => {
       return json({ ok: false, error: "Could not create order items." }, 500);
     }
 
+    // Guest orders carry a one-time claim token in the return URL (see
+    // _shared/order_access.ts); account orders are gated on the buyer's JWT.
+    const isGuest = !(giftRecipientId || user);
+    const claimToken = isGuest ? genClaimToken() : "";
+    if (isGuest) {
+      await admin.from("orders").update({ claim_token_hash: await sha256Hex(claimToken) }).eq("id", order.id);
+    }
+
     const charge = await provider.createCharge({
       orderId: order.id,
       amountUsd: total,
       description: `coldd order ${String(order.id).slice(0, 8)}`,
       // The success page only ever POLLS the order; it cannot mark it paid.
-      returnUrl: `${siteUrl}/success/?provider=crypto&orderId=${order.id}`,
+      returnUrl: `${siteUrl}/success/?provider=crypto&orderId=${order.id}${isGuest ? `&t=${claimToken}` : ""}`,
       cancelUrl: `${siteUrl}/checkout/?canceled=1`,
       callbackUrl: `${supabaseUrl}/functions/v1/crypto-webhook`,
     });

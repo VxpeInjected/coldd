@@ -11,31 +11,26 @@
 // download": the product-files Storage bucket is private with no public
 // policies, so this signed URL is the only way a file ever leaves it.
 //
-// Guest checkout support: a guest has no session, so ownership can't be
-// proven via auth.uid(). The success page identifies the just-completed
-// order with whatever the payment provider handed back - a Stripe
-// `session_id`, or an `order_id` for PayPal / crypto / Robux. Either one
-// is accepted as proof of ownership, but:
-//   - only for a genuinely guest order (orders.user_id null). An order
-//     tied to an account always requires the caller to be signed in as
-//     that account; the id in the URL is just a lookup key, never a
-//     bearer token.
-//   - only for GUEST_LINK_WINDOW_MS after payment. A success-page URL
-//     gets forwarded, screenshotted, pasted in Discord "to prove a
-//     purchase" and left in shared history - it was never meant to be a
-//     permanent no-account download link. Past the window the guest makes
-//     a free account with their checkout email (which the receipt and
-//     success page both tell them to do) to keep downloading.
-// A signed-in caller can omit both ids and use their normal owned-orders
-// lookup (e.g. redownloading later from the dashboard).
+// Access model (shared with get-order-by-session / submit-reseller-info via
+// _shared/order_access.ts):
+//   - Account order (orders.user_id set): caller MUST present a JWT for that
+//     user. The id in the success URL is only a lookup key, never a bearer
+//     token - forwarding the link gets the recipient nothing.
+//   - Guest order (orders.user_id null): caller MUST present the one-time
+//     `claim_token` (?t= in the success redirect, hashed in
+//     orders.claim_token_hash), and only for GUEST_WINDOW_MS after payment.
+//     A bare Stripe session id - which also shows up in the Stripe
+//     dashboard and webhook logs - is not enough. Past the window the guest
+//     claims a free account with their checkout email.
+// A signed-in caller can omit the ids/token entirely and use their normal
+// owned-orders lookup (e.g. redownloading later from the dashboard).
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { downloadName, publicSignedUrl } from "../_shared/download.ts";
+import { verifyOrderAccess } from "../_shared/order_access.ts";
 
 const ALLOWED_ORIGIN = "https://coldd.dev";
 const SIGNED_URL_TTL_SECONDS = 120;
-
-const GUEST_LINK_WINDOW_MS = 24 * 60 * 60 * 1000;
 
 function corsHeaders() {
   return {
@@ -64,6 +59,7 @@ Deno.serve(async (req: Request) => {
     const body = await req.json().catch(() => ({}));
     const slug = String(body.slug || "");
     const sessionId = String(body.sessionId || "");
+    const token = String(body.token || "");
     // v4 UUID only - a non-uuid orderId would throw a Postgres 22P02.
     const orderId = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(body.orderId || ""))
       ? String(body.orderId)
@@ -74,45 +70,28 @@ Deno.serve(async (req: Request) => {
 
     let owned = false;
     if (sessionId || orderId) {
-      // Same capability model whether the success page identified the order
-      // by Stripe session id (card) or order id (PayPal / crypto / Robux).
+      // Account order -> caller must be signed in as the buyer.
+      // Guest order  -> caller must present the one-time ?t= claim token.
+      // (see _shared/order_access.ts)
       const q = admin
         .from("orders")
-        .select("status, user_id, paid_at, created_at, order_items(product_slug)");
+        .select("status, user_id, purchased_by_user_id, paid_at, created_at, claim_token_hash, order_items(product_slug)");
       const { data: order, error: orderErr } = await (
         sessionId ? q.eq("stripe_checkout_session_id", sessionId) : q.eq("id", orderId)
       ).maybeSingle();
       if (orderErr) return json({ ok: false, error: "Could not verify ownership." }, 500);
-      const matchesOrder = !!order && order.status === "paid" &&
-        (order.order_items || []).some((i: { product_slug: string }) => i.product_slug === slug);
 
-      if (order?.user_id) {
-        // Account order (every Robux order, plus any signed-in card/PayPal
-        // one). The id in the URL is only a lookup key - the caller has to
-        // actually be signed in as the buyer, so forwarding the success
-        // link gets the recipient nothing.
-        if (!authHeader) return json({ ok: false, error: "Please sign in to download this." }, 401);
-        const sessionUserClient = createClient(supabaseUrl, anonKey, {
-          global: { headers: { Authorization: authHeader } },
-        });
-        const { data: sessionUserData } = await sessionUserClient.auth.getUser();
-        owned = matchesOrder && sessionUserData?.user?.id === order.user_id;
-      } else {
-        // Genuine guest order (guest card / PayPal / crypto) - the id is
-        // the only possible proof, so it only counts for a short window
-        // after payment. Past that, whoever holds the link (buyer
-        // included) makes a free account with the order email.
-        const paidTs = order ? Date.parse(order.paid_at || order.created_at || "") : NaN;
-        const fresh = Number.isFinite(paidTs) && (Date.now() - paidTs) < GUEST_LINK_WINDOW_MS;
-        if (matchesOrder && !fresh) {
-          return json({
-            ok: false,
-            code: "LINK_EXPIRED",
-            error: "This download link has expired. Create a free account with the email you used at checkout to download your purchases any time.",
-          }, 403);
-        }
-        owned = matchesOrder && fresh;
-      }
+      const getUserId = async (): Promise<string | null> => {
+        if (!authHeader) return null;
+        const sessionUserClient = createClient(supabaseUrl, anonKey, { global: { headers: { Authorization: authHeader } } });
+        const { data } = await sessionUserClient.auth.getUser();
+        return data?.user?.id ?? null;
+      };
+      const verdict = await verifyOrderAccess(order, getUserId, token, { requirePaid: true });
+      if (!verdict.ok) return json({ ok: false, code: verdict.code, error: verdict.error }, verdict.status);
+
+      owned = (order!.order_items || []).some((i: { product_slug: string }) => i.product_slug === slug);
+      if (!owned) return json({ ok: false, error: "That product isn't on this order." }, 403);
     } else {
       if (!authHeader) return json({ ok: false, error: "Please sign in." }, 401);
       const userClient = createClient(supabaseUrl, anonKey, {

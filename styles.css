@@ -2404,6 +2404,9 @@ button.dt-badge:disabled { cursor: default; opacity: 0.6; }
 .dl-meta strong { color: var(--fg-2); }
 .dl-expired { margin: 12px 0 0; font-size: 13px; line-height: 1.5; color: var(--warn); }
 .dl-expired a { color: var(--accent); font-weight: 600; text-decoration: none; }
+.ty-guest-note { margin: 14px 0 0; padding: 12px 14px; font-size: 13px; line-height: 1.55; color: var(--fg-2);
+  background: var(--bg-2); border: 1px solid var(--hairline); border-radius: var(--r-sm); }
+.ty-guest-note a { color: var(--accent); font-weight: 600; text-decoration: none; }
 .dl-get { min-height: 40px; padding: 9px 18px; font-size: 13px; }
 .dl-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .dl-review { min-height: 40px; padding: 9px 16px; font-size: 13px; white-space: nowrap; }

@@ -119,23 +119,36 @@ Deno.serve(async (req: Request) => {
 
       const { data: orders, error } = await admin
         .from("orders")
-        .select("id, status, total_usd, currency, created_at, paid_at, user_id, profiles(username, email)")
+        .select("id, status, total_usd, currency, created_at, paid_at, user_id")
         .eq("campaign_code", code)
         .order("created_at", { ascending: false })
         .limit(200);
       if (error) return json({ ok: false, error: error.message }, 500);
 
+      // orders.user_id references auth.users, not profiles, so PostgREST
+      // can't embed profiles(...) off it - fetch the buyer rows separately
+      // by id and join in code.
+      const userIds = Array.from(new Set((orders ?? []).map((o) => o.user_id).filter(Boolean)));
+      const profileById: Record<string, { username?: string; email?: string }> = {};
+      if (userIds.length) {
+        const { data: profs } = await admin.from("profiles").select("id, username, email").in("id", userIds);
+        for (const p of profs ?? []) profileById[p.id] = p;
+      }
+
       return json({
         ok: true,
-        orders: (orders ?? []).map((o) => ({
-          id: o.id,
-          status: o.status,
-          totalUsd: o.total_usd,
-          currency: o.currency,
-          createdAt: o.created_at,
-          paidAt: o.paid_at,
-          buyer: o.profiles ? ((o.profiles as { username?: string; email?: string }).username || (o.profiles as { email?: string }).email) : (o.user_id ? "Deleted account" : "Guest"),
-        })),
+        orders: (orders ?? []).map((o) => {
+          const prof = o.user_id ? profileById[o.user_id] : null;
+          return {
+            id: o.id,
+            status: o.status,
+            totalUsd: o.total_usd,
+            currency: o.currency,
+            createdAt: o.created_at,
+            paidAt: o.paid_at,
+            buyer: prof ? (prof.username || prof.email) : (o.user_id ? "Deleted account" : "Guest"),
+          };
+        }),
       });
     }
 

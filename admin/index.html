@@ -16,7 +16,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
 
-  <link rel="stylesheet" href="/styles.css?v=20260830k" />
+  <link rel="stylesheet" href="/styles.css?v=20260830l" />
 </head>
 <body class="adm-body">
   <div class="backdrop"></div>
@@ -330,6 +330,22 @@
                 </table>
               </div>
               <p class="adm-note" id="admEmailListNote" style="margin-top:8px;"></p>
+
+              <div class="dash-card-head" style="margin-top:22px;"><div><h2>Templates</h2><span class="adm-sub">Reusable subject + body. Saved to the account, not this browser.</span></div></div>
+              <div class="adm-form" id="admTemplateBar" style="flex-wrap:wrap;gap:8px;">
+                <div class="adm-dd" id="admTemplateDD" style="flex:1;min-width:200px;">
+                  <button type="button" class="adm-dd-btn" aria-haspopup="listbox" aria-expanded="false">
+                    <span class="adm-dd-val placeholder">No saved templates</span>
+                    <svg class="adm-dd-chev" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                  </button>
+                  <div class="adm-dd-menu" role="listbox" aria-label="Saved templates" hidden></div>
+                </div>
+                <input type="hidden" id="admTemplateSel" />
+                <button class="btn btn-ghost adm-btn-sm" id="admTemplateLoadBtn" type="button">Load</button>
+                <button class="btn btn-ghost adm-btn-sm" id="admTemplateDelBtn" type="button">Delete</button>
+                <button class="btn btn-tinted adm-btn-sm" id="admTemplateSaveBtn" type="button">Save current as template</button>
+              </div>
+              <div class="adm-edit-msg" id="admTemplateMsg"></div>
 
               <div class="dash-card-head" style="margin-top:22px;"><h2>New campaign</h2></div>
               <form class="adm-form" id="admCampaignForm" style="flex-direction:column;align-items:stretch;gap:10px;">
@@ -1267,6 +1283,24 @@
     </div>
   </div>
 
+  <div class="pay-overlay" id="admCampaignConfirmOverlay" hidden>
+    <div class="pay-modal glass" role="dialog" aria-modal="true" aria-labelledby="admCampaignConfirmTitle" style="max-width:460px;">
+      <button class="pm-x" id="admCampaignConfirmClose" type="button" aria-label="Close"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+      <h3 class="pay-title" id="admCampaignConfirmTitle">Send this campaign?</h3>
+      <p class="adm-campaign-confirm-count" id="admCampaignConfirmCount"></p>
+      <p class="pay-sub" id="admCampaignConfirmSummary" style="margin:10px 0 0;"></p>
+      <p class="adm-campaign-confirm-warn" id="admCampaignConfirmWarn" hidden></p>
+      <p class="adm-note" style="margin:18px 0 8px;">Type the code below to confirm - it can't be pasted, you have to type it out.</p>
+      <div class="dt-mono adm-campaign-confirm-code" id="admCampaignConfirmCode" style="user-select:none;">- - - -</div>
+      <input type="text" id="admCampaignConfirmInput" class="adm-input" placeholder="Type the code" autocomplete="off" autocapitalize="off" spellcheck="false" style="margin-top:10px;" />
+      <div style="display:flex;gap:10px;margin-top:16px;">
+        <button class="btn btn-primary" id="admCampaignConfirmGo" type="button" disabled>Send now</button>
+        <button class="btn btn-ghost" id="admCampaignConfirmCancel" type="button">Cancel</button>
+      </div>
+      <div class="adm-edit-msg" id="admCampaignConfirmMsg"></div>
+    </div>
+  </div>
+
   <div class="pay-overlay" id="admCareerFormOverlay" hidden>
     <div class="pay-modal glass" role="dialog" aria-modal="true" aria-labelledby="admCareerFormTitle" style="max-width:560px;">
       <button class="pm-x" id="admCareerFormClose" type="button" aria-label="Close"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
@@ -1372,6 +1406,6 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.2/dist/umd/supabase.min.js" integrity="sha384-B2duOBIryCXbX4eDE4BdJwtNkQMRQde3o6IsjfPW28E6aH1CYE96hHeZRG3zY56O" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script src="/supabase-init.js?v=20260830b"></script>
   <script src="/site-gate.js?v=20260820b"></script>
-  <script src="/catalog.js?v=20260828d" data-then="/app.js?v=20260830j,/blog.js?v=20260828a,/reviews.js?v=20260729a,/admin.js?v=20260830a"></script>
+  <script src="/catalog.js?v=20260828d" data-then="/app.js?v=20260830j,/blog.js?v=20260828a,/reviews.js?v=20260729a,/admin.js?v=20260831a"></script>
 </body>
 </html>

@@ -1852,6 +1852,13 @@ body.no-scroll { overflow: hidden; }
   .pay-modal .dash-stats { grid-template-columns: repeat(2, 1fr); gap: 10px; }
   .pay-modal .dash-stat { padding: 14px; }
 }
+/* Campaign send confirmation */
+.adm-campaign-confirm-count { font-size: 15px; font-weight: 700; color: var(--fg); margin: 6px 0 0; }
+.adm-campaign-confirm-warn { font-size: 12.5px; line-height: 1.5; color: var(--warn); background: var(--warn-tint);
+  border: 1px solid var(--warn-line); border-radius: 10px; padding: 10px 12px; margin: 12px 0 0; }
+.adm-campaign-confirm-code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 19px;
+  letter-spacing: 0.06em; font-weight: 700; color: var(--accent); padding: 10px 14px; background: var(--ink-25);
+  border: 1px solid var(--hairline); border-radius: 10px; text-align: center; }
 .cur-switch { position: relative; display: inline-flex; padding: 0; gap: 2px;
   border-radius: 10px; background: transparent; box-shadow: none; }
 

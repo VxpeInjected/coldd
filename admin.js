@@ -2639,12 +2639,10 @@
       : 'Goes to the ' + (EMAIL_STATS.optedIn || 0).toLocaleString('en-US') + ' opted-in subscribers only.';
   });
   var campaignModeSwitch = document.querySelector('.adm-campaign-mode');
-  if (campaignModeSwitch) campaignModeSwitch.addEventListener('click', function (e) {
-    var btn = e.target.closest('.bt-opt');
-    if (!btn) return;
-    campaignMode = btn.getAttribute('data-mode');
-    campaignModeSwitch.querySelectorAll('.bt-opt').forEach(function (o) {
-      var active = o === btn;
+  function setCampaignMode(mode) {
+    campaignMode = mode === 'html' ? 'html' : 'simple';
+    if (campaignModeSwitch) campaignModeSwitch.querySelectorAll('.bt-opt').forEach(function (o) {
+      var active = o.getAttribute('data-mode') === campaignMode;
       o.classList.toggle('active', active);
       o.setAttribute('aria-selected', active ? 'true' : 'false');
     });
@@ -2655,6 +2653,85 @@
       : 'Write your email. Blank lines start a new paragraph, **text** for bold.';
     if (labelEl) labelEl.textContent = campaignMode === 'html' ? 'Body (raw HTML)' : 'Body';
     updateCampaignPreview();
+  }
+  if (campaignModeSwitch) campaignModeSwitch.addEventListener('click', function (e) {
+    var btn = e.target.closest('.bt-opt');
+    if (btn) setCampaignMode(btn.getAttribute('data-mode'));
+  });
+
+  /* ---- Email templates (reusable subject + body, stored per account) ---- */
+  var TEMPLATES = [];
+  var templateDropdown = makeDropdown($('admTemplateDD'), {
+    valueInput: $('admTemplateSel'), placeholder: 'No saved templates',
+    searchable: true
+  });
+  function templateMsg(text, ok) {
+    var m = $('admTemplateMsg'); if (!m) return;
+    m.textContent = text || '';
+    m.style.color = text ? (ok ? 'var(--price)' : 'var(--accent)') : '';
+  }
+  function refreshTemplates() {
+    if (!window.coldSupabase) return Promise.resolve();
+    return window.coldSupabase.from('email_templates').select('*').order('name').then(function (res) {
+      if (res.error) { console.error('[admin] templates load failed:', res.error.message); return; }
+      TEMPLATES = res.data || [];
+      var sel = templateDropdown.getValue();
+      templateDropdown.setOptions(TEMPLATES.map(function (t) { return { value: t.id, label: t.name }; }),
+        TEMPLATES.some(function (t) { return t.id === sel; }) ? sel : (TEMPLATES[0] ? TEMPLATES[0].id : ''));
+      var bar = $('admTemplateBar');
+      if (bar) bar.querySelector('#admTemplateDD .adm-dd-val').classList.toggle('placeholder', !TEMPLATES.length);
+    });
+  }
+  var tplLoadBtn = $('admTemplateLoadBtn');
+  if (tplLoadBtn) tplLoadBtn.addEventListener('click', function () {
+    if (!can('admin')) return;
+    var t = TEMPLATES.filter(function (x) { return x.id === templateDropdown.getValue(); })[0];
+    if (!t) { templateMsg('Pick a template first.'); return; }
+    $('admCampaignSubject').value = t.subject || '';
+    $('admCampaignBody').value = t.body_text || '';
+    setCampaignMode(t.mode || 'simple');
+    updateCampaignPreview();
+    templateMsg('Loaded "' + t.name + '".', true);
+  });
+  var tplSaveBtn = $('admTemplateSaveBtn');
+  if (tplSaveBtn) tplSaveBtn.addEventListener('click', function () {
+    if (!can('admin')) return;
+    var subject = $('admCampaignSubject').value.trim();
+    var body = $('admCampaignBody').value;
+    if (!subject && !body.trim()) { templateMsg('Nothing to save - write a subject or body first.'); return; }
+    var existing = TEMPLATES.filter(function (x) { return x.id === templateDropdown.getValue(); })[0];
+    var suggested = existing ? existing.name : '';
+    var name = (prompt('Template name:', suggested) || '').trim();
+    if (!name) return;
+    var match = TEMPLATES.filter(function (x) { return x.name.toLowerCase() === name.toLowerCase(); })[0];
+    var row = { name: name, subject: subject, body_text: body, mode: campaignMode, updated_at: new Date().toISOString() };
+    var q = match
+      ? window.coldSupabase.from('email_templates').update(row).eq('id', match.id).select('id')
+      : window.coldSupabase.from('email_templates').insert(row).select('id');
+    tplSaveBtn.disabled = true;
+    q.then(function (res) {
+      tplSaveBtn.disabled = false;
+      if (res.error || !res.data || !res.data.length) { templateMsg(res.error && res.error.message || 'Could not save the template.'); return; }
+      logAudit((match ? 'Updated' : 'Saved') + ' email template "' + name + '"');
+      templateMsg((match ? 'Updated' : 'Saved') + ' "' + name + '".', true);
+      templateDropdown.setValue(res.data[0].id, true);
+      refreshTemplates();
+    });
+  });
+  var tplDelBtn = $('admTemplateDelBtn');
+  if (tplDelBtn) tplDelBtn.addEventListener('click', function () {
+    if (!can('admin')) return;
+    var t = TEMPLATES.filter(function (x) { return x.id === templateDropdown.getValue(); })[0];
+    if (!t) { templateMsg('Pick a template first.'); return; }
+    if (!confirm('Delete template "' + t.name + '"?')) return;
+    window.coldSupabase.from('email_templates').delete().eq('id', t.id).select('id').then(function (res) {
+      if (res.error) { templateMsg(res.error.message || 'Could not delete.'); return; }
+      if (!res.data || !res.data.length) { templateMsg('Could not delete - you may not have permission.'); return; }
+      logAudit('Deleted email template "' + t.name + '"');
+      templateMsg('Deleted "' + t.name + '".', true);
+      templateDropdown.setValue('', true);
+      refreshTemplates();
+    });
   });
 
   // Shared by the campaign composer and each automation's own preview -
@@ -2693,6 +2770,61 @@
     if (wrap && !wrap.hidden) updateCampaignPreview();
   });
 
+  // Typed-code confirmation before a real send - same "type it out, no
+  // paste" gate the account-deletion flow uses, because a campaign send
+  // is just as irreversible and reaches far more people. The modal also
+  // states the exact recipient count.
+  function genCampaignCode() {
+    var chars = 'abcdefghijklmnopqrstuvwxyz0123456789', groups = [];
+    for (var g = 0; g < 4; g++) { var s = ''; for (var i = 0; i < 4; i++) s += chars.charAt(Math.floor(Math.random() * chars.length)); groups.push(s); }
+    return groups.join('-');
+  }
+  var campaignConfirm = (function () {
+    var ov = $('admCampaignConfirmOverlay');
+    if (!ov) return { open: function () {} };
+    var codeEl = $('admCampaignConfirmCode'), inp = $('admCampaignConfirmInput'),
+        goBtn = $('admCampaignConfirmGo'), cancelBtn = $('admCampaignConfirmCancel'),
+        closeBtn = $('admCampaignConfirmClose'), cmsg = $('admCampaignConfirmMsg'),
+        countEl = $('admCampaignConfirmCount'), summaryEl = $('admCampaignConfirmSummary'),
+        warnEl = $('admCampaignConfirmWarn');
+    var code = '', onConfirm = null;
+    if (inp) inp.addEventListener('paste', function (e) { e.preventDefault(); });
+    if (inp) inp.addEventListener('input', function () {
+      goBtn.disabled = inp.value.trim().toLowerCase() !== code;
+    });
+    function close() { ov.hidden = true; onConfirm = null; document.removeEventListener('keydown', onKey); }
+    function onKey(e) { if (e.key === 'Escape') close(); }
+    if (cancelBtn) cancelBtn.addEventListener('click', close);
+    if (closeBtn) closeBtn.addEventListener('click', close);
+    ov.addEventListener('click', function (e) { if (e.target === ov) close(); });
+    if (goBtn) goBtn.addEventListener('click', function () {
+      if (goBtn.disabled || !onConfirm) return;
+      var fn = onConfirm;
+      goBtn.disabled = true;
+      if (cmsg) cmsg.textContent = 'Sending…';
+      fn(function (resultText, isErr) {
+        if (isErr) { if (cmsg) { cmsg.textContent = resultText; cmsg.style.color = 'var(--accent)'; } goBtn.disabled = false; return; }
+        close();
+      });
+    });
+    return {
+      open: function (opts) {
+        code = genCampaignCode();
+        onConfirm = opts.onConfirm;
+        codeEl.textContent = code;
+        inp.value = ''; goBtn.disabled = true;
+        if (cmsg) { cmsg.textContent = ''; cmsg.style.color = ''; }
+        countEl.textContent = 'This sends to ' + opts.count.toLocaleString('en-US') + ' ' + opts.audienceLabel + '.';
+        summaryEl.textContent = 'Subject: "' + opts.subject + '"';
+        warnEl.hidden = !opts.warn;
+        if (opts.warn) warnEl.textContent = opts.warn;
+        ov.hidden = false;
+        document.addEventListener('keydown', onKey);
+        setTimeout(function () { inp.focus(); }, 30);
+      }
+    };
+  })();
+
   var campaignForm = $('admCampaignForm');
   if (campaignForm) {
     campaignForm.addEventListener('submit', function (e) {
@@ -2700,32 +2832,35 @@
       var subject = $('admCampaignSubject').value.trim();
       var bodyText = $('admCampaignBody').value;
       var msg = $('admCampaignMsg');
+      if (msg) msg.textContent = '';
       if (!subject || !bodyText.trim()) { if (msg) msg.textContent = 'Write a subject and body first.'; return; }
       var isAnnounce = campaignAudience === 'announcement';
       if (isAnnounce && !EMAIL_CAN_ANNOUNCE) { if (msg) msg.textContent = 'Announcements can only be sent from the site owner account.'; return; }
       var count = isAnnounce ? (EMAIL_STATS.allAccounts || 0) : (EMAIL_STATS.optedIn || 0);
       if (!count) { if (msg) msg.textContent = 'No recipients for this audience.'; return; }
-      if (isAnnounce) {
-        // Two separate confirms - an announcement ignores marketing consent
-        // and reaches everyone, so it should never go out on one misclick.
-        if (!confirm('ANNOUNCEMENT — this emails ALL ' + count.toLocaleString('en-US') + ' accounts, opted in or not.\n\nSubject: "' + subject + '"\n\nContinue?')) return;
-        if (!confirm('Are you sure? This cannot be undone and is not a marketing email — send it only for things every user must know (ToS changes, outages).')) return;
-      } else {
-        if (!confirm('Send "' + subject + '" to ' + count.toLocaleString('en-US') + ' opted-in subscriber' + (count === 1 ? '' : 's') + '? This cannot be undone.')) return;
-      }
 
       var sendBtn = $('admCampaignSendBtn');
-      sendBtn.disabled = true;
-      if (msg) msg.textContent = 'Sending…';
-      invokeAdminFn('admin-send-campaign', { action: 'send', subject: subject, bodyHtml: campaignBodyHtml(), audience: campaignAudience }, 'Could not send campaign.').then(function (data) {
-        if (msg) msg.textContent = 'Sent to ' + data.sentCount + ' of ' + data.recipientCount + (data.failedCount ? ' (' + data.failedCount + ' failed)' : '') + '.';
-        logAudit('Sent ' + (isAnnounce ? 'announcement' : 'marketing') + ' email "' + subject + '" to ' + data.sentCount + ' recipients');
-        campaignForm.reset();
-        return refreshEmailCampaigns();
-      }).catch(function (err) {
-        if (msg) msg.textContent = err.message;
-      }).then(function () {
-        sendBtn.disabled = false;
+      campaignConfirm.open({
+        subject: subject,
+        count: count,
+        audienceLabel: isAnnounce ? ('account' + (count === 1 ? '' : 's') + ' — opted in or not') : ('opted-in subscriber' + (count === 1 ? '' : 's')),
+        warn: isAnnounce ? 'Announcement — this is not a marketing email. Send it only for things every user must know (ToS changes, outages).' : '',
+        onConfirm: function (done) {
+          sendBtn.disabled = true;
+          if (msg) msg.textContent = 'Sending…';
+          invokeAdminFn('admin-send-campaign', { action: 'send', subject: subject, bodyHtml: campaignBodyHtml(), audience: campaignAudience }, 'Could not send campaign.').then(function (data) {
+            if (msg) msg.textContent = 'Sent to ' + data.sentCount + ' of ' + data.recipientCount + (data.failedCount ? ' (' + data.failedCount + ' failed)' : '') + '.';
+            logAudit('Sent ' + (isAnnounce ? 'announcement' : 'marketing') + ' email "' + subject + '" to ' + data.sentCount + ' recipients');
+            campaignForm.reset();
+            sendBtn.disabled = false;
+            done();
+            return refreshEmailCampaigns();
+          }).catch(function (err) {
+            sendBtn.disabled = false;
+            if (msg) msg.textContent = err.message;
+            done(err.message, true);
+          });
+        }
       });
     });
   }
@@ -6223,6 +6358,7 @@
   refreshEmailStats();
   refreshEmailCampaigns();
   refreshEmailEvents();
+  refreshTemplates();
   loadUnreleasedFiles();
   refreshResellers();
   refreshEmailConfigStatus();

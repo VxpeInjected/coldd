@@ -1096,6 +1096,84 @@
       return { build: build, apply: apply };
     })();
 
+    // Custom <select> - the native control's dropdown can't be styled to
+    // match the site, so every <select data-csel> keeps its real element
+    // in the DOM (form submit, no-JS fallback) but hidden, and a styled
+    // button + menu drives it, dispatching a real 'change' so existing
+    // listeners never know the difference. Same neutral-fill / drawn-tick
+    // idiom as the shop sort menu.
+    window.__coldSelect = (function () {
+      var openMenu = null;
+      document.addEventListener('click', function () { if (openMenu) openMenu(); });
+      function enhance(sel) {
+        if (!sel || sel.__csel || sel.multiple) return;
+        sel.__csel = true;
+        var opts = Array.prototype.slice.call(sel.options);
+        var wrap = document.createElement('div');
+        wrap.className = 'csel';
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'csel-btn';
+        btn.setAttribute('aria-haspopup', 'listbox');
+        btn.setAttribute('aria-expanded', 'false');
+        if (sel.id) btn.setAttribute('aria-label', (sel.getAttribute('aria-label') || sel.id));
+        btn.innerHTML = '<span class="csel-val"></span>' +
+          '<svg class="csel-chev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>';
+        var menu = document.createElement('div');
+        menu.className = 'csel-menu';
+        menu.setAttribute('role', 'listbox');
+        menu.hidden = true;
+        opts.forEach(function (o) {
+          if (o.disabled) return; // e.g. a "Choose…" placeholder option
+          var b = document.createElement('button');
+          b.type = 'button';
+          b.className = 'csel-opt';
+          b.setAttribute('role', 'option');
+          b.setAttribute('data-value', o.value);
+          b.innerHTML = '<span>' + o.textContent + '</span>' +
+            '<svg class="csel-tick" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg>';
+          b.addEventListener('click', function () { pick(o.value); close(); btn.focus(); });
+          menu.appendChild(b);
+        });
+        var valEl = btn.querySelector('.csel-val');
+        function labelFor(v) { var o = opts.filter(function (x) { return x.value === v; })[0]; return o ? o.textContent : (opts[0] ? opts[0].textContent : ''); }
+        function sync() {
+          Array.prototype.forEach.call(menu.children, function (b) {
+            var on = b.getAttribute('data-value') === sel.value;
+            b.classList.toggle('active', on);
+            b.setAttribute('aria-selected', on ? 'true' : 'false');
+          });
+          valEl.textContent = labelFor(sel.value);
+          btn.classList.toggle('csel-placeholder', !sel.value);
+        }
+        function pick(v) { if (sel.value === v) return; sel.value = v; sync(); sel.dispatchEvent(new Event('change', { bubbles: true })); }
+        function open() {
+          if (openMenu && openMenu !== close) openMenu();
+          menu.hidden = false; wrap.classList.add('open'); btn.setAttribute('aria-expanded', 'true'); openMenu = close;
+        }
+        function close() { menu.hidden = true; wrap.classList.remove('open'); btn.setAttribute('aria-expanded', 'false'); if (openMenu === close) openMenu = null; }
+        btn.addEventListener('click', function (e) { e.stopPropagation(); menu.hidden ? open() : close(); });
+        btn.addEventListener('keydown', function (e) {
+          if (e.key === 'ArrowDown' || e.key === 'Enter' || e.key === ' ') { e.preventDefault(); if (menu.hidden) open(); }
+          else if (e.key === 'Escape') close();
+        });
+        menu.addEventListener('click', function (e) { e.stopPropagation(); });
+        sel.addEventListener('change', sync);
+        // form.reset() sets sel.value back to its default without firing
+        // 'change' - re-sync the button label on the next tick.
+        if (sel.form) sel.form.addEventListener('reset', function () { setTimeout(sync, 0); });
+        sel.insertAdjacentElement('afterend', wrap);
+        wrap.appendChild(btn);
+        wrap.appendChild(menu);
+        sel.classList.add('csel-native');
+        sync();
+      }
+      function run() { Array.prototype.forEach.call(document.querySelectorAll('select[data-csel]'), enhance); }
+      if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', run);
+      else run();
+      return enhance;
+    })();
+
     (function () {
       // Featured products and This week's deals used to be hand-written
       // HTML the admin had to edit by hand and keep in sync with real
@@ -3605,7 +3683,10 @@
         ['dashPurchSearch', 'dashPurchFrom', 'dashPurchTo', 'dashPurchMinAmt', 'dashPurchMaxAmt'].forEach(function (id) {
           var el = document.getElementById(id); if (el) el.value = '';
         });
-        var statusEl = document.getElementById('dashPurchStatus'); if (statusEl) statusEl.value = 'all';
+        var statusEl = document.getElementById('dashPurchStatus');
+        // dispatch change (not just set .value) so the custom-select button
+        // label resyncs - __coldSelect listens on the native element.
+        if (statusEl && statusEl.value !== 'all') { statusEl.value = 'all'; statusEl.dispatchEvent(new Event('change', { bubbles: true })); }
         renderPurchasesTable();
       });
 

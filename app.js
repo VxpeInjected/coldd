@@ -107,20 +107,20 @@
           reason: document.getElementById('ctReason').value,
           message: document.getElementById('ctMessage').value.trim()
         };
-        if (msgEl) { msgEl.textContent = ''; msgEl.classList.remove('show'); }
+        if (msgEl) { msgEl.textContent = ''; msgEl.className = 'auth-msg'; }
         submitBtn.disabled = true; if (label) label.hidden = true; if (spinner) spinner.hidden = false;
         window.coldSupabase.functions.invoke('send-contact-message', { body: payload })
           .then(function (res) {
             var data = res && res.data;
             if (!data || !data.ok) {
-              if (msgEl) { msgEl.textContent = (data && data.error) || 'Could not send your message. Please try again.'; msgEl.classList.add('show'); }
+              if (msgEl) { msgEl.textContent = (data && data.error) || 'Could not send your message. Please try again.'; msgEl.className = 'auth-msg show'; }
               return;
             }
             form.reset();
-            if (msgEl) { msgEl.textContent = "Thanks - we've got your message and will get back to you soon."; msgEl.classList.add('show'); }
+            if (msgEl) { msgEl.textContent = "Thanks - we've got your message and will get back to you soon."; msgEl.className = 'auth-msg ok show'; }
           })
           .catch(function () {
-            if (msgEl) { msgEl.textContent = 'Could not send your message. Please try again.'; msgEl.classList.add('show'); }
+            if (msgEl) { msgEl.textContent = 'Could not send your message. Please try again.'; msgEl.className = 'auth-msg show'; }
           })
           .then(function () {
             submitBtn.disabled = false; if (label) label.hidden = false; if (spinner) spinner.hidden = true;
@@ -4016,13 +4016,13 @@
         setBtnLoading(btn, true);
         window.coldAuth.invokeFn('request-referral-payout', { method: method, amount: amount }).then(function () {
           setBtnLoading(btn, false);
-          if (msgEl) { msgEl.classList.add('show'); msgEl.textContent = 'Payout requested - our team will review it manually.'; }
+          if (msgEl) { msgEl.className = 'auth-msg ok show'; msgEl.textContent = 'Payout requested - our team will review it manually.'; }
           refPayoutForm.reset();
           refLoaded = false;
           refreshReferrals();
         }).catch(function (err) {
           setBtnLoading(btn, false);
-          if (msgEl) { msgEl.classList.add('show'); msgEl.textContent = (err && err.message) || 'Could not request payout.'; }
+          if (msgEl) { msgEl.className = 'auth-msg show'; msgEl.textContent = (err && err.message) || 'Could not request payout.'; }
         });
       });
 
@@ -4078,9 +4078,9 @@
           f.classList.toggle('invalid', !!msg);
           var e = f.querySelector('.auth-err'); if (e) e.textContent = msg || '';
         }
-        function acctFlash(text) {
+        function acctFlash(text, ok) {
           var m = acct.querySelector('.auth-msg'); if (!m) return;
-          m.textContent = text; m.classList.add('show');
+          m.textContent = text; m.className = 'auth-msg show' + (ok ? ' ok' : '');
         }
 
         // Email/password now only change via the Security tab's
@@ -4100,15 +4100,15 @@
             profile.name = newName;
             window.coldAuth.saveProfile(profile);
             window.coldAuth.applyProfile();
-            acctFlash('Saved.');
+            acctFlash('Saved.', true);
           });
         });
       }
       var acAvatarBtn = document.getElementById('acAvatarBtn'), acAvatarInput = document.getElementById('acAvatarInput'),
           acAvatarRemove = document.getElementById('acAvatarRemove'), acAvatarMsg = document.getElementById('acAvatarMsg');
-      function acAvatarFlash(text) {
+      function acAvatarFlash(text, ok) {
         if (!acAvatarMsg) return;
-        acAvatarMsg.className = 'auth-msg show';
+        acAvatarMsg.className = 'auth-msg show' + (ok ? ' ok' : '');
         acAvatarMsg.textContent = text;
       }
       if (acAvatarBtn && acAvatarInput) {
@@ -4133,7 +4133,7 @@
             setBtnLoading(acAvatarBtn, false);
             if (res && res.error) { acAvatarFlash(res.error.message || 'Could not save.'); return; }
             window.coldAuth.applyProfile();
-            acAvatarFlash('Saved.');
+            acAvatarFlash('Saved.', true);
           }).catch(function (err) {
             setBtnLoading(acAvatarBtn, false);
             acAvatarFlash(err.message || 'Could not upload that image.');
@@ -4149,7 +4149,7 @@
           setBtnLoading(acAvatarRemove, false);
           if (res.error) { acAvatarFlash(res.error.message || 'Could not save.'); return; }
           window.coldAuth.applyProfile();
-          acAvatarFlash('Removed.');
+          acAvatarFlash('Removed.', true);
         });
       });
 

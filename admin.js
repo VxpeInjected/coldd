@@ -297,6 +297,7 @@
       if (res.error) { console.error('[admin] failed to load users:', res.error.message); return; }
       USERS = (res.data || []).map(mapProfileRow);
       if (curPanel === 'sitemgmt') renderUsers();
+      try { populateTesterOptions(); } catch (e) {}
     });
   }
 
@@ -809,9 +810,6 @@
   var AUDIT_PERSIST_ERROR = null;
 
   function logAudit(action) {
-    // A logged action is real work - keep Developer Mode's site-open clock
-    // fresh. (No-op server-side unless dev mode is on.)
-    try { if (typeof devHeartbeat === 'function') devHeartbeat(); } catch (e) {}
     var entry = { ts: new Date().toISOString(), actor: currentRole().name, action: action };
     AUDIT.unshift(entry);
     if (AUDIT.length > 300) AUDIT.length = 300;
@@ -5441,24 +5439,15 @@
     var maintFields = $('admSiteMaintFields');
     if (maintFields) maintFields.hidden = mode !== 'maintenance';
   }
-  var devMode = false;
-  function applyDevModeUI(status) {
-    var on = !!(status && status.dev_mode);
-    devMode = on;
-    var badge = $('admDevModeBadge');
-    if (badge) { badge.textContent = on ? 'On' : 'Off'; badge.className = 'dt-badge ' + (on ? 'ok' : ''); }
-    var btn = $('admDevModeToggle');
-    if (btn) { btn.textContent = on ? 'Turn off Developer Mode' : 'Turn on Developer Mode'; btn.disabled = false; }
-    var st = $('admDevModeStatus');
-    if (st) {
-      if (on && status && status.dev_mode_active_at) {
-        var idleMin = Math.round((Date.now() - new Date(status.dev_mode_active_at).getTime()) / 60000);
-        var leftMin = Math.max(0, 55 - idleMin);
-        st.textContent = status.mode === 'open'
-          ? 'Site is open. Returns to maintenance in ~' + leftMin + ' min without more admin activity or a code push.'
-          : 'Site is in maintenance. It reopens on your next action here (or the next push to main).';
-      } else { st.textContent = ''; }
-    }
+  var testerAccessDropdown = makeDropdown($('admSiteTesterDD'), {
+    valueInput: $('admSiteMaintAllowIds'), placeholder: 'Select testers', searchable: true, multi: true
+  });
+  function populateTesterOptions() {
+    testerAccessDropdown.setOptions(
+      USERS.map(function (u) { return { value: u.id, label: u.name + (u.email ? ' · ' + u.email : '') }; })
+        .sort(function (a, b) { return a.label.localeCompare(b.label); }),
+      testerAccessDropdown.getValue()
+    );
   }
   function refreshSiteStatus() {
     if (!window.coldSupabase) return Promise.resolve();
@@ -5466,54 +5455,16 @@
       var data = res && res.data;
       siteMode = (data && data.mode) || 'open';
       applySiteModeUI(siteMode);
-      applyDevModeUI(data);
       if (data) {
         var msgEl = $('admSiteMaintMsg'); if (msgEl) msgEl.value = data.maintenance_message || '';
         var endsEl = $('admSiteMaintEnds');
         if (endsEl) endsEl.value = data.maintenance_ends_at ? toDatetimeLocalValue(new Date(data.maintenance_ends_at)) : '';
-        var allowEl = $('admSiteMaintAllow');
         var ids = Array.isArray(data.maintenance_allow_user_ids) ? data.maintenance_allow_user_ids : [];
-        if (allowEl && !ids.length) { allowEl.value = ''; }
-        else if (allowEl) {
-          Promise.all([
-            window.coldSupabase.from('profiles').select('id, username').in('id', ids),
-            window.coldSupabase.from('roblox_accounts').select('user_id, roblox_username').in('user_id', ids)
-          ]).then(function (r) {
-            var byId = {};
-            (r[1] && r[1].data || []).forEach(function (x) { if (x.roblox_username) byId[x.user_id] = x.roblox_username; });
-            (r[0] && r[0].data || []).forEach(function (x) { if (x.username) byId[x.id] = x.username; });
-            allowEl.value = ids.map(function (id) { return byId[id] || id; }).join('\n');
-          }).catch(function () {});
-        }
+        if (USERS.length) populateTesterOptions();
+        testerAccessDropdown.setValue(ids, true);
       }
     });
   }
-  // Developer Mode heartbeat: tells the server an admin is actively
-  // working so the site stays open (and flips maintenance->open if it
-  // was closed). Fired on load, on a timer while the panel is open, and
-  // opportunistically whenever a real action is logged.
-  var _lastHeartbeat = 0;
-  function devHeartbeat(force) {
-    if (!window.coldSupabase) return;
-    var now = Date.now();
-    if (!force && now - _lastHeartbeat < 60000) return; // at most once a minute
-    _lastHeartbeat = now;
-    invokeAdminFn('admin-dev-mode', { action: 'heartbeat' }, '')
-      .then(function (d) { if (d && d.status) { siteMode = d.status.mode; applySiteModeUI(siteMode); applyDevModeUI(d.status); } })
-      .catch(function () {});
-  }
-  var admDevModeToggle = $('admDevModeToggle');
-  if (admDevModeToggle) admDevModeToggle.addEventListener('click', function () {
-    if (!can('owner')) { alert('Only the owner can change Developer Mode.'); return; }
-    admDevModeToggle.disabled = true;
-    invokeAdminFn('admin-dev-mode', { action: devMode ? 'disable' : 'enable' }, 'Could not update Developer Mode.')
-      .then(function (d) {
-        logAudit((devMode ? 'Disabled' : 'Enabled') + ' Developer Mode');
-        if (d && d.status) { siteMode = d.status.mode; applySiteModeUI(siteMode); applyDevModeUI(d.status); }
-        return refreshSiteStatus();
-      })
-      .catch(function (err) { admDevModeToggle.disabled = false; var m = $('admSiteMsg'); if (m) m.textContent = err.message; });
-  });
   document.querySelectorAll('.adm-site-mode-btn').forEach(function (b) {
     b.addEventListener('click', function () {
       siteMode = b.getAttribute('data-mode');
@@ -5523,19 +5474,18 @@
   var admSiteSaveBtn = $('admSiteSaveBtn');
   if (admSiteSaveBtn) admSiteSaveBtn.addEventListener('click', function () {
     if (!can('owner')) { alert('Only the owner can change site access.'); return; }
-    var msg = $('admSiteMaintMsg'), ends = $('admSiteMaintEnds'), allow = $('admSiteMaintAllow');
+    var msg = $('admSiteMaintMsg'), ends = $('admSiteMaintEnds');
+    var testerIds = testerAccessDropdown.getValue();
     var payload = {
       mode: siteMode,
       message: msg ? msg.value.trim() : '',
       endsAt: ends && ends.value ? new Date(ends.value).toISOString() : null,
-      allowUsernames: allow ? allow.value.split('\n').map(function (s) { return s.trim(); }).filter(Boolean) : []
+      allowUserIds: Array.isArray(testerIds) ? testerIds : []
     };
     admSiteSaveBtn.disabled = true;
-    invokeAdminFn('admin-set-site-status', payload, 'Could not update site status.').then(function (d) {
+    invokeAdminFn('admin-set-site-status', payload, 'Could not update site status.').then(function () {
       logAudit('Set site access to ' + siteMode);
-      var m = $('admSiteMsg');
-      if (m && d && d.unresolved && d.unresolved.length) m.textContent = 'Saved. Unknown username(s), skipped: ' + d.unresolved.join(', ');
-      else if (m) m.textContent = 'Saved.';
+      var m = $('admSiteMsg'); if (m) m.textContent = 'Saved.';
       return refreshSiteStatus();
     }).catch(function (err) {
       var m = $('admSiteMsg'); if (m) m.textContent = err.message || 'Could not save.';
@@ -6401,10 +6351,6 @@
   // render call already no-ops unless its panel is showing).
   setInterval(refreshTraffic, 5 * 60 * 1000);
   setInterval(refreshClientEvents, 5 * 60 * 1000);
-  // Developer Mode heartbeat - keeps the site open while this dashboard is
-  // open, and every logged action refreshes it too (see logAudit).
-  devHeartbeat(true);
-  setInterval(function () { devHeartbeat(true); }, 5 * 60 * 1000);
   // AdBlox stats used to only load once on boot, or on the manual Refresh
   // button - same polling pattern as refreshLiveSessions above (an
   // unconditional interval; the function itself already only re-renders

@@ -2881,6 +2881,84 @@
     });
   });
 
+  /* ---- Broadcast notification (in-app bell, everyone at once) ---- */
+  (function () {
+    var form = $('admBroadcastForm');
+    if (!form) return;
+    var audienceSw = $('admBroadcastAudience'), kindSw = $('admBroadcastKind');
+    var kindHint = $('admBroadcastKindHint'), msg = $('admBroadcastMsg');
+    var sendBtn = $('admBroadcastSendBtn');
+    var audience = 'all', kind = 'general';
+    function wireSwitch(el, attr, set) {
+      if (!el) return;
+      el.addEventListener('click', function (e) {
+        var b = e.target.closest('.bt-opt'); if (!b) return;
+        el.querySelectorAll('.bt-opt').forEach(function (o) { var on = o === b; o.classList.toggle('active', on); o.setAttribute('aria-selected', on ? 'true' : 'false'); });
+        set(b.getAttribute(attr));
+      });
+    }
+    wireSwitch(audienceSw, 'data-audience', function (v) { audience = v; });
+    wireSwitch(kindSw, 'data-kind', function (v) {
+      kind = v;
+      if (kindHint) kindHint.textContent = v === 'sale'
+        ? 'Goes only to accounts that keep "Site-wide sale alerts" on.'
+        : 'Goes to every account in the audience.';
+    });
+
+    var ov = $('admBroadcastConfirmOverlay');
+    var codeEl = $('admBroadcastConfirmCode'), inp = $('admBroadcastConfirmInput'),
+        goBtn = $('admBroadcastConfirmGo'), cancelBtn = $('admBroadcastConfirmCancel'),
+        cmsg = $('admBroadcastConfirmMsg'), summaryEl = $('admBroadcastConfirmSummary'),
+        warnEl = $('admBroadcastConfirmWarn');
+    var code = '', pendingPayload = null;
+    if (inp) { inp.addEventListener('paste', function (e) { e.preventDefault(); }); inp.addEventListener('input', function () { goBtn.disabled = inp.value.trim().toLowerCase() !== code; }); }
+    function closeConfirm() { if (ov) ov.hidden = true; pendingPayload = null; }
+    if (cancelBtn) cancelBtn.addEventListener('click', closeConfirm);
+    if (ov) ov.addEventListener('click', function (e) { if (e.target === ov) closeConfirm(); });
+    if (goBtn) goBtn.addEventListener('click', function () {
+      if (goBtn.disabled || !pendingPayload) return;
+      goBtn.disabled = true; if (cmsg) { cmsg.textContent = 'Sending…'; cmsg.style.color = ''; }
+      var payload = pendingPayload;
+      invokeAdminFn('admin-broadcast-notification', Object.assign({ action: 'send' }, payload), 'Could not send broadcast.').then(function (d) {
+        if (msg) msg.textContent = 'Sent to ' + (d.sent || 0).toLocaleString('en-US') + ' account(s).';
+        logAudit('Broadcast notification "' + payload.title + '" to ' + (d.sent || 0) + ' accounts');
+        form.reset(); closeConfirm();
+      }).catch(function (err) {
+        if (cmsg) { cmsg.textContent = err.message || 'Failed.'; cmsg.style.color = 'var(--accent)'; }
+        goBtn.disabled = false;
+      });
+    });
+
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      if (!can('admin')) { if (msg) msg.textContent = 'Admin access required.'; return; }
+      var title = $('admBroadcastTitle').value.trim();
+      var body = $('admBroadcastBody').value.trim();
+      var url = $('admBroadcastUrl').value.trim();
+      if (msg) msg.textContent = '';
+      if (!title) { if (msg) msg.textContent = 'Enter a title.'; return; }
+      sendBtn.disabled = true;
+      invokeAdminFn('admin-broadcast-notification', { action: 'count', audience: audience }, 'Could not check the audience.').then(function (d) {
+        sendBtn.disabled = false;
+        var count = d.count || 0;
+        if (!count) { if (msg) msg.textContent = 'No accounts in that audience.'; return; }
+        pendingPayload = { audience: audience, kind: kind, title: title, body: body || null, url: url || null };
+        code = genCampaignCode();
+        if (codeEl) codeEl.textContent = code;
+        if (inp) inp.value = '';
+        if (goBtn) goBtn.disabled = true;
+        if (cmsg) { cmsg.textContent = ''; cmsg.style.color = ''; }
+        if (summaryEl) summaryEl.textContent = '"' + title + '" → ' + count.toLocaleString('en-US') + (audience === 'customers' ? ' customer' : ' account') + (count === 1 ? '' : 's') + (kind === 'sale' ? ' (minus opt-outs)' : '') + '.';
+        if (warnEl) { warnEl.hidden = false; warnEl.textContent = 'Every one of them sees this in their notification bell. There is no undo.'; }
+        if (ov) ov.hidden = false;
+        setTimeout(function () { if (inp) inp.focus(); }, 30);
+      }).catch(function (err) {
+        sendBtn.disabled = false;
+        if (msg) msg.textContent = err.message || 'Could not check the audience.';
+      });
+    });
+  })();
+
   var emailListSearch = $('admEmailListSearch');
   if (emailListSearch) emailListSearch.addEventListener('input', renderEmailList);
   var emailListCopyBtn = $('admEmailListCopyBtn');

@@ -249,6 +249,33 @@ Deno.serve(async (req: Request) => {
           kind: "Fix",
           version: latest?.version,
         });
+        // Notify everyone who owns this product that a new version landed,
+        // unless they've turned product-update notifications off.
+        try {
+          const { data: ownerItems } = await admin
+            .from("order_items")
+            .select("orders!inner(user_id, status)")
+            .eq("product_slug", existingProduct.slug)
+            .eq("orders.status", "paid");
+          const ownerIds = [...new Set(
+            (ownerItems ?? [])
+              .map((r: { orders?: { user_id?: string } }) => r.orders?.user_id)
+              .filter((u): u is string => !!u),
+          )];
+          if (ownerIds.length) {
+            const { data: profs } = await admin.from("profiles").select("id, notification_prefs").in("id", ownerIds);
+            const prefById = new Map((profs ?? []).map((p: { id: string; notification_prefs: Record<string, unknown> | null }) => [p.id, p.notification_prefs || {}]));
+            const changelog = String(latest?.changelog || "").trim();
+            const notifBody = (latest?.version ? `${latest.version} — ` : "") + (changelog ? changelog.slice(0, 160) : "A new version is available in your Licenses.");
+            for (const uid of ownerIds) {
+              const prefs = prefById.get(uid) as Record<string, unknown> | undefined;
+              if (prefs && prefs.inAppProductUpdates === false) continue;
+              await notifyUser(admin, uid, `${title} was updated`, notifBody, `/product?id=${existingProduct.slug}`);
+            }
+          }
+        } catch (notifyErr) {
+          console.error("[admin-upsert-product] owner update notify failed:", notifyErr);
+        }
       }
     }
 

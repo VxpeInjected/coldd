@@ -3526,6 +3526,7 @@ a.adm-sub[href] { color: var(--fg-1); cursor: pointer; text-decoration: underlin
 .adm-edit-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 .adm-field { display: flex; flex-direction: column; gap: 7px; font-size: 13px; color: var(--fg-2); }
 .adm-field-wide { grid-column: 1 / -1; }
+.adm-field-label { display: block; font-size: 13px; color: var(--fg-2); }
 .adm-textarea { resize: vertical; font-family: inherit; }
 .adm-field-check { display: flex; align-items: center; gap: 9px; font-size: 13px; color: var(--fg-1); margin-top: 16px; cursor: pointer; }
 .adm-file-row { display: flex; align-items: center; gap: 12px; margin-top: 6px; flex-wrap: wrap; }

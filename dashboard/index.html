@@ -32,7 +32,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
 
-  <link rel="stylesheet" href="/styles.css?v=20260831j" />
+  <link rel="stylesheet" href="/styles.css?v=20260831k" />
 </head>
 <body class="dash-body">
   <div class="backdrop"></div>
@@ -357,6 +357,10 @@
             <div class="ntf-row"><div class="ntf-text"><div class="ntf-label">Product updates</div><div class="ntf-sub">New versions of things you own</div></div><label class="switch"><input type="checkbox" id="ntfProductUpdates" checked /><span class="track"></span></label></div>
             <div class="ntf-row"><div class="ntf-text"><div class="ntf-label">Promotions &amp; sales</div><div class="ntf-sub">Occasional deals and drops</div></div><label class="switch"><input type="checkbox" id="ntfPromotions" checked /><span class="track"></span></label></div>
           </div>
+          <div class="dash-card glass"><div class="dash-card-head"><h2>In-app (the bell)</h2></div>
+            <div class="ntf-row"><div class="ntf-text"><div class="ntf-label">Site-wide sale alerts</div><div class="ntf-sub">A notification when a store-wide sale goes live</div></div><label class="switch"><input type="checkbox" id="ntfInAppSales" checked /><span class="track"></span></label></div>
+            <div class="ntf-row"><div class="ntf-text"><div class="ntf-label">Product updates</div><div class="ntf-sub">When something you own gets a new version</div></div><label class="switch"><input type="checkbox" id="ntfInAppProductUpdates" checked /><span class="track"></span></label></div>
+          </div>
           <div class="dash-card glass"><div class="dash-card-head"><h2>Discord</h2></div>
             <div class="ntf-row"><div class="ntf-text"><div class="ntf-label">Sale DMs</div><div class="ntf-sub">Get pinged when a sale starts</div></div><label class="switch"><input type="checkbox" id="ntfSaleDms" checked /><span class="track"></span></label></div>
             <div class="ntf-row"><div class="ntf-text"><div class="ntf-label">Role sync</div><div class="ntf-sub">Keep your buyer roles up to date</div></div><label class="switch"><input type="checkbox" id="ntfRoleSync" checked /><span class="track"></span></label></div>
@@ -604,7 +608,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.2/dist/umd/supabase.min.js" integrity="sha384-B2duOBIryCXbX4eDE4BdJwtNkQMRQde3o6IsjfPW28E6aH1CYE96hHeZRG3zY56O" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script src="/supabase-init.js?v=20260830b"></script>
   <script src="/site-gate.js?v=20260831a"></script>
-  <script src="/catalog.js?v=20260828d" data-then="/app.js?v=20260831j"></script>
+  <script src="/catalog.js?v=20260828d" data-then="/app.js?v=20260831k"></script>
   <script>
     // Cart badge/total sync from localStorage, ahead of app.js. The fab
     // markup above ships hardcoded at "0"/"$0", and the cart module that

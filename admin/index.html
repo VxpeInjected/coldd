@@ -16,7 +16,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
 
-  <link rel="stylesheet" href="/styles.css?v=20260831j" />
+  <link rel="stylesheet" href="/styles.css?v=20260831k" />
 </head>
 <body class="adm-body">
   <div class="backdrop"></div>
@@ -389,10 +389,57 @@
             </div>
 
             <div class="dash-card glass">
+              <div class="dash-card-head"><div><h2>Broadcast notification</h2><span class="adm-sub">Sends an in-app "bell" notification to everyone at once. Not email - it shows next time they load the site.</span></div></div>
+              <form class="adm-form" id="admBroadcastForm" style="flex-direction:column;align-items:stretch;gap:10px;">
+                <div style="display:flex;gap:14px;flex-wrap:wrap;">
+                  <div>
+                    <span class="adm-field-label">Audience</span>
+                    <div class="bt-switch" id="admBroadcastAudience" role="tablist" aria-label="Audience" style="margin:4px 0 0;">
+                      <button class="bt-opt active" type="button" data-audience="all" role="tab" aria-selected="true">All accounts</button>
+                      <button class="bt-opt" type="button" data-audience="customers" role="tab" aria-selected="false">Customers only</button>
+                    </div>
+                  </div>
+                  <div>
+                    <span class="adm-field-label">Type</span>
+                    <div class="bt-switch" id="admBroadcastKind" role="tablist" aria-label="Type" style="margin:4px 0 0;">
+                      <button class="bt-opt active" type="button" data-kind="general" role="tab" aria-selected="true">General</button>
+                      <button class="bt-opt" type="button" data-kind="sale" role="tab" aria-selected="false">Sale alert</button>
+                    </div>
+                  </div>
+                </div>
+                <p class="adm-note" id="admBroadcastKindHint" style="margin:0;">Goes to every account in the audience.</p>
+                <label class="adm-field"><span>Title</span><input type="text" id="admBroadcastTitle" class="adm-input" placeholder="Store-wide sale is live" maxlength="120" required /></label>
+                <label class="adm-field"><span>Message (optional)</span><textarea id="admBroadcastBody" class="adm-input adm-textarea" rows="3" maxlength="400" placeholder="Up to 40% off everything until Sunday."></textarea></label>
+                <label class="adm-field"><span>Link (optional)</span><input type="text" id="admBroadcastUrl" class="adm-input" placeholder="/assets?sort=deals" /></label>
+                <div style="display:flex;gap:8px;align-items:center;">
+                  <span style="flex:1;"></span>
+                  <button class="btn btn-primary adm-btn-sm" id="admBroadcastSendBtn" type="submit"><span class="btn-label">Send broadcast</span><span class="btn-spinner" hidden></span></button>
+                </div>
+                <div class="adm-edit-msg" id="admBroadcastMsg"></div>
+              </form>
+            </div>
+
+            <div class="dash-card glass">
               <div class="dash-card-head"><h2>Lifecycle automations</h2><span class="adm-sub">Runs every 30 minutes. Off by default - nothing sends until you turn each one on.</span></div>
               <div id="admAutomationsBody"></div>
             </div>
           </section>
+
+          <div class="pay-overlay" id="admBroadcastConfirmOverlay" hidden>
+            <div class="pay-modal glass" style="max-width:440px;text-align:left;">
+              <h3 class="pay-title">Send this broadcast?</h3>
+              <p class="pay-sub" id="admBroadcastConfirmSummary"></p>
+              <p class="adm-note" id="admBroadcastConfirmWarn" style="margin:0 0 14px;"></p>
+              <p class="adm-note" style="margin:0 0 6px;">Type this code to confirm:</p>
+              <p class="dt-mono" id="admBroadcastConfirmCode" style="font-size:16px;letter-spacing:2px;margin:0 0 8px;" oncontextmenu="return false"></p>
+              <input type="text" id="admBroadcastConfirmInput" class="adm-input" autocomplete="off" placeholder="Type the code" style="margin-bottom:12px;" />
+              <div style="display:flex;gap:8px;">
+                <button class="btn btn-primary adm-btn-sm" id="admBroadcastConfirmGo" type="button" disabled><span class="btn-label">Send now</span><span class="btn-spinner" hidden></span></button>
+                <button class="btn btn-ghost adm-btn-sm" id="admBroadcastConfirmCancel" type="button">Cancel</button>
+              </div>
+              <div class="adm-edit-msg" id="admBroadcastConfirmMsg"></div>
+            </div>
+          </div>
 
           <section class="dash-panel" id="adm-panel-products" hidden>
             <div class="dash-head"><h1>Product management</h1><p>Edit pricing and visibility, or add admin-only listings.</p></div>
@@ -1418,6 +1465,6 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.2/dist/umd/supabase.min.js" integrity="sha384-B2duOBIryCXbX4eDE4BdJwtNkQMRQde3o6IsjfPW28E6aH1CYE96hHeZRG3zY56O" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script src="/supabase-init.js?v=20260830b"></script>
   <script src="/site-gate.js?v=20260831a"></script>
-  <script src="/catalog.js?v=20260828d" data-then="/app.js?v=20260831j,/blog.js?v=20260828a,/reviews.js?v=20260729a,/admin.js?v=20260831j"></script>
+  <script src="/catalog.js?v=20260828d" data-then="/app.js?v=20260831k,/blog.js?v=20260828a,/reviews.js?v=20260729a,/admin.js?v=20260831k"></script>
 </body>
 </html>

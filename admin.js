@@ -4234,20 +4234,20 @@
       return okStatus && okQ;
     }).sort(function (a, b) { return new Date(b.date) - new Date(a.date); }).slice(0, 200);
     $('admOrdersBody').innerHTML = rows.map(function (o) {
-      return '<tr data-id="' + esc(o.id) + '">' +
-        '<td>' + fmtDate(new Date(o.date)) + '</td>' +
-        '<td class="dt-mono">' + esc(o.id) + '</td>' +
-        '<td>' + esc(o.title) + (o.licence === 'resell' ? ' <span class="adm-sub">· resell</span>' : '') + '</td>' +
-        '<td>' + esc(o.userName) + '</td>' +
-        '<td>' + o.currency.toUpperCase() + '</td>' +
-        '<td>' + orderAmount(o) + '</td>' +
-        '<td>' + (o.source === 'granted' ? '<span class="dt-badge info">Gifted</span>' : statusBadge(o.status)) +
-        // A real, currently-paying gift order - distinct from the "Gifted"
-        // free-comp badge above, so shown alongside it rather than in place
-        // of it.
-        (o.purchasedByUserId ? ' <span class="dt-badge warn" title="Bought as a gift for a different account">Gift</span>' : '') + '</td>' +
-        '<td class="adm-row-actions">' + orderRowMenuHtml(o) + '</td></tr>';
-    }).join('') || '<tr><td colspan="8" class="adm-empty">No orders match.</td></tr>';
+      var img = o.image ? window.imgUrl(o.image) : '/banner.jpg';
+      // A real, currently-paying gift order - distinct from the "Gifted"
+      // free-comp badge, so shown alongside it rather than in place of it.
+      var giftBadge = o.purchasedByUserId ? ' <span class="dt-badge warn" title="Bought as a gift for a different account">Gift</span>' : '';
+      var statusHtml = o.source === 'granted' ? '<span class="dt-badge info">Gifted</span>' : statusBadge(o.status);
+      return '<div class="dash-row" data-id="' + esc(o.id) + '">' +
+        '<span class="dr-thumb" style="background-image:url(\'' + img + '\')"></span>' +
+        '<div class="dr-main">' +
+          '<div class="dr-title">' + esc(o.title) + (o.licence === 'resell' ? ' <span class="adm-sub">· resell</span>' : '') + '</div>' +
+          '<div class="dr-sub">' + fmtDate(new Date(o.date)) + ' · <span class="dt-mono">' + esc(o.id) + '</span> · ' + esc(o.userName) + ' · ' + o.currency.toUpperCase() + ' · ' + statusHtml + giftBadge + '</div>' +
+        '</div>' +
+        '<span class="p-price" data-fixed>' + orderAmount(o) + '</span>' +
+        '<div class="dr-actions">' + orderRowMenuHtml(o) + '</div></div>';
+    }).join('') || '<p class="dash-empty-note">No orders match.</p>';
   }
   var ordersBody = $('admOrdersBody');
   // Listens on document, not ordersBody: openRowMenu() portals the open

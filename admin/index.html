@@ -675,21 +675,20 @@
 
           <section class="dash-panel" id="adm-panel-orders" hidden>
             <div class="dash-head"><h1>Order management</h1><p>Every order placed on the storefront.</p></div>
-            <div class="adm-toolbar">
-              <input type="text" id="admOrderSearch" class="adm-input" placeholder="Search order #, product, or buyer…" />
-              <div class="adm-dd adm-dd-inline" id="admOrderStatusFilterDD">
-                <button type="button" class="adm-dd-btn" aria-haspopup="listbox" aria-expanded="false">
-                  <span class="adm-dd-val"></span>
-                  <svg class="adm-dd-chev" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
-                </button>
-                <div class="adm-dd-menu" role="listbox" aria-label="Order status" hidden></div>
-              </div>
+            <div class="dash-searchbar"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg><input type="text" id="admOrderSearch" placeholder="Search order #, product, or buyer…" aria-label="Search orders" /></div>
+            <div class="dash-filter-row">
+              <label class="dash-filter-field"><span>Status</span>
+                <div class="adm-dd adm-dd-inline" id="admOrderStatusFilterDD">
+                  <button type="button" class="adm-dd-btn" aria-haspopup="listbox" aria-expanded="false">
+                    <span class="adm-dd-val"></span>
+                    <svg class="adm-dd-chev" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                  </button>
+                  <div class="adm-dd-menu" role="listbox" aria-label="Order status" hidden></div>
+                </div>
+              </label>
             </div>
-            <div class="dash-card glass dash-tablewrap">
-              <table class="dash-table">
-                <thead><tr><th>Date</th><th>Order</th><th>Product</th><th>Buyer</th><th>Currency</th><th>Total</th><th>Status</th><th>Actions</th></tr></thead>
-                <tbody id="admOrdersBody"></tbody>
-              </table>
+            <div class="dash-card glass">
+              <div class="dash-rows" id="admOrdersBody"><p class="dash-empty-note">Loading…</p></div>
             </div>
           </section>
 
@@ -1408,6 +1407,6 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.2/dist/umd/supabase.min.js" integrity="sha384-B2duOBIryCXbX4eDE4BdJwtNkQMRQde3o6IsjfPW28E6aH1CYE96hHeZRG3zY56O" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script src="/supabase-init.js?v=20260830b"></script>
   <script src="/site-gate.js?v=20260831a"></script>
-  <script src="/catalog.js?v=20260828d" data-then="/app.js?v=20260831c,/blog.js?v=20260828a,/reviews.js?v=20260729a,/admin.js?v=20260831c"></script>
+  <script src="/catalog.js?v=20260828d" data-then="/app.js?v=20260831c,/blog.js?v=20260828a,/reviews.js?v=20260729a,/admin.js?v=20260831d"></script>
 </body>
 </html>

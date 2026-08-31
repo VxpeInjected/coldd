@@ -3811,7 +3811,9 @@ a.adm-sub[href] { color: var(--fg-1); cursor: pointer; text-decoration: underlin
    ================================================================ */
 .bt-switch { display: inline-flex; gap: 4px; padding: 4px; margin-bottom: 26px; border-radius: 16px; background: var(--bg-3); border: 1px solid var(--hairline); }
 .bt-opt { font-family: inherit; font-size: 13px; font-weight: 600; color: var(--fg-2); background: none; border: none;
-  padding: 9px 20px; border-radius: 10px; cursor: pointer; transition: background .2s var(--ease), color .2s var(--ease); }
+  padding: 9px 18px; border-radius: 10px; cursor: pointer; transition: background .2s var(--ease), color .2s var(--ease);
+  display: inline-flex; align-items: center; gap: 7px; }
+.bt-opt svg { width: 15px; height: 15px; flex: 0 0 auto; }
 .bt-opt:hover { color: var(--fg); }
 .bt-opt.active { color: #fff; background: rgba(255,255,255,0.11); box-shadow: none; }
 

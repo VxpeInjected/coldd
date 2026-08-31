@@ -3670,7 +3670,11 @@
           // like a normal purchase otherwise - same "received it free"
           // framing/gift-number as an admin comp is correct here too.
           var receivedAsGift = !gifted && !r.sentAsGift && !!o.purchased_by_user_id;
-          var badge = r.sentAsGift ? 'warn' : (gifted || receivedAsGift) ? 'info' : (o.status === 'paid' ? 'ok' : 'warn');
+          // A plain "Paid" pill is noise on a page that's already only
+          // completed orders - only badge the ones that are actually
+          // something other than a normal purchase.
+          var special = r.sentAsGift || gifted || receivedAsGift || o.status !== 'paid';
+          var badge = r.sentAsGift ? 'warn' : (gifted || receivedAsGift) ? 'info' : 'warn';
           var label = r.sentAsGift ? 'Sent as gift' : (gifted || receivedAsGift) ? 'Gifted' : (o.status.charAt(0).toUpperCase() + o.status.slice(1));
           // Support can tell at a glance from the id alone that this was
           // never a real charge to look up in Stripe/PayPal/etc - same
@@ -3683,7 +3687,7 @@
           }
           return '<div class="dash-row"><span class="dr-thumb" style="background-image:url(\'' + img + '\')"></span>' +
             '<div class="dr-main"><div class="dr-title">' + titles + '</div>' +
-            '<div class="dr-sub">' + fmtDate(o.created_at) + ' · ' + idCell + ' · <span class="dt-badge ' + badge + '">' + label + '</span></div></div>' +
+            '<div class="dr-sub">' + fmtDate(o.created_at) + ' · ' + idCell + (special ? ' · <span class="dt-badge ' + badge + '">' + label + '</span>' : '') + '</div></div>' +
             '<span class="p-price" data-fixed>' + orderMoney(o) + '</span>' +
             '<div class="dr-actions">' + actions + '</div></div>';
         }).join('');

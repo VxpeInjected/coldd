@@ -4476,16 +4476,53 @@
   var resellerStatusDropdown = makeDropdown($('admResellerStatusDD'), { valueInput: $('admResellerStatus') });
   resellerStatusDropdown.setOptions([{ value: 'active', label: 'Active' }, { value: 'inactive', label: 'Inactive' }], 'active');
 
+  var admResellerContactType = 'email';
+  function admResellerApplyContact(t) {
+    admResellerContactType = t === 'discord' ? 'discord' : 'email';
+    var sw = $('admResellerContactSwitch'); if (!sw) return;
+    sw.querySelectorAll('.bt-opt').forEach(function (o) {
+      var on = o.getAttribute('data-ctype') === admResellerContactType;
+      o.classList.toggle('active', on); o.setAttribute('aria-selected', on ? 'true' : 'false');
+    });
+    var inp = $('admResellerContact');
+    if (inp) { inp.type = admResellerContactType === 'email' ? 'email' : 'text'; inp.placeholder = admResellerContactType === 'email' ? 'you@example.com' : 'username or invite link'; }
+  }
+  (function () {
+    var sw = $('admResellerContactSwitch');
+    if (sw) sw.addEventListener('click', function (e) { var b = e.target.closest('.bt-opt'); if (b) admResellerApplyContact(b.getAttribute('data-ctype')); });
+    var addBtn = $('admResellerAddLoc');
+    if (addBtn) addBtn.addEventListener('click', function () { admAddResellerLocRow(); });
+  })();
+  function admResellerLocRows() { var w = $('admResellerLocations'); return w ? Array.prototype.slice.call(w.querySelectorAll('.rs-loc-row')) : []; }
+  function admSyncResellerLocRemove() { var rows = admResellerLocRows(); rows.forEach(function (r) { var x = r.querySelector('.rs-loc-x'); if (x) x.disabled = rows.length <= 1; }); }
+  function admAddResellerLocRow(platform, url) {
+    var w = $('admResellerLocations'); if (!w) return;
+    var row = document.createElement('div');
+    row.className = 'rs-loc-row';
+    row.innerHTML =
+      '<input type="text" class="rs-input rs-loc-platform" autocomplete="off" placeholder="Platform (eg: Discord server, BuiltByBit, ClearlyDev)" />' +
+      '<input type="url" class="rs-input rs-loc-url" autocomplete="off" placeholder="Link to their store / profile" />' +
+      '<button type="button" class="rs-loc-x" aria-label="Remove location"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>';
+    if (platform) row.querySelector('.rs-loc-platform').value = platform;
+    if (url) row.querySelector('.rs-loc-url').value = url;
+    row.querySelector('.rs-loc-x').addEventListener('click', function () { if (admResellerLocRows().length <= 1) return; row.remove(); admSyncResellerLocRemove(); });
+    w.appendChild(row); admSyncResellerLocRemove();
+  }
+
   function openResellerEditor(reseller) {
     resellerProductDropdown.setOptions([{ value: '', label: 'None' }].concat(
       allProducts().filter(function (p) { return p.resell; }).map(function (p) { return { value: p.id, label: p.title }; }).sort(function (a, b) { return a.label.localeCompare(b.label); })
     ), (reseller && reseller.productId) || '');
     resellerStatusDropdown.setValue((reseller && reseller.status) || 'active', true);
     $('admResellerId').value = (reseller && reseller.id) || '';
-    $('admResellerEmail').value = (reseller && reseller.email) || '';
     $('admResellerName').value = (reseller && reseller.displayName) || '';
-    $('admResellerWhere').value = (reseller && reseller.sellingWhere) || '';
     $('admResellerNotes').value = (reseller && reseller.sellingNotes) || '';
+    admResellerApplyContact((reseller && reseller.contactType) || 'email');
+    $('admResellerContact').value = (reseller && reseller.contactValue) || '';
+    $('admResellerLocations').innerHTML = '';
+    var locs = (reseller && reseller.sellingLocations || []).filter(function (l) { return l && (l.platform || l.url); });
+    if (locs.length) locs.forEach(function (l) { admAddResellerLocRow(l.platform, l.url); });
+    else admAddResellerLocRow();
     $('admResellerEditHeading').textContent = reseller ? 'Edit reseller' : 'Add reseller';
     $('admResellerMsg').textContent = '';
     showPanel('reseller-edit');
@@ -4510,20 +4547,39 @@
     var label = saveBtn.querySelector('.btn-label'), spinner = saveBtn.querySelector('.btn-spinner');
     saveBtn.disabled = true; if (label) label.hidden = true; if (spinner) spinner.hidden = false;
 
+    var locations = [];
+    var badLoc = false;
+    admResellerLocRows().forEach(function (r) {
+      var pl = r.querySelector('.rs-loc-platform').value.trim();
+      var u = r.querySelector('.rs-loc-url').value.trim();
+      if (!pl && !u) return;
+      if (!pl || !u) badLoc = true; else locations.push({ platform: pl, url: u });
+    });
+    var contactValue = $('admResellerContact').value.trim();
+    if (!contactValue || badLoc || !locations.length) {
+      saveBtn.disabled = false; if (label) label.hidden = false; if (spinner) spinner.hidden = true;
+      if (msgEl) msgEl.textContent = !contactValue ? 'A contact email or Discord is required.'
+        : badLoc ? 'Every location needs both a platform and a link.'
+        : 'Add at least one place they sell, with a link.';
+      return;
+    }
+
     var payload = {
-      email: $('admResellerEmail').value.trim(),
+      contactType: admResellerContactType,
+      contactValue: contactValue,
       displayName: $('admResellerName').value.trim(),
       productId: $('admResellerProductId').value || null,
-      sellingWhere: $('admResellerWhere').value.trim(),
+      sellingLocations: locations,
+      status: $('admResellerStatus').value || 'active',
       sellingNotes: $('admResellerNotes').value.trim()
     };
 
     var req = id
       ? invokeAdminFn('admin-resellers', { action: 'update', id: id, patch: payload }, 'Could not update reseller.')
-      : invokeAdminFn('admin-resellers', { action: 'create', email: payload.email, displayName: payload.displayName, productId: payload.productId, sellingWhere: payload.sellingWhere, sellingNotes: payload.sellingNotes }, 'Could not add reseller.');
+      : invokeAdminFn('admin-resellers', Object.assign({ action: 'create' }, payload), 'Could not add reseller.');
 
     req.then(function () {
-      logAudit((id ? 'Updated' : 'Added') + ' reseller ' + payload.email);
+      logAudit((id ? 'Updated' : 'Added') + ' reseller ' + contactValue);
       return refreshResellers();
     }).then(function () {
       showPanel('resellers');

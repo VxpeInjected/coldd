@@ -12,10 +12,15 @@
   if (!window.coldSupabase) return;
 
   var path = location.pathname.replace(/\/+$/, '') || '/';
-  // Never gate the shared-password unlock page itself, or the admin
-  // panel (which has its own Discord-whitelist gate and needs to stay
-  // reachable so an admin can turn maintenance/locked mode back off).
-  if (path === '/lock' || path === '/lock.html' || path.indexOf('/admin') === 0) return;
+  // Never gate:
+  //  - the shared-password unlock page itself
+  //  - the admin panel (its own Discord-whitelist gate; must stay reachable
+  //    so an admin can turn maintenance back off)
+  //  - the auth pages - otherwise a whitelisted tester who isn't already
+  //    signed in has no way to sign in (the overlay would cover the form),
+  //    so "tester access" is unreachable during maintenance.
+  var AUTH_PATHS = ['/signin', '/signup', '/forgot', '/reset', '/callback', '/roblox-callback', '/lock'];
+  if (AUTH_PATHS.indexOf(path) !== -1 || AUTH_PATHS.indexOf(path.replace(/\.html$/, '')) !== -1 || path.indexOf('/admin') === 0) return;
 
   function fmtCountdown(ms) {
     if (ms <= 0) return 'Back shortly';

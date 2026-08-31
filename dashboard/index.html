@@ -32,7 +32,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
 
-  <link rel="stylesheet" href="/styles.css?v=20260831c" />
+  <link rel="stylesheet" href="/styles.css?v=20260831d" />
 </head>
 <body class="dash-body">
   <div class="backdrop"></div>
@@ -370,7 +370,7 @@
           <div class="dash-card glass">
             <div class="dash-card-head"><h2>Your resell licences</h2></div>
             <p class="auth-hint" style="margin:0 0 12px;">Products you're licensed to resell in your own store.</p>
-            <div id="acSellerLicenses" class="ac-seller-licenses"></div>
+            <div id="acSellerLicenses" class="dash-rows"></div>
           </div>
           <div class="dash-card glass">
             <div class="dash-card-head"><h2>Seller information</h2></div>
@@ -391,7 +391,7 @@
               </div>
               <div class="rs-field">
                 <label for="acSellerNotes">Anything else we should know? <span class="rs-opt">(optional)</span></label>
-                <textarea id="acSellerNotes" placeholder="Your storefront or brand name, whether you also resell other creators' work, roughly how many sales you expect per month, and how coldd products will be presented on your store."></textarea>
+                <textarea id="acSellerNotes" placeholder="Your store name, other names you or your store go by or anything else you think we should know"></textarea>
               </div>
               <p class="rs-msg" id="acSellerMsg"></p>
               <button class="btn btn-primary rs-submit" type="submit" id="acSellerSave" style="width:auto;"><span class="btn-label">Save seller profile</span></button>
@@ -604,7 +604,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.2/dist/umd/supabase.min.js" integrity="sha384-B2duOBIryCXbX4eDE4BdJwtNkQMRQde3o6IsjfPW28E6aH1CYE96hHeZRG3zY56O" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script src="/supabase-init.js?v=20260830b"></script>
   <script src="/site-gate.js?v=20260831a"></script>
-  <script src="/catalog.js?v=20260828d" data-then="/app.js?v=20260831c"></script>
+  <script src="/catalog.js?v=20260828d" data-then="/app.js?v=20260831d"></script>
   <script>
     // Cart badge/total sync from localStorage, ahead of app.js. The fab
     // markup above ships hardcoded at "0"/"$0", and the cart module that

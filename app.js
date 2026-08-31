@@ -3854,6 +3854,13 @@
           renderOverview(orders);
           renderPurchases(orders, sentGiftOrders);
           renderOwnedAndDownloads(orders);
+          // Reveal the Seller profile tab straight away if any paid order
+          // holds a resell licence, rather than waiting on the separate
+          // reseller-profile fetch.
+          var hasResell = orders.some(function (o) {
+            return (o.order_items || []).some(function (i) { return i.licence === 'resell'; });
+          });
+          if (hasResell && typeof window.__revealSellerTab === 'function') window.__revealSellerTab();
         });
       }
 
@@ -4290,6 +4297,7 @@
         var licBox = document.getElementById('acSellerLicenses');
         if (!tab || !form) return;
         var contactInput = document.getElementById('acSellerContact');
+        var contactLabel = form.querySelector('.rs-field label');
         var locWrap = document.getElementById('acSellerLocations');
         var notesEl = document.getElementById('acSellerNotes');
         var msgEl = document.getElementById('acSellerMsg');
@@ -4297,6 +4305,8 @@
         var switchEl = document.getElementById('acSellerContactSwitch');
         var contactType = 'email';
         var loaded = false;
+
+        window.__revealSellerTab = function () { tab.hidden = false; };
 
         function setMsg(t, ok) { if (!msgEl) return; msgEl.textContent = t || ''; msgEl.classList.toggle('ok', !!ok); }
         function applyContactType(t) {
@@ -4309,8 +4319,28 @@
           contactInput.placeholder = contactType === 'email' ? 'you@example.com' : 'yourusername or a Discord invite link';
         }
         switchEl.addEventListener('click', function (e) {
-          var b = e.target.closest('.bt-opt'); if (b) applyContactType(b.getAttribute('data-ctype'));
+          var b = e.target.closest('.bt-opt'); if (!b) return;
+          applyContactType(b.getAttribute('data-ctype'));
+          contactInput.value = '';
+          if (contactLabel) contactLabel.textContent = 'Contact method';
+          var h = form.querySelector('.rs-prefill-note'); if (h) h.remove();
         });
+
+        // Pre-fill from a linked email / Discord identity when the seller
+        // hasn't saved anything yet.
+        function prefillContact(linked) {
+          var lt = linked.email ? 'email' : (linked.discord ? 'discord' : null);
+          if (!lt) { applyContactType('email'); return; }
+          applyContactType(lt);
+          contactInput.value = linked.email || linked.discord;
+          if (contactLabel) contactLabel.textContent = 'Is this contact method right?';
+          if (!form.querySelector('.rs-prefill-note')) {
+            var h = document.createElement('p');
+            h.className = 'rs-prefill-note';
+            h.textContent = 'Pre-filled from your linked ' + (lt === 'email' ? 'email' : 'Discord') + '. Confirm it by saving, or edit it if you sell under a different contact.';
+            contactInput.parentNode.appendChild(h);
+          }
+        }
 
         function locRows() { return Array.prototype.slice.call(locWrap.querySelectorAll('.rs-loc-row')); }
         function syncRemove() { var rows = locRows(); rows.forEach(function (r) { var x = r.querySelector('.rs-loc-x'); if (x) x.disabled = rows.length <= 1; }); }
@@ -4318,8 +4348,8 @@
           var row = document.createElement('div');
           row.className = 'rs-loc-row';
           row.innerHTML =
-            '<input type="text" class="rs-input rs-loc-platform" autocomplete="off" placeholder="Platform (e.g. Discord server, BuiltByBit, your own site)" />' +
-            '<input type="url" class="rs-input rs-loc-url" autocomplete="off" placeholder="Link to your store / listing" />' +
+            '<input type="text" class="rs-input rs-loc-platform" autocomplete="off" placeholder="Platform (eg: Discord server, BuiltByBit, ClearlyDev)" />' +
+            '<input type="url" class="rs-input rs-loc-url" autocomplete="off" placeholder="Link to your store / profile" />' +
             '<button type="button" class="rs-loc-x" aria-label="Remove location"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>';
           if (platform) row.querySelector('.rs-loc-platform').value = platform;
           if (url) row.querySelector('.rs-loc-url').value = url;
@@ -4333,10 +4363,16 @@
 
         function renderLicenses(list) {
           if (!licBox) return;
-          if (!list || !list.length) { licBox.innerHTML = '<p class="auth-hint">No resell licences found.</p>'; return; }
+          if (!list || !list.length) { licBox.innerHTML = '<p class="dash-empty-note">No resell licences found.</p>'; return; }
           licBox.innerHTML = list.map(function (l) {
-            return '<div class="ac-seller-lic"><span class="asl-name">' + esc(l.title) + '</span>' +
-              (l.createdAt ? '<span class="asl-date">Since ' + new Date(l.createdAt).toLocaleDateString() + '</span>' : '') + '</div>';
+            var cat = (window.__CATALOG || []).filter(function (c) { return c.id === l.slug; })[0];
+            var img = (cat && cat.image) ? cat.image : '/banner.jpg';
+            var since = l.createdAt ? (typeof fmtDate === 'function' ? fmtDate(l.createdAt) : new Date(l.createdAt).toLocaleDateString()) : '';
+            return '<div class="dash-row">' +
+              '<span class="dr-thumb" style="background-image:url(\'' + img + '\')"></span>' +
+              '<div class="dr-main"><div class="dr-title">' + esc(l.title) + '</div>' +
+              '<div class="dr-sub">Resell licence' + (since ? ' · Since ' + since : '') + '</div></div>' +
+              '<div class="dr-actions"><a class="btn btn-ghost dr-btn" href="/product?id=' + encodeURIComponent(l.slug) + '">' + (window.msym ? window.msym('visibility') : '') + 'View</a></div></div>';
           }).join('');
         }
 
@@ -4350,8 +4386,8 @@
             if (loaded) return;
             loaded = true;
             var p = d.profile;
-            applyContactType(p && p.contactType);
             if (p) {
+              applyContactType(p.contactType);
               contactInput.value = p.contactValue || '';
               notesEl.value = p.notes || '';
               locWrap.innerHTML = '';
@@ -4359,6 +4395,7 @@
               if (locs.length) locs.forEach(function (l) { addLocRow(l.platform, l.url); });
               else addLocRow();
             } else {
+              prefillContact((d.account) || {});
               addLocRow();
             }
           }).catch(function () { tab.hidden = true; });
@@ -6487,7 +6524,38 @@
           rsContact.type = rsContactType === 'email' ? 'email' : 'text';
           rsContact.placeholder = rsContactType === 'email' ? 'you@example.com' : 'yourusername or a Discord invite link';
           rsContact.value = '';
+          var lbl0 = resellerForm.querySelector('.rs-field label'); if (lbl0) lbl0.textContent = 'Contact method';
+          var h0 = resellerForm.querySelector('.rs-prefill-note'); if (h0) h0.remove();
         });
+
+        // Pre-fill contact from a linked email / Discord identity, so a
+        // signed-in reseller can just confirm it.
+        if (window.coldSupabase && window.coldSupabase.auth) {
+          window.coldSupabase.auth.getUser().then(function (ur) {
+            var u = ur && ur.data && ur.data.user; if (!u || rsContact.value) return;
+            var raw = String(u.email || '');
+            var email = (raw && !/@.*\.coldd\.internal$/i.test(raw)) ? raw : null;
+            var di = (u.identities || []).filter(function (i) { return i.provider === 'discord'; })[0];
+            var dd = (di && di.identity_data) || {}; var cc = dd.custom_claims || {};
+            var discord = cc.global_name || dd.full_name || dd.name || dd.user_name || null;
+            var lt = email ? 'email' : (discord ? 'discord' : null); if (!lt) return;
+            rsContactType = lt;
+            rsSwitch.querySelectorAll('.bt-opt').forEach(function (o) {
+              var on = o.getAttribute('data-ctype') === lt;
+              o.classList.toggle('active', on); o.setAttribute('aria-selected', on ? 'true' : 'false');
+            });
+            rsContact.type = lt === 'email' ? 'email' : 'text';
+            rsContact.value = email || discord;
+            var lbl = resellerForm.querySelector('.rs-field label');
+            if (lbl) lbl.textContent = 'Is this contact method right?';
+            if (!resellerForm.querySelector('.rs-prefill-note')) {
+              var h = document.createElement('p');
+              h.className = 'rs-prefill-note';
+              h.textContent = 'Pre-filled from your linked ' + (lt === 'email' ? 'email' : 'Discord') + '. Confirm it by submitting, or edit it if you sell under a different contact.';
+              rsContact.parentNode.appendChild(h);
+            }
+          }).catch(function () {});
+        }
 
         function resellerLocRows() { return rsLocWrap ? Array.prototype.slice.call(rsLocWrap.querySelectorAll('.rs-loc-row')) : []; }
         function syncLocRemoveButtons() {
@@ -6502,8 +6570,8 @@
           var row = document.createElement('div');
           row.className = 'rs-loc-row';
           row.innerHTML =
-            '<input type="text" class="rs-input rs-loc-platform" autocomplete="off" placeholder="Platform (e.g. Discord server, BuiltByBit, your own site)" />' +
-            '<input type="url" class="rs-input rs-loc-url" autocomplete="off" placeholder="Link to your store / listing" />' +
+            '<input type="text" class="rs-input rs-loc-platform" autocomplete="off" placeholder="Platform (eg: Discord server, BuiltByBit, ClearlyDev)" />' +
+            '<input type="url" class="rs-input rs-loc-url" autocomplete="off" placeholder="Link to your store / profile" />' +
             '<button type="button" class="rs-loc-x" aria-label="Remove location"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>';
           row.querySelector('.rs-loc-x').addEventListener('click', function () {
             if (resellerLocRows().length <= 1) return;

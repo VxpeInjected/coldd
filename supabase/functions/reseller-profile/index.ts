@@ -15,6 +15,7 @@
 // Body:
 //   { action: "get" }
 //     -> { ok, profile: { contactType, contactValue, sellingLocations, notes } | null,
+//          account: { email: string|null, discord: string|null },
 //          licenses: [{ slug, title, orderId, createdAt }] }
 //   { action: "update", contactType, contactValue, sellingLocations, notes? }
 //     -> { ok }
@@ -87,7 +88,19 @@ Deno.serve(async (req: Request) => {
       const licenses = items
         .map((it) => ({ slug: it.product_slug, title: it.title, orderId: it.orders?.id, createdAt: it.orders?.created_at }))
         .sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)));
-      return json({ ok: true, profile, licenses });
+
+      // Linked contact details, so the form can pre-fill instead of asking
+      // from scratch. A synthetic Roblox @*.coldd.internal address is not a
+      // real contact - treat it as absent.
+      const rawEmail = String(userData.user.email || "");
+      const email = rawEmail && !/@roblox\.coldd\.internal$/i.test(rawEmail) && !/@.*\.coldd\.internal$/i.test(rawEmail) ? rawEmail : null;
+      const identities = (userData.user.identities || []) as Array<{ provider?: string; identity_data?: Record<string, unknown> }>;
+      const di = identities.find((i) => i.provider === "discord");
+      const dd = (di?.identity_data || {}) as Record<string, unknown>;
+      const cc = (dd.custom_claims || {}) as Record<string, unknown>;
+      const discord = (cc.global_name as string) || (dd.full_name as string) || (dd.name as string) || (dd.user_name as string) || null;
+
+      return json({ ok: true, profile, account: { email, discord }, licenses });
     }
 
     if (action === "update") {

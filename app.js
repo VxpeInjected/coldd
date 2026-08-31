@@ -4352,7 +4352,7 @@
           var row = document.createElement('div');
           row.className = 'rs-loc-row';
           row.innerHTML =
-            '<input type="text" class="rs-input rs-loc-platform" autocomplete="off" placeholder="Platform (eg: Discord server, BuiltByBit, ClearlyDev)" />' +
+            '<input type="text" class="rs-input rs-loc-platform" autocomplete="off" placeholder="Platform (eg: BuiltByBit, ClearlyDev, Discord)" />' +
             '<input type="url" class="rs-input rs-loc-url" autocomplete="off" placeholder="Link to your store / profile" />' +
             '<button type="button" class="rs-loc-x" aria-label="Remove location"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>';
           if (platform) row.querySelector('.rs-loc-platform').value = platform;
@@ -6605,7 +6605,7 @@
           var row = document.createElement('div');
           row.className = 'rs-loc-row';
           row.innerHTML =
-            '<input type="text" class="rs-input rs-loc-platform" autocomplete="off" placeholder="Platform (eg: Discord server, BuiltByBit, ClearlyDev)" />' +
+            '<input type="text" class="rs-input rs-loc-platform" autocomplete="off" placeholder="Platform (eg: BuiltByBit, ClearlyDev, Discord)" />' +
             '<input type="url" class="rs-input rs-loc-url" autocomplete="off" placeholder="Link to your store / profile" />' +
             '<button type="button" class="rs-loc-x" aria-label="Remove location"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>';
           row.querySelector('.rs-loc-x').addEventListener('click', function () {

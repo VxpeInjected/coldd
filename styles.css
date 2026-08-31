@@ -1844,7 +1844,7 @@ body.no-scroll { overflow: hidden; }
 
 /* Required reseller-onboarding popup (success page). No close affordance -
    the buyer has to give the info before they're allowed to sell. */
-.reseller-modal { width: 480px; max-width: 96vw; text-align: left; max-height: 90vh; overflow-y: auto; }
+.reseller-modal { width: 600px; max-width: 96vw; text-align: left; max-height: 90vh; overflow-y: auto; }
 .reseller-modal .pay-sub { margin-bottom: 20px; }
 .rs-field { margin-bottom: 18px; }
 .rs-field > label { display: block; font-size: 13px; font-weight: 700; color: var(--fg-1); margin-bottom: 8px; }
@@ -1861,7 +1861,7 @@ textarea.rs-input, .reseller-modal textarea { width: 100%; min-height: 84px; pad
 .reseller-modal textarea:focus { outline: none; border-color: rgba(255,77,68,0.5); background: rgba(255,255,255,0.06); }
 .bt-switch.rs-contact-switch { margin-bottom: 10px; margin-top: 2px; }
 .rs-loc-row { display: flex; gap: 8px; margin-bottom: 8px; }
-.rs-loc-row .rs-loc-platform { flex: 0 0 42%; }
+.rs-loc-row .rs-loc-platform { flex: 0 0 44%; }
 .rs-loc-row .rs-loc-url { flex: 1; min-width: 0; }
 .rs-loc-x { flex: 0 0 auto; width: 34px; border: 1px solid var(--hairline); border-radius: 10px; background: transparent;
   color: var(--fg-3); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; }

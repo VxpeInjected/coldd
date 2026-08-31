@@ -3402,6 +3402,7 @@ body.dash-body .backdrop, body.dash-body .scrim { display: none; }
 
 
 .adm-sub { color: var(--fg-3); font-size: 12px; text-decoration: none; }
+.adm-sub-muted { color: var(--fg-3); font-style: italic; opacity: 0.8; }
 /* "No file attached" is a state that costs a customer a real download, so it
    is not allowed to look like ordinary help text. */
 .adm-note-warn { color: var(--warn); font-weight: 600; }

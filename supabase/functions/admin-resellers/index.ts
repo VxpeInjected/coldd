@@ -75,12 +75,85 @@ Deno.serve(async (req: Request) => {
     const action = String(body.action || "");
 
     if (action === "list") {
-      const { data, error } = await admin
-        .from("resellers")
-        .select("id, user_id, email, display_name, contact_type, contact_value, selling_locations, selling_where, selling_notes, status, source, created_at, products(title, slug), profiles(username, email)")
-        .order("created_at", { ascending: false });
-      if (error) return json({ ok: false, error: error.message }, 500);
-      return json({ ok: true, resellers: data });
+      // The tracker is driven by resell LICENCES, not by who filled in the
+      // form. Every paid resell order_item is a reseller; the resellers row
+      // (if any) just adds their onboarding answers on top.
+      const [{ data: items, error: itemsErr }, { data: rows, error: rowsErr }] = await Promise.all([
+        admin.from("order_items")
+          .select("id, product_id, product_slug, title, orders!inner(id, user_id, created_at, status)")
+          .eq("licence", "resell").eq("orders.status", "paid"),
+        admin.from("resellers")
+          .select("id, user_id, order_item_id, product_id, email, display_name, contact_type, contact_value, selling_locations, selling_where, selling_notes, status, source, created_at"),
+      ]);
+      if (itemsErr || rowsErr) return json({ ok: false, error: (itemsErr || rowsErr)!.message }, 500);
+
+      const uids = new Set<string>();
+      const pids = new Set<string>();
+      (items || []).forEach((it: { orders?: { user_id?: string }; product_id?: string }) => {
+        if (it.orders?.user_id) uids.add(it.orders.user_id);
+      });
+      (rows || []).forEach((r: { user_id?: string; product_id?: string }) => {
+        if (r.user_id) uids.add(r.user_id);
+        if (r.product_id) pids.add(r.product_id);
+      });
+      const [{ data: profs }, { data: prods }] = await Promise.all([
+        uids.size ? admin.from("profiles").select("id, username, email").in("id", [...uids]) : Promise.resolve({ data: [] }),
+        pids.size ? admin.from("products").select("id, title, slug").in("id", [...pids]) : Promise.resolve({ data: [] }),
+      ]);
+      const profById = new Map((profs || []).map((p: { id: string }) => [p.id, p]));
+      const prodById = new Map((prods || []).map((p: { id: string }) => [p.id, p]));
+      const rowByItem = new Map((rows || []).filter((r: { order_item_id?: string }) => r.order_item_id).map((r: { order_item_id: string }) => [r.order_item_id, r]));
+
+      // deno-lint-ignore no-explicit-any
+      const entry = (base: any, r: any) => ({
+        id: r?.id || null,
+        orderItemId: base.orderItemId,
+        orderId: base.orderId,
+        userId: base.userId,
+        licencedAt: base.licencedAt,
+        productTitle: base.productTitle,
+        productSlug: base.productSlug,
+        productId: base.productId,
+        accountName: base.accountName,
+        accountEmail: base.accountEmail,
+        onboarded: !!r,
+        contactType: r?.contact_type || null,
+        contactValue: r?.contact_value || r?.email || null,
+        sellingLocations: Array.isArray(r?.selling_locations) ? r.selling_locations : [],
+        sellingWhere: r?.selling_where || null,
+        sellingNotes: r?.selling_notes || null,
+        status: r?.status || "active",
+        source: r?.source || "purchase",
+        createdAt: r?.created_at || base.licencedAt,
+      });
+
+      const used = new Set<string>();
+      const list = [];
+      // deno-lint-ignore no-explicit-any
+      for (const it of (items || []) as any[]) {
+        const r = rowByItem.get(it.id);
+        if (r) used.add(r.id);
+        const prof = profById.get(it.orders?.user_id) as { username?: string; email?: string } | undefined;
+        list.push(entry({
+          orderItemId: it.id, orderId: it.orders?.id, userId: it.orders?.user_id || null,
+          licencedAt: it.orders?.created_at, productTitle: it.title, productSlug: it.product_slug, productId: it.product_id,
+          accountName: prof ? (prof.username || prof.email) : null, accountEmail: prof?.email || null,
+        }, r));
+      }
+      // Manual / external resellers rows not attached to a paid resell licence.
+      // deno-lint-ignore no-explicit-any
+      for (const r of (rows || []) as any[]) {
+        if (used.has(r.id)) continue;
+        const prof = profById.get(r.user_id) as { username?: string; email?: string } | undefined;
+        const prod = prodById.get(r.product_id) as { title?: string; slug?: string } | undefined;
+        list.push(entry({
+          orderItemId: r.order_item_id || null, orderId: null, userId: r.user_id || null,
+          licencedAt: r.created_at, productTitle: prod?.title || null, productSlug: prod?.slug || null, productId: r.product_id || null,
+          accountName: prof ? (prof.username || prof.email) : (r.display_name || null), accountEmail: prof?.email || r.email || null,
+        }, r));
+      }
+      list.sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)));
+      return json({ ok: true, resellers: list });
     }
 
     if (action === "create") {
@@ -91,28 +164,53 @@ Deno.serve(async (req: Request) => {
       if (contactType === "email" && !EMAIL_RE.test(contactValue)) return json({ ok: false, error: "Enter a valid contact email." }, 400);
       if (!locations.length) return json({ ok: false, error: "Add at least one place they're selling, with a link." }, 400);
 
-      // Link to an existing account when the contact email matches one, so
-      // the row shows the account and stays in sync with that user's own
-      // seller profile.
-      let userId: string | null = null;
-      if (contactType === "email") {
+      // Onboarding an existing paid resell licence straight from the tracker:
+      // the client passes the order_item / user / product, and we upsert on
+      // order_item_id so it lines up with that buyer's own seller profile.
+      const orderItemId = String(body.orderItemId || "").trim() || null;
+      let userId: string | null = String(body.userId || "").trim() || null;
+      let productId: string | null = body.productId || null;
+      let orderId: string | null = null;
+      if (orderItemId) {
+        const { data: oi } = await admin
+          .from("order_items")
+          .select("product_id, order_id, orders(user_id)")
+          .eq("id", orderItemId)
+          .maybeSingle();
+        if (oi) {
+          productId = oi.product_id;
+          orderId = oi.order_id;
+          // deno-lint-ignore no-explicit-any
+          userId = (oi as any).orders?.user_id ?? userId;
+        }
+      }
+      // Otherwise, link by matching contact email to an account.
+      if (!userId && contactType === "email") {
         const { data: prof } = await admin.from("profiles").select("id").ilike("email", contactValue).maybeSingle();
         userId = prof?.id ?? null;
       }
 
-      const { data, error } = await admin.from("resellers").insert({
+      const record = {
         user_id: userId,
+        order_id: orderId,
+        order_item_id: orderItemId,
         email: contactType === "email" ? contactValue : null,
         contact_type: contactType,
         contact_value: contactValue,
         selling_locations: locations,
         selling_where: locSummary(locations),
         display_name: body.displayName ? String(body.displayName).trim().slice(0, 200) : null,
-        product_id: body.productId || null,
+        product_id: productId,
         status: body.status === "inactive" ? "inactive" : "active",
         selling_notes: body.sellingNotes ? String(body.sellingNotes).trim().slice(0, 2000) : null,
-        source: "manual",
-      }).select("id, user_id, email, display_name, contact_type, contact_value, selling_locations, selling_where, selling_notes, status, source, created_at, products(title, slug), profiles(username, email)").single();
+        source: orderItemId ? "purchase" : "manual",
+      };
+      const q = orderItemId
+        ? admin.from("resellers").upsert(record, { onConflict: "order_item_id" })
+        : admin.from("resellers").insert(record);
+      const { data, error } = await q
+        .select("id, user_id, email, display_name, contact_type, contact_value, selling_locations, selling_where, selling_notes, status, source, created_at, products(title, slug), profiles(username, email)")
+        .single();
       if (error) return json({ ok: false, error: error.message }, 500);
       return json({ ok: true, reseller: data });
     }

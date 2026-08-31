@@ -4428,20 +4428,23 @@
     return invokeAdminFn('admin-resellers', { action: 'list' }).then(function (d) {
       RESELLERS = (d.resellers || []).map(function (r) {
         return {
-          id: r.id,
-          email: r.email,
-          contactType: r.contact_type || 'email',
-          contactValue: r.contact_value || r.email || '',
-          sellingLocations: Array.isArray(r.selling_locations) ? r.selling_locations : [],
-          displayName: r.display_name,
-          accountName: r.profiles ? (r.profiles.username || r.profiles.email) : null,
-          productTitle: r.products ? r.products.title : null,
-          productId: r.product_id,
-          sellingWhere: r.selling_where,
-          sellingNotes: r.selling_notes,
-          status: r.status,
-          source: r.source,
-          createdAt: r.created_at
+          id: r.id || null,                         // resellers row id (null = not onboarded)
+          key: r.id || ('oi:' + (r.orderItemId || '')),
+          orderItemId: r.orderItemId || null,
+          userId: r.userId || null,
+          onboarded: !!r.onboarded,
+          contactType: r.contactType || 'email',
+          contactValue: r.contactValue || '',
+          sellingLocations: Array.isArray(r.sellingLocations) ? r.sellingLocations : [],
+          accountName: r.accountName || null,
+          accountEmail: r.accountEmail || null,
+          productTitle: r.productTitle || null,
+          productId: r.productId || null,
+          sellingWhere: r.sellingWhere || null,
+          sellingNotes: r.sellingNotes || null,
+          status: r.status || 'active',
+          source: r.source || 'purchase',
+          createdAt: r.createdAt || r.licencedAt
         };
       });
       if (curPanel === 'resellers') renderResellers();
@@ -4452,22 +4455,32 @@
     var q = (($('admResellerSearch') || {}).value || '').trim().toLowerCase();
     var rows = RESELLERS.filter(function (r) {
       if (!q) return true;
-      return [r.contactValue, r.email, r.displayName, r.accountName, r.productTitle].some(function (v) { return v && v.toLowerCase().indexOf(q) >= 0; });
+      return [r.contactValue, r.accountEmail, r.accountName, r.productTitle].some(function (v) { return v && v.toLowerCase().indexOf(q) >= 0; });
+    }).sort(function (a, b) {
+      if (a.onboarded !== b.onboarded) return a.onboarded ? 1 : -1;   // needs-info first
+      return String(b.createdAt).localeCompare(String(a.createdAt));
     });
     body.innerHTML = rows.map(function (r) {
+      var name = r.accountName || r.contactValue || '—';
+      var contactSub = r.onboarded
+        ? esc((r.contactType === 'discord' ? 'Discord: ' : '') + r.contactValue)
+        : '<span class="adm-sub-muted">Awaiting info</span>';
       var locs = r.sellingLocations.length
         ? r.sellingLocations.map(function (l) { return esc(l.platform) + ' — <a href="' + esc(l.url) + '" target="_blank" rel="noopener">' + esc(l.url) + '</a>'; }).join('<br>')
-        : esc(r.sellingWhere || '—');
-      return '<tr data-id="' + esc(r.id) + '">' +
-        '<td>' + esc(r.displayName || r.accountName || r.contactValue) + '<div class="adm-sub">' + esc((r.contactType === 'discord' ? 'Discord: ' : '') + r.contactValue) + '</div></td>' +
+        : (r.onboarded ? esc(r.sellingWhere || '—') : '<span class="adm-sub-muted">—</span>');
+      var statusCell = r.onboarded
+        ? statusBadge(r.status === 'active' ? 'completed' : 'refunded')
+        : '<span class="dt-badge warn">Not onboarded</span>';
+      return '<tr data-key="' + esc(r.key) + '">' +
+        '<td>' + esc(name) + '<div class="adm-sub">' + contactSub + '</div></td>' +
         '<td>' + esc(r.productTitle || '—') + '</td>' +
         '<td>' + locs + '</td>' +
         '<td><span class="adm-cat-tag">' + (r.source === 'manual' ? 'Manual' : 'Purchase') + '</span></td>' +
-        '<td>' + statusBadge(r.status === 'active' ? 'completed' : 'refunded') + '</td>' +
+        '<td>' + statusCell + '</td>' +
         '<td>' + fmtDate(new Date(r.createdAt)) + '</td>' +
-        '<td class="adm-row-actions"><button class="adm-icon-btn adm-reseller-edit" type="button" title="Edit" aria-label="Edit">' + ADM_ICON_KEBAB + '</button></td>' +
+        '<td class="adm-row-actions"><button class="adm-icon-btn adm-reseller-edit" type="button" title="' + (r.onboarded ? 'Edit' : 'Add seller info') + '" aria-label="Edit">' + ADM_ICON_KEBAB + '</button></td>' +
         '</tr>';
-    }).join('') || '<tr><td colspan="7" class="adm-empty">No resellers yet.</td></tr>';
+    }).join('') || '<tr><td colspan="7" class="adm-empty">No resell licences sold yet.</td></tr>';
   }
   var resellerSearchEl = $('admResellerSearch');
   if (resellerSearchEl) resellerSearchEl.addEventListener('input', renderResellers);
@@ -4509,21 +4522,31 @@
     w.appendChild(row); admSyncResellerLocRemove();
   }
 
-  function openResellerEditor(reseller) {
+  var admResellerCtx = {};
+  function openResellerEditor(r) {
+    // r may be: an onboarded resellers row, a not-yet-onboarded resell
+    // licence (r.id null, r.orderItemId set), or null (fully manual add).
+    admResellerCtx = {
+      id: (r && r.id) || '',
+      orderItemId: (r && r.orderItemId) || '',
+      userId: (r && r.userId) || ''
+    };
+    var lockedProduct = r && r.orderItemId && r.productId;   // a real licence - product is fixed
     resellerProductDropdown.setOptions([{ value: '', label: 'None' }].concat(
       allProducts().filter(function (p) { return p.resell; }).map(function (p) { return { value: p.id, label: p.title }; }).sort(function (a, b) { return a.label.localeCompare(b.label); })
-    ), (reseller && reseller.productId) || '');
-    resellerStatusDropdown.setValue((reseller && reseller.status) || 'active', true);
-    $('admResellerId').value = (reseller && reseller.id) || '';
-    $('admResellerName').value = (reseller && reseller.displayName) || '';
-    $('admResellerNotes').value = (reseller && reseller.sellingNotes) || '';
-    admResellerApplyContact((reseller && reseller.contactType) || 'email');
-    $('admResellerContact').value = (reseller && reseller.contactValue) || '';
+    ), (r && r.productId) || '');
+    resellerStatusDropdown.setValue((r && r.status) || 'active', true);
+    $('admResellerName').value = (r && r.displayName) || '';
+    $('admResellerNotes').value = (r && r.sellingNotes) || '';
+    admResellerApplyContact((r && r.contactType) || 'email');
+    var prefillEmail = (r && !r.onboarded && r.accountEmail && !/\.coldd\.internal$/i.test(r.accountEmail)) ? r.accountEmail : '';
+    $('admResellerContact').value = (r && r.contactValue) || prefillEmail || '';
     $('admResellerLocations').innerHTML = '';
-    var locs = (reseller && reseller.sellingLocations || []).filter(function (l) { return l && (l.platform || l.url); });
+    var locs = ((r && r.sellingLocations) || []).filter(function (l) { return l && (l.platform || l.url); });
     if (locs.length) locs.forEach(function (l) { admAddResellerLocRow(l.platform, l.url); });
     else admAddResellerLocRow();
-    $('admResellerEditHeading').textContent = reseller ? 'Edit reseller' : 'Add reseller';
+    var heading = !r ? 'Add reseller' : (r.onboarded ? 'Edit reseller' : 'Add seller info');
+    $('admResellerEditHeading').textContent = heading + (r && r.accountName ? ' — ' + r.accountName : '');
     $('admResellerMsg').textContent = '';
     showPanel('reseller-edit');
   }
@@ -4534,14 +4557,14 @@
   if (resellersBody) resellersBody.addEventListener('click', function (e) {
     if (!e.target.closest('.adm-reseller-edit')) return;
     var tr = e.target.closest('tr'); if (!tr) return;
-    var r = RESELLERS.filter(function (x) { return x.id === tr.getAttribute('data-id'); })[0];
+    var r = RESELLERS.filter(function (x) { return x.key === tr.getAttribute('data-key'); })[0];
     if (r) openResellerEditor(r);
   });
 
   var resellerForm = $('admResellerForm');
   if (resellerForm) resellerForm.addEventListener('submit', function (e) {
     e.preventDefault();
-    var id = $('admResellerId').value;
+    var id = admResellerCtx.id;
     var saveBtn = $('admResellerSaveBtn');
     var msgEl = $('admResellerMsg');
     var label = saveBtn.querySelector('.btn-label'), spinner = saveBtn.querySelector('.btn-spinner');
@@ -4576,7 +4599,10 @@
 
     var req = id
       ? invokeAdminFn('admin-resellers', { action: 'update', id: id, patch: payload }, 'Could not update reseller.')
-      : invokeAdminFn('admin-resellers', Object.assign({ action: 'create' }, payload), 'Could not add reseller.');
+      : invokeAdminFn('admin-resellers', Object.assign({ action: 'create' }, payload, {
+          orderItemId: admResellerCtx.orderItemId || null,
+          userId: admResellerCtx.userId || null
+        }), 'Could not save seller info.');
 
     req.then(function () {
       logAudit((id ? 'Updated' : 'Added') + ' reseller ' + contactValue);

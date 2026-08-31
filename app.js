@@ -6423,7 +6423,9 @@
               renderItems(data.items || []);
               if (data.guest) showGuestClaimNote();
               maybeShowResellerPopup(data.items || []);
-              renderPostPurchaseUpsell();
+              var orderAllResell = (data.items || []).length > 0 &&
+                (data.items || []).every(function (it) { return it.licence === 'resell'; });
+              renderPostPurchaseUpsell(orderAllResell);
             } else if (triesLeft > 0) {
               // Crypto sits in "pending" for real minutes while the network
               // confirms, so say that rather than leaving a blank wait.
@@ -6450,30 +6452,53 @@
       // brand new order). Selecting/deselecting cards live-updates whether
       // the bigger bundle discount is still on offer, since bundle_pct
       // only applies server-side if EVERY offered slug ends up in the cart.
-      function renderPostPurchaseUpsell() {
+      function renderPostPurchaseUpsell(allResell) {
         var section = document.getElementById('upsellSection');
         var grid = document.getElementById('upsellGrid');
         if (!section || !grid || !window.coldSupabase) return;
+        function resellUsd(p) { return p.resellPrice != null ? p.resellPrice : Math.round((p.priceNum || 0) * 3); }
         window.coldSupabase.functions.invoke('get-post-purchase-upsell', { body: sessionId ? { sessionId: sessionId } : { orderId: robuxOrderIdParam } })
           .then(function (res) {
             var data = res && res.data;
             if (!data || !data.ok || !data.items || !data.items.length) return;
+
+            // The just-completed order was all resell licences -> only offer
+            // resell licences of other relevant products, at the resell
+            // price, added as resell. No bundle discount (resell licences
+            // never carry the cross-sell/bundle discount).
+            var items = data.items;
+            if (allResell) {
+              var cat = window.__CATALOG || [];
+              items = items.map(function (it) {
+                var p = cat.filter(function (c) { return c.id === it.slug; })[0];
+                if (!p || !p.resell) return null;
+                var rp = resellUsd(p);
+                return { slug: it.slug, title: it.title, image: it.image, priceUsd: rp, itemPriceUsd: rp, bundlePriceUsd: rp, resell: true };
+              }).filter(Boolean);
+              if (!items.length) return;
+            }
+
             section.hidden = false;
-            var selected = {}; data.items.forEach(function (it) { selected[it.slug] = true; });
+            var subEl2 = document.getElementById('upsellSub');
+            if (subEl2 && allResell) subEl2.textContent = 'Resell licences for other products like the ones you just picked up.';
+            var selected = {}; items.forEach(function (it) { selected[it.slug] = true; });
             function money2(n) { return window.__money ? window.__money(n) : ('$' + n.toFixed(2)); }
             function paint() {
               var selCount = Object.keys(selected).filter(function (s) { return selected[s]; }).length;
-              var allSelected = selCount === data.items.length;
-              grid.innerHTML = data.items.map(function (it) {
+              var allSelected = selCount === items.length;
+              grid.innerHTML = items.map(function (it) {
                 var checked = !!selected[it.slug];
-                var pct = allSelected ? (data.itemPct + data.bundlePct) : data.itemPct;
-                var price = allSelected ? it.bundlePriceUsd : it.itemPriceUsd;
+                var pct = it.resell ? 0 : (allSelected ? (data.itemPct + data.bundlePct) : data.itemPct);
+                var price = it.resell ? it.itemPriceUsd : (allSelected ? it.bundlePriceUsd : it.itemPriceUsd);
+                var metaHtml = it.resell
+                  ? '<strong class="tu-now">' + money2(price) + '</strong> <span class="tu-off">Resell licence</span>'
+                  : '<span class="tu-was">' + money2(it.priceUsd) + '</span> <strong class="tu-now">' + money2(price) + '</strong> <span class="tu-off">' + pct + '% off</span>';
                 return '<div class="dash-card glass dl-item tu-item' + (checked ? ' is-in' : '') + '" data-slug="' + esc(it.slug) + '">' +
                   '<div class="dl-top">' +
                     '<span class="dl-thumb" style="background-image:url(\'' + window.imgUrl(it.image) + '\')"></span>' +
                     '<div class="dl-info">' +
                       '<div class="dl-name">' + esc(it.title) + '</div>' +
-                      '<div class="dl-meta"><span class="tu-was">' + money2(it.priceUsd) + '</span> <strong class="tu-now">' + money2(price) + '</strong> <span class="tu-off">' + pct + '% off</span></div>' +
+                      '<div class="dl-meta">' + metaHtml + '</div>' +
                     '</div>' +
                     '<div class="dl-actions">' +
                       '<button class="btn ' + (checked ? 'btn-ghost' : 'btn-primary') + ' tu-toggle" type="button" data-slug="' + esc(it.slug) + '">' + (checked ? 'Remove' : 'Add') + '</button>' +
@@ -6483,9 +6508,11 @@
               }).join('');
               var noteEl = document.getElementById('upsellNote');
               if (noteEl) {
-                noteEl.textContent = allSelected
-                  ? ('All ' + data.items.length + ' selected - ' + (data.itemPct + data.bundlePct) + '% off each.')
-                  : (selCount + ' of ' + data.items.length + ' selected - ' + data.itemPct + '% off each (select all ' + data.items.length + ' for ' + (data.itemPct + data.bundlePct) + '% off).');
+                noteEl.textContent = allResell
+                  ? (selCount + ' of ' + items.length + ' selected.')
+                  : (allSelected
+                    ? ('All ' + items.length + ' selected - ' + (data.itemPct + data.bundlePct) + '% off each.')
+                    : (selCount + ' of ' + items.length + ' selected - ' + data.itemPct + '% off each (select all ' + items.length + ' for ' + (data.itemPct + data.bundlePct) + '% off).'));
               }
             }
             paint();
@@ -6497,17 +6524,18 @@
             });
             var addAllBtn = document.getElementById('upsellAddAll');
             if (addAllBtn) addAllBtn.addEventListener('click', function () {
-              var chosen = data.items.filter(function (it) { return selected[it.slug]; });
+              var chosen = items.filter(function (it) { return selected[it.slug]; });
               if (!chosen.length) return;
               try {
                 var cart = [];
                 try { cart = JSON.parse(localStorage.getItem('coldd_cart_v1') || '[]') || []; } catch (e) {}
                 chosen.forEach(function (it) {
-                  if (cart.some(function (c) { return c.id === it.slug; })) return;
-                  cart.push({ id: it.slug, title: it.title, price: it.priceUsd, image: window.imgUrl(it.image), tag: '', licence: 'standard', qty: 1 });
+                  var cid = it.resell ? (it.slug + '--resell') : it.slug;
+                  if (cart.some(function (c) { return c.id === cid; })) return;
+                  cart.push({ id: cid, title: it.title, price: it.priceUsd, image: window.imgUrl(it.image), tag: '', licence: it.resell ? 'resell' : 'standard', qty: 1 });
                 });
                 localStorage.setItem('coldd_cart_v1', JSON.stringify(cart));
-                localStorage.setItem('coldd_bundle_token', data.token);
+                if (!allResell) localStorage.setItem('coldd_bundle_token', data.token);
                 window.dispatchEvent(new CustomEvent('coldd:cart-sync', { detail: { source: 'upsell' } }));
               } catch (e) {}
               location.href = '/checkout';

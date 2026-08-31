@@ -32,7 +32,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
 
-  <link rel="stylesheet" href="/styles.css?v=20260831b" />
+  <link rel="stylesheet" href="/styles.css?v=20260831c" />
 </head>
 <body class="dash-body">
   <div class="backdrop"></div>
@@ -255,6 +255,7 @@
           <button class="pd-tab active" type="button" data-actab="profile">Profile</button>
           <button class="pd-tab" type="button" data-actab="security">Security</button>
           <button class="pd-tab" type="button" data-actab="notifications">Notifications</button>
+          <button class="pd-tab" type="button" data-actab="seller" id="acSellerTab" hidden>Seller profile</button>
         </div>
 
         <div class="ac-tabpanel" data-actabpanel="profile">
@@ -363,6 +364,39 @@
           </div>
           <button class="btn btn-primary" id="ntfSaveBtn" type="button" style="margin-top:14px;"><span class="btn-label">Save preferences</span><span class="btn-spinner" hidden></span></button>
           <div class="co-msg" id="ntfMsg"></div>
+        </div>
+
+        <div class="ac-tabpanel" data-actabpanel="seller" hidden>
+          <div class="dash-card glass">
+            <div class="dash-card-head"><h2>Your resell licences</h2></div>
+            <p class="auth-hint" style="margin:0 0 12px;">Products you're licensed to resell in your own store.</p>
+            <div id="acSellerLicenses" class="ac-seller-licenses"></div>
+          </div>
+          <div class="dash-card glass">
+            <div class="dash-card-head"><h2>Seller information</h2></div>
+            <p class="auth-hint" style="margin:0 0 16px;">We use this to make sure our products are being sold legitimately and in compliance with the resell licence. Keep it up to date.</p>
+            <form id="acSellerForm">
+              <div class="rs-field">
+                <label>Contact method</label>
+                <div class="bt-switch rs-contact-switch" id="acSellerContactSwitch" role="tablist" aria-label="Contact method">
+                  <button class="bt-opt active" type="button" data-ctype="email" role="tab" aria-selected="true">Email</button>
+                  <button class="bt-opt" type="button" data-ctype="discord" role="tab" aria-selected="false">Discord</button>
+                </div>
+                <input id="acSellerContact" type="text" class="rs-input" autocomplete="off" placeholder="you@example.com" />
+              </div>
+              <div class="rs-field">
+                <label>Where you sell these <span class="rs-req-tag">Required</span></label>
+                <div id="acSellerLocations"></div>
+                <button type="button" class="btn btn-tinted rs-add-loc" id="acSellerAddLoc">+ Add another location</button>
+              </div>
+              <div class="rs-field">
+                <label for="acSellerNotes">Anything else we should know? <span class="rs-opt">(optional)</span></label>
+                <textarea id="acSellerNotes" placeholder="Your storefront or brand name, whether you also resell other creators' work, roughly how many sales you expect per month, and how coldd products will be presented on your store."></textarea>
+              </div>
+              <p class="rs-msg" id="acSellerMsg"></p>
+              <button class="btn btn-primary rs-submit" type="submit" id="acSellerSave" style="width:auto;"><span class="btn-label">Save seller profile</span></button>
+            </form>
+          </div>
         </div>
       </section>
       </div>
@@ -570,7 +604,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.2/dist/umd/supabase.min.js" integrity="sha384-B2duOBIryCXbX4eDE4BdJwtNkQMRQde3o6IsjfPW28E6aH1CYE96hHeZRG3zY56O" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script src="/supabase-init.js?v=20260830b"></script>
   <script src="/site-gate.js?v=20260831a"></script>
-  <script src="/catalog.js?v=20260828d" data-then="/app.js?v=20260831b"></script>
+  <script src="/catalog.js?v=20260828d" data-then="/app.js?v=20260831c"></script>
   <script>
     // Cart badge/total sync from localStorage, ahead of app.js. The fab
     // markup above ships hardcoded at "0"/"$0", and the cart module that

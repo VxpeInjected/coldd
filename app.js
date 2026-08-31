@@ -3375,6 +3375,7 @@
         dash.querySelectorAll('.dash-nav a').forEach(function (a) { a.classList.toggle('active', a.getAttribute('data-panel') === name); });
         if (name === 'wishlist' && typeof renderWishlist === 'function') renderWishlist();
         if (name === 'account' && typeof loadSecurity === 'function') loadSecurity();
+        if (name === 'account' && typeof window.__initSellerProfile === 'function') window.__initSellerProfile();
         if (name === 'referrals' && typeof refreshReferrals === 'function') refreshReferrals();
       }
       dash.addEventListener('click', function (e) {
@@ -4277,6 +4278,118 @@
           p.hidden = p.getAttribute('data-actabpanel') !== name;
         });
       });
+
+      // Seller profile tab - only shown to a buyer who holds a resell
+      // licence. Mirrors the post-purchase onboarding popup: email/discord
+      // contact, repeatable platform+link selling locations, notes. Backed
+      // by the reseller-profile edge function (keeps every resellers row for
+      // this buyer in sync).
+      (function () {
+        var tab = document.getElementById('acSellerTab');
+        var form = document.getElementById('acSellerForm');
+        var licBox = document.getElementById('acSellerLicenses');
+        if (!tab || !form) return;
+        var contactInput = document.getElementById('acSellerContact');
+        var locWrap = document.getElementById('acSellerLocations');
+        var notesEl = document.getElementById('acSellerNotes');
+        var msgEl = document.getElementById('acSellerMsg');
+        var saveBtn = document.getElementById('acSellerSave');
+        var switchEl = document.getElementById('acSellerContactSwitch');
+        var contactType = 'email';
+        var loaded = false;
+
+        function setMsg(t, ok) { if (!msgEl) return; msgEl.textContent = t || ''; msgEl.classList.toggle('ok', !!ok); }
+        function applyContactType(t) {
+          contactType = t === 'discord' ? 'discord' : 'email';
+          switchEl.querySelectorAll('.bt-opt').forEach(function (o) {
+            var on = o.getAttribute('data-ctype') === contactType;
+            o.classList.toggle('active', on); o.setAttribute('aria-selected', on ? 'true' : 'false');
+          });
+          contactInput.type = contactType === 'email' ? 'email' : 'text';
+          contactInput.placeholder = contactType === 'email' ? 'you@example.com' : 'yourusername or a Discord invite link';
+        }
+        switchEl.addEventListener('click', function (e) {
+          var b = e.target.closest('.bt-opt'); if (b) applyContactType(b.getAttribute('data-ctype'));
+        });
+
+        function locRows() { return Array.prototype.slice.call(locWrap.querySelectorAll('.rs-loc-row')); }
+        function syncRemove() { var rows = locRows(); rows.forEach(function (r) { var x = r.querySelector('.rs-loc-x'); if (x) x.disabled = rows.length <= 1; }); }
+        function addLocRow(platform, url) {
+          var row = document.createElement('div');
+          row.className = 'rs-loc-row';
+          row.innerHTML =
+            '<input type="text" class="rs-input rs-loc-platform" autocomplete="off" placeholder="Platform (e.g. Discord server, BuiltByBit, your own site)" />' +
+            '<input type="url" class="rs-input rs-loc-url" autocomplete="off" placeholder="Link to your store / listing" />' +
+            '<button type="button" class="rs-loc-x" aria-label="Remove location"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>';
+          if (platform) row.querySelector('.rs-loc-platform').value = platform;
+          if (url) row.querySelector('.rs-loc-url').value = url;
+          row.querySelector('.rs-loc-x').addEventListener('click', function () {
+            if (locRows().length <= 1) return; row.remove(); syncRemove();
+          });
+          locWrap.appendChild(row); syncRemove();
+        }
+        var addLocBtn = document.getElementById('acSellerAddLoc');
+        if (addLocBtn) addLocBtn.addEventListener('click', function () { addLocRow(); });
+
+        function renderLicenses(list) {
+          if (!licBox) return;
+          if (!list || !list.length) { licBox.innerHTML = '<p class="auth-hint">No resell licences found.</p>'; return; }
+          licBox.innerHTML = list.map(function (l) {
+            return '<div class="ac-seller-lic"><span class="asl-name">' + esc(l.title) + '</span>' +
+              (l.createdAt ? '<span class="asl-date">Since ' + new Date(l.createdAt).toLocaleDateString() + '</span>' : '') + '</div>';
+          }).join('');
+        }
+
+        function initSellerProfile() {
+          if (!window.coldSupabase) return;
+          window.coldSupabase.functions.invoke('reseller-profile', { body: { action: 'get' } }).then(function (res) {
+            var d = res && res.data;
+            if (!d || !d.ok) { tab.hidden = true; return; }
+            tab.hidden = false;
+            renderLicenses(d.licenses);
+            if (loaded) return;
+            loaded = true;
+            var p = d.profile;
+            applyContactType(p && p.contactType);
+            if (p) {
+              contactInput.value = p.contactValue || '';
+              notesEl.value = p.notes || '';
+              locWrap.innerHTML = '';
+              var locs = (p.sellingLocations || []).filter(function (l) { return l && (l.platform || l.url); });
+              if (locs.length) locs.forEach(function (l) { addLocRow(l.platform, l.url); });
+              else addLocRow();
+            } else {
+              addLocRow();
+            }
+          }).catch(function () { tab.hidden = true; });
+        }
+        window.__initSellerProfile = initSellerProfile;
+
+        form.addEventListener('submit', function (e) {
+          e.preventDefault();
+          var contactValue = contactInput.value.trim();
+          if (!contactValue) { setMsg(contactType === 'email' ? 'Enter a contact email.' : 'Enter your Discord.'); return; }
+          var locations = [], bad = false;
+          locRows().forEach(function (r) {
+            var pl = r.querySelector('.rs-loc-platform').value.trim();
+            var u = r.querySelector('.rs-loc-url').value.trim();
+            if (!pl && !u) return;
+            if (!pl || !u) bad = true; else locations.push({ platform: pl, url: u });
+          });
+          if (bad) { setMsg('Every selling location needs both a platform and a link.'); return; }
+          if (!locations.length) { setMsg('Add at least one place you sell, with a link.'); return; }
+          saveBtn.disabled = true; setMsg('');
+          window.coldSupabase.functions.invoke('reseller-profile', { body: {
+            action: 'update', contactType: contactType, contactValue: contactValue,
+            sellingLocations: locations, notes: notesEl.value.trim() || null
+          } }).then(function (res) {
+            saveBtn.disabled = false;
+            var d = res && res.data;
+            if (!d || !d.ok) { setMsg((d && d.error) || 'Could not save.'); return; }
+            setMsg('Saved.', true);
+          }).catch(function () { saveBtn.disabled = false; setMsg('Could not save.'); });
+        });
+      })();
 
       // Changing the email is now a two-step, code-gated flow: request a
       // code (sent to the CURRENT email, proving whoever's here actually

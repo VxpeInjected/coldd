@@ -59,7 +59,7 @@ Deno.serve(async (req: Request) => {
 
     // See create-checkout-session's identical check for why this exists -
     // the maintenance overlay is a client-side visual gate only.
-    if (await isSiteInMaintenance(admin)) {
+    if (await isSiteInMaintenance(admin, userData.user.id)) {
       const { data: profile } = await admin.from("profiles").select("is_admin").eq("id", userData.user.id).maybeSingle();
       if (!profile?.is_admin) return json({ ok: false, error: "coldd is temporarily down for maintenance. Please check back shortly." }, 503);
     }

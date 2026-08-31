@@ -58,7 +58,7 @@ Deno.serve(async (req: Request) => {
 
     // See create-checkout-session's identical check for why this exists -
     // the maintenance overlay is a client-side visual gate only.
-    if (await isSiteInMaintenance(admin)) {
+    if (await isSiteInMaintenance(admin, user?.id)) {
       let isStaff = false;
       if (user) {
         const { data: profile } = await admin.from("profiles").select("is_admin").eq("id", user.id).maybeSingle();

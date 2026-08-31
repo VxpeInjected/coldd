@@ -85,7 +85,7 @@ Deno.serve(async (req: Request) => {
     // through to a real checkout regardless of site mode. This is the
     // actual enforcement point. Staff stay exempt, same as the overlay's
     // own admin-bypass behavior (site-gate.js's showWhitelistBanner path).
-    if (await isSiteInMaintenance(admin)) {
+    if (await isSiteInMaintenance(admin, user?.id)) {
       let isStaff = false;
       if (user) {
         const { data: profile } = await admin.from("profiles").select("is_admin").eq("id", user.id).maybeSingle();

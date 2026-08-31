@@ -122,14 +122,16 @@
   // Bypassed staff view: the real page renders underneath, with a bar
   // making clear maintenance is still on for everyone else and a way to
   // see exactly what they see, without signing out or losing the session.
-  function showWhitelistBanner(status) {
+  function showWhitelistBanner(status, isTester) {
     var existing = document.getElementById('siteWhitelistBanner');
     if (existing) return;
     var banner = document.createElement('div');
     banner.id = 'siteWhitelistBanner';
     banner.className = 'gate-banner';
     banner.innerHTML =
-      '<span>You\'re viewing as a whitelisted staff member - the site is still under maintenance for everyone else.</span>' +
+      '<span>' + (isTester
+        ? 'Tester access - the site is in maintenance for everyone else. Report anything broken.'
+        : 'You\'re viewing as a whitelisted staff member - the site is still under maintenance for everyone else.') + '</span>' +
       '<button id="siteMaintPreviewBtn" type="button">Preview maintenance screen</button>' +
       '<button id="siteMaintBannerX" type="button" aria-label="Dismiss">&times;</button>';
     document.documentElement.appendChild(banner);
@@ -157,17 +159,27 @@
     if (!status || res.error || status.mode === 'open') return;
 
     if (status.mode === 'maintenance') {
+      // Bypassed view: the real page renders, with the "still in maintenance
+      // for everyone else" banner (or the preview overlay if they asked for
+      // it). Granted to staff (checkIsAdmin) and to any non-admin account on
+      // the per-user allowlist (site_status.maintenance_allow_user_ids -
+      // edited from the admin Site Access panel; empty = nobody extra).
+      var grantBypassView = function (isTester) {
+        var previewing = false;
+        try { previewing = sessionStorage.getItem(PREVIEW_KEY) === '1'; } catch (e) {}
+        var dismissed = false;
+        try { dismissed = sessionStorage.getItem(WHITELIST_DISMISS_KEY) === '1'; } catch (e) {}
+        if (previewing) showMaintenanceOverlay(status, true);
+        else if (!dismissed) showWhitelistBanner(status, isTester);
+      };
       window.coldSupabase.auth.getSession().then(function (sres) {
         var session = sres && sres.data ? sres.data.session : null;
         if (!session) { showMaintenanceOverlay(status); return; }
+        var allow = Array.isArray(status.maintenance_allow_user_ids) ? status.maintenance_allow_user_ids : [];
+        if (allow.indexOf(session.user.id) !== -1) { grantBypassView(true); return; }
         window.coldAuth.checkIsAdmin().then(function (info) {
           if (!info.isAdmin) { showMaintenanceOverlay(status); return; }
-          var previewing = false;
-          try { previewing = sessionStorage.getItem(PREVIEW_KEY) === '1'; } catch (e) {}
-          var dismissed = false;
-          try { dismissed = sessionStorage.getItem(WHITELIST_DISMISS_KEY) === '1'; } catch (e) {}
-          if (previewing) showMaintenanceOverlay(status, true);
-          else if (!dismissed) showWhitelistBanner(status);
+          grantBypassView(false);
         });
       }).catch(function () {});
     }

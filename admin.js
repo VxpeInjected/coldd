@@ -5471,6 +5471,20 @@
         var msgEl = $('admSiteMaintMsg'); if (msgEl) msgEl.value = data.maintenance_message || '';
         var endsEl = $('admSiteMaintEnds');
         if (endsEl) endsEl.value = data.maintenance_ends_at ? toDatetimeLocalValue(new Date(data.maintenance_ends_at)) : '';
+        var allowEl = $('admSiteMaintAllow');
+        var ids = Array.isArray(data.maintenance_allow_user_ids) ? data.maintenance_allow_user_ids : [];
+        if (allowEl && !ids.length) { allowEl.value = ''; }
+        else if (allowEl) {
+          Promise.all([
+            window.coldSupabase.from('profiles').select('id, username').in('id', ids),
+            window.coldSupabase.from('roblox_accounts').select('user_id, roblox_username').in('user_id', ids)
+          ]).then(function (r) {
+            var byId = {};
+            (r[1] && r[1].data || []).forEach(function (x) { if (x.roblox_username) byId[x.user_id] = x.roblox_username; });
+            (r[0] && r[0].data || []).forEach(function (x) { if (x.username) byId[x.id] = x.username; });
+            allowEl.value = ids.map(function (id) { return byId[id] || id; }).join('\n');
+          }).catch(function () {});
+        }
       }
     });
   }
@@ -5509,15 +5523,19 @@
   var admSiteSaveBtn = $('admSiteSaveBtn');
   if (admSiteSaveBtn) admSiteSaveBtn.addEventListener('click', function () {
     if (!can('owner')) { alert('Only the owner can change site access.'); return; }
-    var msg = $('admSiteMaintMsg'), ends = $('admSiteMaintEnds');
+    var msg = $('admSiteMaintMsg'), ends = $('admSiteMaintEnds'), allow = $('admSiteMaintAllow');
     var payload = {
       mode: siteMode,
       message: msg ? msg.value.trim() : '',
-      endsAt: ends && ends.value ? new Date(ends.value).toISOString() : null
+      endsAt: ends && ends.value ? new Date(ends.value).toISOString() : null,
+      allowUsernames: allow ? allow.value.split('\n').map(function (s) { return s.trim(); }).filter(Boolean) : []
     };
     admSiteSaveBtn.disabled = true;
-    invokeAdminFn('admin-set-site-status', payload, 'Could not update site status.').then(function () {
+    invokeAdminFn('admin-set-site-status', payload, 'Could not update site status.').then(function (d) {
       logAudit('Set site access to ' + siteMode);
+      var m = $('admSiteMsg');
+      if (m && d && d.unresolved && d.unresolved.length) m.textContent = 'Saved. Unknown username(s), skipped: ' + d.unresolved.join(', ');
+      else if (m) m.textContent = 'Saved.';
       return refreshSiteStatus();
     }).catch(function (err) {
       var m = $('admSiteMsg'); if (m) m.textContent = err.message || 'Could not save.';

@@ -6,7 +6,13 @@
 // Same auth/is_admin gate as the other admin-* functions. Sets the
 // site-wide mode read by site-gate.js on every page load.
 //
-// Body: { mode: 'open'|'maintenance', message?, endsAt? }
+// Body: { mode: 'open'|'maintenance', message?, endsAt?, allowUsernames?: string[] }
+//
+// allowUsernames: the per-user maintenance bypass list. Each entry is
+// matched (case-insensitively) against profiles.username and against a
+// linked roblox_accounts.roblox_username; the resolved user ids are stored
+// in site_status.maintenance_allow_user_ids. Send [] to clear it (disable
+// the feature). Omit the key entirely to leave the list untouched.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -69,13 +75,45 @@ Deno.serve(async (req: Request) => {
     if (mode === "maintenance") patch.dev_mode = false;
     else patch.dev_mode_active_at = new Date().toISOString();
 
+    // Per-user maintenance bypass list. Resolve usernames -> ids only when
+    // the key is present (so a plain mode change doesn't wipe it).
+    let resolved: string[] = [];
+    let unresolved: string[] = [];
+    if (Array.isArray(body.allowUsernames)) {
+      const names = [...new Set(
+        body.allowUsernames.map((n: unknown) => String(n || "").trim()).filter((n: string) => n && n.length <= 60),
+      )] as string[];
+      const idByName = new Map<string, string>();
+      if (names.length) {
+        const lc = names.map((n) => n.toLowerCase());
+        const [{ data: profs }, { data: rbx }] = await Promise.all([
+          admin.from("profiles").select("id, username").not("username", "is", null),
+          admin.from("roblox_accounts").select("user_id, roblox_username").not("roblox_username", "is", null),
+        ]);
+        for (const p of profs || []) {
+          const u = String(p.username || "").toLowerCase();
+          if (lc.includes(u)) idByName.set(u, p.id);
+        }
+        for (const r of rbx || []) {
+          const u = String(r.roblox_username || "").toLowerCase();
+          if (lc.includes(u) && !idByName.has(u)) idByName.set(u, r.user_id);
+        }
+      }
+      for (const n of names) {
+        const id = idByName.get(n.toLowerCase());
+        if (id) resolved.push(id);
+        else unresolved.push(n);
+      }
+      patch.maintenance_allow_user_ids = [...new Set(resolved)];
+    }
+
     const { error: updateErr } = await admin
       .from("site_status")
       .update(patch)
       .eq("id", true);
     if (updateErr) return json({ ok: false, error: "Could not update site status." }, 500);
 
-    return json({ ok: true });
+    return json({ ok: true, resolvedCount: resolved.length, unresolved });
   } catch (err) {
     console.error("[admin-set-site-status] error:", err);
     return json({ ok: false, error: "Server error." }, 500);

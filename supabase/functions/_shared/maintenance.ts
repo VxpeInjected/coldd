@@ -8,9 +8,22 @@
 // from any order-creation function, right after auth resolves the caller,
 // and refuse to start a new order while the site is down - unless the
 // caller is staff, matching site-gate.js's own admin-bypass behavior.
+//
+// Pass the caller's user id to also honour the per-user maintenance
+// allowlist (site_status.maintenance_allow_user_ids) - the same list
+// site-gate.js uses to let specific non-admin accounts through the
+// overlay. Callers keep their own separate is_admin staff check.
 
 // deno-lint-ignore no-explicit-any
-export async function isSiteInMaintenance(admin: any): Promise<boolean> {
-  const { data } = await admin.from("site_status").select("mode").eq("id", true).maybeSingle();
-  return data?.mode === "maintenance";
+export async function isSiteInMaintenance(admin: any, userId?: string | null): Promise<boolean> {
+  const { data } = await admin
+    .from("site_status")
+    .select("mode, maintenance_allow_user_ids")
+    .eq("id", true)
+    .maybeSingle();
+  if (data?.mode !== "maintenance") return false;
+  if (userId && Array.isArray(data?.maintenance_allow_user_ids) && data.maintenance_allow_user_ids.includes(userId)) {
+    return false;
+  }
+  return true;
 }

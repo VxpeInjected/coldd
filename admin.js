@@ -4498,7 +4498,7 @@
       o.classList.toggle('active', on); o.setAttribute('aria-selected', on ? 'true' : 'false');
     });
     var inp = $('admResellerContact');
-    if (inp) { inp.type = admResellerContactType === 'email' ? 'email' : 'text'; inp.placeholder = admResellerContactType === 'email' ? 'you@example.com' : 'username or invite link'; }
+    if (inp) { inp.type = admResellerContactType === 'email' ? 'email' : 'text'; inp.placeholder = admResellerContactType === 'email' ? 'you@example.com' : 'Their Discord username or server invite'; }
   }
   (function () {
     var sw = $('admResellerContactSwitch');
@@ -4544,7 +4544,7 @@
     $('admResellerLocations').innerHTML = '';
     var locs = ((r && r.sellingLocations) || []).filter(function (l) { return l && (l.platform || l.url); });
     if (locs.length) locs.forEach(function (l) { admAddResellerLocRow(l.platform, l.url); });
-    else admAddResellerLocRow();
+    else { admAddResellerLocRow(); admAddResellerLocRow(); admAddResellerLocRow(); }
     var heading = !r ? 'Add reseller' : (r.onboarded ? 'Edit reseller' : 'Add seller info');
     $('admResellerEditHeading').textContent = heading + (r && r.accountName ? ' — ' + r.accountName : '');
     $('admResellerMsg').textContent = '';

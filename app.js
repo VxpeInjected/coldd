@@ -4320,7 +4320,7 @@
             o.classList.toggle('active', on); o.setAttribute('aria-selected', on ? 'true' : 'false');
           });
           contactInput.type = contactType === 'email' ? 'email' : 'text';
-          contactInput.placeholder = contactType === 'email' ? 'you@example.com' : 'yourusername or a Discord invite link';
+          contactInput.placeholder = contactType === 'email' ? 'you@example.com' : 'Your Discord username or server invite';
         }
         switchEl.addEventListener('click', function (e) {
           var b = e.target.closest('.bt-opt'); if (!b) return;
@@ -4397,10 +4397,10 @@
               locWrap.innerHTML = '';
               var locs = (p.sellingLocations || []).filter(function (l) { return l && (l.platform || l.url); });
               if (locs.length) locs.forEach(function (l) { addLocRow(l.platform, l.url); });
-              else addLocRow();
+              else { addLocRow(); addLocRow(); addLocRow(); }
             } else {
               prefillContact((d.account) || {});
-              addLocRow();
+              addLocRow(); addLocRow(); addLocRow();
             }
           }).catch(function () { tab.hidden = true; });
         }
@@ -5240,12 +5240,18 @@
       var crossSellCache = null; // [{ id, title, image, cat, list, deal }], refreshed when the cart's slug set changes
       var crossSellCartKey = null;
       function crossSellPicks() { return crossSellCache || []; }
+      function cartIsAllResell() { return cart.length > 0 && cart.every(function (i) { return i.licence === 'resell'; }); }
+      function resellUsdOf(p) { return p.resellPrice != null ? p.resellPrice : Math.round((p.priceNum || 0) * 3); }
       function renderCrossSell() {
         var box = document.getElementById('coCrossSell');
         if (!window.coldSupabase) return;
         var slugs = Array.from(new Set(cart.map(function (i) { return i.id.replace(/--resell$/, '').replace(/--bundle$/, '').replace(/--crosssell$/, ''); })));
         if (!slugs.length) { crossSellCache = []; crossSellCartKey = null; paintCrossSell(); return; }
-        var key = slugs.slice().sort().join(',');
+        // A cart that's entirely resell licences should only ever be offered
+        // MORE resell licences - never a personal one. Fold that into the
+        // cache key so switching licence mix re-runs the filter.
+        var allResell = cartIsAllResell();
+        var key = slugs.slice().sort().join(',') + (allResell ? '|resell' : '');
         if (key === crossSellCartKey) { paintCrossSell(); return; }
         crossSellCartKey = key;
         window.coldSupabase.rpc('get_checkout_cross_sell', { p_slugs: slugs, p_limit: 4 }).then(function (res) {
@@ -5255,6 +5261,11 @@
           crossSellCache = (res.data || []).map(function (r) {
             var p = cat.filter(function (x) { return x.id === r.product_slug; })[0];
             if (!p || cartIds[p.id]) return null;
+            if (allResell) {
+              if (!p.resell) return null;          // no resell licence available -> drop it
+              var rp = resellUsdOf(p);
+              return { id: p.id, title: p.title, image: p.image, cat: p.cat || '', list: rp, deal: rp, resell: true };
+            }
             var list = Number(r.list_price_usd);
             var deal = Number(r.deal_price_usd);
             return { id: p.id, title: p.title, image: p.image, cat: p.cat || '',
@@ -5266,7 +5277,7 @@
       }
       function crossSellRowHtml(x) {
         var rbx = robuxPricing();
-        var discounted = !rbx && x.deal < x.list - 0.005;
+        var discounted = !rbx && !x.resell && x.deal < x.list - 0.005;
         var priceHtml;
         if (rbx) {
           // Robux checkout re-prices from robux_price and doesn't honour
@@ -5276,7 +5287,7 @@
           priceHtml = '<span class="co-cross-was">' + money(x.list) + '</span>' + money(x.deal) +
             '<span class="co-cross-off">10% off</span>';
         } else {
-          priceHtml = money(x.deal);
+          priceHtml = money(x.deal) + (x.resell ? '<span class="co-cross-off">Resell licence</span>' : '');
         }
         return '<div class="co-cross-row" data-slug="' + esc(x.id) + '">' +
           '<span class="co-cross-thumb" style="background-image:url(\'' + x.image + '\')"></span>' +
@@ -5291,13 +5302,17 @@
         var picks = crossSellPicks();
         if (!picks.length) { box.hidden = true; box.innerHTML = ''; return; }
         box.hidden = false;
-        box.innerHTML = '<div class="co-cross-head">Add to your order</div>' +
+        box.innerHTML = '<div class="co-cross-head">' + (picks[0] && picks[0].resell ? 'Add another resell licence' : 'Add to your order') + '</div>' +
           picks.slice(0, 3).map(function (x) { return crossSellRowHtml(x); }).join('');
       }
       function addCrossSell(slug) {
         var x = crossSellPicks().filter(function (p) { return p.id === slug; })[0];
         if (!x) return;
-        cart.push({ id: x.id + '--crosssell', crossSellSlug: x.id, title: x.title, price: x.deal, image: x.image, tag: x.cat, licence: 'standard', qty: 1 });
+        if (x.resell) {
+          cart.push({ id: x.id + '--resell', crossSellSlug: x.id, title: x.title, price: x.deal, image: x.image, tag: x.cat, licence: 'resell', qty: 1 });
+        } else {
+          cart.push({ id: x.id + '--crosssell', crossSellSlug: x.id, title: x.title, price: x.deal, image: x.image, tag: x.cat, licence: 'standard', qty: 1 });
+        }
         save(cart);
         render();
       }
@@ -6503,6 +6518,7 @@
       var resellerOverlay = document.getElementById('resellerOverlay');
       var resellerForm = document.getElementById('resellerForm');
       function resellerShownKey() { return 'coldd_reseller_popup_' + (sessionId || robuxOrderIdParam); }
+      var resellerLocked = false;
       function maybeShowResellerPopup(items) {
         if (!resellerOverlay || !resellerForm) return;
         var hasResell = items.some(function (it) { return it.licence === 'resell'; });
@@ -6511,7 +6527,22 @@
         // refresh without submitting brings it back, since it's required.
         try { if (localStorage.getItem(resellerShownKey())) return; } catch (e) {}
         resellerOverlay.hidden = false;
+        resellerLocked = true;
+        document.body.style.overflow = 'hidden';
+        var first = document.getElementById('resellerContact');
+        if (first) setTimeout(function () { first.focus(); }, 60);
       }
+      // Genuinely no way out until it's submitted: Escape is swallowed, and
+      // navigating away is challenged. (There's no close control or backdrop
+      // dismiss in the markup.)
+      document.addEventListener('keydown', function (e) {
+        if (resellerLocked && (e.key === 'Escape' || e.key === 'Esc')) { e.preventDefault(); e.stopImmediatePropagation(); }
+      }, true);
+      window.addEventListener('beforeunload', function (e) {
+        if (!resellerLocked) return;
+        e.preventDefault();
+        e.returnValue = '';
+      });
 
       if (resellerOverlay && resellerForm) {
         var rsContact = document.getElementById('resellerContact');
@@ -6526,7 +6557,7 @@
             var on = o === b; o.classList.toggle('active', on); o.setAttribute('aria-selected', on ? 'true' : 'false');
           });
           rsContact.type = rsContactType === 'email' ? 'email' : 'text';
-          rsContact.placeholder = rsContactType === 'email' ? 'you@example.com' : 'yourusername or a Discord invite link';
+          rsContact.placeholder = rsContactType === 'email' ? 'you@example.com' : 'Your Discord username or server invite';
           rsContact.value = '';
           var lbl0 = resellerForm.querySelector('.rs-field label'); if (lbl0) lbl0.textContent = 'Contact method';
           var h0 = resellerForm.querySelector('.rs-prefill-note'); if (h0) h0.remove();
@@ -6586,7 +6617,8 @@
         }
         var rsAddLoc = document.getElementById('resellerAddLoc');
         if (rsAddLoc) rsAddLoc.addEventListener('click', addResellerLocRow);
-        addResellerLocRow();
+        // Start with three rows - only one needs filling in.
+        addResellerLocRow(); addResellerLocRow(); addResellerLocRow();
 
         resellerForm.addEventListener('submit', function (e) {
           e.preventDefault();
@@ -6628,6 +6660,8 @@
                 return;
               }
               try { localStorage.setItem(resellerShownKey(), '1'); } catch (e2) {}
+              resellerLocked = false;
+              document.body.style.overflow = '';
               resellerOverlay.hidden = true;
               var done = document.getElementById('resellerDoneOverlay');
               if (done) done.hidden = false;

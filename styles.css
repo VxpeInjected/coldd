@@ -1859,7 +1859,7 @@ textarea.rs-input, .reseller-modal textarea { width: 100%; min-height: 84px; pad
   background: rgba(255,255,255,0.04); border: 1px solid var(--hairline); color: var(--fg); font-family: inherit; font-size: 14px; line-height: 1.5; resize: vertical; }
 .reseller-modal textarea::placeholder { color: var(--fg-3); }
 .reseller-modal textarea:focus { outline: none; border-color: rgba(255,77,68,0.5); background: rgba(255,255,255,0.06); }
-.rs-contact-switch { margin-bottom: 8px; }
+.bt-switch.rs-contact-switch { margin-bottom: 10px; margin-top: 2px; }
 .rs-loc-row { display: flex; gap: 8px; margin-bottom: 8px; }
 .rs-loc-row .rs-loc-platform { flex: 0 0 42%; }
 .rs-loc-row .rs-loc-url { flex: 1; min-width: 0; }

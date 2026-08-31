@@ -4097,7 +4097,7 @@ html.auth-in .nav-notif[hidden] { display: block; }
    same charcoal-not-pure-black fill, hairline border, soft drop shadow. This
    used to be a flat #0b0b0b box with no shadow at all - the only popover on
    the site without one, which is exactly what read as out of place. */
-.notif-panel { position: absolute; top: calc(100% + 10px); right: 0; width: 320px; max-width: calc(100vw - 32px);
+.notif-panel { position: absolute; top: calc(100% + 10px); right: 0; width: 366px; max-width: calc(100vw - 32px);
   max-height: 420px; overflow-y: auto; z-index: 250; background: var(--bg-2); border: 1px solid var(--hairline);
   border-radius: 16px; padding: 8px; box-shadow: 0 26px 64px -24px var(--ink-85); }
 .notif-panel[hidden] { display: none; }
@@ -4106,10 +4106,18 @@ html.auth-in .nav-notif[hidden] { display: block; }
 .notif-mark-all { font-size: 11px; font-weight: 600; color: var(--fg-3); background: none; border: none; cursor: pointer; padding: 0; font-family: inherit; }
 .notif-mark-all:hover { color: var(--fg); }
 .notif-list { display: flex; flex-direction: column; gap: 1px; }
-.notif-item { display: block; padding: 10px; border-radius: 10px; text-decoration: none; color: var(--fg); cursor: pointer; transition: background .15s var(--ease); }
+.notif-item { display: flex; gap: 11px; padding: 10px; border-radius: 10px; text-decoration: none; color: var(--fg); cursor: pointer; transition: background .15s var(--ease); }
 .notif-item:hover { background: rgba(255,255,255,0.06); }
 .notif-item.unread { background: rgba(255,77,68,0.08); }
 .notif-item.unread:hover { background: rgba(255,77,68,0.12); }
+.notif-item-thumb, .notif-item-icon { flex: 0 0 40px; width: 40px; height: 40px; border-radius: 9px; }
+.notif-item-thumb { background: #0f1014 center / cover no-repeat; border: 1px solid var(--hairline); }
+.notif-item-icon { display: inline-flex; align-items: center; justify-content: center;
+  background: rgba(255,255,255,0.05); border: 1px solid var(--hairline); color: var(--fg-2); }
+.notif-item-icon svg { width: 18px; height: 18px; }
+.notif-item-icon[data-kind="tag"] { color: var(--accent); background: rgba(255,77,68,0.1); border-color: rgba(255,77,68,0.22); }
+.notif-item.unread .notif-item-icon { color: var(--fg-1); }
+.notif-item-main { flex: 1 1 auto; min-width: 0; }
 .notif-item-title { font-size: 13px; font-weight: 600; }
 .notif-item-body { font-size: 12px; color: var(--fg-2); margin-top: 2px; line-height: 1.45; }
 .notif-item-date { font-size: 11px; color: var(--fg-3); margin-top: 4px; }

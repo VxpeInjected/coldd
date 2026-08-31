@@ -3269,15 +3269,45 @@
         else badge.hidden = true;
       }
 
+      var NOTIF_SVG = {
+        bell: '<path d="M6 8a6 6 0 0 1 12 0c0 4.5 1.2 6.6 2.1 7.7.5.6.1 1.3-.6 1.3H4.5c-.7 0-1.1-.7-.6-1.3C4.8 14.6 6 12.5 6 8"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>',
+        receipt: '<path d="M4 3v18l2-1.5L8 21l2-1.5L12 21l2-1.5L16 21l2-1.5L20 21V3l-2 1.5L16 3l-2 1.5L12 3l-2 1.5L8 3 6 4.5 4 3Z"/><path d="M8 8h8M8 12h8M8 16h5"/>',
+        tag: '<path d="M20.6 13.4 12 22l-8-8V4h10l6.6 6.6a2 2 0 0 1 0 2.8Z"/><circle cx="8.5" cy="8.5" r="1.5" fill="currentColor"/>',
+        star: '<path d="M12 2.5l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 18l-5.9 3 1.2-6.5L2.5 9.4l6.6-.9z"/>',
+        download: '<path d="M12 3v12m0 0 4-4m-4 4-4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/>',
+        spark: '<path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5 18 18M18 6l-2.5 2.5M8.5 15.5 6 18"/>'
+      };
+      function notifMediaHtml(n) {
+        var m = (n.url || '').match(/[?&]id=([^&#]+)/);
+        if (m) {
+          var slug = decodeURIComponent(m[1]);
+          var p = (window.__CATALOG || []).filter(function (c) { return c.id === slug; })[0];
+          if (p && p.image) {
+            var src = window.imgUrl ? window.imgUrl(p.image) : p.image;
+            return '<span class="notif-item-thumb" style="background-image:url(\'' + src + '\')"></span>';
+          }
+        }
+        var t = (n.title + ' ' + (n.body || '')).toLowerCase();
+        var key = /order|receipt|purchase|payment|invoice/.test(t) ? 'receipt'
+          : /sale|deal|discount|% off|drop|price/.test(t) ? 'tag'
+          : /review/.test(t) ? 'star'
+          : /update|new version|patch|changelog/.test(t) ? 'download'
+          : /welcome|thanks for joining|get started/.test(t) ? 'spark'
+          : 'bell';
+        return '<span class="notif-item-icon" data-kind="' + key + '"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' + NOTIF_SVG[key] + '</svg></span>';
+      }
       function renderList() {
         if (!NOTIFS.length) { list.innerHTML = '<p class="notif-empty">No notifications yet.</p>'; return; }
         list.innerHTML = NOTIFS.map(function (n) {
           var tag = n.url ? 'a' : 'div';
           var href = n.url ? ' href="' + esc(n.url) + '"' : '';
           return '<' + tag + ' class="notif-item' + (n.read_at ? '' : ' unread') + '" data-id="' + esc(n.id) + '"' + href + '>' +
-            '<div class="notif-item-title">' + esc(n.title) + '</div>' +
-            (n.body ? '<div class="notif-item-body">' + esc(n.body) + '</div>' : '') +
-            '<div class="notif-item-date">' + fmtWhen(n.created_at) + '</div>' +
+            notifMediaHtml(n) +
+            '<div class="notif-item-main">' +
+              '<div class="notif-item-title">' + esc(n.title) + '</div>' +
+              (n.body ? '<div class="notif-item-body">' + esc(n.body) + '</div>' : '') +
+              '<div class="notif-item-date">' + fmtWhen(n.created_at) + '</div>' +
+            '</div>' +
             '</' + tag + '>';
         }).join('');
       }

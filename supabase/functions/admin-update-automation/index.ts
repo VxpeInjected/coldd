@@ -14,7 +14,12 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const ALLOWED_ORIGIN = "https://coldd.dev";
-const KNOWN_KEYS = ["abandoned_cart_1", "abandoned_cart_2", "abandoned_cart_3", "post_purchase_review", "reengagement"];
+const KNOWN_KEYS = [
+  "abandoned_cart_1", "abandoned_cart_2", "abandoned_cart_3", "post_purchase_review", "reengagement",
+  "wishlist_reminder",
+  "signup_nudge", "wishlist_price_drop", "getting_started", "resell_upgrade",
+  "review_incentive", "repeat_buyer", "winback",
+];
 
 function corsHeaders() {
   return {

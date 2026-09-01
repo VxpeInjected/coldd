@@ -1049,9 +1049,9 @@
         var gap = next ? Math.max(0, next.at - sub) : 0;
         var msg = next
           ? (tier
-              ? '<b>' + tier.pct + '% off</b> applied — add ' + fmt(gap) + ' for ' + next.pct + '%'
+              ? '<b>' + tier.pct + '% off</b> applied - add ' + fmt(gap) + ' for ' + next.pct + '%'
               : 'Add ' + fmt(gap) + ' to unlock ' + next.pct + '% off')
-          : '<b>' + tier.pct + '% off</b> applied — you’re at the top tier';
+          : '<b>' + tier.pct + '% off</b> applied - you’re at the top tier';
         var tick = tier
           ? '<svg class="co-tier-tick" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg>'
           : '';
@@ -2804,7 +2804,7 @@
            always what you get by slugifying the label: "Finished Games &
            Templates" is `game-templates`, "Scripts & UI" is `scripts-ui`. Four
            of the twelve Roblox categories differ, so deriving the slug from the
-           label produced breadcrumb links that silently fell back to "all" —
+           label produced breadcrumb links that silently fell back to "all" - 
            and now feeds those URLs to crawlers via BreadcrumbList. Look the
            real slug up, and only slugify as a last resort. */
         function catSlugFor(p) {
@@ -2829,7 +2829,7 @@
           if (on && !notice) {
             pd.insertAdjacentHTML('beforeend', '<div class="pd-notfound">' +
               '<h1>Product not found</h1>' +
-              '<p>We couldn’t find a product for this link — it may have been removed, renamed, or isn’t released yet.</p>' +
+              '<p>We couldn’t find a product for this link - it may have been removed, renamed, or isn’t released yet.</p>' +
               '<a class="btn btn-primary" href="/shop">Browse the shop</a></div>');
           } else if (!on && notice) {
             notice.remove();
@@ -3718,7 +3718,7 @@
           var first = items[0];
           var slug = first ? first.product_slug : '';
           var img = (first && first.products && first.products.image) ? window.imgUrl(first.products.image) : '/banner.jpg';
-          var titles = esc(items.map(function (i) { return i.title; }).join(', ') || '—');
+          var titles = esc(items.map(function (i) { return i.title; }).join(', ') || ' - ');
           // A manually-granted order (admin panel's "Manual product grant")
           // writes status:'paid' like any real purchase - correct for
           // download/ownership access, but "Paid" reads as if the customer
@@ -3778,7 +3778,7 @@
             var first = items[0];
             var slug = first ? first.product_slug : '';
             var img = (first && first.products && first.products.image) ? window.imgUrl(first.products.image) : '/banner.jpg';
-            var titles = esc(items.map(function (i) { return i.title; }).join(', ') || '—');
+            var titles = esc(items.map(function (i) { return i.title; }).join(', ') || ' - ');
             var actions = slug ? '<a class="btn btn-ghost dr-btn" href="/product?id=' + encodeURIComponent(slug) + '">' + window.msym('visibility') + 'View</a>' : '';
             if (slug && o.status === 'paid') {
               actions += '<button class="btn btn-ghost dr-btn dr-download" type="button" data-slug="' + slug + '">' + window.msym('download') + 'Download</button>' +
@@ -4331,7 +4331,7 @@
           var placeholder = user && window.coldAuth && window.coldAuth.isPlaceholderEmail(user.email);
           curEl.textContent = !user ? '' : placeholder
             ? 'No email on this account yet - set one up under Account Settings.'
-            : ('Current email: ' + (user.email || '—'));
+            : ('Current email: ' + (user.email || ' - '));
           // The change-email form below sends a code to the CURRENT email,
           // which for a Roblox account is an undeliverable address - hide it
           // and point to the claim flow instead.
@@ -5139,7 +5139,7 @@
       }
       // The place-order button used to stay fully enabled and styled as the
       // primary action on an empty cart, while its handler bailed out on
-      // `if (!cart.length) return;` — so clicking it did nothing at all and
+      // `if (!cart.length) return;` - so clicking it did nothing at all and
       // said nothing about why. The empty cart is now reflected in the control.
       function syncPlaceButtonToCart() {
         var btn = document.getElementById('coPlace');
@@ -5600,7 +5600,7 @@
       var ROBUX_POLL_TIMEOUT_MS = 6 * 60 * 1000; // 6 minutes of continuous checking before asking the buyer to retry manually
 
       function updateRobuxModalBuyLink() {
-        if (robuxModalTotal) robuxModalTotal.textContent = robuxOrderPriceRobux != null ? 'R$ ' + robuxOrderPriceRobux.toLocaleString('en-US') : '—';
+        if (robuxModalTotal) robuxModalTotal.textContent = robuxOrderPriceRobux != null ? 'R$ ' + robuxOrderPriceRobux.toLocaleString('en-US') : ' - ';
         if (robuxModalBuyBtn) {
           if (robuxOrderGamePassId) {
             robuxModalBuyBtn.href = 'https://www.roblox.com/game-pass/' + robuxOrderGamePassId + '/';
@@ -6011,7 +6011,7 @@
             }
             return offerRow(x.id, x.image, x.title, priceHtml2, added2);
           }).join('');
-          listEl.innerHTML = rows || '<p class="co-offer-empty">You’re all set — nothing to add here.</p>';
+          listEl.innerHTML = rows || '<p class="co-offer-empty">You’re all set - nothing to add here.</p>';
 
           if (termsWrap) termsWrap.hidden = !modalAddedResell;
           if (subEl) subEl.textContent = 'Subtotal ' + fmtMoney(t.sub);

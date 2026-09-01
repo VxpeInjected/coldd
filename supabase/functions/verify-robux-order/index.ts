@@ -95,7 +95,7 @@ Deno.serve(async (req: Request) => {
         verified: false,
         status: "pending",
         code: "LEASE_EXPIRED",
-        message: "This order's payment window expired. Please start the order again — you have not been charged.",
+        message: "This order's payment window expired. Please start the order again - you have not been charged.",
       });
     }
 
@@ -132,7 +132,7 @@ Deno.serve(async (req: Request) => {
         return json({
           ok: false,
           code: "VERIFY_UNAVAILABLE",
-          error: "We can't confirm Robux payments right now. Contact support and we'll complete your order manually — your payment is safe.",
+          error: "We can't confirm Robux payments right now. Contact support and we'll complete your order manually - your payment is safe.",
         }, 503);
       }
       // Used to fall back to a live inventory check here (does the buyer's
@@ -151,7 +151,7 @@ Deno.serve(async (req: Request) => {
         ok: true,
         verified: false,
         status: "pending",
-        message: "We haven't seen your purchase yet. Roblox can take a few minutes to report it — try again shortly.",
+        message: "We haven't seen your purchase yet. Roblox can take a few minutes to report it - try again shortly.",
       });
     }
 

@@ -1,4 +1,4 @@
-# Security headers — Cloudflare setup
+# Security headers - Cloudflare setup
 
 As of 2026-08-07 coldd.dev sends **no** security headers. Verified:
 
@@ -17,7 +17,7 @@ applies site-wide, then add each header as a *Set static* action.
 
 ---
 
-## Ship these now — no downside, no testing needed
+## Ship these now - no downside, no testing needed
 
 | Header | Value | What it stops |
 |---|---|---|
@@ -29,13 +29,13 @@ applies site-wide, then add each header as a *Set static* action.
 
 **One caution on HSTS:** `max-age=31536000` commits every visiting browser to
 HTTPS-only for a year, and that is not revocable from their side. That is correct
-for coldd — it is HTTPS-only already — but start at `max-age=300` for a day if you
+for coldd - it is HTTPS-only already - but start at `max-age=300` for a day if you
 want an escape hatch, then raise it. Do **not** add `preload` unless you are
 certain, as removal from the preload list takes months.
 
 ---
 
-## CSP — needs its own pass, do not paste blind
+## CSP - needs its own pass, do not paste blind
 
 A Content-Security-Policy is the highest-value header here and the one most
 likely to break checkout if rushed. Two facts make it tractable:
@@ -54,12 +54,12 @@ sha256-/x7W7R75k8Roq0WaVRQX9blP4OufE5xbAdzklGxsgpw=
 
 Origins the site actually depends on, from a full sweep of the markup:
 
-- **scripts** — `cdn.jsdelivr.net` (supabase-js, now version-pinned with SRI)
-- **styles / fonts** — `fonts.googleapis.com`, `fonts.gstatic.com`
-- **connect** — `ekinmytmudjwfaqaqswp.supabase.co` (REST, Auth, Edge Functions, Storage)
-- **images** — Supabase Storage, plus `data:` URIs
-- **frames** — `youtube.com` / `youtube-nocookie.com` for product video embeds
-- **navigation only, not CSP-relevant** — Stripe Checkout, Roblox and Discord OAuth
+- **scripts** - `cdn.jsdelivr.net` (supabase-js, now version-pinned with SRI)
+- **styles / fonts** - `fonts.googleapis.com`, `fonts.gstatic.com`
+- **connect** - `ekinmytmudjwfaqaqswp.supabase.co` (REST, Auth, Edge Functions, Storage)
+- **images** - Supabase Storage, plus `data:` URIs
+- **frames** - `youtube.com` / `youtube-nocookie.com` for product video embeds
+- **navigation only, not CSP-relevant** - Stripe Checkout, Roblox and Discord OAuth
   are top-level redirects, so `form-action` / `frame-src` do not need them
 
 Starting policy:
@@ -85,7 +85,7 @@ inline `style=` attributes for product images and backgrounds; removing that is 
 larger refactor and is not worth blocking the rest of the policy on.
 
 `frame-ancestors 'none'` supersedes `X-Frame-Options` in modern browsers, but keep
-both — `X-Frame-Options` still covers older ones.
+both - `X-Frame-Options` still covers older ones.
 
 ---
 

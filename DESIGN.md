@@ -1,6 +1,6 @@
 ---
 name: coldd
-description: Dark-mode Roblox & Minecraft asset storefront — graphite neutrals, one ember accent, flat fills, drawn icons and neutral elevation
+description: Dark-mode Roblox & Minecraft asset storefront - graphite neutrals, one ember accent, flat fills, drawn icons and neutral elevation
 colors:
   bg: "#15161b"
   bg-2: "#191b21"
@@ -251,24 +251,24 @@ components:
 
 **Creative North Star: "The Late-Night Workshop"**
 
-coldd's origin story is the brief: a few people in a Discord trading builds late at night because what was for sale wasn't good enough. The system plays that literally — a near-black room (`--bg`) with one warm light source. Everything else recedes into graphite neutrals so the ember accent reads as *the* signal in the room rather than one colour among several. Ember appears on primary buttons, the hero's swapped platform word, focus rings, small state marks and inline links. It never fills a background band, never washes the page, and never tints a shadow.
+coldd's origin story is the brief: a few people in a Discord trading builds late at night because what was for sale wasn't good enough. The system plays that literally - a near-black room (`--bg`) with one warm light source. Everything else recedes into graphite neutrals so the ember accent reads as *the* signal in the room rather than one colour among several. Ember appears on primary buttons, the hero's swapped platform word, focus rings, small state marks and inline links. It never fills a background band, never washes the page, and never tints a shadow.
 
-The atmosphere is scoped, not ambient. A blurred banner photograph sits behind the **top of the document only** — `position: absolute`, `height: max(104vh, 940px)`, `blur(14px)` — with a scrim gradient that resolves fully to `var(--bg)` by 88%. Below the fold, panels sit on clean graphite. Depth comes from three flat ingredients: a barely-there white gradient inside glass panels, a 1px hairline ring, and a black shadow drawn from the five-step ink scale. Panels that need real separation from a photograph (product buy rail, dashboard, checkout, blog, post, tutorial) add a genuine `backdrop-filter: blur(13px) saturate(130%)` over the frosted fill.
+The atmosphere is scoped, not ambient. A blurred banner photograph sits behind the **top of the document only** - `position: absolute`, `height: max(104vh, 940px)`, `blur(14px)` - with a scrim gradient that resolves fully to `var(--bg)` by 88%. Below the fold, panels sit on clean graphite. Depth comes from three flat ingredients: a barely-there white gradient inside glass panels, a 1px hairline ring, and a black shadow drawn from the five-step ink scale. Panels that need real separation from a photograph (product buy rail, dashboard, checkout, blog, post, tutorial) add a genuine `backdrop-filter: blur(13px) saturate(130%)` over the frosted fill.
 
 Everything that looks like an icon is drawn. Stars are authored SVG, arrows and chevrons are `mask-image` shapes tinted with `currentColor`, ticks are two rotated borders. There is not one glyph-as-icon left in the stylesheet.
 
-**The icon library is Google Material Symbols (Outlined, 24dp), used as inline SVG geometry — never as the icon webfont.** The font ships icons as ligature *text*, which is precisely what the drawn-icon rule exists to prevent, and it would add a render-blocking external request that degrades to visible glyph names when it fails. Paths are copied verbatim from Google's own SVGs, so Material icons carry a `0 -960 960 960` viewBox and `fill: currentColor`, while the older hand-drawn icons in this file are *stroked* on a `0 0 24 24` viewBox — never give a Material path a stroke. `window.msym(name, size)` in `app.js` renders one for JS-built markup and holds the shared path registry; static markup inlines the same `<svg class="msym">`. Reach for Material first; author a custom SVG only when the set genuinely has no match. Type is Archivo throughout, on a whole-pixel ramp with a real heading ladder between 17px and 30px. Buttons and chips are full pills; cards and tiles are soft rectangles on a five-step radius scale. Interactive things are pills, informational surfaces are rectangles.
+**The icon library is Google Material Symbols (Outlined, 24dp), used as inline SVG geometry - never as the icon webfont.** The font ships icons as ligature *text*, which is precisely what the drawn-icon rule exists to prevent, and it would add a render-blocking external request that degrades to visible glyph names when it fails. Paths are copied verbatim from Google's own SVGs, so Material icons carry a `0 -960 960 960` viewBox and `fill: currentColor`, while the older hand-drawn icons in this file are *stroked* on a `0 0 24 24` viewBox - never give a Material path a stroke. `window.msym(name, size)` in `app.js` renders one for JS-built markup and holds the shared path registry; static markup inlines the same `<svg class="msym">`. Reach for Material first; author a custom SVG only when the set genuinely has no match. Type is Archivo throughout, on a whole-pixel ramp with a real heading ladder between 17px and 30px. Buttons and chips are full pills; cards and tiles are soft rectangles on a five-step radius scale. Interactive things are pills, informational surfaces are rectangles.
 
 **Key Characteristics:**
 - One accent colour, used rarely, always meaning "act here" or "you are here"
-- Flat fills — no gradient buttons, no coloured glows, no tinted halos
+- Flat fills - no gradient buttons, no coloured glows, no tinted halos
 - Neutral four-step elevation (`--e-1` … `--e-4`) over a five-step black-alpha scale (`--ink-25` … `--ink-85`); zero raw `rgba(0,0,0,…)` literals outside `:root`
 - Five radius steps and nothing else, plus `50%` for circles
 - Icons are drawn geometry, never typed characters
 - Selection is a neutral fill plus a weight step, never a coloured side-tab
-- Archivo on a whole-pixel ramp — integer sizes only, 11px floor
+- Archivo on a whole-pixel ramp - integer sizes only, 11px floor
 - Cards lift 2px on hover; buttons never lift, they change fill
-- No light mode as a default or system-preference auto-switch — dark is the committed identity, not a dark variant of a light one. A per-visitor opt-in light theme exists as an accessibility/preference toggle (dashboard → Appearance, off by default, `html[data-theme="light"]` token overrides in `styles.css`); it re-points the same tokens rather than designing a second visual world, and the atmospheric photo backdrop is dropped rather than adapted since it doesn't invert.
+- No light mode as a default or system-preference auto-switch - dark is the committed identity, not a dark variant of a light one. A per-visitor opt-in light theme exists as an accessibility/preference toggle (dashboard → Appearance, off by default, `html[data-theme="light"]` token overrides in `styles.css`); it re-points the same tokens rather than designing a second visual world, and the atmospheric photo backdrop is dropped rather than adapted since it doesn't invert.
 
 ## Colors
 
@@ -276,7 +276,7 @@ Graphite neutrals carry all structure; one warm ember carries all emphasis; gree
 
 ### Primary
 - **Ember** (`--accent`): The signal colour. Focus rings (`outline: 2px solid`, 3px offset), the hero's swapped platform word, the product-detail tab underline, small state marks (checkbox tick fill, range thumbs, radio dot, carousel dot), inline links inside legal and body copy, and the primary button's hover fill. Never a page background, never a shadow tint.
-- **Ember Deep** (`--accent-deep`): The resting fill of every primary action — `.btn-primary`, the card-level **Buy now**, discount badges, the currency-switcher thumb, the checked filter checkbox. Ember Deep is the *default* and Ember is the *hover*; the fill steps **up** in brightness on intent.
+- **Ember Deep** (`--accent-deep`): The resting fill of every primary action - `.btn-primary`, the card-level **Buy now**, discount badges, the currency-switcher thumb, the checked filter checkbox. Ember Deep is the *default* and Ember is the *hover*; the fill steps **up** in brightness on intent.
 - **Ember Ink** (`--accent-ink`): A light ember reading as type rather than as fill. No longer used by `.btn-tinted` / `.p-add`, which are now neutral; the token remains for any future case that genuinely needs ember as text.
 - **Ember Press** (`#cf2f27`, hard-coded literal): The pressed fill of primary buttons and of the card-level Buy now. It is no longer a `:root` token; it appears twice as a literal.
 
@@ -286,34 +286,34 @@ Graphite neutrals carry all structure; one warm ember carries all emphasis; gree
 - **Minecraft Fill** (`--mc`) with **`--mc-hover`** and **`--mc-press`**: The `.btn-minecraft` state ladder. Minecraft is a second brand fill, not an accent, and it only ever appears in explicitly Minecraft-scoped UI. Its three states are tokens so the button steps like every other filled control.
 
 ### Payment brand marks
-Three colours sit deliberately outside the palette because they are other companies' identities, not ours: Stripe `#8a83ff`, PayPal `#7b95d6`, Crypto `#e8b64c`. They are permitted **only** as the `fill`/`color` of the payment-method SVG inside `.co-pay-btn`, never as a surface, border or text colour. The tiles themselves share one neutral surface — the moment a brand colour becomes a background, four vendors start competing with each other and with the ember.
+Three colours sit deliberately outside the palette because they are other companies' identities, not ours: Stripe `#8a83ff`, PayPal `#7b95d6`, Crypto `#e8b64c`. They are permitted **only** as the `fill`/`color` of the payment-method SVG inside `.co-pay-btn`, never as a surface, border or text colour. The tiles themselves share one neutral surface - the moment a brand colour becomes a background, four vendors start competing with each other and with the ember.
 
 ### Tertiary
-- **Success** (`--ok`) with **Success Tint** (`--ok-tint`): One token for "this passed / this is fixed" — met password-checklist rows, the easiest tutorial difficulty, the "fix" release-kind badge. Two different greens used to both mean success; this is now the single value.
+- **Success** (`--ok`) with **Success Tint** (`--ok-tint`): One token for "this passed / this is fixed" - met password-checklist rows, the easiest tutorial difficulty, the "fix" release-kind badge. Two different greens used to both mean success; this is now the single value.
 - **Warning** (`--warn`) with **Warning Tint** (`--warn-tint`): Pending and attention states in the dashboard and admin tables.
 - **Info** (`--info`) with **Info Tint** (`--info-tint`): Neutral informational badges in the admin panel.
 - **Star** (`--star`): Filled review stars on cards, on product detail and in the review form. The only warm-yellow in the storefront; it exists so ratings do not read as another CTA. Empty stars are the same drawn shape at `rgba(255,255,255,0.16)`.
 
 ### Neutral
 - **Void** (`--bg`): Page base, behind everything.
-- **Surface** (`--bg-2`): The next layer up — legal cards (which deliberately opt out of translucency for reading contrast), the mobile nav overlay and filter sheet, the disabled state of the card action buttons.
+- **Surface** (`--bg-2`): The next layer up - legal cards (which deliberately opt out of translucency for reading contrast), the mobile nav overlay and filter sheet, the disabled state of the card action buttons.
 - **Surface Raised** (`--bg-3`): Product cards, free cards, chips, dropdown triggers, toolbars, code badges. Reads as a distinct block against Surface.
 - **Frosted Fill** (`rgba(17,18,24,0.74)`, hard-coded literal, repeated ~8×): The translucent panel fill paired with `backdrop-filter: blur(13px) saturate(130%)` on the product buy rail, dashboard, checkout, blog cards, post rail and tutorial cards.
 - **Ink** (`--fg`): Primary text, headings, button labels.
-- **Ink Body** (`--fg-1`): One step below primary — dense body text inside panels, list rows, review bodies, feature lists, menu options, the hero sub-headline.
+- **Ink Body** (`--fg-1`): One step below primary - dense body text inside panels, list rows, review bodies, feature lists, menu options, the hero sub-headline.
 - **Ink Muted** (`--fg-2`): Secondary text, descriptions, nav links at rest, sub-labels.
 - **Ink Faint** (`--fg-3`): Tertiary text, placeholders, meta, disabled, struck-through prices, neutral list bullets. Lifted from `#6b7280` so it clears WCAG AA 4.5:1 on all three surfaces while staying visibly below Ink Muted.
 - **Hairline** (`--hairline`): The resting border and divider value for the whole system.
-- **Hairline Strong** (`--hairline-strong`): The hover border. When a card or tile is hovered, the border steps from Hairline to Hairline Strong — the system's standard "you are pointing at this" cue, and it is neutral.
+- **Hairline Strong** (`--hairline-strong`): The hover border. When a card or tile is hovered, the border steps from Hairline to Hairline Strong - the system's standard "you are pointing at this" cue, and it is neutral.
 - **Ink 25 / 40 / 60 / 75 / 85** (`--ink-25` … `--ink-85`): The black-alpha scale. Every shadow, scrim, text-shadow and dark inset fill in the stylesheet snaps to one of these five steps.
 
 ### Named Rules
 
-**The One Ember Rule.** Ember means "act here" or "you are here". It is never decoration, never a background band, never a glow. If a new element wants red so it will stand out, it is asking to compete with a CTA — give it a neutral and let the CTA win. Where a grid would repeat a solid ember many times over, only the primary action keeps the fill; its partner drops to the tint.
+**The One Ember Rule.** Ember means "act here" or "you are here". It is never decoration, never a background band, never a glow. If a new element wants red so it will stand out, it is asking to compete with a CTA - give it a neutral and let the CTA win. Where a grid would repeat a solid ember many times over, only the primary action keeps the fill; its partner drops to the tint.
 
 **The Two Greens Rule.** Price Green means "this number is good news". Minecraft Green means "you are on the Minecraft side of the site". Success Green (`--ok`) means "this passed". Never let one bleed into another's context, and never introduce a fourth green.
 
-**The Five Blacks Rule.** Black is only ever `--ink-25`, `--ink-40`, `--ink-60`, `--ink-75` or `--ink-85`. A new `rgba(0,0,0,…)` literal outside `:root` is a regression — the file previously ran fifteen near-identical alphas in two notations.
+**The Five Blacks Rule.** Black is only ever `--ink-25`, `--ink-40`, `--ink-60`, `--ink-75` or `--ink-85`. A new `rgba(0,0,0,…)` literal outside `:root` is a regression - the file previously ran fifteen near-identical alphas in two notations.
 
 **The Neutral Border Rule.** Every resting border is Hairline; every hover border is Hairline Strong. Accent-tinted borders are reserved for genuine radio-style selection (`.pm-lic.active`, `.co-pay-btn.active`, `.pd-thumb.active`, `.pm-thumb.active`), for input focus, and for the tinted button variant. Do not add a fourth border colour.
 
@@ -327,7 +327,7 @@ Three colours sit deliberately outside the palette because they are other compan
 
 ### Hierarchy
 - **Display** (800, 1.03 line-height, -0.04em): Hero headline and page-head `h1` only. Two clamps exist: the hero at `5.6vw` and the page head at `6vw`, both spanning 40 → 66px.
-- **Headline** (700, 1.04, -0.035em): Section headers (`.sec-head h2`). Deliberately a full step below Display — section bands must not shout at hero volume.
+- **Headline** (700, 1.04, -0.035em): Section headers (`.sec-head h2`). Deliberately a full step below Display - section bands must not shout at hero volume.
 - **Title / 30px** (800, 1.1, -0.02em): Product-detail title and product-detail price, the team role plate.
 - **Subtitle / 24px** (700–800, -0.02em): Modal titles, dashboard and admin figures, cart totals, related/FAQ section heads, post `h2`.
 - **Section / 20px** (700, -0.02em): Blog-card titles, legal `h2`, drawer heads, panel sub-heads, release titles, hero statistic figures.
@@ -338,7 +338,7 @@ Three colours sit deliberately outside the palette because they are other compan
 - **Label / 13px** (500–700): Nav links, chips, filter sub-rows, badges, footer links, dropdown options, form labels, card action buttons.
 - **Micro / 12px** (600): Meta lines, hints, counts, timestamps, filter group labels.
 - **Nano / 11px** (700, up to 0.09em, often uppercase): Eyebrow tags on cards, search group labels, difficulty and release-kind badges, review counts. This is the floor.
-- **Mono** (`ui-monospace, SFMono-Regular, Menlo, Consolas, monospace`): The only non-Archivo face in the system, and it is a system stack, never a webfont. Reserved for strings the user must read character by character — the account-deletion confirmation code and the ABN in the legal pages. It is not a texture: monospace as a costume for "technical" is not a use.
+- **Mono** (`ui-monospace, SFMono-Regular, Menlo, Consolas, monospace`): The only non-Archivo face in the system, and it is a system stack, never a webfont. Reserved for strings the user must read character by character - the account-deletion confirmation code and the ABN in the legal pages. It is not a texture: monospace as a costume for "technical" is not a use.
 
 ### Named Rules
 
@@ -354,11 +354,11 @@ Three colours sit deliberately outside the palette because they are other compan
 
 Centred container at `--maxw` (1280px) with 24px side padding (`.wrap`). Catalog surfaces widen: the shop and free-products bands run to 1760px with 40px padding so the product grid can breathe. Vertical rhythm between major homepage bands is a flat 104px (`.section-pad`).
 
-The shop is a two-column grid — a 280px sticky filter rail (`top: 96px`) beside a fluid product grid, 32px gutter. The grid runs 3 columns by default, 4 above 1400px, 2 below 900px and 1 below 440px. Product detail is `minmax(0,1fr) 364px` with a sticky right buy rail (34px gutter). Checkout is `1fr 388px`. Dashboard and admin are `244px` sidebar plus fluid main. The tutorial hub is `244px 1fr`; post detail is `minmax(0,1fr) 260px`.
+The shop is a two-column grid - a 280px sticky filter rail (`top: 96px`) beside a fluid product grid, 32px gutter. The grid runs 3 columns by default, 4 above 1400px, 2 below 900px and 1 below 440px. Product detail is `minmax(0,1fr) 364px` with a sticky right buy rail (34px gutter). Checkout is `1fr 388px`. Dashboard and admin are `244px` sidebar plus fluid main. The tutorial hub is `244px 1fr`; post detail is `minmax(0,1fr) 260px`.
 
 Component spacing runs a short scale: 8px inside controls, 16–20px grid gutters, 18–24px panel padding, 46–50px on large feature cards (resell, about), 50px/56px on legal cards.
 
-Responsive behaviour collapses in stages, and the nav breakpoint is deliberately not the page breakpoint. The floating header is a self-contained pill (`.nav-inner`, 16px radius, 50px tall) fixed 12px from the top and centred; it shrinks its own internal gap on scroll rather than the page reflowing under it. **At 1100px** the inline nav links hide and a hamburger opens the same `.nav-links` element as a full-screen overlay on opaque `--bg-2` — wider than the 900px used for content because the centred nav pill and the right-pinned cart pill physically collide before then. **At 1040px** the filter rail stops being a rail and becomes a bottom sheet (`translateY(101%)`, 82vh max, `--r` top corners) opened from an explicit button, scoped to `html.js` so a scriptless page keeps the panel in the flow. Multi-column grids step to 2 columns around 900px and 1 column around 440–560px. The hero's decorative mini-cards are removed outright below 920px rather than being squeezed — they belong to the two-column composition.
+Responsive behaviour collapses in stages, and the nav breakpoint is deliberately not the page breakpoint. The floating header is a self-contained pill (`.nav-inner`, 16px radius, 50px tall) fixed 12px from the top and centred; it shrinks its own internal gap on scroll rather than the page reflowing under it. **At 1100px** the inline nav links hide and a hamburger opens the same `.nav-links` element as a full-screen overlay on opaque `--bg-2` - wider than the 900px used for content because the centred nav pill and the right-pinned cart pill physically collide before then. **At 1040px** the filter rail stops being a rail and becomes a bottom sheet (`translateY(101%)`, 82vh max, `--r` top corners) opened from an explicit button, scoped to `html.js` so a scriptless page keeps the panel in the flow. Multi-column grids step to 2 columns around 900px and 1 column around 440–560px. The hero's decorative mini-cards are removed outright below 920px rather than being squeezed - they belong to the two-column composition.
 
 ## Elevation & Depth
 
@@ -366,19 +366,19 @@ Depth is neutral and layered, never coloured. Four elevation tokens cover the wh
 
 The `.glass` treatment is the base: a `linear-gradient(180deg, var(--glass-top), var(--glass-bot))` fill, `--e-3`, and a masked 1px ring whose gradient runs 11% → 5% → 3.5% white. That ring is near-even top to bottom by design; the old top-lit 28% white edge was the tell that the surface was decorative rather than structural.
 
-The backdrop is scoped to the top of the document. It is `position: absolute` (not fixed), `max(104vh, 940px)` tall, `blur(14px)`, with a scrim that reaches `var(--bg)` at 88%. Below that height the page is clean graphite. The retired atmosphere — animated blur blobs, the radial red page wash, the grain overlay and the eyebrow pill — is kept as `display: none` no-ops so pages still emitting the markup render clean. The page loader (rings, pulsing logo, LOADING text) and its keyframes are deleted outright, as are `.pulse` and `@keyframes ping`.
+The backdrop is scoped to the top of the document. It is `position: absolute` (not fixed), `max(104vh, 940px)` tall, `blur(14px)`, with a scrim that reaches `var(--bg)` at 88%. Below that height the page is clean graphite. The retired atmosphere - animated blur blobs, the radial red page wash, the grain overlay and the eyebrow pill - is kept as `display: none` no-ops so pages still emitting the markup render clean. The page loader (rings, pulsing logo, LOADING text) and its keyframes are deleted outright, as are `.pulse` and `@keyframes ping`.
 
 ### Shadow Vocabulary
 - **`--e-1`** (`0 1px 2px rgba(0,0,0,0.4)`): Pressed state. Primary and Minecraft buttons drop to this on `:active`.
 - **`--e-2`** (`0 4px 12px -4px rgba(0,0,0,0.55)`): The resting shadow of a filled button, and of the filter panel.
 - **`--e-3`** (`0 18px 44px -24px rgba(0,0,0,0.8)`): Glass panels at rest; cards and tiles on hover.
-- **`--e-4`** (`0 30px 70px -34px rgba(0,0,0,0.88)`): The heaviest step — the expanded team panel and equivalent full-attention surfaces.
+- **`--e-4`** (`0 30px 70px -34px rgba(0,0,0,0.88)`): The heaviest step - the expanded team panel and equivalent full-attention surfaces.
 
 Beyond the four tokens, bespoke shadows exist for drawers, menus and overlays; all of them draw their black from the ink scale (`0 18px 50px -22px var(--ink-75)`, `0 -30px 80px -30px var(--ink-85)`, and so on).
 
 ### Named Rules
 
-**The Neutral Shadow Rule.** Nothing gets a shadow tinted to its own colour — buttons included. Red buttons get `--e-2`, green buttons get `--e-2`, glass panels get `--e-3`. If a shadow needs an `rgba()` with a hue in it, the design is asking for a glow; give it a border step or a fill step instead.
+**The Neutral Shadow Rule.** Nothing gets a shadow tinted to its own colour - buttons included. Red buttons get `--e-2`, green buttons get `--e-2`, glass panels get `--e-3`. If a shadow needs an `rgba()` with a hue in it, the design is asking for a glow; give it a border step or a fill step instead.
 
 **The Cards Lift, Buttons Fill Rule.** Hover response is split by element class. Cards, tiles and product cards lift a uniform `translateY(-2px)`, step their border to Hairline Strong, and take `--e-3`. `.btn` transitions background, border-colour, colour and box-shadow, and nothing else. A `.btn` that lifts is a bug.
 
@@ -388,11 +388,11 @@ Beyond the four tokens, bespoke shadows exist for drawers, menus and overlays; a
 
 Radius is a five-step scale declared as tokens, and the page computes nothing else besides `50%` for circles:
 
-- **`--r-xs` (4px)** — badges, code inline, tick and bar shapes, small icon plates.
-- **`--r-ctl` (10px)** — the control radius: card action buttons, inputs in compact contexts, list rows, menu options, pager cells, thumbnails, overlay badges.
-- **`--r-sm` (16px)** — panels and inner cards: product cards, the filter panel, the buy card, form fields, toolbars, the nav pill, segmented-control shells.
-- **`--r` (24px)** — large cards and section surfaces: glass panels, blog cards, post covers, the mobile filter sheet's top corners.
-- **`--r-pill` (999px)** — anything you press or anything that reads as a token: buttons, chips, badges, tags, rails, avatars' counters.
+- **`--r-xs` (4px)** - badges, code inline, tick and bar shapes, small icon plates.
+- **`--r-ctl` (10px)** - the control radius: card action buttons, inputs in compact contexts, list rows, menu options, pager cells, thumbnails, overlay badges.
+- **`--r-sm` (16px)** - panels and inner cards: product cards, the filter panel, the buy card, form fields, toolbars, the nav pill, segmented-control shells.
+- **`--r` (24px)** - large cards and section surfaces: glass panels, blog cards, post covers, the mobile filter sheet's top corners.
+- **`--r-pill` (999px)** - anything you press or anything that reads as a token: buttons, chips, badges, tags, rails, avatars' counters.
 
 Two families chosen by function, not by size: **pill** for anything you press or that reads as a token; **soft rectangle** for anything that contains content. Nothing uses a sharp 0px corner except the filter panel once it becomes a full-bleed mobile sheet. Borders are uniformly 1px; the only heavier borders are on thumbnail selection frames (`.pd-thumb`, `.pm-thumb`, 2px), radio rings (2px) and a few 1.5px checkbox/licence outlines, where the border *is* the selection indicator.
 
@@ -400,7 +400,7 @@ Two families chosen by function, not by size: **pill** for anything you press or
 
 **The Five Steps Rule.** 4 / 10 / 16 / 24 / 999, plus `50%` for circles. The system previously ran 18 distinct radius values between 2px and 999px with no relationship between them. A sixth step is not a design decision, it is drift.
 
-**The No Coloured Rail Rule.** A `border-left` heavier than 1px, in any accent colour, is banned system-wide. It is the most recognisable generated-UI tell. Vertical rails exist only as 1px hairlines used for structure — the sub-category indent (`.fc-subs`), legal clause indents (`.legal-clause`), the dividers between hero statistics (`.hstat + .hstat`) and between about-page figures. Never colour them.
+**The No Coloured Rail Rule.** A `border-left` heavier than 1px, in any accent colour, is banned system-wide. It is the most recognisable generated-UI tell. Vertical rails exist only as 1px hairlines used for structure - the sub-category indent (`.fc-subs`), legal clause indents (`.legal-clause`), the dividers between hero statistics (`.hstat + .hstat`) and between about-page figures. Never colour them.
 
 **The Pill/Rectangle Rule.** If you press it, it is a pill. If you read it, it is a soft rectangle. Never mix the two on the same element type, and never introduce a "barely rounded" 6px corner between `--r-xs` and `--r-ctl`.
 
@@ -409,7 +409,7 @@ Two families chosen by function, not by size: **pill** for anything you press or
 ### Buttons
 - **Shape:** Full pill (999px), `min-height: 46px`, `padding: 12px 22px`, 14px at 600 weight with -0.004em tracking, 8px gap for an icon. Compact contexts override height only (nav CTA 44px, dashboard row actions 36px, hero CTA 50px at 15px).
 - **Primary:** Flat `--accent-deep` fill, white text, `1px solid rgba(255,255,255,0.14)` border, `--e-2`. Hover steps the fill up to `--accent` and the border to `rgba(255,255,255,0.24)`. Active drops to `#cf2f27` and `--e-1`. The button does not move.
-- **Tinted:** A **neutral** raised secondary — `rgba(255,255,255,0.07)` background, Hairline Strong border, Ink text. Hover goes `0.12` / `rgba(255,255,255,0.26)` / white text; active settles at `0.09`. This is the **secondary half of a buy pair**. It was an ember tint until it was found sitting next to a solid ember primary on every card, product page and modal: two red buttons side by side is a generated-commerce tell and contradicted the accent-discipline rule in the Do list below. It stays heavier than Ghost — stronger border, brighter label — so the pair still reads as two real commerce actions rather than a button and an afterthought.
+- **Tinted:** A **neutral** raised secondary - `rgba(255,255,255,0.07)` background, Hairline Strong border, Ink text. Hover goes `0.12` / `rgba(255,255,255,0.26)` / white text; active settles at `0.09`. This is the **secondary half of a buy pair**. It was an ember tint until it was found sitting next to a solid ember primary on every card, product page and modal: two red buttons side by side is a generated-commerce tell and contradicted the accent-discipline rule in the Do list below. It stays heavier than Ghost - stronger border, brighter label - so the pair still reads as two real commerce actions rather than a button and an afterthought.
 - **Ghost:** `--glass-top` fill, Hairline border, Ink text. Hover fills to `rgba(255,255,255,0.10)` and borders to Hairline Strong; active returns to `0.06`. The default partner beside a Primary in non-commerce contexts.
 - **Minecraft:** Same flat-fill pattern in the Minecraft palette; only ever in Minecraft-scoped UI.
 - **Disabled:** `--bg-3` fill, `--fg-3` text, Hairline border, no shadow, `cursor: not-allowed`.
@@ -433,7 +433,7 @@ One rule across catalog cards, product detail and the quick-view modal: **Buy no
 
 ### Cards / Containers
 - **Corner Style:** `--r` for panels and blog cards, `--r-sm` for product cards, buy cards and inner blocks.
-- **Background:** Three families — `.glass` (translucent gradient + masked ring, for modals, mega-menu, search panel, auth cards), **frosted** (the frosted fill + `blur(13px) saturate(130%)`, for the buy rail, dashboard, checkout, blog, post and tutorial panels), and **solid** (`--bg-2` for legal pages, `--bg-3` for product and free cards). Choose solid whenever reading contrast must not depend on what is behind the card.
+- **Background:** Three families - `.glass` (translucent gradient + masked ring, for modals, mega-menu, search panel, auth cards), **frosted** (the frosted fill + `blur(13px) saturate(130%)`, for the buy rail, dashboard, checkout, blog, post and tutorial panels), and **solid** (`--bg-2` for legal pages, `--bg-3` for product and free cards). Choose solid whenever reading contrast must not depend on what is behind the card.
 - **Shadow Strategy:** `--e-3` at rest for glass; frosted panels add an inset 1px white top line plus a `-26px` spread black shadow drawn from `--ink-75`.
 - **Border:** 1px Hairline, plus the masked gradient ring on `.glass` only. `.legal-card` explicitly disables the ring.
 - **Hover:** 2px lift, border to Hairline Strong, `--e-3`. Press feedback on linked tiles is `scale(0.99)`; the tinted expanding ripple is retired.
@@ -462,7 +462,7 @@ The catalog filter reads as a tool panel bolted to the page, not a floating fros
 - **Price range:** Neutral rail (`rgba(255,255,255,0.11)`, 4px, pill) with a neutral selected span (`rgba(255,255,255,0.5)`); ember lives only on the thumbs, which is the part you actually drag.
 
 ### Checkout Payment Tiles
-`.co-pay-btn` is one neutral surface per method: `--ink-25` fill, Hairline border, `--fg-2` label at 15px/700, `--r-sm`, `15px 18px`. Selection borders in ember with a 1px inset ember ring and lifts the fill to `rgba(255,255,255,0.06)`. **Brand colour lives only in the SVG mark** — Stripe `#8a83ff`, PayPal `#7b95d6`, crypto `#e8b64c`, Robux `--price` — never in the slab behind it. The Card/Robux switch above it (`.co-pay-tab`) selects neutrally at `rgba(255,255,255,0.11)`.
+`.co-pay-btn` is one neutral surface per method: `--ink-25` fill, Hairline border, `--fg-2` label at 15px/700, `--r-sm`, `15px 18px`. Selection borders in ember with a 1px inset ember ring and lifts the fill to `rgba(255,255,255,0.06)`. **Brand colour lives only in the SVG mark** - Stripe `#8a83ff`, PayPal `#7b95d6`, crypto `#e8b64c`, Robux `--price` - never in the slab behind it. The Card/Robux switch above it (`.co-pay-tab`) selects neutrally at `rgba(255,255,255,0.11)`.
 
 ### Selection & Menus
 - **Segmented and tab controls** (`.bt-opt`, `.nmt-tab`, `.co-pay-tab`, `.chip`) select on `rgba(255,255,255,0.11)` with white text inside a `--r-sm` shell.
@@ -480,15 +480,15 @@ Every icon is drawn geometry.
 There are **zero** `content:` glyph icons in the stylesheet.
 
 ### Legal Clauses
-`.legal-clause` indents behind a 1px Hairline `border-left` at 16px. The clause number is a real label — `.lc-num`, `min-width: 62px`, `margin-right: 10px`, `--fg` at 700 with tabular numerals — not an em-dash doing layout's job.
+`.legal-clause` indents behind a 1px Hairline `border-left` at 16px. The clause number is a real label - `.lc-num`, `min-width: 62px`, `margin-right: 10px`, `--fg` at 700 with tabular numerals - not an em-dash doing layout's job.
 
 ### Hero Statistics
-Real figures set inline on one baseline, separated by 1px hairlines — a 20px/700 number beside a 14px muted label, not a row of stat cards. The stacked big-number-over-tiny-uppercase-label arrangement is the generated landing page's default proof device; these figures are real, so they read as a sentence of facts. Below 560px they wrap to two lines and the divider only ever sits between neighbours on the same line. The about-page figure band follows the same logic at `clamp(26px, 2.6vw, 34px)`.
+Real figures set inline on one baseline, separated by 1px hairlines - a 20px/700 number beside a 14px muted label, not a row of stat cards. The stacked big-number-over-tiny-uppercase-label arrangement is the generated landing page's default proof device; these figures are real, so they read as a sentence of facts. Below 560px they wrap to two lines and the divider only ever sits between neighbours on the same line. The about-page figure band follows the same logic at `clamp(26px, 2.6vw, 34px)`.
 
 ### Scroll Reveal (motion)
 `.reveal` defaults to `opacity: 1; transform: none`. The hidden state is scoped to `html.js`, a class set by a one-line inline script in every page's `<head>`; `app.js` then adds `.in` as elements enter the viewport. Delay helpers `.d1`–`.d5` step 60ms apart. Easing is `--ease` (`cubic-bezier(0.22, 1, 0.36, 1)`) for transforms and `--ease-out` (`cubic-bezier(0.16, 1, 0.3, 1)`) for entrances and icon nudges. Under `prefers-reduced-motion`, both the visible and `html.js` hidden states resolve to fully visible with no transition, and a blanket rule caps every duration at 0.01ms.
 
-**The Visible-Without-JS Rule.** Content is visible by default and animation *removes* that default, never grants it. Any entrance effect must be written so that a blocked, failed or slow script leaves the page fully readable. This is a robustness constraint, not a stylistic preference — the legal pages once went permanently blank in exactly this way. The same reasoning scopes the mobile filter sheet to `html.js`: without scripting the panel stays in the document flow rather than becoming unreachable.
+**The Visible-Without-JS Rule.** Content is visible by default and animation *removes* that default, never grants it. Any entrance effect must be written so that a blocked, failed or slow script leaves the page fully readable. This is a robustness constraint, not a stylistic preference - the legal pages once went permanently blank in exactly this way. The same reasoning scopes the mobile filter sheet to `html.js`: without scripting the panel stays in the document flow rather than becoming unreachable.
 
 **The Compositor Rule, and its eight exceptions.** Animate `transform` and `opacity`. Everything else forces layout on every frame, and on a catalog page that means re-laying out a grid of product cards sixty times a second.
 
@@ -497,7 +497,7 @@ Eight declarations deliberately break this, and each one is a case where `transf
 - **The nav search field** (three rules: `max-width`, `margin`, `width`/`padding`). The field genuinely grows from a 32px button into a 190px input. `scaleX` would stretch the placeholder text and the magnifier glyph with it.
 - **The carousel dot** (`width`). A 7px circle grows into an 18px pill; scaling would smear the border-radius into an ellipse.
 - **The currency switcher thumb** (`left`, `width`). Slides and resizes between tabs of different widths.
-- **The subcategory accordion** (`margin`). Height itself is already correct — it animates `grid-template-rows: 0fr → 1fr` against a `.fc-subs-inner` wrapper, so it measures real content instead of racing a `max-height` guess. Only the 8px margin remains on the layout path.
+- **The subcategory accordion** (`margin`). Height itself is already correct - it animates `grid-template-rows: 0fr → 1fr` against a `.fc-subs-inner` wrapper, so it measures real content instead of racing a `max-height` guess. Only the 8px margin remains on the layout path.
 - **The password-strength panel** (`max-height`). It has two direct children, so the `0fr → 1fr` grid technique cannot apply without a wrapper that does not exist yet. This is the one genuine candidate for conversion.
 - **The password-strength bar** (`width`). A meter filling. `scaleX` would squash its rounded cap.
 
@@ -508,7 +508,7 @@ Do not add a ninth without the same justification, and never animate width or he
 ### Do:
 - **Do** keep ember to primary actions, focus rings, small state marks and the hero platform word. If it is the third or fourth red thing on screen, make it neutral.
 - **Do** put Buy now first as the filled primary and Add to cart second as `.btn-tinted`, on every surface that sells.
-- **Do** draw every icon — SVG, `mask-image`, or borders. A typed `→`, `★`, `✓` or `▾` is a bug.
+- **Do** draw every icon - SVG, `mask-image`, or borders. A typed `→`, `★`, `✓` or `▾` is a bug.
 - **Do** gate hover styling on interactive controls behind `@media (hover: hover) and (pointer: fine)`, and give pressable controls a `scale(0.97)` `:active`.
 - **Do** pick a radius from the five steps (`--r-xs`, `--r-ctl`, `--r-sm`, `--r`, `--r-pill`) or `50%` for a circle.
 - **Do** draw every black from `--ink-25` … `--ink-85`, and every shadow from `--e-1` … `--e-4` or a neutral relative built on the ink scale.
@@ -526,19 +526,19 @@ Do not add a ninth without the same justification, and never animate width or he
 - **Don't** write a raw `rgba(0,0,0,…)` outside `:root`, or add a sixth radius step.
 - **Don't** reintroduce a half-pixel font size, a 10px size, or an eleventh ramp step.
 - **Don't** type an icon as a character, and don't add a `content: "→"`-style pseudo-element icon.
-- **Don't** select with an ember fill or an accent side-tab in list, tab, chip or segmented UI — ember borders are for radio-style selection and input focus only.
+- **Don't** select with an ember fill or an accent side-tab in list, tab, chip or segmented UI - ember borders are for radio-style selection and input focus only.
 - **Don't** put a backdrop blur on the filter panel, or give its section headings wide-tracked uppercase micro-caps.
 - **Don't** paint a payment tile in its brand colour; the mark carries the brand, the slab stays neutral.
-- **Don't** put a fixed, full-page background image, a radial accent wash, a grain overlay, an animated blob, or a page loader behind the page — all five were removed on purpose.
+- **Don't** put a fixed, full-page background image, a radial accent wash, a grain overlay, an animated blob, or a page loader behind the page - all five were removed on purpose.
 - **Don't** author an entrance animation whose resting state is invisible outside the `html.js` scope.
 - **Don't** use Minecraft Green, Price Green and Success Green interchangeably, or invent a fourth green.
 - **Don't** introduce a border colour beyond Hairline and Hairline Strong.
-- **Don't** default to light mode, auto-switch on system `prefers-color-scheme`, or design light mode as a second brand identity. The one sanctioned exception is the opt-in `data-theme="light"` toggle in dashboard Appearance settings — off by default, same tokens re-pointed, no new components.
+- **Don't** default to light mode, auto-switch on system `prefers-color-scheme`, or design light mode as a second brand identity. The one sanctioned exception is the opt-in `data-theme="light"` toggle in dashboard Appearance settings - off by default, same tokens re-pointed, no new components.
 
 ### Cookie Consent Bar
 
 A fixed bottom bar (`.cookie-bar`), frosted fill, hairline top border, injected by `supabase-init.js` only when no decision is stored. **Never a modal:** it does not trap focus, does not cover the page, and everything behind it stays readable and usable. A consent prompt that holds the site hostage is a dark pattern, and the modal rule above already refuses modals for tasks needing neither interruption nor protected focus.
 
-Both choices are equally weighted `.btn`s side by side in the standard buy-pair order — **Essential only** as `.btn-tinted`, **Accept all** as `.btn-primary`. Declining must stay exactly as easy as accepting: never demote the decline to a text link, a smaller control, or a second screen. Below 620px the two go full-width and equal-flex so neither shrinks.
+Both choices are equally weighted `.btn`s side by side in the standard buy-pair order - **Essential only** as `.btn-tinted`, **Accept all** as `.btn-primary`. Declining must stay exactly as easy as accepting: never demote the decline to a text link, a smaller control, or a second screen. Below 620px the two go full-width and equal-flex so neither shrinks.
 
-The consent model has exactly two categories. **Essential** (auth session, cart, currency, site gate, the consent record itself) is never optional and is never offered as a toggle. **Analytics** (the pageview beacon, the abandoned-cart snapshot) defaults to *off* and waits for an explicit yes — `coldConsent.allows()` returns false while undecided, so silence is a decline, not consent. Any new non-essential storage or beacon must be gated behind `window.coldConsent.allows('analytics')` and must not mint an identifier before that check passes.
+The consent model has exactly two categories. **Essential** (auth session, cart, currency, site gate, the consent record itself) is never optional and is never offered as a toggle. **Analytics** (the pageview beacon, the abandoned-cart snapshot) defaults to *off* and waits for an explicit yes - `coldConsent.allows()` returns false while undecided, so silence is a decline, not consent. Any new non-essential storage or beacon must be gated behind `window.coldConsent.allows('analytics')` and must not mint an identifier before that check passes.

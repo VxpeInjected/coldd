@@ -259,7 +259,7 @@
   }
 
   /* ================================================================
-     LIVE DATA — users, referrals, traffic, and abandoned carts below
+     LIVE DATA - users, referrals, traffic, and abandoned carts below
      are all read from Supabase (see refreshUsers/refreshAdminReferrals/
      refreshTraffic/refreshAbandoned), same as Orders/Coupons/Reviews/
      Roblox containers/Posts/Staff. lsGet/lsSet now only persist
@@ -875,7 +875,7 @@
   function can(minRole) { return ROLES[currentRole().role] >= ROLES[minRole]; }
 
   /* ================================================================
-     PRODUCT VIEW MODEL — real data from public.products/product_legal,
+     PRODUCT VIEW MODEL - real data from public.products/product_legal,
      read via the signed-in admin's own session (RLS: products_select_admin
      / product_legal_select_admin let is_admin=true profiles see everything,
      not just is_active=true rows). Writes go through the admin-upsert-product
@@ -1031,7 +1031,7 @@
     if (!prev) return cur ? '<span class="ds-delta up">▲ New</span>' : '';
     var pct = ((cur - prev) / prev) * 100;
     var cls = pct > 0.5 ? 'up' : pct < -0.5 ? 'down' : 'flat';
-    var arrow = cls === 'up' ? '▲' : cls === 'down' ? '▼' : '—';
+    var arrow = cls === 'up' ? '▲' : cls === 'down' ? '▼' : '–';
     return '<span class="ds-delta ' + cls + '">' + arrow + ' ' + Math.abs(Math.round(pct * 10) / 10) + '%</span>';
   }
   function setRange(n) {
@@ -1425,7 +1425,7 @@
   // Placeholder tiles shown while ORDERS is still loading, so the panels
   // never flash a computed-from-nothing 0.
   function loadingStats(n) {
-    var one = '<div class="dash-stat glass"><span class="ds-label">Loading…</span><span class="ds-num">—</span></div>';
+    var one = '<div class="dash-stat glass"><span class="ds-label">Loading…</span><span class="ds-num"> - </span></div>';
     return new Array(n + 1).join(one);
   }
   function renderHome() {
@@ -1461,9 +1461,9 @@
       statTile('Live sessions', LIVE_SESSIONS, 'active in the last 5 min', ''),
       aud1.channels.length
         ? deltaTile('Total audience', num(aud1.total), aud1.delta, aud1.channels.length + ' channel' + (aud1.channels.length === 1 ? '' : 's'))
-        : statTile('Total audience', DISCORD_STATS.memberCount != null ? num(DISCORD_STATS.memberCount) : '—', 'loading channels…', ''),
+        : statTile('Total audience', DISCORD_STATS.memberCount != null ? num(DISCORD_STATS.memberCount) : '–', 'loading channels…', ''),
       statTile('Discord net',
-        joins == null ? '—' : (joins.joins > 0 ? '+' : '') + joins.joins.toLocaleString('en-US'),
+        joins == null ? '–' : (joins.joins > 0 ? '+' : '') + joins.joins.toLocaleString('en-US'),
         joins == null ? 'Gathering history' : ('member count · ' + (joins.partial ? 'since ' + joins.sinceKey : (RANGE_DAYS ? 'selected range' : 'all time'))), ''),
       statTile('Referrals owed', aud(owed.usdTotal), owed.count ? (owed.count + ' request' + (owed.count === 1 ? '' : 's') + ' pending') : 'Nothing pending', '', { panel: 'analytics', title: owed.names.length ? 'Requested by: ' + owed.names.join(', ') : '' })
     ].join('');
@@ -1636,7 +1636,7 @@
   function socialDeltaSpan(d) {
     if (!d || d.abs == null) return '';
     var cls = d.abs > 0 ? 'up' : d.abs < 0 ? 'down' : 'flat';
-    var arrow = cls === 'up' ? '▲' : cls === 'down' ? '▼' : '—';
+    var arrow = cls === 'up' ? '▲' : cls === 'down' ? '▼' : '–';
     var pctPart = (d.pct != null && isFinite(d.pct)) ? ' · ' + Math.abs(Math.round(d.pct * 10) / 10) + '%' : '';
     return '<span class="ds-delta ' + cls + '">' + arrow + ' ' + (d.abs > 0 ? '+' : '') + Math.round(d.abs).toLocaleString('en-US') + pctPart + '</span>';
   }
@@ -1744,13 +1744,13 @@
       ? Math.round(avgOnline / DISCORD_STATS.memberCount * 1000) / 10 : null;
     var tiles = [
       deltaTile('Members', num(DISCORD_STATS.memberCount), dMem),
-      statTile('Online now', DISCORD_STATS.onlineCount != null ? num(DISCORD_STATS.onlineCount) : '—', null, ''),
-      statTile('Net members', dMem ? signed(dMem.abs) : '—', socialRangeLabel(), dMem && dMem.pct != null ? socialDeltaSpan(dMem) : ''),
-      statTile('Members / day', perDay == null ? '—' : signed1(perDay), socialRangeLabel(), ''),
-      statTile('Avg online', avgOnline == null ? '—' : num(avgOnline), socialRangeLabel(), ''),
-      statTile('Peak online', peakOnline == null ? '—' : num(peakOnline), socialRangeLabel(), ''),
-      statTile('Engagement', engagement == null ? '—' : engagement + '%', 'avg online ÷ members', ''),
-      statTile('Biggest day', swing && swing.up ? signed(swing.up.diff) : '—',
+      statTile('Online now', DISCORD_STATS.onlineCount != null ? num(DISCORD_STATS.onlineCount) : '–', null, ''),
+      statTile('Net members', dMem ? signed(dMem.abs) : '–', socialRangeLabel(), dMem && dMem.pct != null ? socialDeltaSpan(dMem) : ''),
+      statTile('Members / day', perDay == null ? '–' : signed1(perDay), socialRangeLabel(), ''),
+      statTile('Avg online', avgOnline == null ? '–' : num(avgOnline), socialRangeLabel(), ''),
+      statTile('Peak online', peakOnline == null ? '–' : num(peakOnline), socialRangeLabel(), ''),
+      statTile('Engagement', engagement == null ? '–' : engagement + '%', 'avg online ÷ members', ''),
+      statTile('Biggest day', swing && swing.up ? signed(swing.up.diff) : '–',
         swing && swing.down && swing.down.diff < 0 ? signed(swing.down.diff) + ' worst' : null, '')
     ];
     return '<div class="dash-stats adm-grid-4">' + tiles.join('') + '</div>' +
@@ -1764,8 +1764,8 @@
     var dPosts = histDelta(h, function (r) { return r.extra && r.extra.tweetCount; });
     var tiles = [
       deltaTile('Followers', num(s.followersCount), dFollow),
-      statTile('Follower growth', dFollow ? signed(dFollow.abs) : '—', socialRangeLabel(), dFollow && dFollow.pct != null ? socialDeltaSpan(dFollow) : ''),
-      statTile('Posts published', dPosts ? signed(dPosts.abs) : '—', socialRangeLabel(), ''),
+      statTile('Follower growth', dFollow ? signed(dFollow.abs) : '–', socialRangeLabel(), dFollow && dFollow.pct != null ? socialDeltaSpan(dFollow) : ''),
+      statTile('Posts published', dPosts ? signed(dPosts.abs) : '–', socialRangeLabel(), ''),
       statTile('Posts', num(s.tweetCount), 'lifetime', ''),
       statTile('Last post', relTime(s.latestPostAt), s.latestPostAt ? '' : 'no recent post', '')
     ];
@@ -1773,7 +1773,7 @@
     var engTiles = eng ? [
       statTile('Impressions', num(eng.impressions), 'last ' + eng.sampleSize + ' posts', ''),
       statTile('Interactions', num(eng.interactions), 'likes + reposts + replies + quotes', ''),
-      statTile('Engagement rate', eng.engagementRate != null ? eng.engagementRate + '%' : '—',
+      statTile('Engagement rate', eng.engagementRate != null ? eng.engagementRate + '%' : '–',
         eng.engagementRate == null ? 'X did not report impressions' : 'interactions ÷ impressions', ''),
       statTile('Impressions / post', num(eng.avgImpressionsPerPost), 'average, last ' + eng.sampleSize + ' posts', ''),
       statTile('Interactions / post', num(eng.avgInteractionsPerPost), 'average, last ' + eng.sampleSize + ' posts', ''),
@@ -1797,7 +1797,7 @@
 
   function youtubePanel() {
     var s = YOUTUBE_STATS, h = s.history || [];
-    // Empty channel (no videos / views / subs yet) - a wall of "—" tiles
+    // Empty channel (no videos / views / subs yet) - a wall of "–" tiles
     // reads as broken. Show one honest line + the analytics connect prompt.
     if (!s.videoCount && !s.viewCount && !s.subscriberCount) {
       return '<p class="adm-note" style="margin:4px 0 0;">This YouTube channel has no public videos or views yet - stats will populate once it does.</p>' +
@@ -1809,12 +1809,12 @@
     var viewsPerNewVid = (dViews && dVideos && dVideos.abs > 0) ? Math.round(dViews.abs / dVideos.abs) : null;
     var subsPerNewVid = (dSubs && dVideos && dVideos.abs > 0) ? Math.round(dSubs.abs / dVideos.abs) : null;
     var tiles = [
-      deltaTile('Subscribers', s.subscriberCount != null ? num(s.subscriberCount) : '—', dSubs),
+      deltaTile('Subscribers', s.subscriberCount != null ? num(s.subscriberCount) : '–', dSubs),
       deltaTile('Total views', num(s.viewCount), dViews),
-      statTile('Videos published', dVideos ? signed(dVideos.abs) : '—', socialRangeLabel(), ''),
+      statTile('Videos published', dVideos ? signed(dVideos.abs) : '–', socialRangeLabel(), ''),
       statTile('Lifetime views / video', num(s.lifetimeViewsPerVideo), 'all ' + num(s.videoCount) + ' videos', ''),
-      statTile('Views / new video', viewsPerNewVid == null ? '—' : num(viewsPerNewVid), socialRangeLabel(), ''),
-      statTile('Subs / new video', subsPerNewVid == null ? '—' : num(subsPerNewVid), socialRangeLabel(), ''),
+      statTile('Views / new video', viewsPerNewVid == null ? '–' : num(viewsPerNewVid), socialRangeLabel(), ''),
+      statTile('Subs / new video', subsPerNewVid == null ? '–' : num(subsPerNewVid), socialRangeLabel(), ''),
       statTile('Last upload', relTime(s.latestPostAt), s.latestPostAt ? '' : 'no recent upload', '')
     ];
     var eng = s.engagement;
@@ -1822,7 +1822,7 @@
       statTile('Recent views', num(eng.views), 'last ' + eng.sampleSize + ' videos', ''),
       statTile('Likes', num(eng.likes), num(eng.avgLikesPerVideo) + ' avg / video', ''),
       statTile('Comments', num(eng.comments), num(eng.avgCommentsPerVideo) + ' avg / video', ''),
-      statTile('Engagement rate', eng.engagementRate != null ? eng.engagementRate + '%' : '—', '(likes + comments) ÷ views', ''),
+      statTile('Engagement rate', eng.engagementRate != null ? eng.engagementRate + '%' : '–', '(likes + comments) ÷ views', ''),
       statTile('Avg views / video', num(eng.avgViewsPerVideo), 'last ' + eng.sampleSize + ' videos', '')
     ] : [];
     return statGrid(tiles) +
@@ -1864,9 +1864,9 @@
     var dVideos = histDelta(h, function (r) { return r.extra && r.extra.videoCount; });
     var tiles = [
       deltaTile('Followers', num(s.followerCount), dFollow),
-      statTile('Follower growth', dFollow ? signed(dFollow.abs) : '—', socialRangeLabel(), dFollow && dFollow.pct != null ? socialDeltaSpan(dFollow) : ''),
+      statTile('Follower growth', dFollow ? signed(dFollow.abs) : '–', socialRangeLabel(), dFollow && dFollow.pct != null ? socialDeltaSpan(dFollow) : ''),
       deltaTile('Total likes', num(s.likesCount), dLikes),
-      statTile('Videos posted', dVideos ? signed(dVideos.abs) : '—', socialRangeLabel(), ''),
+      statTile('Videos posted', dVideos ? signed(dVideos.abs) : '–', socialRangeLabel(), ''),
       statTile('Likes / video', num(s.lifetimeLikesPerVideo), 'lifetime average', ''),
       statTile('Last post', relTime(s.latestPostAt), s.latestPostAt ? '' : 'no recent post', '')
     ];
@@ -1875,7 +1875,7 @@
       statTile('Recent views', num(eng.views), 'last ' + eng.sampleSize + ' videos', ''),
       statTile('Avg views / video', num(eng.avgViewsPerVideo), null, ''),
       statTile('Interactions', num(eng.interactions), 'likes + comments + shares', ''),
-      statTile('Engagement rate', eng.engagementRate != null ? eng.engagementRate + '%' : '—', 'interactions ÷ views', ''),
+      statTile('Engagement rate', eng.engagementRate != null ? eng.engagementRate + '%' : '–', 'interactions ÷ views', ''),
       statTile('Shares', num(eng.shares), 'last ' + eng.sampleSize + ' videos', '')
     ] : [];
     return statGrid(tiles) +
@@ -1889,9 +1889,9 @@
      helpers for the per-video tables and "last post" tiles.
      ---------------------------------------------------------------- */
   function relTime(iso) {
-    if (!iso) return '—';
+    if (!iso) return '–';
     var then = new Date(iso).getTime();
-    if (isNaN(then)) return '—';
+    if (isNaN(then)) return '–';
     var s = Math.max(0, (Date.now() - then) / 1000);
     if (s < 3600) return Math.round(s / 60) + 'm ago';
     if (s < 86400) return Math.round(s / 3600) + 'h ago';
@@ -1971,9 +1971,9 @@
 
     var tiles = [
       deltaTile('Total audience', num(ta.total), ta.delta),
-      statTile('Audience growth', ta.delta ? signed(ta.delta.abs) : '—', socialRangeLabel(),
+      statTile('Audience growth', ta.delta ? signed(ta.delta.abs) : '–', socialRangeLabel(),
         ta.delta && ta.delta.pct != null ? socialDeltaSpan(ta.delta) : ''),
-      statTile('Blended engagement', blended != null ? blended + '%' : '—',
+      statTile('Blended engagement', blended != null ? blended + '%' : '–',
         rates.length ? rates.length + ' of ' + chans.length + ' channels' : 'no engagement data yet', '')
     ];
 
@@ -2002,8 +2002,8 @@
     var r6 = '<div class="adm-mini-head">Growth by channel</div><div class="dash-tablewrap"><table class="dash-table"><thead><tr><th>Channel</th><th>Audience</th><th>Change</th><th>Last post</th></tr></thead><tbody>' +
       r6rows.map(function (r) {
         return '<tr><td>' + esc(r.name) + '</td><td>' + num(r.count) + '</td><td>' +
-          (r.d ? socialDeltaSpan(r.d) : '<span class="adm-sub">—</span>') + '</td><td>' +
-          (r.last ? esc(relTime(r.last)) : '<span class="adm-sub">—</span>') + '</td></tr>';
+          (r.d ? socialDeltaSpan(r.d) : '<span class="adm-sub"> - </span>') + '</td><td>' +
+          (r.last ? esc(relTime(r.last)) : '<span class="adm-sub"> - </span>') + '</td></tr>';
       }).join('') + '</tbody></table></div>';
 
     el.innerHTML = statGrid(tiles) + mix + r5 + r7 + r6;
@@ -2089,7 +2089,7 @@
   function renderCampaigns() {
     var body = $('admCampaignsBody'); if (!body) return;
     body.innerHTML = CAMPAIGNS.map(function (c) {
-      var rate = c.conversionRate == null ? '—' : (c.conversionRate * 100).toFixed(1) + '%';
+      var rate = c.conversionRate == null ? '–' : (c.conversionRate * 100).toFixed(1) + '%';
       return '<tr data-id="' + esc(c.id) + '" data-code="' + esc(c.code) + '">' +
         '<td><strong>' + esc(c.label) + '</strong><div class="adm-sub adm-campaign-url">' + esc(campaignUrl(c)) + '</div></td>' +
         '<td>' + c.clicks.toLocaleString('en-US') + '</td>' +
@@ -2168,7 +2168,7 @@
     var overlay = $('admCampaignDetailOverlay'); if (!overlay) return;
     $('admCampaignDetailTitle').textContent = c.label;
     $('admCampaignDetailSub').innerHTML = '<span class="adm-campaign-url">' + esc(campaignUrl(c)) + '</span> · added ' + fmtDate(new Date(c.createdAt));
-    var rate = c.conversionRate == null ? '—' : (c.conversionRate * 100).toFixed(1) + '%';
+    var rate = c.conversionRate == null ? '–' : (c.conversionRate * 100).toFixed(1) + '%';
     $('admCampaignDetailStats').innerHTML = [
       statTile('Clicks', c.clicks.toLocaleString('en-US'), null, ''),
       statTile('Conversions', c.conversions.toLocaleString('en-US'), null, ''),
@@ -2201,7 +2201,7 @@
 
     if ($('admMktStats')) {
       $('admMktStats').innerHTML = [
-        statTile('Discord members', DISCORD_STATS.memberCount != null ? DISCORD_STATS.memberCount.toLocaleString('en-US') : '—', DISCORD_STATS.onlineCount != null ? (DISCORD_STATS.onlineCount.toLocaleString('en-US') + ' online') : '', ''),
+        statTile('Discord members', DISCORD_STATS.memberCount != null ? DISCORD_STATS.memberCount.toLocaleString('en-US') : '–', DISCORD_STATS.onlineCount != null ? (DISCORD_STATS.onlineCount.toLocaleString('en-US') + ' online') : '', ''),
         statTile('Referral clicks', clicks.toLocaleString('en-US'), null, ''),
         statTile('Referral signups', signups.toLocaleString('en-US'), null, ''),
         statTile('Owed to affiliates', usd(owed), null, '')
@@ -2247,14 +2247,14 @@
           esc(sv.guild_name || sv.guild_id) + '</td>' +
           '<td>' + (sv.sent || 0).toLocaleString('en-US') + '</td>' +
           '<td>' + (sv.failed ? esc(sv.failed) : '0') + '</td>' +
-          '<td>' + (sv.last_sent_at ? fmtDateTime(parseAdbloxUtc(sv.last_sent_at)) : '—') + '</td></tr>';
+          '<td>' + (sv.last_sent_at ? fmtDateTime(parseAdbloxUtc(sv.last_sent_at)) : '–') + '</td></tr>';
       }).join('') || '<tr><td colspan="4" class="adm-empty">No server activity yet.</td></tr>';
     }
 
     if ($('admAdbloxLogsBody')) {
       $('admAdbloxLogsBody').innerHTML = ADBLOX_LOGS.map(function (lg) {
         var status = lg.status === 'sent' ? '<span class="dt-badge ok">Sent</span>' : lg.status === 'failed' ? '<span class="dt-badge err">Failed</span>' : '<span class="dt-badge warn">' + esc(lg.status) + '</span>';
-        return '<tr><td>' + (lg.sent_at ? fmtDateTime(parseAdbloxUtc(lg.sent_at)) : '—') + '</td>' +
+        return '<tr><td>' + (lg.sent_at ? fmtDateTime(parseAdbloxUtc(lg.sent_at)) : '–') + '</td>' +
           '<td>' + esc(lg.ad_title || '') + '</td>' +
           '<td>' + esc(lg.guild_name || lg.guild_id || '') + '</td>' +
           '<td>' + esc(lg.channel_name || lg.channel_id || '') + '</td>' +
@@ -2360,11 +2360,11 @@
   // just shows where/when it came from and whether it was later withdrawn.
   function emailConsentInfo(r) {
     var lines = [];
-    lines.push(['Account', (r.username || (r.provider === 'Guest (no account)' ? 'Guest checkout / popup — no account' : '—'))]);
+    lines.push(['Account', (r.username || (r.provider === 'Guest (no account)' ? 'Guest checkout / popup - no account' : '–'))]);
     if (r.joined) lines.push(['Signed up', fmtDateTime(new Date(r.joined)) + ' · via ' + r.provider]);
     lines.push(['Opted in', (r.optInAt ? fmtDateTime(new Date(r.optInAt)) + ' · ' : '') + 'via ' + (r.optInSource || 'unknown') +
       (r.unsubscribed ? ' (later unsubscribed)' : '')]);
-    lines.push(['Consent basis', 'Explicit marketing opt-in.' + (r.unsubscribed ? ' Withdrawn — excluded from all marketing sends.' : ' Receives marketing and discount emails.')]);
+    lines.push(['Consent basis', 'Explicit marketing opt-in.' + (r.unsubscribed ? ' Withdrawn - excluded from all marketing sends.' : ' Receives marketing and discount emails.')]);
     lines.push(['Marketing status', r.status === 'optedin' ? 'Opted in'
       : r.status === 'unsubscribed' ? 'Unsubscribed'
       : 'Banned (excluded)']);
@@ -2491,7 +2491,7 @@
     if ($('admEmailStats')) {
       var att = emailAttributedRevenue();
       $('admEmailStats').innerHTML = [
-        statTile('Opted in', EMAIL_STATS.optedIn.toLocaleString('en-US'), 'consented — every marketing send goes here', ''),
+        statTile('Opted in', EMAIL_STATS.optedIn.toLocaleString('en-US'), 'consented - every marketing send goes here', ''),
         statTile('Unsubscribed', EMAIL_STATS.unsubscribed.toLocaleString('en-US'), 'opted in, then withdrew', ''),
         statTile('All accounts', EMAIL_STATS.allAccounts.toLocaleString('en-US'), 'reachable by an announcement, regardless of opt-in', ''),
         statTile('Revenue from email', usd(att.usd), att.count + ' order' + (att.count === 1 ? '' : 's') + ' within 7d of a send', '')
@@ -2511,7 +2511,7 @@
         var ev = EMAIL_EVENTS_BY_CAMPAIGN[c.id];
         var base = ev ? (ev.delivered || ev.sent || c.sent_count || 0) : (c.sent_count || 0);
         function rate(users) {
-          if (!ev || !base) return '<span class="adm-sub">—</span>';
+          if (!ev || !base) return '<span class="adm-sub"> - </span>';
           var n = Object.keys(users).length;
           return pct(n / base * 100) + ' <span class="adm-sub">(' + n + ')</span>';
         }
@@ -2541,13 +2541,13 @@
           '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>' +
         '</button><span class="adm-email-addr">' + esc(r.email) + '</span></td>' +
         '<td>' + (badge[r.status] || '') + '</td><td>' +
-        (r.joined ? fmtDate(new Date(r.joined)) : '—') + '</td></tr>';
+        (r.joined ? fmtDate(new Date(r.joined)) : '–') + '</td></tr>';
     }).join('') || '<tr><td colspan="3" class="adm-empty">No matching addresses.</td></tr>';
     var note = $('admEmailListNote');
     if (note) {
       var base = EMAIL_STATS.optedIn.toLocaleString('en-US') + ' opted in' +
         (EMAIL_STATS.unsubscribed ? ' · ' + EMAIL_STATS.unsubscribed.toLocaleString('en-US') + ' later unsubscribed' : '') +
-        '. Consented addresses only — non-opted-in accounts and Roblox logins are not shown.';
+        '. Consented addresses only - non-opted-in accounts and Roblox logins are not shown.';
       note.textContent = rows.length > shown.length
         ? 'Showing first ' + shown.length + ' of ' + rows.length.toLocaleString('en-US') + ' matches - narrow the search to see the rest. ' + base
         : base;
@@ -2592,7 +2592,7 @@
           return '<details class="adm-collapse" data-collapse-key="em-' + esc(c.subject) + '" style="border:1px solid var(--hairline);border-radius:10px;padding:12px 14px;margin-top:8px;">' +
             '<summary style="display:flex;justify-content:space-between;gap:12px;align-items:center;cursor:pointer;list-style:none;">' +
               '<span>' + esc(c.subject) + '</span>' +
-              '<span class="adm-sub" style="flex:0 0 auto;">' + (c.sentAt ? fmtDate(new Date(c.sentAt)) : '—') + '</span>' +
+              '<span class="adm-sub" style="flex:0 0 auto;">' + (c.sentAt ? fmtDate(new Date(c.sentAt)) : '–') + '</span>' +
             '</summary>' +
             '<div style="margin-top:10px;display:flex;flex-wrap:wrap;gap:6px;">' + (chips.join('') || '<span class="adm-sub">No delivery events recorded</span>') + '</div>' +
             (c.opened ? '<p class="adm-sub" style="margin:8px 0 0;">Opened ' + fmtDateTime(new Date(c.opened)) + '</p>' : '') +
@@ -2633,7 +2633,7 @@
     if (sendLabel) sendLabel.textContent = campaignAudience === 'announcement' ? 'Send announcement' : 'Send to opted-in subscribers';
     var hint = $('admCampaignAudienceHint');
     if (hint) hint.textContent = campaignAudience === 'announcement'
-      ? 'Goes to every account (' + (EMAIL_STATS.allAccounts || 0).toLocaleString('en-US') + ') regardless of opt-in. For service messages only — ToS changes, outages.'
+      ? 'Goes to every account (' + (EMAIL_STATS.allAccounts || 0).toLocaleString('en-US') + ') regardless of opt-in. For service messages only - ToS changes, outages.'
       : 'Goes to the ' + (EMAIL_STATS.optedIn || 0).toLocaleString('en-US') + ' opted-in subscribers only.';
   });
   var campaignModeSwitch = document.querySelector('.adm-campaign-mode');
@@ -2841,8 +2841,8 @@
       campaignConfirm.open({
         subject: subject,
         count: count,
-        audienceLabel: isAnnounce ? ('account' + (count === 1 ? '' : 's') + ' — opted in or not') : ('opted-in subscriber' + (count === 1 ? '' : 's')),
-        warn: isAnnounce ? 'Announcement — this is not a marketing email. Send it only for things every user must know (ToS changes, outages).' : '',
+        audienceLabel: isAnnounce ? ('account' + (count === 1 ? '' : 's') + ' - opted in or not') : ('opted-in subscriber' + (count === 1 ? '' : 's')),
+        warn: isAnnounce ? 'Announcement - this is not a marketing email. Send it only for things every user must know (ToS changes, outages).' : '',
         onConfirm: function (done) {
           sendBtn.disabled = true;
           if (msg) msg.textContent = 'Sending…';
@@ -3141,7 +3141,7 @@
     var trafficRows = TRAFFIC.slice(Math.max(0, TRAFFIC.length - (RANGE_DAYS || 120)));
     var totalViews = trafficRows.reduce(function (s, r) { return s + r.pageviews; }, 0);
     var totalSessions = trafficRows.reduce(function (s, r) { return s + r.sessions; }, 0);
-    var retLabel = TRAFFIC_VISITORS ? pct(TRAFFIC_VISITORS.rate) : '—';
+    var retLabel = TRAFFIC_VISITORS ? pct(TRAFFIC_VISITORS.rate) : '–';
     var retSub = TRAFFIC_VISITORS ? (TRAFFIC_VISITORS.returning.toLocaleString('en-US') + ' of ' + TRAFFIC_VISITORS.total.toLocaleString('en-US') + ' · 120d') : 'gathering data';
     $('admTrafficStats').innerHTML =
       '<div class="dash-stat glass"><span class="ds-label">Pageviews</span><span class="ds-num">' + totalViews.toLocaleString('en-US') + '</span></div>' +
@@ -3166,12 +3166,12 @@
       var conv = [];
       for (var fi = 1; fi < steps.length; fi++) {
         var ffrom = steps[fi - 1].v, fto = steps[fi].v;
-        conv.push('<div class="adm-catrow"><span>' + esc(steps[fi - 1].label + ' → ' + steps[fi].label) + '</span><span>' + (ffrom ? pct(fto / ffrom * 100) : '—') + '</span></div>');
+        conv.push('<div class="adm-catrow"><span>' + esc(steps[fi - 1].label + ' → ' + steps[fi].label) + '</span><span>' + (ffrom ? pct(fto / ffrom * 100) : '–') + '</span></div>');
       }
       $('admFunnel').innerHTML = statGrid([
-        statTile('Visitor → paid', steps[0].v ? pct(fn.paid / steps[0].v * 100) : '—', 'over selected range', ''),
-        statTile('Cart → checkout', fn.cart ? pct(fn.checkout / fn.cart * 100) : '—', null, ''),
-        statTile('Checkout → paid', fn.checkout ? pct(fn.paid / fn.checkout * 100) : '—', null, '')
+        statTile('Visitor → paid', steps[0].v ? pct(fn.paid / steps[0].v * 100) : '–', 'over selected range', ''),
+        statTile('Cart → checkout', fn.cart ? pct(fn.checkout / fn.cart * 100) : '–', null, ''),
+        statTile('Checkout → paid', fn.checkout ? pct(fn.paid / fn.checkout * 100) : '–', null, '')
       ]) + svgBars(steps.map(function (s) { return { label: s.label, v: s.v, tip: s.v.toLocaleString('en-US') + ' · ' + s.label }; }), { height: 150 }) +
         '<div class="adm-catlist">' + conv.join('') + '</div>';
       attachChartTooltip($('admFunnel'));
@@ -3180,7 +3180,7 @@
     if ($('admSearchBody')) {
       var ts = topSearches(15);
       $('admSearchBody').innerHTML = ts.map(function (s) {
-        return '<tr><td>' + esc(s.q) + '</td><td>' + s.count + '</td><td>' + (s.noResults ? '<span class="dt-badge warn">' + s.noResults + ' no-result</span>' : '<span class="adm-sub">—</span>') + '</td></tr>';
+        return '<tr><td>' + esc(s.q) + '</td><td>' + s.count + '</td><td>' + (s.noResults ? '<span class="dt-badge warn">' + s.noResults + ' no-result</span>' : '<span class="adm-sub"> - </span>') + '</td></tr>';
       }).join('') || '<tr><td colspan="3" class="adm-empty">No searches logged yet.</td></tr>';
     }
 
@@ -3688,7 +3688,7 @@
   });
 
   /* ================================================================
-     UNRELEASED FILES — staging area for files that aren't real
+     UNRELEASED FILES - staging area for files that aren't real
      products yet. Not part of the products list/filter at all; each
      row is just a Storage upload + a renamable display name.
      ================================================================ */
@@ -3711,7 +3711,7 @@
         '<button type="button" class="btn btn-ghost adm-btn-sm adm-unreleased-create" ' + (can('admin') ? '' : 'disabled ') + 'title="Create a product from this file">Create product</button>' +
         '<button type="button" class="adm-icon-btn adm-unreleased-remove" title="Delete" aria-label="Delete">' + ADM_ICON_TRASH + '</button>' +
         '</div>';
-    }).join('') || '<p class="adm-empty" style="padding:8px 0;">Nothing staged right now — drop a file above to keep track of it.</p>';
+    }).join('') || '<p class="adm-empty" style="padding:8px 0;">Nothing staged right now - drop a file above to keep track of it.</p>';
   }
   // Acquiring a product -> uploading the file -> uploading it to the store
   // used to be three disconnected steps: drop the file here to hold onto
@@ -4378,7 +4378,7 @@
       if (!confirm('Revoke the license for order ' + id + '? The buyer will immediately lose download access. This does not refund their payment.')) return;
       var revReason = prompt('Reason for revoking (visible in admin only):', 'Policy violation'); if (revReason === null) return;
       callManageOrder(o.dbId, 'revoke', revReason || 'Policy violation').then(function () {
-        logAudit('Revoked license for order ' + id + ' — ' + (revReason || 'Policy violation'));
+        logAudit('Revoked license for order ' + id + ' - ' + (revReason || 'Policy violation'));
         return refreshOrders();
       }).catch(function (err) { alert(err.message || 'Could not revoke the license.'); });
     }
@@ -4489,7 +4489,7 @@
       var revReason = prompt('Reason for revoking (visible in admin only):', 'Policy violation'); if (revReason === null) return;
       revokeBtn.disabled = true;
       callManageOrder(o.dbId, 'revoke', revReason || 'Policy violation').then(function () {
-        logAudit('Revoked license for order ' + o.id + ' — ' + (revReason || 'Policy violation'));
+        logAudit('Revoked license for order ' + o.id + ' - ' + (revReason || 'Policy violation'));
         return refreshOrders();
       }).then(renderOrderDetail).catch(function (err) {
         revokeBtn.disabled = false;
@@ -4539,19 +4539,19 @@
       return String(b.createdAt).localeCompare(String(a.createdAt));
     });
     body.innerHTML = rows.map(function (r) {
-      var name = r.accountName || r.contactValue || '—';
+      var name = r.accountName || r.contactValue || '–';
       var contactSub = r.onboarded
         ? esc((r.contactType === 'discord' ? 'Discord: ' : '') + r.contactValue)
         : '<span class="adm-sub-muted">Awaiting info</span>';
       var locs = r.sellingLocations.length
-        ? r.sellingLocations.map(function (l) { return esc(l.platform) + ' — <a href="' + esc(l.url) + '" target="_blank" rel="noopener">' + esc(l.url) + '</a>'; }).join('<br>')
-        : (r.onboarded ? esc(r.sellingWhere || '—') : '<span class="adm-sub-muted">—</span>');
+        ? r.sellingLocations.map(function (l) { return esc(l.platform) + ' - <a href="' + esc(l.url) + '" target="_blank" rel="noopener">' + esc(l.url) + '</a>'; }).join('<br>')
+        : (r.onboarded ? esc(r.sellingWhere || '–') : '<span class="adm-sub-muted"> - </span>');
       var statusCell = r.onboarded
         ? statusBadge(r.status === 'active' ? 'completed' : 'refunded')
         : '<span class="dt-badge warn">Not onboarded</span>';
       return '<tr data-key="' + esc(r.key) + '">' +
         '<td>' + esc(name) + '<div class="adm-sub">' + contactSub + '</div></td>' +
-        '<td>' + esc(r.productTitle || '—') + '</td>' +
+        '<td>' + esc(r.productTitle || '–') + '</td>' +
         '<td>' + locs + '</td>' +
         '<td><span class="adm-cat-tag">' + (r.source === 'manual' ? 'Manual' : 'Purchase') + '</span></td>' +
         '<td>' + statusCell + '</td>' +
@@ -4624,7 +4624,7 @@
     if (locs.length) locs.forEach(function (l) { admAddResellerLocRow(l.platform, l.url); });
     else { admAddResellerLocRow(); admAddResellerLocRow(); admAddResellerLocRow(); }
     var heading = !r ? 'Add reseller' : (r.onboarded ? 'Edit reseller' : 'Add seller info');
-    $('admResellerEditHeading').textContent = heading + (r && r.accountName ? ' — ' + r.accountName : '');
+    $('admResellerEditHeading').textContent = heading + (r && r.accountName ? ' - ' + r.accountName : '');
     $('admResellerMsg').textContent = '';
     showPanel('reseller-edit');
   }
@@ -4874,7 +4874,7 @@
     var rows = USERS.filter(function (u) { return !q || u.name.toLowerCase().indexOf(q) >= 0 || u.email.toLowerCase().indexOf(q) >= 0; });
     $('admUsersBody').innerHTML = rows.map(function (u) {
       return '<tr data-id="' + u.id + '"><td>' + esc(u.name) + (u.isAdmin ? ' <span class="adm-sub">· admin</span>' : '') + '</td><td>' + esc(u.email) + '</td><td>' + fmtDate(new Date(u.joined)) + '</td><td>' + userOrderCount(u.id) + '</td><td>' + usd(userSpend(u.id)) + '</td>' +
-        '<td>' + (u.status === 'active' ? '<span class="dt-badge ok">Active</span>' : '<span class="dt-badge err">Banned' + (u.banReason ? ' — ' + esc(u.banReason) : '') + '</span>') + '</td>' +
+        '<td>' + (u.status === 'active' ? '<span class="dt-badge ok">Active</span>' : '<span class="dt-badge err">Banned' + (u.banReason ? ' - ' + esc(u.banReason) : '') + '</span>') + '</td>' +
         '<td class="adm-row-actions">' + userRowMenuHtml(u) + '</td></tr>';
     }).join('') || '<tr><td colspan="7" class="adm-empty">No users match.</td></tr>';
 
@@ -4939,17 +4939,17 @@
     var set = function (id, v) { var el = $(id); if (el) el.textContent = v; };
     if ($('admUserDetailSub')) $('admUserDetailSub').textContent = u.name;
     set('admUdId', u.id);
-    set('admUdEmail', u.email || '—');
+    set('admUdEmail', u.email || '–');
     set('admUdJoined', fmtDate(new Date(u.joined)));
     set('admUdRole', u.isAdmin ? 'Admin' : (u.role || 'customer'));
-    set('admUdStatus', u.status === 'banned' ? ('Banned' + (u.banReason ? ' — ' + u.banReason : '')) : 'Active');
+    set('admUdStatus', u.status === 'banned' ? ('Banned' + (u.banReason ? ' - ' + u.banReason : '')) : 'Active');
     set('admUdVerified', u.emailVerified ? 'Yes' : 'No');
     set('admUdDiscord', u.discordId ? ('Linked (' + u.discordId + ')') : 'Not linked');
     set('admUdRoblox', u.robloxId ? ('Linked (' + u.robloxId + ')') : 'Not linked');
     set('admUdMarketing', u.marketingUnsubscribed ? 'Unsubscribed' : 'Subscribed');
-    set('admUdRefCode', u.referralCode || '—');
+    set('admUdRefCode', u.referralCode || '–');
     var referrer = u.referredBy ? USERS.filter(function (x) { return x.id === u.referredBy; })[0] : null;
-    set('admUdReferredBy', referrer ? referrer.name : (u.referredBy || '—'));
+    set('admUdReferredBy', referrer ? referrer.name : (u.referredBy || '–'));
     var userOrders = ORDERS.filter(function (o) { return o.userId === u.id; })
       .slice().sort(function (a, b) { return new Date(b.date) - new Date(a.date); });
     set('admUdOrdersTotal', String(userOrders.length));
@@ -5094,9 +5094,9 @@
   function buildScopeOptions() {
     var out = [{ value: 'sitewide', label: 'Sitewide' }];
     Object.keys(CATEGORIES_BY_PLATFORM).forEach(function (platform) {
-      out.push({ value: 'platform:' + platform, label: platform + ' — All categories' });
+      out.push({ value: 'platform:' + platform, label: platform + ' - All categories' });
       CATEGORIES_BY_PLATFORM[platform].forEach(function (cat) {
-        out.push({ value: 'category:' + platform + ':' + cat, label: platform + ' — ' + cat });
+        out.push({ value: 'category:' + platform + ':' + cat, label: platform + ' - ' + cat });
       });
     });
     return out;
@@ -5409,7 +5409,7 @@
     var cs = couponStats();
     $('admCouponsBody').innerHTML = COUPONS.map(function (c) {
       var stat = cs.filter(function (x) { return x.code === c.code; })[0] || { uses: 0, discountGiven: null };
-      return '<tr data-code="' + esc(c.code) + '"><td class="dt-mono">' + esc(c.code) + '</td><td>' + (c.type === 'pct' ? c.val + '%' : usd(c.val)) + '</td><td>' + esc(scopeLabel(c)) + '</td><td>' + (c.expiresAt ? esc(c.expiresAt) : '—') + '</td><td>' + stat.uses + (c.limit ? ' / ' + c.limit : '') + '</td><td>' + (stat.discountGiven == null ? '—' : usd(stat.discountGiven)) + '</td>' +
+      return '<tr data-code="' + esc(c.code) + '"><td class="dt-mono">' + esc(c.code) + '</td><td>' + (c.type === 'pct' ? c.val + '%' : usd(c.val)) + '</td><td>' + esc(scopeLabel(c)) + '</td><td>' + (c.expiresAt ? esc(c.expiresAt) : '–') + '</td><td>' + stat.uses + (c.limit ? ' / ' + c.limit : '') + '</td><td>' + (stat.discountGiven == null ? '–' : usd(stat.discountGiven)) + '</td>' +
         '<td>' + (c.active ? '<span class="dt-badge ok">Active</span>' : '<span class="dt-badge err">Inactive</span>') + '</td>' +
         '<td class="adm-row-actions">' + (can('admin') ? '<button class="btn btn-ghost adm-btn-sm adm-coupon-edit" type="button">Edit</button><button class="btn btn-ghost adm-btn-sm adm-coupon-toggle" type="button">' + (c.active ? 'Deactivate' : 'Activate') + '</button><button class="btn btn-ghost adm-btn-sm adm-coupon-del" type="button">Delete</button>' : '') + '</td></tr>';
     }).join('') || '<tr><td colspan="8" class="adm-empty">No discount codes yet.</td></tr>';
@@ -5993,7 +5993,7 @@
     var rows = RELEASES.filter(function (r) { return !q || r.title.toLowerCase().indexOf(q) >= 0; });
     $('admRelBody').innerHTML = rows.map(function (r) {
       return '<tr data-id="' + esc(r.id) + '">' +
-        '<td class="dt-mono">' + esc(r.version || '—') + '</td>' +
+        '<td class="dt-mono">' + esc(r.version || '–') + '</td>' +
         '<td>' + esc(r.kind) + '</td>' +
         '<td>' + esc(r.title) + '</td>' +
         '<td>' + esc(r.date) + '</td>' +
@@ -6099,7 +6099,7 @@
       var roleMenu = ['owner', 'admin', 'support'].map(function (r) {
         return '<button type="button" class="adm-dd-opt' + (r === s.role ? ' active' : '') + '" data-value="' + r + '" role="option" aria-selected="' + (r === s.role ? 'true' : 'false') + '"><span>' + r + '</span><span class="adm-dd-radio"></span></button>';
       }).join('');
-      return '<tr data-id="' + s.id + '" data-email="' + esc(s.email || '') + '"><td>' + esc(s.name) + (isSelf ? ' <span class="adm-sub">(you)</span>' : '') + '</td><td class="dt-mono">' + esc(s.email || '—') + '</td>' +
+      return '<tr data-id="' + s.id + '" data-email="' + esc(s.email || '') + '"><td>' + esc(s.name) + (isSelf ? ' <span class="adm-sub">(you)</span>' : '') + '</td><td class="dt-mono">' + esc(s.email || '–') + '</td>' +
         '<td><div class="adm-dd adm-dd-inline adm-staff-role-dd"' + (editable ? '' : ' data-disabled="1"') + '>' +
           '<button type="button" class="adm-dd-btn"' + (editable ? '' : ' disabled') + ' aria-haspopup="listbox" aria-expanded="false"><span class="adm-dd-val">' + esc(s.role) + '</span>' + ADM_DD_CHEV + '</button>' +
           '<div class="adm-dd-menu" role="listbox" aria-label="Role" hidden>' + roleMenu + '</div>' +
@@ -6253,8 +6253,8 @@
     $('admErrKind').textContent = row.errKind || '';
     $('admErrWhen').textContent = fmtDateTime(new Date(row.ts));
     $('admErrMsg').textContent = row.action || '';
-    $('admErrUrl').textContent = row.pageUrl || '—';
-    $('admErrUA').textContent = row.userAgent || '—';
+    $('admErrUrl').textContent = row.pageUrl || '–';
+    $('admErrUA').textContent = row.userAgent || '–';
     $('admErrUser').textContent = row.userId || 'Not signed in';
     var ctxEl = $('admErrContext');
     var ctxWrap = $('admErrContextWrap');

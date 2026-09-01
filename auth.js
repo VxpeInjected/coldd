@@ -175,7 +175,7 @@
             if (msg) { msg.innerHTML = 'No account found for that email. <a href="/signup">Create one instead?</a>'; msg.classList.add('show'); }
             return;
           }
-          var m = /confirm/i.test(res.error.message) ? 'Please confirm your email first — check your inbox.' : 'Incorrect password.';
+          var m = /confirm/i.test(res.error.message) ? 'Please confirm your email first - check your inbox.' : 'Incorrect password.';
           flash(si, m);
         });
         return;
@@ -365,7 +365,7 @@
     window.coldAuth.updatePassword(pass).then(function (res) {
       setLoading(rs, false);
       if (res.error) { flash(rs, res.error.message); return; }
-      flash(rs, 'Password updated — you can sign in now.');
+      flash(rs, 'Password updated - you can sign in now.');
       setTimeout(function () { location.href = '/signin'; }, 1200);
     }).catch(function () {
       setLoading(rs, false);

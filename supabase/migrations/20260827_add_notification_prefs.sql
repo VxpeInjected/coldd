@@ -1,4 +1,4 @@
--- profiles.notification_prefs — jsonb bag of per-account notification toggles
+-- profiles.notification_prefs - jsonb bag of per-account notification toggles
 -- (orderReceipts, productUpdates, promotions, saleDms, roleSync, supportReplies)
 -- written by the dashboard "Notification preferences" panel and read by
 -- cron-lifecycle-emails (promotions gates discount-bearing emails),

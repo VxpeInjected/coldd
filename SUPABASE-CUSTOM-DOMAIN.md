@@ -19,7 +19,7 @@ The code side is already done and is a no-op until the infrastructure exists.
 
 `supabase/functions/_shared/download.ts` re-hosts signed download URLs onto
 `PUBLIC_SUPABASE_URL` when that secret is set, and leaves them untouched when
-it is not — so nothing breaks before the domain is live. The signature covers
+it is not - so nothing breaks before the domain is live. The signature covers
 the path and query, not the host, so changing the origin stays valid.
 
 It also sets `Content-Disposition` from the original filename, stripping the
@@ -31,7 +31,7 @@ It also sets `Content-Disposition` from the original filename, stripping the
 ### 1. Enable the Supabase custom domain
 
 Supabase → Project Settings → General → Custom Domains. It is a paid add-on
-(about $10/month). Use a subdomain of coldd.dev, not the apex — the apex is
+(about $10/month). Use a subdomain of coldd.dev, not the apex - the apex is
 already pointed at GitHub Pages and cannot serve both:
 
     api.coldd.dev

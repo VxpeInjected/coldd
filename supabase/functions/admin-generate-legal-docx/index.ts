@@ -108,7 +108,7 @@ Deno.serve(async (req: Request) => {
         spacing: { after: 60 },
         children: [
           new TextRun({ text: label + ": ", bold: true }),
-          new TextRun({ text: value || "—" }),
+          new TextRun({ text: value || " - " }),
         ],
       });
     }
@@ -150,22 +150,22 @@ Deno.serve(async (req: Request) => {
             field("Title", product.title),
             field("Slug", product.slug),
             field("Platform", product.platform),
-            field("Listed since", product.created_at ? new Date(product.created_at).toISOString().slice(0, 10) : "—"),
+            field("Listed since", product.created_at ? new Date(product.created_at).toISOString().slice(0, 10) : " - "),
 
             heading("Licensing terms (as sold to customers)"),
             new Paragraph({ spacing: { after: 120 }, children: [new TextRun({ text: legal?.tos || "No terms of sale text on file." })] }),
 
             heading("How coldd acquired the right to sell this"),
-            field("Cost", legal?.license_cost != null ? `${legal.license_cost} ${(legal?.license_cost_currency || "usd").toUpperCase()}` : "—"),
-            field("Purchased on", legal?.license_purchased_at || "—"),
+            field("Cost", legal?.license_cost != null ? `${legal.license_cost} ${(legal?.license_cost_currency || "usd").toUpperCase()}` : " - "),
+            field("Purchased on", legal?.license_purchased_at || " - "),
             field("Can be offered for free", legal?.can_be_free ? "Yes" : "No"),
             field("Resale by coldd disallowed", legal?.disallow_sales ? "Yes" : "No"),
-            field("Minimum resale price (USD)", legal?.min_sale_usd != null ? String(legal.min_sale_usd) : "—"),
-            field("Minimum resale price (Robux)", legal?.min_sale_robux != null ? String(legal.min_sale_robux) : "—"),
+            field("Minimum resale price (USD)", legal?.min_sale_usd != null ? String(legal.min_sale_usd) : " - "),
+            field("Minimum resale price (Robux)", legal?.min_sale_robux != null ? String(legal.min_sale_robux) : " - "),
 
             heading("Contacts on record"),
             ...(contacts.length
-              ? contacts.filter((c) => c.label || c.value).map((c) => field(c.label || "Contact", c.value || "—"))
+              ? contacts.filter((c) => c.label || c.value).map((c) => field(c.label || "Contact", c.value || " - "))
               : [new Paragraph({ text: "None on file." })]),
 
             ...fileLinks("Proof of license (right to sell)", signedProof),

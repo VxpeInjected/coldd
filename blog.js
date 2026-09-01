@@ -73,7 +73,7 @@
   var SEED_TUTORIALS = [
     {
       id: 'tut-1', slug: 'datastore-that-wont-corrupt-your-saves', title: 'DataStore that won’t corrupt your saves',
-      summary: 'UpdateAsync, retry backoff, BindToClose, and schema versioning — the four habits that stop save corruption before it ships.',
+      summary: 'UpdateAsync, retry backoff, BindToClose, and schema versioning - the four habits that stop save corruption before it ships.',
       cover: '/scripts.jpg', track: 'Scripting', difficulty: 'Intermediate', platform: 'Roblox', order: 1, estMins: 12, visible: true, video: '',
       body: [
         'Most DataStore bugs never show up in Studio. They show up three weeks after launch, when two servers write to the same key at once and one write silently overwrites the other.',
@@ -82,7 +82,7 @@
         '## Retry logic that doesn’t spam the API',
         'Wrap every DataStore call in a retry loop with backoff, capped at three attempts with a half-second gap. That catches transient failures without hammering the API when the service is genuinely down.',
         '## Save on BindToClose, not just on leave',
-        '`PlayerRemoving` fires when a player leaves, but a server shutdown skips right past it. `game:BindToClose()` is the only hook guaranteed to run before the server closes — that’s where your final save belongs.',
+        '`PlayerRemoving` fires when a player leaves, but a server shutdown skips right past it. `game:BindToClose()` is the only hook guaranteed to run before the server closes - that’s where your final save belongs.',
         '## Version your data structure',
         'Add a `schemaVersion` field to every save. When you change what a save looks like six months from now, you’ll be glad you can tell old saves from new ones instead of guessing.'
       ].join('\n\n')
@@ -94,7 +94,7 @@
       body: [
         'The fastest way to make a combat system unmaintainable is to put hit detection, damage math, and hit-feedback in the same function. Change one weapon and you risk breaking all of them.',
         '## Split into three modules',
-        'Keep `HitDetector`, `DamageCalculator`, and `FeedbackController` as separate ModuleScripts that only talk through plain tables — no shared state, no cross-referencing each other’s internals.',
+        'Keep `HitDetector`, `DamageCalculator`, and `FeedbackController` as separate ModuleScripts that only talk through plain tables - no shared state, no cross-referencing each other’s internals.',
         '## Hit detection should return data, not apply damage',
         'A detector’s only job is answering "what got hit, and where." Let the damage calculator decide what that means. This is what lets you swap raycasts for a hitbox system later without touching damage logic.',
         '## Server-authoritative, client-predicted',
@@ -106,7 +106,7 @@
       summary: 'A checklist for the three replication bugs that eat the most debugging time: stale reads, ordering races, and silent RemoteEvent drops.',
       cover: '/scripts.jpg', track: 'Scripting', difficulty: 'Advanced', platform: 'Roblox', order: 3, estMins: 14, visible: true, video: '',
       body: [
-        'Replication bugs are miserable because they’re non-deterministic — they pass in Studio and fail on a real server with real latency. Here’s the order to check things in.',
+        'Replication bugs are miserable because they’re non-deterministic - they pass in Studio and fail on a real server with real latency. Here’s the order to check things in.',
         '## Check for stale local reads first',
         'If a client reads a value immediately after firing a RemoteEvent that changes it, it’s reading the pre-replication value. Always wait for the server’s confirmation event before trusting client-side state.',
         '## Ordering is not guaranteed across RemoteEvents',
@@ -117,12 +117,12 @@
     },
     {
       id: 'tut-4', slug: 'building-a-slot-based-inventory-from-scratch', title: 'Building a slot-based inventory from scratch',
-      summary: 'Grid state, drag-and-drop without dropped items, and stack merging — the three pieces that make an inventory feel solid instead of fragile.',
+      summary: 'Grid state, drag-and-drop without dropped items, and stack merging - the three pieces that make an inventory feel solid instead of fragile.',
       cover: '/scripts.jpg', track: 'Scripting', difficulty: 'Intermediate', platform: 'Roblox', order: 4, estMins: 18, visible: true, video: '',
       body: [
         'A slot-based inventory is really just a fixed-size array with UI on top. Most of the difficulty is in the drag-and-drop, not the data.',
         '## Model the grid as data first',
-        'Before touching UI, decide the grid is a flat array of `{itemId, count}` or `nil`. Every operation — add, remove, move, stack — should be a pure function over that array you can test without a single Frame on screen.',
+        'Before touching UI, decide the grid is a flat array of `{itemId, count}` or `nil`. Every operation - add, remove, move, stack - should be a pure function over that array you can test without a single Frame on screen.',
         '## Drag-and-drop needs a "last valid slot" fallback',
         'If a drag ends outside any slot, snap back to the origin slot rather than dropping the item into the world or deleting it. This single rule fixes most of the "items vanished" reports you’ll get in playtesting.',
         '## Merge stacks on drop, not on pickup',
@@ -140,15 +140,15 @@
         '## Convert static decoration to MeshParts',
         'Anything that never moves and doesn’t need to be a Part specifically (barrels, crates, foliage) should be a mesh. Meshes render cheaper and don’t carry the same per-instance overhead.',
         '## Delete what the camera will never see',
-        'Interiors of buildings players can’t enter, the undersides of terrain, backs of billboards — if there’s no path for a player to see it, it shouldn’t exist. Walk your own map like a player before you optimize anything else.'
+        'Interiors of buildings players can’t enter, the undersides of terrain, backs of billboards - if there’s no path for a player to see it, it shouldn’t exist. Walk your own map like a player before you optimize anything else.'
       ].join('\n\n')
     },
     {
       id: 'tut-6', slug: 'lighting-a-map-without-killing-fps', title: 'Lighting a map without killing FPS',
-      summary: 'Future lighting technology is not free — here’s how to get the mood without tanking low-end devices.',
+      summary: 'Future lighting technology is not free - here’s how to get the mood without tanking low-end devices.',
       cover: '/products.jpg', track: 'Building', difficulty: 'Intermediate', platform: 'Roblox', order: 2, estMins: 11, visible: true, video: '',
       body: [
-        'Future lighting looks great and costs the most of any lighting technology in Roblox. Most maps don’t need it everywhere — they need it where the player is looking.',
+        'Future lighting looks great and costs the most of any lighting technology in Roblox. Most maps don’t need it everywhere - they need it where the player is looking.',
         '## Bake what doesn’t move',
         'Static architectural lighting can often be faked with texture and color instead of real-time light sources. Reserve actual PointLights and SpotLights for things that matter: a flickering sign, a flashlight, an explosion.',
         '## Cap your light count per room',
@@ -166,7 +166,7 @@
         '## Use plain blocks, no materials, no detail',
         'Build the entire layout in grey Parts sized to scale. The goal is to answer "does this space work" before you spend a single hour on decoration that you might delete.',
         '## Playtest the greybox, not just the finished map',
-        'Walk the blockout as if it were done. Sightlines, choke points, and traversal time are all decided at this stage — detailing later won’t fix a layout that doesn’t play well.',
+        'Walk the blockout as if it were done. Sightlines, choke points, and traversal time are all decided at this stage - detailing later won’t fix a layout that doesn’t play well.',
         '## Lock the layout before detailing starts',
         'Once the blockout passes playtesting, treat the footprint as fixed. Detail work that has to be torn out because the layout changed underneath it is the most common source of wasted build time.'
       ].join('\n\n')
@@ -185,7 +185,7 @@
         '## Attempt two: fully server-authoritative, no prediction',
         'Fixed the exploit, introduced a hit-registration delay players described as "sluggish" in almost every playtest note. Correct, but not fun.',
         '## What actually shipped',
-        'Client-predicted hit feedback with server-authoritative damage, reconciled only when the two disagree — the same pattern we now write up as our combat systems tutorial. It took three failed versions to arrive at something this unremarkable-sounding, which is usually how it goes.',
+        'Client-predicted hit feedback with server-authoritative damage, reconciled only when the two disagree - the same pattern we now write up as our combat systems tutorial. It took three failed versions to arrive at something this unremarkable-sounding, which is usually how it goes.',
         'ALL BRAWL launched on April 3rd and has held up through 214 reviews without a single hit-registration complaint, which is the only metric that actually matters here.'
       ].join('\n\n')
     },
@@ -196,10 +196,10 @@
       body: [
         'Frostline Survival Kit’s biomes looked great from a bird’s-eye map view for months before we noticed the actual problem: at ground level, walking from the tundra into the forest felt like nothing had changed.',
         '## The map view was lying to us',
-        'Color-coded terrain reads as distinct from above. At eye level, without a strong silhouette change — tree density, fog color, ground texture — players couldn’t tell one biome from the next.',
+        'Color-coded terrain reads as distinct from above. At eye level, without a strong silhouette change - tree density, fog color, ground texture - players couldn’t tell one biome from the next.',
         '## What fixed it wasn’t more detail, it was silhouette',
         'We stopped adding biome-specific props and started changing tree spacing, fog distance, and skybox tint first. That alone did more for biome identity than every prop pass combined.',
-        'Frostline shipped March 1st with five distinct biomes, and the most common piece of playtest feedback since has been that players can tell which biome they’re in with their eyes closed — or close enough to it.'
+        'Frostline shipped March 1st with five distinct biomes, and the most common piece of playtest feedback since has been that players can tell which biome they’re in with their eyes closed - or close enough to it.'
       ].join('\n\n')
     },
     {
@@ -207,12 +207,12 @@
       dek: 'A hitmarker desync bug that only appeared under real network conditions forced a rewrite instead of a patch.',
       cover: '/banner.jpg', category: 'Devlog', tags: ['Roblox', 'Devlog'], author: 'Dax T.', date: '2026-05-20', readMins: 4, featured: false, visible: true,
       body: [
-        'The Combat HUD Kit’s hitmarker desync bug (the one fixed in v2.5.4) turned out to be structural, not a typo we could patch around — the HUD was reading local hit events instead of the server’s confirmed hit events.',
+        'The Combat HUD Kit’s hitmarker desync bug (the one fixed in v2.5.4) turned out to be structural, not a typo we could patch around - the HUD was reading local hit events instead of the server’s confirmed hit events.',
         '## The symptom vs. the cause',
         'Players reported hitmarkers appearing on misses and staying silent on real hits. The actual cause was the HUD listening to the same client-side raycast used for hit *feedback*, instead of the server’s damage confirmation.',
         '## A patch would have hidden it, not fixed it',
-        'We could have added a timing fudge to make the desync less noticeable. We rebuilt the event wiring instead, so the HUD only reacts to server-confirmed hits — the same principle from our replication debugging tutorial, learned the hard way first.',
-        'It’s a smaller change than it sounds, and it’s the reason the fix shipped as a patch version instead of a new major release — the HUD looks identical, the plumbing underneath doesn’t lie anymore.'
+        'We could have added a timing fudge to make the desync less noticeable. We rebuilt the event wiring instead, so the HUD only reacts to server-confirmed hits - the same principle from our replication debugging tutorial, learned the hard way first.',
+        'It’s a smaller change than it sounds, and it’s the reason the fix shipped as a patch version instead of a new major release - the HUD looks identical, the plumbing underneath doesn’t lie anymore.'
       ].join('\n\n')
     },
     {
@@ -220,11 +220,11 @@
       dek: 'Two new hires, one new discipline (dedicated build lead), and what that changes about how fast we ship.',
       cover: '/team-bg.jpg', category: 'Studio News', tags: ['Studio'], author: 'Sable K.', date: '2026-03-10', readMins: 3, featured: false, visible: true,
       body: [
-        'coldd started as three people trading off every role. As of this month, we’re six — and for the first time, building and scripting are fully separate disciplines here instead of the same two people doing both badly at 2am.',
+        'coldd started as three people trading off every role. As of this month, we’re six - and for the first time, building and scripting are fully separate disciplines here instead of the same two people doing both badly at 2am.',
         '## What changed operationally',
         'Every product now gets a dedicated build pass and a dedicated scripting pass instead of one person context-switching between them. Early results: fewer half-finished interiors, fewer scripts written around a layout that changed after the fact.',
         '## What didn’t change',
-        'Every product still ships with the same support commitment it always has — more hands doesn’t mean less ownership. If anything, having a dedicated build lead means bug reports about geometry get fixed by someone who actually specializes in it.'
+        'Every product still ships with the same support commitment it always has - more hands doesn’t mean less ownership. If anything, having a dedicated build lead means bug reports about geometry get fixed by someone who actually specializes in it.'
       ].join('\n\n')
     },
     {
@@ -232,11 +232,11 @@
       dek: 'Our old refund process took up to a week. The new one, live as of last month, resolves most requests same-day.',
       cover: '/cta-bg.jpg', category: 'Studio News', tags: ['Studio'], author: 'Sable K.', date: '2026-04-25', readMins: 4, featured: false, visible: true,
       body: [
-        'Until recently, refund requests went through a shared inbox, got manually cross-checked against purchase records, and could take up to a week to resolve. That was never intentional — it’s just what happens when a process grows informally.',
+        'Until recently, refund requests went through a shared inbox, got manually cross-checked against purchase records, and could take up to a week to resolve. That was never intentional - it’s just what happens when a process grows informally.',
         '## What we built instead',
         'Refund requests now route straight into the admin dashboard’s Refunds panel, tied directly to the order record, with an audit trail on every decision. Support staff can approve or deny from the same screen they see the order on, instead of switching between three tools.',
         '## The result so far',
-        'Most refund requests now resolve same-day. The ones that don’t are almost always waiting on a reply from the customer, not on us — which is the outcome we were actually trying to get to.'
+        'Most refund requests now resolve same-day. The ones that don’t are almost always waiting on a reply from the customer, not on us - which is the outcome we were actually trying to get to.'
       ].join('\n\n')
     },
     {
@@ -244,16 +244,16 @@
       dek: 'It’s not that new builders use too many Parts. It’s that they union too late to matter.',
       cover: '/builds.jpg', category: 'Craft', tags: ['Roblox', 'Building'], author: 'Priya N.', date: '2026-06-15', readMins: 4, featured: false, visible: true,
       body: [
-        'The most common part-count mistake isn’t using too many Parts — every build starts that way. It’s treating unioning as a final cleanup step instead of something you do as you go.',
+        'The most common part-count mistake isn’t using too many Parts - every build starts that way. It’s treating unioning as a final cleanup step instead of something you do as you go.',
         '## Cleanup-pass unioning comes too late',
-        'By the time a build is "done" and someone goes back to union repetitive detail, the habits that created the mess have already shaped a hundred other decisions — file size, load time, physics cost, all baked in.',
+        'By the time a build is "done" and someone goes back to union repetitive detail, the habits that created the mess have already shaped a hundred other decisions - file size, load time, physics cost, all baked in.',
         '## Union as you build repeating detail, not after',
-        'The moment you copy-paste a railing section for the third time, that’s the moment to union it, not the moment before shipping. We cover the full pass — unions, meshes, hidden-surface removal — in the part-count tutorial if you want the checklist version.'
+        'The moment you copy-paste a railing section for the third time, that’s the moment to union it, not the moment before shipping. We cover the full pass - unions, meshes, hidden-surface removal - in the part-count tutorial if you want the checklist version.'
       ].join('\n\n')
     },
     {
       id: 'post-7', slug: 'datastores-are-not-a-database-treat-them-like-one-anyway', title: 'DataStores are not a database. Treat them like one anyway.',
-      dek: 'Roblox DataStores don’t give you transactions, indexes, or query support — but the discipline of treating them like a real database is what prevents corrupted saves.',
+      dek: 'Roblox DataStores don’t give you transactions, indexes, or query support - but the discipline of treating them like a real database is what prevents corrupted saves.',
       cover: '/scripts.jpg', category: 'Craft', tags: ['Roblox', 'Scripting'], author: 'Dax T.', date: '2026-07-01', readMins: 5, featured: false, visible: true,
       body: [
         'DataStores look like a key-value store because that’s what the API surface is. Treating them like a casual cache instead of a database is where most save-corruption bugs start.',
@@ -261,23 +261,23 @@
         'A multi-key update can fail halfway. If your save logic assumes all-or-nothing, it will eventually leave a player’s data in a state your game never expected.',
         '## Schema discipline matters more without a schema enforcer',
         'A real database rejects a malformed row. A DataStore will happily save whatever table you hand it, which means the discipline of versioning and validating your own data shape has to come from you, not the platform.',
-        'The full walkthrough — UpdateAsync, retry backoff, BindToClose, schema versioning — is in the DataStore tutorial if you want the implementation, not just the philosophy.'
+        'The full walkthrough - UpdateAsync, retry backoff, BindToClose, schema versioning - is in the DataStore tutorial if you want the implementation, not just the philosophy.'
       ].join('\n\n')
     }
   ];
 
   var SEED_RELEASES = [
     { id: 'rel-1', version: 'v2.6.0', date: '2026-07-18', kind: 'Feature', title: 'Robux pricing shown site-wide', summary: 'Every price on the site now shows a live Robux equivalent next to the USD price, not just at checkout.', details: '', affects: [], visible: true },
-    { id: 'rel-2', version: 'v2.5.4', date: '2026-07-02', kind: 'Fix', title: 'Combat HUD Kit — hitmarker desync fixed', summary: 'Hitmarkers were reading local hit events instead of server-confirmed hits, causing false positives and missed markers under real latency.', details: '', affects: ['combat-hud-kit'], visible: true },
-    { id: 'rel-3', version: '', date: '2026-06-24', kind: 'Announcement', title: 'Resell licences now cover Frostline Survival Kit', summary: 'Frostline Survival Kit joins the resell-eligible catalog — grab a licence and sell it under your own store.', details: '', affects: ['frostline-survival-kit'], visible: true },
+    { id: 'rel-2', version: 'v2.5.4', date: '2026-07-02', kind: 'Fix', title: 'Combat HUD Kit - hitmarker desync fixed', summary: 'Hitmarkers were reading local hit events instead of server-confirmed hits, causing false positives and missed markers under real latency.', details: '', affects: ['combat-hud-kit'], visible: true },
+    { id: 'rel-3', version: '', date: '2026-06-24', kind: 'Announcement', title: 'Resell licences now cover Frostline Survival Kit', summary: 'Frostline Survival Kit joins the resell-eligible catalog - grab a licence and sell it under your own store.', details: '', affects: ['frostline-survival-kit'], visible: true },
     { id: 'rel-4', version: 'v2.5.0', date: '2026-06-10', kind: 'Feature', title: 'Currency switcher: pay in Robux or USD at checkout', summary: 'Checkout now supports paying directly in Robux at a fixed conversion rate, alongside standard USD checkout.', details: '', affects: [], visible: true },
-    { id: 'rel-5', version: 'v2.4.3', date: '2026-05-28', kind: 'Fix', title: 'Skyblock Network Hub — portal teleport offset fixed on 1.21', summary: 'Portals were spawning players slightly inside terrain on 1.21 servers due to a changed block-height default.', details: '', affects: ['skyblock-network-hub'], visible: true },
-    { id: 'rel-6', version: '', date: '2026-05-14', kind: 'Announcement', title: 'Spring Sale: 30% off every Roblox template', summary: 'Every Roblox template is 30% off through the end of the sale window — no code needed, discount applies at checkout.', details: '', affects: [], visible: true },
-    { id: 'rel-7', version: 'v2.4.0', date: '2026-05-01', kind: 'Feature', title: 'New admin dashboard: analytics, refunds, staff roles', summary: 'A full internal dashboard rebuild — live analytics, a proper refunds workflow, role-gated staff access, and an audit log.', details: '', affects: [], visible: true },
-    { id: 'rel-8', version: 'v2.3.2', date: '2026-04-19', kind: 'Fix', title: 'Inventory UI Pack — drag and drop no longer drops items off-screen', summary: 'Dragging a slot past the inventory bounds could delete the item instead of returning it. Drops now always snap back to the last valid slot.', details: '', affects: ['inventory-ui-pack'], visible: true },
+    { id: 'rel-5', version: 'v2.4.3', date: '2026-05-28', kind: 'Fix', title: 'Skyblock Network Hub - portal teleport offset fixed on 1.21', summary: 'Portals were spawning players slightly inside terrain on 1.21 servers due to a changed block-height default.', details: '', affects: ['skyblock-network-hub'], visible: true },
+    { id: 'rel-6', version: '', date: '2026-05-14', kind: 'Announcement', title: 'Spring Sale: 30% off every Roblox template', summary: 'Every Roblox template is 30% off through the end of the sale window - no code needed, discount applies at checkout.', details: '', affects: [], visible: true },
+    { id: 'rel-7', version: 'v2.4.0', date: '2026-05-01', kind: 'Feature', title: 'New admin dashboard: analytics, refunds, staff roles', summary: 'A full internal dashboard rebuild - live analytics, a proper refunds workflow, role-gated staff access, and an audit log.', details: '', affects: [], visible: true },
+    { id: 'rel-8', version: 'v2.3.2', date: '2026-04-19', kind: 'Fix', title: 'Inventory UI Pack - drag and drop no longer drops items off-screen', summary: 'Dragging a slot past the inventory bounds could delete the item instead of returning it. Drops now always snap back to the last valid slot.', details: '', affects: ['inventory-ui-pack'], visible: true },
     { id: 'rel-9', version: 'v2.3.0', date: '2026-04-03', kind: 'Feature', title: 'ALL BRAWL Full Game launches', summary: 'Our first complete fighting game template, fully scripted with client-predicted, server-authoritative combat.', details: '', affects: ['all-brawl-full-game'], visible: true },
-    { id: 'rel-10', version: 'v2.2.1', date: '2026-03-22', kind: 'Fix', title: 'VFX Starter Pack — explosion particles no longer persist after round end', summary: 'Particle emitters weren’t being cleaned up on round reset, causing effects to stack up over a long play session.', details: '', affects: ['vfx-starter-pack'], visible: true },
-    { id: 'rel-11', version: '', date: '2026-03-10', kind: 'Announcement', title: 'coldd is now a team of six', summary: 'Two new hires and a dedicated build discipline — read the full studio update on the blog.', details: '', affects: [], visible: true },
+    { id: 'rel-10', version: 'v2.2.1', date: '2026-03-22', kind: 'Fix', title: 'VFX Starter Pack - explosion particles no longer persist after round end', summary: 'Particle emitters weren’t being cleaned up on round reset, causing effects to stack up over a long play session.', details: '', affects: ['vfx-starter-pack'], visible: true },
+    { id: 'rel-11', version: '', date: '2026-03-10', kind: 'Announcement', title: 'coldd is now a team of six', summary: 'Two new hires and a dedicated build discipline - read the full studio update on the blog.', details: '', affects: [], visible: true },
     { id: 'rel-12', version: 'v2.2.0', date: '2026-03-01', kind: 'Feature', title: 'Frostline Survival Kit launches', summary: 'A full survival game template with five distinct biomes, crafting, and long-term progression.', details: '', affects: ['frostline-survival-kit'], visible: true },
     { id: 'rel-13', version: 'v2.1.0', date: '2026-02-12', kind: 'Feature', title: 'Wishlist and referral rewards added to product pages', summary: 'Save products to a wishlist, and earn a percentage back when a referral link leads to a sale.', details: '', affects: [], visible: true }
   ];
@@ -549,7 +549,7 @@
           '<article class="tut-detail-body">' + bodyHtml + '</article>' +
           '<aside class="tut-toc">' +
             (toc.length ? '<div class="tut-toc-card"><h3>On this page</h3><nav>' + toc.map(function (h) { return '<a href="#' + h.id + '">' + esc(h.text) + '</a>'; }).join('') + '</nav></div>' : '') +
-            '<div class="tut-toc-card tut-toc-cta"><h3>Need the asset?</h3><p>Skip the build — browse ready-made systems in the store.</p><a class="btn btn-primary" href="/shop">Browse assets</a></div>' +
+            '<div class="tut-toc-card tut-toc-cta"><h3>Need the asset?</h3><p>Skip the build - browse ready-made systems in the store.</p><a class="btn btn-primary" href="/shop">Browse assets</a></div>' +
           '</aside>' +
         '</div>' +
       '</div>';

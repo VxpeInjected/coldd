@@ -244,7 +244,7 @@ Deno.serve(async (req: Request) => {
         const latest = body.versions[body.versions.length - 1];
         await autoCreateRelease(admin, {
           productSlug: existingProduct.slug,
-          title: `${title} — ${latest?.version || "update"}`,
+          title: `${title} - ${latest?.version || "update"}`,
           summary: latest?.changelog || `${title} was updated.`,
           kind: "Fix",
           version: latest?.version,
@@ -266,7 +266,7 @@ Deno.serve(async (req: Request) => {
             const { data: profs } = await admin.from("profiles").select("id, notification_prefs").in("id", ownerIds);
             const prefById = new Map((profs ?? []).map((p: { id: string; notification_prefs: Record<string, unknown> | null }) => [p.id, p.notification_prefs || {}]));
             const changelog = String(latest?.changelog || "").trim();
-            const notifBody = (latest?.version ? `${latest.version} — ` : "") + (changelog ? changelog.slice(0, 160) : "A new version is available in your Licenses.");
+            const notifBody = (latest?.version ? `${latest.version} - ` : "") + (changelog ? changelog.slice(0, 160) : "A new version is available in your Licenses.");
             for (const uid of ownerIds) {
               const prefs = prefById.get(uid) as Record<string, unknown> | undefined;
               if (prefs && prefs.inAppProductUpdates === false) continue;

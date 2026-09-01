@@ -62,9 +62,11 @@ Deno.serve(async (req: Request) => {
     const action = String(body.action || "stats");
 
     if (action === "seed") {
-      // Hard cap per call - this is a manual admin action, not a place to let a
-      // typo burn through the container pool's 50-gamepass-per-universe limit.
-      const count = Math.max(1, Math.min(10, Math.floor(Number(body.count) || 0)));
+      // Cap per call - a manual admin action, not a place to let a typo burn
+      // through the container's slots. provisionPass() itself stops well
+      // before the 50-per-universe cap (it leaves MANUAL_PASS_RESERVE free),
+      // so this just bounds one click.
+      const count = Math.max(1, Math.min(25, Math.floor(Number(body.count) || 0)));
       let created = 0;
       const errors: string[] = [];
       for (let i = 0; i < count; i++) {

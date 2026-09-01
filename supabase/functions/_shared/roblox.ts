@@ -67,22 +67,72 @@ export async function updateGamepass(
 
 export type RobloxContainer = { id: string; universe_id: string; gamepass_count: number };
 
-// Picks the oldest active container with room (<50 gamepasses). Returns
-// null if the pool is exhausted - callers must hard-block product
-// creation in that case, since Roblox has no API to create a new
-// experience/universe.
+// Roblox's hard limit on game passes per universe.
+export const GAMEPASS_HARD_CAP = 50;
+// Slots kept free in every container for game passes staff create and
+// manage BY HAND (a promo pass, a donation pass, whatever). The pool will
+// keep leasing passes it already has right up to the cap, but it stops
+// GROWING once this much headroom is left, so a manual pass never fails to
+// create because auto-provisioning ate the last slot. See the "manual game
+// pass" note in roblox_pool.ts.
+export const MANUAL_PASS_RESERVE = 6;
+
+// Live count of every game pass in a universe, straight from Roblox, so
+// passes created by hand are counted the same as ones the pool made -
+// there is no local number to keep in sync and nothing drifts. Returns
+// null if the listing can't be completed (caller falls back to the stored
+// gamepass_count).
+export async function listGamepassCount(universeId: string): Promise<number | null> {
+  try {
+    let total = 0;
+    let pageToken = "";
+    for (let guard = 0; guard < 20; guard++) {
+      const url = new URL(`${ROBLOX_API_BASE}/universes/${universeId}/game-passes/creator`);
+      url.searchParams.set("pageSize", "100");
+      if (pageToken) url.searchParams.set("pageToken", pageToken);
+      const res = await fetch(url.toString(), { headers: { "x-api-key": apiKey() } });
+      if (!res.ok) {
+        console.error("[roblox] listGamepassCount failed", universeId, res.status);
+        return null;
+      }
+      // deno-lint-ignore no-explicit-any
+      const data: any = await res.json().catch(() => ({}));
+      total += Array.isArray(data.gamePasses) ? data.gamePasses.length : 0;
+      pageToken = data.nextPageToken || "";
+      if (!pageToken) return total;
+    }
+    return total; // hit the page guard - close enough for a cap check
+  } catch (err) {
+    console.error("[roblox] listGamepassCount error", universeId, err);
+    return null;
+  }
+}
+
+// Picks the oldest active container that still has room to GROW the pool
+// (live pass count below the cap minus the manual reserve). Returns null
+// when every container is full - callers must then hard-block rather than
+// serve a wrong pass, since Roblox has no API to create a new universe.
+// Also self-heals the stored gamepass_count from the live figure whenever
+// it reads one, so the admin panel display stops drifting.
 // deno-lint-ignore no-explicit-any
 export async function pickContainer(admin: any): Promise<RobloxContainer | null> {
   const { data, error } = await admin
     .from("roblox_containers")
     .select("id, universe_id, gamepass_count")
     .eq("active", true)
-    .lt("gamepass_count", 50)
-    .order("created_at", { ascending: true })
-    .limit(1)
-    .maybeSingle();
-  if (error || !data) return null;
-  return data as RobloxContainer;
+    .order("created_at", { ascending: true });
+  if (error || !data || !data.length) return null;
+
+  const growCap = GAMEPASS_HARD_CAP - MANUAL_PASS_RESERVE;
+  for (const c of data as RobloxContainer[]) {
+    const live = await listGamepassCount(c.universe_id);
+    const count = live == null ? Number(c.gamepass_count) || 0 : live;
+    if (live != null && live !== Number(c.gamepass_count)) {
+      await admin.from("roblox_containers").update({ gamepass_count: live }).eq("id", c.id);
+    }
+    if (count < growCap) return { ...c, gamepass_count: count };
+  }
+  return null;
 }
 
 /* ================================================================

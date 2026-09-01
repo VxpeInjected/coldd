@@ -4,6 +4,23 @@
 // kept; each Robux checkout LEASES one, has its Roblox price set to that order's
 // exact total, and serves that single pass to the buyer.
 //
+// ── Using game passes in the storefront game BY HAND ──────────────────────────
+// The pool shares one Roblox universe ("coldd Storefront") and you can still
+// create your own passes there, as long as:
+//   1. Never touch a pass named `coldd order pass …` - those are pool-managed.
+//      Their price is rewritten per order; editing or gifting one breaks the
+//      buyer it's currently leased to (and gifting makes the recipient unable
+//      to re-buy it, breaking any future order that draws it). The admin Robux
+//      pool card lists every managed pass id.
+//   2. Your manual passes ARE counted: pickContainer() reads the live pass
+//      count from Roblox, not a stored number, and keeps GAMEPASS_HARD_CAP -
+//      MANUAL_PASS_RESERVE slots free for you. So a manual pass won't fail to
+//      create because auto-provisioning took the last slot, and the pool won't
+//      over-provision because it can't see your passes.
+//   3. If a specific pool pass ends up owned by a buyer some other way (you
+//      sold/gave it to them), add the (gamepass_id, roblox_id) pair to
+//      roblox_owned_passes - lease_roblox_pass excludes it for that buyer.
+//
 // Ordering matters and is not arbitrary:
 //
 //   1. LEASE FIRST, in Postgres. Exclusivity has to be won before anything is

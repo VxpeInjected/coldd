@@ -187,7 +187,13 @@
     });
   }
 
-  window.coldSupabase.from('site_status').select('*').eq('id', true).maybeSingle().then(function (res) {
+  function dropBanner() {
+    var b = document.getElementById('siteWhitelistBanner');
+    if (b) b.remove();
+  }
+
+  function runMaintenanceCheck() {
+   window.coldSupabase.from('site_status').select('*').eq('id', true).maybeSingle().then(function (res) {
     if (res && res.error) { releaseGateHold(); return; } // fail open, don't touch the cached mode
     var status = res && res.data;
     if (!status || status.mode === 'open') { rememberMode('open'); releaseGateHold(); return; }
@@ -213,44 +219,78 @@
       };
       window.coldSupabase.auth.getSession().then(function (sres) {
         var session = sres && sres.data ? sres.data.session : null;
-        if (!session) { showMaintenanceOverlay(status); return; }
+        // If a tester's bypass is pulled while they sit on the page (removed
+        // from the allowlist, or maintenance just came on), the stale
+        // "tester access" banner has to go before the real overlay drops.
+        if (!session) { dropBanner(); showMaintenanceOverlay(status); return; }
         var allow = Array.isArray(status.maintenance_allow_user_ids) ? status.maintenance_allow_user_ids : [];
         if (allow.indexOf(session.user.id) !== -1) { grantBypassView(true); return; }
         window.coldAuth.checkIsAdmin().then(function (info) {
-          if (!info.isAdmin) { showMaintenanceOverlay(status); return; }
+          if (!info.isAdmin) { dropBanner(); showMaintenanceOverlay(status); return; }
           grantBypassView(false);
         });
       }).catch(function () {});
     }
-  }).catch(function () {
+   }).catch(function () {
     releaseGateHold();
     // Fail open - see file header.
-  });
+   });
+  }
 
   // Separate, independent check: a banned account gets signed out and
   // told why, no matter which page it's on. Also fails open on any
   // error - a check that couldn't complete must never itself look like
   // a ban.
-  window.coldSupabase.auth.getSession().then(function (sres) {
-    var session = sres && sres.data ? sres.data.session : null;
-    if (!session) return;
-    window.coldSupabase.from('profiles').select('banned, ban_reason').eq('id', session.user.id).maybeSingle().then(function (pres) {
-      var prof = pres && pres.data;
-      if (!prof || !prof.banned) return;
-      window.coldSupabase.auth.signOut().catch(function () {}).then(function () {
-        try { localStorage.setItem('coldd_auth', 'out'); } catch (e) {}
-        var overlay = document.createElement('div');
-        overlay.className = 'gate-overlay';
-        overlay.innerHTML = '<div class="gate-card glass">' +
-          '<img class="gate-logo" src="/logo.png" alt="coldd" />' +
-          '<h2>Account suspended</h2>' +
-          '<p class="gate-msg">' + (prof.ban_reason ? String(prof.ban_reason).replace(/[<>&]/g, function (c) { return { '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c]; }) : 'Contact support if you believe this is a mistake.') + '</p>' +
-          '<p class="gate-msg" style="margin-top:14px;"><a href="mailto:support@coldd.dev" style="color:var(--accent);font-weight:600;">support@coldd.dev</a></p>' +
-        '</div>';
-        document.documentElement.appendChild(overlay);
-        document.body.style.overflow = 'hidden';
-        lockBody();
-      });
+  function runBanCheck() {
+    if (document.getElementById('siteBannedOverlay')) return;
+    window.coldSupabase.auth.getSession().then(function (sres) {
+      var session = sres && sres.data ? sres.data.session : null;
+      if (!session) return;
+      window.coldSupabase.from('profiles').select('banned, ban_reason').eq('id', session.user.id).maybeSingle().then(function (pres) {
+        var prof = pres && pres.data;
+        if (!prof || !prof.banned) return;
+        if (document.getElementById('siteBannedOverlay')) return;
+        window.coldSupabase.auth.signOut().catch(function () {}).then(function () {
+          try { localStorage.setItem('coldd_auth', 'out'); } catch (e) {}
+          try { localStorage.removeItem('coldd_profile'); } catch (e) {}
+          var overlay = document.createElement('div');
+          overlay.id = 'siteBannedOverlay';
+          overlay.className = 'gate-overlay';
+          overlay.innerHTML = '<div class="gate-card glass">' +
+            '<img class="gate-logo" src="/logo.png" alt="coldd" />' +
+            '<h2>Account suspended</h2>' +
+            '<p class="gate-msg">' + (prof.ban_reason ? String(prof.ban_reason).replace(/[<>&]/g, function (c) { return { '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c]; }) : 'Contact support if you believe this is a mistake.') + '</p>' +
+            '<p class="gate-msg" style="margin-top:14px;"><a href="mailto:support@coldd.dev" style="color:var(--accent);font-weight:600;">support@coldd.dev</a></p>' +
+          '</div>';
+          document.documentElement.appendChild(overlay);
+          document.body.style.overflow = 'hidden';
+          lockBody();
+        });
+      }).catch(function () {});
     }).catch(function () {});
-  }).catch(function () {});
+  }
+
+  runMaintenanceCheck();
+  runBanCheck();
+
+  // Revocation used to only take effect on the next full page load - a
+  // banned user or a tester whose access was pulled kept browsing until
+  // they happened to navigate. Re-run both checks on a short interval
+  // (paused while the tab is hidden, re-checked the moment it's focused
+  // again) so it lands within ~45s instead of "whenever they reload".
+  // Matches the polling the notification bell already uses - no realtime
+  // channel wiring anywhere in this codebase. Still fully fail-open: a
+  // check that errors does nothing.
+  var REVOKE_POLL_MS = 45000;
+  var pollId = setInterval(function () {
+    if (document.hidden) return;
+    runMaintenanceCheck();
+    runBanCheck();
+  }, REVOKE_POLL_MS);
+  document.addEventListener('visibilitychange', function () {
+    if (document.hidden) return;
+    runMaintenanceCheck();
+    runBanCheck();
+  });
+  window.addEventListener('beforeunload', function () { clearInterval(pollId); });
 })();

@@ -3225,8 +3225,7 @@
             box.className = 'account-menu-admin';
             box.innerHTML =
               '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m12 2 7 4v6c0 5-3.5 8-7 10-3.5-2-7-5-7-10V6z"/><path d="m9 12 2 2 4-4"/></svg>' +
-              '<span>Admin panel</span>' +
-              '<span class="account-menu-admin-tag">' + esc(info.role || 'staff') + '</span>';
+              '<span>Admin panel</span>';
             menu.insertBefore(box, menu.querySelector('#menuSignout'));
           }).catch(function () {});
         }

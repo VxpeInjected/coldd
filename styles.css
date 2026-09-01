@@ -1581,24 +1581,24 @@ body.no-scroll { overflow: hidden; }
   box-shadow: 0 1px 0 rgba(255,255,255,0.05) inset, 0 20px 46px -26px var(--ink-75);
 }
 .pd-buycard { border: 1px solid var(--hairline); border-radius: var(--r-sm); padding: 20px; }
-/* Staff-only edit/update strip above the buy card. Flat, hairline-bordered,
-   matches the account-menu and dashboard admin entries. No colour, no
-   pulsing dot, no filled pills. */
-.pd-admin-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 14px;
-  padding: 7px 7px 7px 12px; border: 1px solid var(--hairline); border-radius: var(--r-sm);
+/* Staff-only edit/update strip above the buy card. The two actions are the
+   point of it, so they lead and fill the width; the dismiss is a quiet
+   affordance tucked at the end. Flat, hairline-bordered, no colour. */
+.pd-admin-bar { display: flex; align-items: center; gap: 8px; margin-bottom: 14px;
+  padding: 6px; border: 1px solid var(--hairline); border-radius: var(--r-sm);
   background: rgba(255,255,255,0.03); }
 /* display:flex above is an author rule and beats the browser's UA
    [hidden]{display:none}, so the attribute alone won't hide the bar. */
 .pd-admin-bar[hidden] { display: none; }
-.pd-admin-tag { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 10px; font-weight: 700; letter-spacing: 0.16em; color: var(--fg-3); }
-.pd-admin-acts { display: flex; align-items: center; gap: 2px; margin-left: auto; }
-.pd-admin-act { display: inline-flex; align-items: center; gap: 6px; padding: 5px 9px; border-radius: 8px;
-  font-size: 12px; font-weight: 600; color: var(--fg-2); text-decoration: none; transition: color .15s, background .15s; }
-.pd-admin-act svg { opacity: 0.65; }
-@media (hover: hover) and (pointer: fine) { .pd-admin-act:hover { color: var(--fg); background: rgba(255,255,255,0.06); } }
-.pd-admin-x { flex: none; width: 22px; height: 22px; display: grid; place-items: center; border: none;
-  border-radius: 6px; background: none; color: var(--fg-3); cursor: pointer; transition: color .15s, background .15s; }
+.pd-admin-acts { display: flex; align-items: stretch; gap: 6px; flex: 1 1 auto; }
+.pd-admin-act { flex: 1 1 0; display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+  padding: 9px 12px; border-radius: 9px; font-size: 13px; font-weight: 600;
+  color: var(--fg); text-decoration: none; border: 1px solid var(--hairline);
+  background: rgba(255,255,255,0.04); transition: color .15s, background .15s, border-color .15s; }
+.pd-admin-act svg { opacity: 0.8; flex: 0 0 auto; }
+@media (hover: hover) and (pointer: fine) { .pd-admin-act:hover { background: rgba(255,255,255,0.09); border-color: var(--hairline-strong); } }
+.pd-admin-x { flex: 0 0 auto; width: 26px; height: 26px; display: grid; place-items: center; border: none;
+  border-radius: 7px; background: none; color: var(--fg-3); cursor: pointer; transition: color .15s, background .15s; }
 @media (hover: hover) and (pointer: fine) { .pd-admin-x:hover { color: var(--fg); background: rgba(255,255,255,0.06); } }
 
 /* Admin product-edit floating save - stays reachable while scrolling a long form */
@@ -1631,11 +1631,13 @@ body.no-scroll { overflow: hidden; }
    accent on punctuation. DESIGN.md's One Ember Rule keeps red for "act here".
    Smaller too: a 8px dot beside 13px text was reading as a control. */
 .pd-feat-list li::before { content: ""; position: absolute; left: 2px; top: 8px; width: 5px; height: 5px; border-radius: 50%; background: var(--fg-3); }
-.pd-tech-list { display: grid; gap: 0; }
+/* margin:0 kills the browser's default <dl> block margin, which was
+   leaving ~1em of dead space between the last row and the card's border. */
+.pd-tech-list { display: grid; gap: 0; margin: 0; }
 .pd-tech-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--hairline); }
-.pd-tech-row:last-child { border-bottom: none; }
-.pd-tech-row dt { font-size: 13px; color: var(--fg-2); }
-.pd-tech-row dd { font-size: 13px; font-weight: 700; color: var(--fg); }
+.pd-tech-row:last-child { border-bottom: none; padding-bottom: 0; }
+.pd-tech-row dt { font-size: 13px; color: var(--fg-2); margin: 0; }
+.pd-tech-row dd { font-size: 13px; font-weight: 700; color: var(--fg); margin: 0; }
 .pd-refer { border: 1px solid var(--hairline); border-radius: var(--r-sm); padding: 18px 20px; }
 .pd-refer-h { font-size: 15px; font-weight: 700; }
 .pd-refer-p { font-size: 13px; color: var(--fg-2); line-height: 1.55; margin-top: 7px; }
@@ -2182,12 +2184,10 @@ body.auth-page { min-height: 100vh; min-height: 100dvh; }
 .dash-admin-link svg { flex: 0 0 auto; opacity: .85; }
 .dash-admin-link:hover { color: var(--fg); background: rgba(255,255,255,0.05); border-color: var(--hairline-strong); }
 .dash-admin-link[hidden] { display: none; }
-/* Staff variant: the shortcut into /admin gets a faint panel fill and a
-   monospace tag - matching the account-menu entry, no colour. */
+/* The customer-facing shortcut into /admin gets a faint panel fill to set
+   it apart from the nav rows above - matching the account-menu entry. */
 #dashAdminLink { background: rgba(255,255,255,0.03); }
 #dashAdminLink:hover { background: rgba(255,255,255,0.06); }
-.dash-admin-tag { margin-left: auto; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 9.5px; font-weight: 700; letter-spacing: 0.14em; color: var(--fg-3); }
 
 .dash-main { min-width: 0; }
 .dash-claim-banner {
@@ -4068,16 +4068,13 @@ input[type="checkbox"]:focus-visible { outline: 2px solid var(--accent); outline
 .account-menu-item svg { flex: 0 0 20px; color: var(--fg-2); }
 .account-menu-item:hover { background: rgba(255,255,255,0.05); }
 .account-menu-item:hover svg { color: var(--fg); }
-/* Staff-only shortcut into /admin. Reads as a normal menu row, just set
-   into its own faint panel with a monospace role tag - no colour, no
-   promo styling. */
+/* Admin-only shortcut into /admin. Reads as a normal menu row, just set
+   into its own faint panel - no colour, no promo styling. */
 .account-menu-admin { display: flex; align-items: center; gap: 10px; margin: 6px 2px 2px; padding: 9px 10px;
   border-radius: 10px; font-size: 13px; text-decoration: none; color: var(--fg);
   border: 1px solid var(--hairline); background: rgba(255,255,255,0.03); }
 .account-menu-admin:hover { background: rgba(255,255,255,0.06); }
 .account-menu-admin svg { flex: 0 0 20px; color: var(--fg-2); }
-.account-menu-admin-tag { margin-left: auto; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 9.5px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--fg-3); }
 .account-menu-signout { margin-top: 4px; border-top: 1px solid var(--hairline); border-radius: 0 0 8px 8px; color: var(--accent-ink); }
 .account-menu-signout:hover { background: rgba(255,255,255,0.05); }
 /* Sign out's 16px SVG sat directly next to the text with no box of its own,

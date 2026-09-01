@@ -1582,11 +1582,11 @@ body.no-scroll { overflow: hidden; }
 }
 .pd-buycard { border: 1px solid var(--hairline); border-radius: var(--r-sm); padding: 20px; }
 /* Staff-only edit/update strip above the buy card. Flat, hairline-bordered,
-   one 2px accent rule down the left edge - matches the account-menu and
-   dashboard admin entries. No pulsing dot, no filled pills. */
+   matches the account-menu and dashboard admin entries. No colour, no
+   pulsing dot, no filled pills. */
 .pd-admin-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 14px;
   padding: 7px 7px 7px 12px; border: 1px solid var(--hairline); border-radius: var(--r-sm);
-  background: var(--bg-2); box-shadow: inset 2px 0 0 var(--accent); }
+  background: rgba(255,255,255,0.03); }
 .pd-admin-tag { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 10px; font-weight: 700; letter-spacing: 0.16em; color: var(--fg-3); }
 .pd-admin-acts { display: flex; align-items: center; gap: 2px; margin-left: auto; }
@@ -2179,9 +2179,10 @@ body.auth-page { min-height: 100vh; min-height: 100dvh; }
 .dash-admin-link svg { flex: 0 0 auto; opacity: .85; }
 .dash-admin-link:hover { color: var(--fg); background: rgba(255,255,255,0.05); border-color: var(--hairline-strong); }
 .dash-admin-link[hidden] { display: none; }
-/* Staff variant: the shortcut into /admin gets the same left-edge accent
-   rule and monospace tag as the account-menu entry. */
-#dashAdminLink { box-shadow: inset 2px 0 0 var(--accent); }
+/* Staff variant: the shortcut into /admin gets a faint panel fill and a
+   monospace tag - matching the account-menu entry, no colour. */
+#dashAdminLink { background: rgba(255,255,255,0.03); }
+#dashAdminLink:hover { background: rgba(255,255,255,0.06); }
 .dash-admin-tag { margin-left: auto; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 9.5px; font-weight: 700; letter-spacing: 0.14em; color: var(--fg-3); }
 
@@ -4064,13 +4065,13 @@ input[type="checkbox"]:focus-visible { outline: 2px solid var(--accent); outline
 .account-menu-item svg { flex: 0 0 20px; color: var(--fg-2); }
 .account-menu-item:hover { background: rgba(255,255,255,0.05); }
 .account-menu-item:hover svg { color: var(--fg); }
-/* Staff-only shortcut into /admin. Deliberately quiet - a neutral row with
-   a single 2px accent rule down its left edge and a monospace role tag, so
-   it reads as "internal tooling", not a promo banner. */
+/* Staff-only shortcut into /admin. Reads as a normal menu row, just set
+   into its own faint panel with a monospace role tag - no colour, no
+   promo styling. */
 .account-menu-admin { display: flex; align-items: center; gap: 10px; margin: 6px 2px 2px; padding: 9px 10px;
   border-radius: 10px; font-size: 13px; text-decoration: none; color: var(--fg);
-  border: 1px solid var(--hairline); box-shadow: inset 2px 0 0 var(--accent); }
-.account-menu-admin:hover { background: rgba(255,255,255,0.05); }
+  border: 1px solid var(--hairline); background: rgba(255,255,255,0.03); }
+.account-menu-admin:hover { background: rgba(255,255,255,0.06); }
 .account-menu-admin svg { flex: 0 0 20px; color: var(--fg-2); }
 .account-menu-admin-tag { margin-left: auto; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 9.5px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--fg-3); }

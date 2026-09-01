@@ -4078,6 +4078,29 @@
     else if (f) f.dispatchEvent(new Event('submit', { cancelable: true }));
   });
 
+  // Mirror of admin-upsert-product's server-side product_legal check, so a
+  // hand-set price that would breach the product's own Legal limits is
+  // caught here with a clear message instead of a generic save error.
+  function productLegalSaveError() {
+    var price = Math.max(0, parseFloat($('admEditPrice').value) || 0);
+    var wasV = parseFloat($('admEditWasPrice').value);
+    var was = Number.isFinite(wasV) && wasV > price ? wasV : 0;
+    var rbxV = parseFloat($('admEditRobuxPrice').value);
+    var rbx = Number.isFinite(rbxV) && rbxV > 0 ? rbxV : 0;
+    var minUsd = Math.max(0, parseFloat($('admLegalMinUsd').value) || 0);
+    var minRbx = Math.max(0, parseFloat($('admLegalMinRobux').value) || 0);
+    var maxPct = Math.max(0, Math.min(100, parseFloat($('admLegalMaxDiscount').value) || 0));
+    var disallow = $('admLegalDisallowSales').checked;
+    var canFree = $('admLegalCanBeFree').checked;
+    var errs = [];
+    if (was && disallow) errs.push('this product is marked "do not discount"');
+    if (minUsd > 0 && price > 0 && price < minUsd) errs.push('the USD price is below the $' + minUsd.toFixed(2) + ' minimum');
+    if (was && maxPct > 0 && (1 - price / was) * 100 > maxPct + 0.01) errs.push('that is a ' + Math.round((1 - price / was) * 100) + '% discount, over the ' + maxPct + '% maximum');
+    if (!canFree && price <= 0) errs.push("this product isn't allowed to be free");
+    if (minRbx > 0 && rbx > 0 && rbx < minRbx) errs.push('the Robux price is below the ' + minRbx + ' minimum');
+    return errs.length ? ("Can't save - " + errs.join('; ') + '. Adjust the price or the Legal settings.') : null;
+  }
+
   var editForm = $('admEditForm');
   if (editForm) editForm.addEventListener('submit', function (e) {
     e.preventDefault();
@@ -4086,6 +4109,8 @@
     var isCreate = !id;
     var platform = $('admEditPlatform').value;
     var msg = $('admEditMsg');
+    var legalSaveErr = productLegalSaveError();
+    if (legalSaveErr) { if (msg) msg.textContent = legalSaveErr; return; }
     var realSaveBtn = $('admEditSaveBtn');
     var stickySave = $('admEditStickySave');
     // A stand-in for the real save button that also drives the floating

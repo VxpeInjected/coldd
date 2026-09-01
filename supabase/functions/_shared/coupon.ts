@@ -1,11 +1,24 @@
 // supabase/functions/_shared/coupon.ts
 //
-// Shared between validate-coupon and create-checkout-session so the two
-// can never compute a different discount for the same cart - the amount
-// shown to the shopper before payment must exactly match what Stripe
-// actually charges.
+// The single place every discount in the system is computed and every
+// product_legal limit is enforced. Shared by validate-coupon and all four
+// checkout functions (Stripe / PayPal / crypto / Robux) so the amount
+// shown to the shopper before payment always matches what's charged.
+//
+// product_legal limits, enforced by every path here:
+//   min_sale_usd / min_sale_robux  - absolute price floor
+//   max_discount_pct               - cap on the discount PERCENTAGE
+//   disallow_sales                 - no discount at all, ever
+//   can_be_free                    - if false, the price may not reach $0
+// They collapse into one number per line - floorUsd / floorRobux - that
+// every discount path clamps against, so no caller has to know the rules.
 
-import { ROBUX_PER_USD } from "./roblox.ts";
+import { ROBUX_PER_USD, type RobuxPricedLine } from "./roblox.ts";
+
+// If can_be_free is false and nothing else sets a floor, the price may
+// still be discounted but never all the way to zero.
+const NONFREE_MIN_USD = 0.01;
+const NONFREE_MIN_ROBUX = 1;
 
 export const RESELL_MULT = 3; // must match app.js's RESELL_MULT and create-checkout-session's
 
@@ -34,6 +47,7 @@ export type PricedLine = {
   minSaleUsd: number;
   maxDiscountPct: number;
   disallowSales: boolean;
+  canBeFree: boolean;
   floorUsd: number;
 };
 
@@ -48,7 +62,7 @@ export async function priceItems(
   const slugs = Array.from(new Set(items.map((i) => String(i.slug || ""))));
   const { data: products, error } = await admin
     .from("products")
-    .select("id, slug, title, price_usd, resell_available, platform, cat, product_legal(min_sale_usd, disallow_sales, max_discount_pct)")
+    .select("id, slug, title, price_usd, resell_available, platform, cat, product_legal(min_sale_usd, disallow_sales, max_discount_pct, can_be_free)")
     .in("slug", slugs)
     .eq("is_active", true);
   if (error) return { ok: false, error: "Could not load products." };
@@ -87,16 +101,20 @@ export async function priceItems(
     const legalRaw = Array.isArray(product.product_legal) ? product.product_legal[0] : product.product_legal;
     const minSaleUsd = Number(legalRaw?.min_sale_usd) || 0;
     const disallowSales = !!legalRaw?.disallow_sales;
+    const canBeFree = !!legalRaw?.can_be_free;
     const maxDiscountPct = Math.max(0, Math.min(100, Number(legalRaw?.max_discount_pct) || 0));
-    // The lowest this unit may ever be sold for: the contractual dollar
-    // floor, or the price a maxDiscountPct% discount off the (licence-
-    // adjusted) base would reach - whichever is higher. Every discount path
-    // clamps to this, so the % cap and the $ floor are enforced together
-    // without any one caller having to know about both.
+    // The lowest this unit may ever be sold for. Every discount path clamps
+    // to this one number, so all four product_legal limits are enforced
+    // together without any caller knowing about any of them:
+    //   - min_sale_usd: the contractual dollar floor
+    //   - max_discount_pct: the price that % off the (licence-adjusted) base reaches
+    //   - can_be_free = false: may be discounted, but not to exactly $0
+    // (disallow_sales is handled separately - those lines are dropped from
+    // every headroom sum, so they never take any discount at all.)
     const pctFloorUsd = maxDiscountPct > 0
       ? Math.round(baseUnitPrice * (1 - maxDiscountPct / 100) * 100) / 100
       : 0;
-    const floorUsd = Math.max(minSaleUsd, pctFloorUsd);
+    const floorUsd = Math.max(minSaleUsd, pctFloorUsd, canBeFree ? 0 : NONFREE_MIN_USD);
     // The checkout cross-sell upsell ("people also get this") bakes its
     // discount straight into the line price rather than the order-level
     // discount_usd a coupon/marketing-optin uses - it's a special price on
@@ -133,6 +151,7 @@ export async function priceItems(
       minSaleUsd,
       maxDiscountPct,
       disallowSales,
+      canBeFree,
       floorUsd,
     });
   }
@@ -181,6 +200,19 @@ export const SPEND_TIERS: { minSubtotal: number; pct: number }[] = [
   { minSubtotal: 35, pct: 10 },
 ];
 
+// Robux equivalent of legalHeadroom(): total Robux every line could give
+// up before any one hits its floorRobux (min_sale_robux, the
+// max_discount_pct cap in Robux terms, or the "not free" $0 guard).
+// disallow_sales lines contribute zero, same as the USD side. The Robux
+// discount paths below (coupon conversion + spend tier) are aggregate, not
+// per-line, so this is an aggregate backstop - the tightest guarantee the
+// proportional Robux model can give without pricing every line in Robux.
+export function robuxLegalHeadroom(lines: RobuxPricedLine[]): number {
+  return lines
+    .filter((li) => !li.disallowSales)
+    .reduce((sum, li) => sum + Math.max(0, li.unitRobux - li.floorRobux) * li.qty, 0);
+}
+
 // Robux orders can't reuse spendTierDiscount() as-is: that compares a
 // line list's own USD subtotal against SPEND_TIERS, but a product's real
 // admin-set robux_price often has no fixed ratio to its USD price (see
@@ -194,15 +226,30 @@ export const SPEND_TIERS: { minSubtotal: number; pct: number }[] = [
 // that has no specific product behind it - so the ladder, the discount,
 // and the visible total can never disagree with each other in Robux
 // mode, regardless of how any one product's cross-currency pricing
-// happens to sit.
-export function spendTierDiscountRobux(totalRobux: number): { discountRobux: number; pct: number; minRobux: number } {
+// happens to sit. `headroomRobux` caps the grant so it can never push a
+// line past its product_legal floor.
+export function spendTierDiscountRobux(
+  totalRobux: number,
+  headroomRobux = Infinity,
+): { discountRobux: number; pct: number; minRobux: number } {
   for (const tier of SPEND_TIERS) {
     const minRobux = Math.round(tier.minSubtotal * ROBUX_PER_USD);
     if (totalRobux >= minRobux) {
-      return { discountRobux: Math.round(totalRobux * (tier.pct / 100)), pct: tier.pct, minRobux };
+      const raw = Math.round(totalRobux * (tier.pct / 100));
+      return { discountRobux: Math.max(0, Math.min(raw, headroomRobux)), pct: tier.pct, minRobux };
     }
   }
   return { discountRobux: 0, pct: 0, minRobux: 0 };
+}
+
+// Robux equivalent of clampCombinedDiscount(): a coupon discount plus a
+// sale-event discount plus a spend-tier discount, each individually
+// floor-safe, re-clamped together so their sum can't overshoot the
+// aggregate Robux headroom (or turn the order negative).
+export function clampCombinedDiscountRobux(lines: RobuxPricedLine[], totalRawRobuxDiscount: number): number {
+  const headroom = robuxLegalHeadroom(lines);
+  const totalRobux = lines.reduce((sum, li) => sum + li.unitRobux * li.qty, 0);
+  return Math.max(0, Math.round(Math.min(totalRawRobuxDiscount, headroom, totalRobux)));
 }
 
 export function spendTierDiscount(lines: PricedLine[]): { discount: number; pct: number; minSubtotal: number } {
@@ -216,10 +263,10 @@ export function spendTierDiscount(lines: PricedLine[]): { discount: number; pct:
   return { discount: 0, pct: 0, minSubtotal: 0 };
 }
 
-// Re-clamps a coupon discount plus a marketing-optin discount together,
-// since each is independently capped against the SAME headroom - stacked
-// without this, their sum could still legally overshoot a floor even
-// though neither one alone did.
+// Re-clamps the whole discount stack together - coupon + sale event +
+// spend tier - since each is independently capped against the SAME
+// headroom. Stacked without this, their sum could still legally overshoot
+// a floor (or zero the order) even though no single one did.
 export function clampCombinedDiscount(lines: PricedLine[], totalRawDiscount: number): number {
   const headroom = legalHeadroom(lines);
   const subtotal = lines.reduce((sum, li) => sum + li.unitPrice * li.qty, 0);
@@ -298,4 +345,64 @@ export async function resolveCoupon(admin: any, rawCode: string, lines: PricedLi
     scopedSubtotal,
     note: wasCapped ? "Applied at the largest discount your cart currently qualifies for." : undefined,
   };
+}
+
+// ---- Sale events ---------------------------------------------------------
+//
+// A store-wide (or platform / category-scoped) percentage sale set up in
+// the admin Sales tab. It lives in `content` as type 'sale_event' with
+// { percentOff, scope, platform, category, startDate, endDate }, is shown
+// in the announcement bar by app.js, and - via the two helpers here -
+// applies automatically at checkout: effectively an automatic sitewide
+// coupon with no code. It stacks with a real coupon and the spend tiers,
+// and the whole stack is re-clamped by clampCombinedDiscount so no
+// product_legal floor is ever breached.
+
+export type SaleEvent = {
+  slug: string;
+  pct: number;
+  scope: "sitewide" | "platform" | "category";
+  platform: string | null;
+  category: string | null;
+};
+
+// The one live sale event (first match if several overlap), or null.
+// Dates are plain YYYY-MM-DD and inclusive on both ends, matching
+// catalog.js's pickActiveSale so the bar and the checkout agree.
+export async function activeSaleEvent(admin: any): Promise<SaleEvent | null> {
+  const today = new Date().toISOString().slice(0, 10);
+  const { data, error } = await admin
+    .from("content")
+    .select("slug, data")
+    .eq("type", "sale_event")
+    .eq("visible", true)
+    .order("created_at", { ascending: false });
+  if (error || !Array.isArray(data)) return null;
+  for (const row of data) {
+    const d = (row as any).data || {};
+    if (!d.startDate || !d.endDate) continue;
+    if (today < String(d.startDate) || today > String(d.endDate)) continue;
+    // percentOff is only clamped client-side (admin.js) today; re-clamp
+    // here so this path is authoritative on its own.
+    const pct = Math.max(0, Math.min(90, Math.round(Number(d.percentOff) || 0)));
+    if (pct <= 0) continue;
+    const scope = d.scope === "platform" || d.scope === "category" ? d.scope : "sitewide";
+    return { slug: String((row as any).slug || ""), pct, scope, platform: d.platform || null, category: d.category || null };
+  }
+  return null;
+}
+
+// The sale event's dollar discount for this cart - the scoped % off,
+// capped by the legal headroom of just the lines the sale covers. Zero if
+// there's no sale or nothing in scope.
+export function saleEventDiscount(lines: PricedLine[], sale: SaleEvent | null): { discount: number; pct: number } {
+  if (!sale || sale.pct <= 0) return { discount: 0, pct: 0 };
+  const inScope = (li: PricedLine) => {
+    if (sale.scope === "platform") return li.platform === sale.platform;
+    if (sale.scope === "category") return li.platform === sale.platform && li.cat === sale.category;
+    return true;
+  };
+  const scoped = lines.filter(inScope);
+  if (!scoped.length) return { discount: 0, pct: 0 };
+  return { discount: flatPctDiscount(scoped, sale.pct).discount, pct: sale.pct };
 }

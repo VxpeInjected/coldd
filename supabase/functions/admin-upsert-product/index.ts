@@ -130,6 +130,50 @@ Deno.serve(async (req: Request) => {
     // Only a real "was" price if it's actually higher than the current one -
     // otherwise this isn't a sale, it's just a number sitting in a field.
     const wasPrice = body.wasPrice != null && Number(body.wasPrice) > price ? Number(body.wasPrice) : null;
+    const robuxPrice = body.robuxPrice != null ? Math.max(0, Number(body.robuxPrice) || 0) : 0;
+
+    // Enforce product_legal against the price an admin is trying to set by
+    // hand - the same limits every automatic discount path already
+    // respects. Uses the legal values coming in with this save (the editor
+    // sends product + legal together), falling back to the row on file.
+    {
+      const lp = body.legal && typeof body.legal === "object" ? body.legal : null;
+      let minUsd = 0, minRbx = 0, maxPct = 0, disallow = false, canFree = true, hasLegal = false;
+      if (lp) {
+        minUsd = Math.max(0, Number(lp.minSaleUsd) || 0);
+        minRbx = Math.max(0, Number(lp.minSaleRobux) || 0);
+        maxPct = Math.max(0, Math.min(100, Number(lp.maxDiscountPct) || 0));
+        disallow = !!lp.disallowSales;
+        canFree = !!lp.canBeFree;
+        hasLegal = true;
+      } else if (id) {
+        const { data: row } = await admin
+          .from("product_legal")
+          .select("min_sale_usd, min_sale_robux, max_discount_pct, disallow_sales, can_be_free")
+          .eq("product_id", id)
+          .maybeSingle();
+        if (row) {
+          minUsd = Number(row.min_sale_usd) || 0;
+          minRbx = Number(row.min_sale_robux) || 0;
+          maxPct = Number(row.max_discount_pct) || 0;
+          disallow = !!row.disallow_sales;
+          canFree = !!row.can_be_free;
+          hasLegal = true;
+        }
+      }
+      if (hasLegal) {
+        const onSale = wasPrice != null && wasPrice > price;
+        const errs: string[] = [];
+        if (onSale && disallow) errs.push('this product is marked "do not discount"');
+        if (minUsd > 0 && price > 0 && price < minUsd) errs.push(`the USD price is below the $${minUsd.toFixed(2)} minimum sale price`);
+        if (onSale && maxPct > 0 && (1 - price / wasPrice!) * 100 > maxPct + 0.01) {
+          errs.push(`that's a ${Math.round((1 - price / wasPrice!) * 100)}% discount, over the ${maxPct}% maximum`);
+        }
+        if (!canFree && price <= 0) errs.push("this product isn't allowed to be free");
+        if (minRbx > 0 && robuxPrice > 0 && robuxPrice < minRbx) errs.push(`the Robux price is below the ${minRbx} minimum`);
+        if (errs.length) return json({ ok: false, error: `Can't save - ${errs.join("; ")}. Adjust the price or the product's Legal settings.` }, 400);
+      }
+    }
 
     const productFields: Record<string, unknown> = {
       title,

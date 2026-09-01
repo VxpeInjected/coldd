@@ -1283,6 +1283,7 @@
         featuredGrid.hidden = !featuredPicks.length;
         if (featuredSection) featuredSection.hidden = !featuredPicks.length;
         applyOwnedState(featuredGrid);
+        if (window.__stampSaleBadges) window.__stampSaleBadges(featuredGrid);
       }
       var dealsGrid = document.getElementById('homeDealsGrid');
       var dealsSection = document.getElementById('homeDealsSection');
@@ -1292,6 +1293,7 @@
         dealsGrid.hidden = !dealPicks.length;
         if (dealsSection) dealsSection.hidden = !dealPicks.length;
         applyOwnedState(dealsGrid);
+        if (window.__stampSaleBadges) window.__stampSaleBadges(dealsGrid);
 
         // The weekly-deals cron reverts these every Monday 00:00 UTC, so
         // that's the honest deadline to show.
@@ -1504,6 +1506,8 @@
         const PER_PAGE = 12;
         let page = 1;
 
+        if (window.__stampSaleBadges) window.__stampSaleBadges(grid);
+
         function markOwned() {
           products.forEach(function (card) {
             // A card showing the Resell License filter's pricing needs to
@@ -1561,7 +1565,7 @@
           const okSub = !curSub ? true
                       : curCat === 'resell' ? p.getAttribute('data-cat') === curSub
                       : p.getAttribute('data-subcat') === curSub;
-          const okSale = !onSale || p.hasAttribute('data-was');
+          const okSale = !onSale || p.hasAttribute('data-was') || p.getAttribute('data-sale-event') === 'yes';
           const okFree = !onFree || p.getAttribute('data-free') === 'yes';
           return okCat && okSub && okSale && okFree && (!query || title.indexOf(query) >= 0) && price >= lo && price <= hi;
         }
@@ -1957,6 +1961,9 @@
           const visible = matched.slice(start, start + PER_PAGE);
           products.forEach(function (p) { p.style.display = 'none'; });
           visible.forEach(function (p) { p.style.display = ''; grid.appendChild(p); syncCardPricing(p); });
+          // syncCardPricing rebuilds each price row from data-price, wiping
+          // the sale-event struck price - restore it.
+          if (window.__stampSaleBadges) window.__stampSaleBadges(grid);
           // Re-check ownership per card - it's licence-aware (see markOwned),
           // and which licence a card is showing can change on every
           // refilter (switching in or out of the Resell License filter).
@@ -2039,7 +2046,7 @@
         // currency while browsing the Resell filter would go stale (or
         // worse, get robux-converted, which resell licences never are)
         // until the next category click.
-        window.addEventListener('currencychange', function () { products.forEach(syncCardPricing); });
+        window.addEventListener('currencychange', function () { products.forEach(syncCardPricing); if (window.__stampSaleBadges) window.__stampSaleBadges(grid); });
 
         if (saleBox) saleBox.addEventListener('change', function () { onSale = saleBox.checked; refilter(true); });
         if (freeBox) freeBox.addEventListener('change', function () { onFree = freeBox.checked; refilter(true); });
@@ -2514,7 +2521,7 @@
         var pdImgPrev = $('pdImgPrev'), pdImgNext = $('pdImgNext');
         var pdVideo = $('pdVideo'), pdVideoFrame = $('pdVideoFrame');
         var pdCrumb = $('pdCrumb'), pdTitle = $('pdTitle'), pdSub = $('pdSub');
-        var pdPrice = $('pdPrice'), pdPriceWas = $('pdPriceWas'), pdPriceRbx = $('pdPriceRbx'), pdPriceNote = $('pdPriceNote');
+        var pdPrice = $('pdPrice'), pdPriceWas = $('pdPriceWas'), pdPriceRbx = $('pdPriceRbx'), pdPriceNote = $('pdPriceNote'), pdSaleEvent = $('pdSaleEvent');
         var pdLicence = $('pdLicence'), pdLicLabel = $('pdLicLabel'), pdLicResell = $('pdLicResell');
         var pdTechList = $('pdTechList'), pdAbout = $('pdAbout');
         var pdTechWrap = pdTechList ? pdTechList.closest('.pd-tech') : null;
@@ -2749,6 +2756,15 @@
           if (pdPriceRbx) { pdPriceRbx.textContent = rbxOverride > 0 ? robuxRaw(rbxOverride) : robux(base); pdPriceRbx.hidden = isFree; }
           if (pdPriceNote) pdPriceNote.hidden = isFree;
           if (pdSale) pdSale.hidden = !(cur.was > cur.priceNum);
+          // Live sale event (order-level, applied at checkout like an
+          // automatic coupon): standard licence only, and not stacked on a
+          // product already on a weekly deal / manual sale.
+          if (pdSaleEvent) {
+            var seOn = !isResell && !isFree && !(cur.was > cur.priceNum)
+              && window.__saleEvent && window.__saleEvent() && window.__saleCovers && window.__saleCovers(cur);
+            pdSaleEvent.hidden = !seOn;
+            if (seOn) pdSaleEvent.textContent = 'Sale −' + window.__saleEvent().pct + '% applied at checkout';
+          }
           var robuxMode = window.__currencyMode ? window.__currencyMode() === 'robux' : false;
           licPriceEls.forEach(function (el) {
             var isResellOpt = el.getAttribute('data-licprice') === 'resell';
@@ -5213,9 +5229,26 @@
         }
         return next;
       }
+      // The live sale event's discount on this cart (scoped % of the
+      // in-scope list subtotal). Preview only - the server recomputes it
+      // floor-safe and folds it into the same combined clamp as the coupon
+      // and spend tier (_shared/coupon.ts saleEventDiscount).
+      function catForCartItem(id) {
+        var base = String(id).replace(/--resell$/, '').replace(/--bundle$/, '').replace(/--crosssell$/, '');
+        return (window.__CATALOG || []).filter(function (c) { return c.id === base; })[0] || null;
+      }
+      function saleEventDiscountUsd() {
+        var s = window.__saleEvent && window.__saleEvent();
+        if (!s) return 0;
+        var scoped = cart.reduce(function (sum, i) {
+          return window.__saleCovers(catForCartItem(i.id), s) ? sum + i.price * i.qty : sum;
+        }, 0);
+        return Math.round(scoped * (s.pct / 100) * 100) / 100;
+      }
       function computeDiscount() {
         var sub = subtotal();
         var d = appliedCoupon ? appliedCoupon.discountUsd : 0;
+        d += saleEventDiscountUsd();
         var tier = currentSpendTier(sub);
         if (tier) d += Math.round(sub * (tier.pct / 100) * 100) / 100;
         return Math.min(d, sub);
@@ -5231,18 +5264,21 @@
       // different one), which could disagree by a Robux or two.
       function computeRobuxDiscount(rbxSub) {
         var sub = subtotal();
-        var couponDiscountUsd = appliedCoupon ? appliedCoupon.discountUsd : 0;
-        var afterCoupon = rbxSub;
-        if (couponDiscountUsd > 0 && sub > 0) {
-          afterCoupon = Math.round(rbxSub * (1 - couponDiscountUsd / sub));
+        // Coupon + sale event are both USD-basis; converted onto the Robux
+        // total as the same proportion of the USD subtotal they take off,
+        // exactly as create-robux-order does server-side.
+        var usdReduction = (appliedCoupon ? appliedCoupon.discountUsd : 0) + saleEventDiscountUsd();
+        var afterUsd = rbxSub;
+        if (usdReduction > 0 && sub > 0) {
+          afterUsd = Math.round(rbxSub * (1 - usdReduction / sub));
         }
         var descending = SPEND_TIERS.slice().sort(function (a, b) { return b.minSubtotal - a.minSubtotal; });
         var tierPct = 0;
         for (var i = 0; i < descending.length; i++) {
           var minRbx = Math.round(descending[i].minSubtotal * ROBUX_PER_USD_FALLBACK);
-          if (afterCoupon >= minRbx) { tierPct = descending[i].pct; break; }
+          if (afterUsd >= minRbx) { tierPct = descending[i].pct; break; }
         }
-        var finalTotal = Math.max(0, afterCoupon - Math.round(afterCoupon * (tierPct / 100)));
+        var finalTotal = Math.max(0, afterUsd - Math.round(afterUsd * (tierPct / 100)));
         return { finalTotal: finalTotal, discount: rbxSub - finalTotal, tierPct: tierPct };
       }
       // Same gap-closing pick as the cart drawer - the cheapest catalog
@@ -5361,9 +5397,12 @@
           discLine.hidden = !showsDiscount;
           if (showsDiscount) {
             var tierPctNow = rr ? rr.tierPct : (currentSpendTier(sub) ? currentSpendTier(sub).pct : 0);
-            var discLabel = appliedCoupon
-              ? ('Discount (' + appliedCoupon.code + (tierPctNow ? ' + ' + tierPctNow + '%' : '') + ')')
-              : (tierPctNow ? ('Discount (' + tierPctNow + '% off)') : 'Discount');
+            var saleNow = (saleEventDiscountUsd() > 0) ? (window.__saleEvent && window.__saleEvent()) : null;
+            var dParts = [];
+            if (appliedCoupon) dParts.push(appliedCoupon.code);
+            if (saleNow) dParts.push(saleNow.label + ' ' + saleNow.pct + '%');
+            if (tierPctNow) dParts.push(tierPctNow + '%' + (dParts.length ? '' : ' off'));
+            var discLabel = dParts.length ? ('Discount (' + dParts.join(' + ') + ')') : 'Discount';
             set('coDiscLabel', discLabel);
             set('coDiscAmt', rr ? ('-R$ ' + rr.discount.toLocaleString('en-US')) : ('-' + money(disc)));
           }

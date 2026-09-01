@@ -32,7 +32,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import Stripe from "https://esm.sh/stripe@17?target=deno";
-import { priceItems, resolveCoupon, spendTierDiscount, clampCombinedDiscount } from "../_shared/coupon.ts";
+import { priceItems, resolveCoupon, spendTierDiscount, clampCombinedDiscount, activeSaleEvent, saleEventDiscount } from "../_shared/coupon.ts";
 import { resolveCampaignCode } from "../_shared/campaign.ts";
 import { isSiteInMaintenance } from "../_shared/maintenance.ts";
 import { genClaimToken, sha256Hex } from "../_shared/order_access.ts";
@@ -99,6 +99,11 @@ Deno.serve(async (req: Request) => {
     const { lines, subtotal } = priced;
     if (subtotal <= 0) return json({ ok: false, error: "Order total must be greater than zero." }, 400);
 
+    // The live store-wide/scoped sale event (admin Sales tab), if any -
+    // applied automatically, stacks with a coupon and the spend tiers.
+    const saleEvent = await activeSaleEvent(admin);
+    const saleDisc = saleEventDiscount(lines, saleEvent).discount;
+
     let discount = 0;
     let appliedCouponCode: string | null = null;
     if (body.couponCode) {
@@ -122,7 +127,7 @@ Deno.serve(async (req: Request) => {
     // Automatic "spend $X, get Y% off" - no code, applies off the real
     // subtotal, stacks with a coupon the same floor-safe way the old
     // marketing discount did.
-    discount = clampCombinedDiscount(lines, discount + spendTierDiscount(lines).discount);
+    discount = clampCombinedDiscount(lines, discount + saleDisc + spendTierDiscount(lines).discount);
     const total = Math.max(0, Math.round((subtotal - discount) * 100) / 100);
     const campaignCode = await resolveCampaignCode(admin, body.campaignCode);
 
@@ -153,6 +158,7 @@ Deno.serve(async (req: Request) => {
         total_usd: total,
         coupon_code: appliedCouponCode,
         campaign_code: campaignCode,
+        sale_event_slug: saleEvent && saleDisc > 0 ? saleEvent.slug : null,
         marketing_opt_in: marketingOptIn,
       })
       .select()

@@ -12,7 +12,7 @@
 // controlled price.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
-import { priceItems, resolveCoupon, spendTierDiscount, clampCombinedDiscount } from "../_shared/coupon.ts";
+import { priceItems, resolveCoupon, spendTierDiscount, clampCombinedDiscount, activeSaleEvent, saleEventDiscount } from "../_shared/coupon.ts";
 import { resolveCampaignCode } from "../_shared/campaign.ts";
 import { paypalToken, paypalFetch, money, approveLink, paypalEnv } from "../_shared/paypal.ts";
 import { isSiteInMaintenance } from "../_shared/maintenance.ts";
@@ -75,6 +75,9 @@ Deno.serve(async (req: Request) => {
     const { lines, subtotal } = priced;
     if (subtotal <= 0) return json({ ok: false, error: "Order total must be greater than zero." }, 400);
 
+    const saleEvent = await activeSaleEvent(admin);
+    const saleDisc = saleEventDiscount(lines, saleEvent).discount;
+
     let discount = 0;
     let appliedCouponCode: string | null = null;
     if (body.couponCode) {
@@ -88,7 +91,7 @@ Deno.serve(async (req: Request) => {
       }
     }
     const marketingOptIn = !!body.marketingOptIn;
-    discount = clampCombinedDiscount(lines, discount + spendTierDiscount(lines).discount);
+    discount = clampCombinedDiscount(lines, discount + saleDisc + spendTierDiscount(lines).discount);
     const total = Math.max(0, Math.round((subtotal - discount) * 100) / 100);
     if (total <= 0) return json({ ok: false, error: "Order total must be greater than zero." }, 400);
     const campaignCode = await resolveCampaignCode(admin, body.campaignCode);
@@ -115,6 +118,7 @@ Deno.serve(async (req: Request) => {
         discount_usd: discount,
         total_usd: total,
         coupon_code: appliedCouponCode,
+        sale_event_slug: saleEvent && saleDisc > 0 ? saleEvent.slug : null,
         payment_provider: "paypal",
         campaign_code: campaignCode,
         marketing_opt_in: marketingOptIn,

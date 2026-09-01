@@ -20,7 +20,10 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { priceRobuxItems, getValidRobloxToken } from "../_shared/roblox.ts";
 import { leasePassForOrder } from "../_shared/roblox_pool.ts";
 import { resolveCampaignCode } from "../_shared/campaign.ts";
-import { priceItems, resolveCoupon, spendTierDiscountRobux, clampCombinedDiscount } from "../_shared/coupon.ts";
+import {
+  priceItems, resolveCoupon, spendTierDiscountRobux, clampCombinedDiscount,
+  clampCombinedDiscountRobux, robuxLegalHeadroom, activeSaleEvent, saleEventDiscount,
+} from "../_shared/coupon.ts";
 import { isSiteInMaintenance } from "../_shared/maintenance.ts";
 
 const ALLOWED_ORIGIN = "https://coldd.dev";
@@ -82,52 +85,46 @@ Deno.serve(async (req: Request) => {
 
     const subtotalUsd = lines.reduce((sum, li) => sum + li.unitPriceUsd * li.qty, 0);
 
-    // Coupons are validated in USD (resolveCoupon needs platform/category
-    // scope data priceRobuxItems' lines don't carry, and a coupon's own
-    // floor safety is defined in USD terms) via the exact same shared
-    // logic every other checkout path trusts, then applied to the Robux
-    // total as the same PROPORTION of the USD subtotal it discounts -
-    // not a flat USD->Robux conversion, since each product's real
-    // robux_price is independently admin-set and often has no fixed
-    // ratio to its USD price.
-    //
-    // Spend-tier is different: it used to run through the same USD-basis
-    // path (spendTierDiscount(usdPriced.lines), folded into the coupon's
-    // proportional conversion), which meant a cart that was genuinely
-    // small in Robux terms could still cross a USD tier threshold
-    // through one product priced disproportionately cheap in Robux -
-    // "10% off unlocked" next to an actual total of a few Robux, with no
-    // visible relationship between the two. spendTierDiscountRobux
-    // evaluates and grants it against the REAL Robux total instead, so
-    // the ladder, the discount, and what's actually charged can never
-    // disagree with each other here.
     let discountUsd = 0;
     let appliedCouponCode: string | null = null;
+    let saleEventSlug: string | null = null;
     let finalTotalRobux = totalRobux;
     let finalTotalUsd = subtotalUsd;
     const marketingOptIn = !!body.marketingOptIn;
     {
+      // The coupon and the sale event are both defined in USD (scope,
+      // percentage, and floor-safety all live in USD terms), so they're
+      // resolved against a parallel USD pricing of the same cart, combined
+      // and floor-clamped there, then converted onto the real Robux total
+      // as the same proportion of the USD subtotal they take off - never a
+      // flat USD->Robux rate, since each product's admin-set robux_price
+      // has no fixed ratio to its USD price. The spend tier is then
+      // evaluated directly in Robux (see spendTierDiscountRobux), and the
+      // whole Robux reduction is re-clamped against the cart's Robux legal
+      // headroom so no product_legal floor is breached.
       const usdPriced = await priceItems(admin, items);
-      let couponDiscountUsd = 0;
-      if (usdPriced.ok && usdPriced.subtotal > 0 && body.couponCode) {
-        const couponResult = await resolveCoupon(admin, String(body.couponCode), usdPriced.lines);
-        // Same as create-checkout-session: a coupon that no longer
-        // resolves (expired/deactivated/limit hit since the buyer
-        // applied it) just quietly doesn't apply rather than blocking
-        // checkout.
-        if (couponResult.ok) {
-          couponDiscountUsd = clampCombinedDiscount(usdPriced.lines, couponResult.discount);
-          appliedCouponCode = couponResult.code;
+      const saleEvent = await activeSaleEvent(admin);
+      let usdReduction = 0;
+      if (usdPriced.ok && usdPriced.subtotal > 0) {
+        let couponUsd = 0;
+        if (body.couponCode) {
+          const couponResult = await resolveCoupon(admin, String(body.couponCode), usdPriced.lines);
+          if (couponResult.ok) { couponUsd = couponResult.discount; appliedCouponCode = couponResult.code; }
         }
+        const saleUsd = saleEventDiscount(usdPriced.lines, saleEvent).discount;
+        if (saleUsd > 0) saleEventSlug = saleEvent!.slug;
+        usdReduction = clampCombinedDiscount(usdPriced.lines, couponUsd + saleUsd);
       }
 
-      let robuxAfterCoupon = totalRobux;
-      if (couponDiscountUsd > 0 && usdPriced.ok && usdPriced.subtotal > 0) {
-        robuxAfterCoupon = Math.round(totalRobux * (1 - couponDiscountUsd / usdPriced.subtotal));
+      let robuxAfterUsdDiscounts = totalRobux;
+      if (usdReduction > 0 && usdPriced.ok && usdPriced.subtotal > 0) {
+        robuxAfterUsdDiscounts = Math.round(totalRobux * (1 - usdReduction / usdPriced.subtotal));
       }
 
-      const tierResult = spendTierDiscountRobux(robuxAfterCoupon);
-      finalTotalRobux = Math.max(0, robuxAfterCoupon - tierResult.discountRobux);
+      const headroomRobux = robuxLegalHeadroom(lines);
+      const tierResult = spendTierDiscountRobux(robuxAfterUsdDiscounts, headroomRobux);
+      const rawRobuxReduction = (totalRobux - robuxAfterUsdDiscounts) + tierResult.discountRobux;
+      finalTotalRobux = Math.max(0, totalRobux - clampCombinedDiscountRobux(lines, rawRobuxReduction));
 
       // discount_usd/total_usd on the order row are informational
       // (receipts/analytics) - derived from the real combined discount
@@ -166,6 +163,7 @@ Deno.serve(async (req: Request) => {
         total_usd: finalTotalUsd,
         total_robux: finalTotalRobux,
         coupon_code: appliedCouponCode,
+        sale_event_slug: saleEventSlug,
         roblox_buyer_id: robloxAcct.roblox_id,
         campaign_code: campaignCode,
         marketing_opt_in: marketingOptIn,

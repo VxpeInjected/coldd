@@ -187,6 +187,11 @@ export type RobuxPricedLine = {
   qty: number;
   productId: string;
   licence: string;
+  // product_legal limits in Robux terms, mirroring _shared/coupon.ts's
+  // PricedLine. floorRobux is the lowest this unit may be sold for in
+  // Robux; disallowSales lines are dropped from every Robux headroom sum.
+  disallowSales: boolean;
+  floorRobux: number;
 };
 
 // Robux price for one licence of a product, mirroring the standard
@@ -234,7 +239,7 @@ export async function priceRobuxItems(
   const slugs = Array.from(new Set(items.map((i) => String(i.slug || ""))));
   const { data: products, error } = await admin
     .from("products")
-    .select("id, slug, title, price_usd, robux_price, platform, resell_available, resell_robux_price")
+    .select("id, slug, title, price_usd, robux_price, platform, resell_available, resell_robux_price, product_legal(min_sale_robux, disallow_sales, max_discount_pct, can_be_free)")
     .in("slug", slugs)
     .eq("is_active", true);
   if (error) return { ok: false, error: "Could not load products." };
@@ -255,6 +260,16 @@ export async function priceRobuxItems(
       return { ok: false, error: `${product.title} doesn't offer a resell licence.` };
     }
     const { unitRobux, unitPriceUsd } = robuxUnitPrice(product, isResell);
+    const legal = Array.isArray(product.product_legal) ? product.product_legal[0] : product.product_legal;
+    const disallowSales = !!legal?.disallow_sales;
+    const minSaleRobux = Number(legal?.min_sale_robux) || 0;
+    const maxPct = Math.max(0, Math.min(100, Number(legal?.max_discount_pct) || 0));
+    const canBeFree = !!legal?.can_be_free;
+    // Same rule as coupon.ts's floorUsd, in Robux: the highest of the
+    // min_sale_robux floor, what max_discount_pct% off this unit reaches,
+    // and (unless can_be_free) a non-zero minimum.
+    const pctFloorRobux = maxPct > 0 ? Math.round(unitRobux * (1 - maxPct / 100)) : 0;
+    const floorRobux = Math.max(minSaleRobux, pctFloorRobux, canBeFree ? 0 : 1);
     lines.push({
       slug,
       title: product.title + (isResell ? " (Resell licence)" : ""),
@@ -263,6 +278,8 @@ export async function priceRobuxItems(
       qty,
       productId: product.id,
       licence: isResell ? "resell" : "standard",
+      disallowSales,
+      floorRobux,
     });
   }
 

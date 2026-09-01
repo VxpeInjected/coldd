@@ -3952,7 +3952,9 @@ body.auth-page .backdrop, body.auth-page .scrim { position: fixed; inset: 0; hei
   display: flex; align-items: center; justify-content: center;
   border: none; background: transparent; color: var(--fg-3); cursor: pointer; }
 @media (hover: hover) and (pointer: fine) { .mkt-popup-x:hover { color: var(--fg); background: rgba(255,255,255,0.08); } }
-.mkt-popup-modal .mkt-popup-title { font-size: 24px; font-weight: 800; letter-spacing: -0.02em; line-height: 1.25; margin: 0 30px 10px 0; color: var(--fg); }
+.mkt-popup-modal .mkt-popup-title { font-size: 24px; font-weight: 800; letter-spacing: -0.02em; line-height: 1.25; margin: 0 0 10px; color: var(--fg); }
+/* the checkout co-offer modal keeps its X, so it needs the title inset back */
+.co-offer .mkt-popup-modal .mkt-popup-title { margin-right: 30px; }
 .mkt-popup-pct { color: var(--price); }
 .mkt-popup-modal .mkt-popup-sub { font-size: 14px; color: var(--fg-2); line-height: 1.55; margin: 0 0 22px; font-weight: 400; max-width: 34ch; }
 .mkt-popup-form { display: flex; flex-direction: column; gap: 10px; }

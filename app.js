@@ -182,7 +182,6 @@
         overlay.className = 'confirm-overlay';
         overlay.innerHTML =
           '<div class="confirm-modal mkt-popup-modal">' +
-          '<button class="mkt-popup-x" type="button" aria-label="Close"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M5 5l14 14M19 5 5 19"/></svg></button>' +
           '<h3 class="mkt-popup-title">First order? Take <span class="mkt-popup-pct">10% off</span>.</h3>' +
           '<p class="mkt-popup-sub">Get new products and sale events first, plus a one-time code waiting in your inbox the second you sign up.</p>' +
           '<form class="mkt-popup-form" id="mktPopupForm">' +
@@ -197,12 +196,12 @@
           '</div>';
         document.body.appendChild(overlay);
 
-        // X / click-outside = minimize to the corner tab. Only "No thanks"
-        // (below) or a claimed code dismisses it for real.
+        // Click-outside = minimize to the corner tab. There is no X - the
+        // only way past the popup is "I don't want a discount" (a real
+        // dismissal) or claiming a code.
         function minimize() { overlay.remove(); showTab(); }
         function decline() { overlay.remove(); hideTab(false); markSeen(); }
         overlay.addEventListener('click', function (e) { if (e.target === overlay) minimize(); });
-        overlay.querySelector('.mkt-popup-x').addEventListener('click', minimize);
         overlay.querySelector('#mktPopupNo').addEventListener('click', decline);
 
         var form = overlay.querySelector('#mktPopupForm');

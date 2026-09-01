@@ -79,6 +79,27 @@ export async function updateGamepass(
   throw new Error((data && data.errorMessage) || `Roblox gamepass update failed (${res.status})`);
 }
 
+// Reads one game pass's current live state (name, price, for-sale). Used to
+// confirm a pool pass hasn't been renamed or re-priced by hand before a
+// buyer is pointed at it. Returns null if it can't be read (caller decides
+// whether that's fatal).
+export async function getGamepass(universeId: string, gamePassId: string): Promise<GamePassConfig | null> {
+  try {
+    const res = await fetch(
+      `${ROBLOX_API_BASE}/universes/${universeId}/game-passes/${gamePassId}/creator`,
+      { headers: { "x-api-key": apiKey() } },
+    );
+    if (!res.ok) {
+      console.error("[roblox] getGamepass failed", universeId, gamePassId, res.status);
+      return null;
+    }
+    return (await res.json()) as GamePassConfig;
+  } catch (err) {
+    console.error("[roblox] getGamepass error", err);
+    return null;
+  }
+}
+
 export type RobloxContainer = { id: string; universe_id: string; gamepass_count: number };
 
 // Roblox's hard limit on game passes per universe.

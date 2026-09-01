@@ -17,7 +17,7 @@
 // linked a Roblox account, before an order can even be created.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { priceRobuxItems } from "../_shared/roblox.ts";
+import { priceRobuxItems, getValidRobloxToken } from "../_shared/roblox.ts";
 import { leasePassForOrder } from "../_shared/roblox_pool.ts";
 import { resolveCampaignCode } from "../_shared/campaign.ts";
 import { priceItems, resolveCoupon, spendTierDiscountRobux, clampCombinedDiscount } from "../_shared/coupon.ts";
@@ -193,7 +193,13 @@ Deno.serve(async (req: Request) => {
     // One pass for the whole order, priced to the exact (post-discount)
     // total - not one pass per product. The buyer makes a single Roblox
     // purchase regardless of how many items are in the cart.
-    const leased = await leasePassForOrder(admin, order.id, finalTotalRobux, robloxAcct.roblox_id);
+    // Buyer's OAuth token lets leasePassForOrder also check they don't
+    // already own the pass it's about to hand them (needs the
+    // user.inventory-item:read scope; silently skipped if not granted).
+    const buyerToken = await getValidRobloxToken(admin, userData.user.id).catch(() => null);
+    const leased = await leasePassForOrder(
+      admin, order.id, finalTotalRobux, robloxAcct.roblox_id, buyerToken?.accessToken,
+    );
     if (!leased.ok) {
       await admin.from("orders").update({ status: "canceled" }).eq("id", order.id);
       return json({ ok: false, error: leased.error, code: leased.code }, 503);

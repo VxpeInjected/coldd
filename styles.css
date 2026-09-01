@@ -3641,8 +3641,8 @@ a.adm-sub[href] { color: var(--fg-1); cursor: pointer; text-decoration: underlin
 .legal-card li { margin-bottom: 8px; }
 .legal-card li:last-child { margin-bottom: 0; }
 .legal-card strong { color: var(--fg); font-weight: 600; }
-.legal-card a { color: var(--accent); text-decoration: none; }
-.legal-card a:hover { text-decoration: underline; }
+.legal-card a { color: var(--accent-ink); font-weight: 700; text-decoration: none; }
+.legal-card a:hover { text-decoration: underline; text-underline-offset: 2px; }
 .legal-card hr { border: none; border-top: 1px solid var(--hairline); margin: 30px 0; }
 .legal-note { border: 1px solid var(--hairline); border-radius: var(--r-sm); padding: 18px 20px;
   background: var(--glass-top); font-size: 14px; color: var(--fg-2); line-height: 1.7; margin: 0 0 28px; }
@@ -3743,6 +3743,10 @@ a.adm-sub[href] { color: var(--fg-1); cursor: pointer; text-decoration: underlin
 .post-body li { margin-bottom: 8px; }
 .post-body strong { color: var(--fg); font-weight: 700; }
 .post-body code { background: rgba(255,255,255,0.07); border: 1px solid var(--hairline); border-radius: 4px; padding: 2px 6px; font-size: 0.9em; }
+/* Prose links: the default UA dark blue is close to unreadable on the dark
+   surface, so every in-content link renders bold in the lighter accent red. */
+.post-body a { color: var(--accent-ink); font-weight: 700; text-decoration: none; }
+.post-body a:hover { text-decoration: underline; text-underline-offset: 2px; }
 .post-rail { display: flex; flex-direction: column; gap: 16px; position: sticky; top: 96px; }
 .post-rail-card { border: 1px solid var(--hairline); border-radius: var(--r-sm); padding: 18px 20px;
   background: var(--bg-2); }
@@ -3796,6 +3800,8 @@ a.adm-sub[href] { color: var(--fg-1); cursor: pointer; text-decoration: underlin
 .tut-detail-body p { margin: 0 0 16px; color: var(--fg-2); }
 .tut-detail-body strong { color: var(--fg); }
 .tut-detail-body code { background: rgba(255,255,255,0.07); border: 1px solid var(--hairline); border-radius: 4px; padding: 2px 6px; font-size: 0.9em; }
+.tut-detail-body a { color: var(--accent-ink); font-weight: 700; text-decoration: none; }
+.tut-detail-body a:hover { text-decoration: underline; text-underline-offset: 2px; }
 .tut-toc { position: sticky; top: 96px; display: flex; flex-direction: column; gap: 16px; }
 .tut-toc-card { border: 1px solid var(--hairline); border-radius: var(--r-sm); padding: 18px 20px;
   background: var(--bg-2); }

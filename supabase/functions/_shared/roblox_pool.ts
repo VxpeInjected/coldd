@@ -195,6 +195,46 @@ export async function leasePassForOrder(
   };
 }
 
+/**
+ * Takes a pass in or out of the rotation. Use "retire" (active=false) before
+ * you buy, gift, rename or hand-price a pool pass yourself - it drops out of
+ * leasing immediately, any current lease is cleared, and it's taken off sale
+ * on Roblox. "restore" puts it back; the next lease re-prices and re-enables
+ * it, so a stale price left on it doesn't matter.
+ */
+// deno-lint-ignore no-explicit-any
+export async function setPassActive(admin: any, gamepassId: string, active: boolean) {
+  const { data: pass } = await admin
+    .from("roblox_pool_passes")
+    .select("gamepass_id, universe_id, leased_order_id, lease_expires_at")
+    .eq("gamepass_id", String(gamepassId))
+    .maybeSingle();
+  if (!pass) return { ok: false as const, error: "That pass isn't in the pool." };
+
+  if (!active) {
+    // Don't pull a pass out from under a checkout that's mid-flight.
+    if (pass.leased_order_id && pass.lease_expires_at && new Date(pass.lease_expires_at).getTime() > Date.now()) {
+      const { data: ord } = await admin.from("orders").select("status").eq("id", pass.leased_order_id).maybeSingle();
+      if (ord && ord.status === "pending") {
+        return { ok: false as const, error: "This pass is serving a live order right now. Wait for it to finish or cancel that order first." };
+      }
+    }
+    try {
+      await updateGamepass(String(pass.universe_id), String(pass.gamepass_id), { isForSale: false });
+    } catch (e) {
+      // Non-fatal: it's out of rotation regardless.
+      console.error("[roblox_pool] retire: could not take pass off sale", e instanceof Error ? e.message : e);
+    }
+  }
+
+  const patch = active
+    ? { active: true }
+    : { active: false, leased_order_id: null, leased_at: null, lease_expires_at: null, lease_price_robux: null };
+  const { error } = await admin.from("roblox_pool_passes").update(patch).eq("gamepass_id", String(gamepassId));
+  if (error) return { ok: false as const, error: error.message };
+  return { ok: true as const };
+}
+
 /** Returns the pass currently leased to an order, if any. */
 // deno-lint-ignore no-explicit-any
 export async function getLeasedPass(admin: any, orderId: string) {

@@ -39,6 +39,14 @@ export async function createGamepass(
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
+    if (res.status === 401 || res.status === 403) {
+      throw new Error(
+        `Roblox rejected game-pass create for universe ${universeId} (HTTP ${res.status}). ` +
+        `The ROBLOX_API_KEY needs "game-passes" write access for THIS experience - ` +
+        `add it at create.roblox.com/dashboard/credentials (the game-passes scope is per-experience), ` +
+        `or the key has expired.`,
+      );
+    }
     throw new Error((data && data.errorMessage) || `Roblox gamepass create failed (${res.status})`);
   }
   return data as GamePassConfig;
@@ -62,6 +70,12 @@ export async function updateGamepass(
   });
   if (res.status === 204) return;
   const data = await res.json().catch(() => ({}));
+  if (res.status === 401 || res.status === 403) {
+    throw new Error(
+      `Roblox rejected game-pass update for universe ${universeId} (HTTP ${res.status}) - ` +
+      `the ROBLOX_API_KEY is missing "game-passes" access for this experience or has expired.`,
+    );
+  }
   throw new Error((data && data.errorMessage) || `Roblox gamepass update failed (${res.status})`);
 }
 

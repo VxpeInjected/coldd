@@ -15,7 +15,7 @@
 //   the very first buyers of the day paying the provisioning latency.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { provisionPass } from "../_shared/roblox_pool.ts";
+import { provisionPass, setPassActive } from "../_shared/roblox_pool.ts";
 
 const ALLOWED_ORIGIN = "https://coldd.dev";
 
@@ -81,6 +81,21 @@ Deno.serve(async (req: Request) => {
       }
       const { data: stats } = await admin.rpc("roblox_pool_stats").single();
       return json({ ok: true, created, errors, stats });
+    }
+
+    // Retire a pass before you use it by hand (buy / gift / rename / re-price
+    // it yourself); restore it to hand it back to the pool.
+    if (action === "retire" || action === "restore") {
+      const gamepassId = String(body.gamepassId || "").trim();
+      if (!gamepassId) return json({ ok: false, error: "gamepassId is required." }, 400);
+      const res = await setPassActive(admin, gamepassId, action === "restore");
+      if (!res.ok) return json({ ok: false, error: res.error }, 400);
+      const { data: stats } = await admin.rpc("roblox_pool_stats").single();
+      const { data: passes } = await admin
+        .from("roblox_pool_passes")
+        .select("id, gamepass_id, universe_id, label, active, leased_order_id, lease_expires_at, lease_price_robux, created_at")
+        .order("created_at", { ascending: true });
+      return json({ ok: true, stats, passes: passes ?? [] });
     }
 
     const { data: stats } = await admin.rpc("roblox_pool_stats").single();

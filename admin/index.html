@@ -17,7 +17,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
 
-  <link rel="stylesheet" href="/styles.css?v=20260901n" />
+  <link rel="stylesheet" href="/styles.css?v=20260901o" />
 </head>
 <body class="adm-body">
   <div class="backdrop"></div>
@@ -1175,24 +1175,24 @@
             </div>
 
             <div id="admSiteMgmtRobloxView" hidden>
-              <div class="dt-badge err" id="admRobloxCookieWarning" hidden style="margin-bottom:16px;display:inline-block;"></div>
+              <div class="dt-badge err" id="admRobloxCookieWarning" hidden style="margin-bottom:16px;"></div>
 
               <div class="dash-card glass">
                 <div class="dash-card-head"><h2>Robux checkout pool</h2></div>
-                <p class="adm-hint">One shared pool of gamepasses is leased out per order (priced to that order's exact total) instead of every product owning its own pass. This grows automatically when a checkout finds the pool empty - seeding it ahead of time just avoids the first buyer of the day paying that extra latency.</p>
+                <p class="adm-hint">One shared pool of gamepasses is leased out per order (priced to that order's exact total) instead of every product owning its own pass. This grows automatically when a checkout finds the pool empty - seeding it ahead of time just avoids the first buyer of the day paying that extra latency. Passes named <code>coldd order pass …</code> are managed here - if you need to buy, gift, rename or hand-price one in the game, <strong>Retire</strong> it first.</p>
                 <div class="adm-stat-row" id="admRobloxPoolStats" style="display:flex;gap:22px;margin:12px 0;flex-wrap:wrap;">
                   <div><strong id="admRoboxPoolTotal">–</strong><div class="adm-hint" style="margin:0;">Total passes</div></div>
                   <div><strong id="admRoboxPoolFree">–</strong><div class="adm-hint" style="margin:0;">Free now</div></div>
                   <div><strong id="admRoboxPoolLeased">–</strong><div class="adm-hint" style="margin:0;">Leased now</div></div>
                 </div>
                 <form class="adm-form" id="admRobloxPoolSeedForm" style="flex-wrap:wrap;">
-                  <input type="number" id="admRobloxPoolSeedCount" class="adm-input" style="max-width:100px;" min="1" max="10" value="5" />
+                  <input type="number" id="admRobloxPoolSeedCount" class="adm-input" style="max-width:100px;" min="1" max="25" value="10" />
                   <button class="btn btn-primary adm-btn-sm" type="submit" id="admRobloxPoolSeedBtn"><span class="btn-label">Seed passes</span><span class="btn-spinner" hidden></span></button>
                 </form>
                 <div class="adm-edit-msg" id="admRobloxPoolMsg"></div>
                 <div class="dash-tablewrap" style="margin-top:14px;">
                   <table class="dash-table">
-                    <thead><tr><th>Gamepass ID</th><th>Universe</th><th>State</th><th>Lease price</th><th>Lease expires</th></tr></thead>
+                    <thead><tr><th>Gamepass ID</th><th>Universe</th><th>State</th><th>Lease price</th><th>Lease expires</th><th></th></tr></thead>
                     <tbody id="admRobloxPoolBody"></tbody>
                   </table>
                 </div>
@@ -1464,8 +1464,8 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.2/dist/umd/supabase.min.js" integrity="sha384-B2duOBIryCXbX4eDE4BdJwtNkQMRQde3o6IsjfPW28E6aH1CYE96hHeZRG3zY56O" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-  <script src="/supabase-init.js?v=20260901n"></script>
-  <script src="/site-gate.js?v=20260901n"></script>
-  <script src="/catalog.js?v=20260901n" data-then="/app.js?v=20260901n,/blog.js?v=20260901n,/reviews.js?v=20260729a,/admin.js?v=20260901n"></script>
+  <script src="/supabase-init.js?v=20260901o"></script>
+  <script src="/site-gate.js?v=20260901o"></script>
+  <script src="/catalog.js?v=20260901o" data-then="/app.js?v=20260901o,/blog.js?v=20260901o,/reviews.js?v=20260729a,/admin.js?v=20260901o"></script>
 </body>
 </html>

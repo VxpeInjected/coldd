@@ -2350,7 +2350,10 @@ body.auth-page { min-height: 100vh; min-height: 100dvh; }
 .dt-mono { font-variant-numeric: tabular-nums; color: var(--fg-3); }
 .dt-link { color: var(--accent); text-decoration: none; font-weight: 600; }
 .dt-link:hover { text-decoration: underline; }
-.dt-badge { font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 999px; white-space: nowrap; }
+.dt-badge { display: inline-block; font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 999px; white-space: nowrap; }
+/* Author display above beats the browser's [hidden]{display:none}; some
+   badges are persistent elements toggled via the hidden attribute. */
+.dt-badge[hidden] { display: none; }
 .dt-badge.ok { color: var(--price); background: rgba(52,224,138,0.12); border: 1px solid rgba(52,224,138,0.28); }
 .dt-badge.warn { color: var(--warn); background: var(--warn-tint); border: 1px solid rgba(246,196,84,0.28); }
 .dt-badge.err { color: var(--accent); background: rgba(255,77,68,0.12); border: 1px solid rgba(255,77,68,0.28); }

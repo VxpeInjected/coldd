@@ -5548,23 +5548,45 @@
     if (f) f.textContent = stats.free_now;
     if (l) l.textContent = stats.leased_now;
     var body = $('admRobloxPoolBody'); if (!body) return;
-    if (!passes.length) { body.innerHTML = '<tr><td colspan="5" class="adm-empty">No pool passes yet - seed some to start.</td></tr>'; return; }
+    if (!passes.length) { body.innerHTML = '<tr><td colspan="6" class="adm-empty">No pool passes yet - seed some to start.</td></tr>'; return; }
     body.innerHTML = passes.map(function (p) {
       var leased = p.leased_order_id && p.lease_expires_at && new Date(p.lease_expires_at).getTime() > Date.now();
-      var state = !p.active ? 'Disabled' : (leased ? 'Leased' : 'Free');
+      var state = !p.active ? 'Retired' : (leased ? 'Leased' : 'Free');
+      var act = p.active
+        ? '<button type="button" class="btn btn-ghost adm-btn-sm adm-pool-toggle" data-pool-action="retire" data-gamepass="' + esc(p.gamepass_id) + '">Retire</button>'
+        : '<button type="button" class="btn btn-ghost adm-btn-sm adm-pool-toggle" data-pool-action="restore" data-gamepass="' + esc(p.gamepass_id) + '">Restore</button>';
       return '<tr>' +
-        '<td>' + esc(p.gamepass_id) + '</td>' +
+        '<td><a href="https://www.roblox.com/game-pass/' + esc(p.gamepass_id) + '/" target="_blank" rel="noopener">' + esc(p.gamepass_id) + '</a></td>' +
         '<td>' + esc(p.universe_id) + '</td>' +
         '<td><span class="dt-badge ' + (state === 'Free' ? 'ok' : (state === 'Leased' ? 'warn' : 'err')) + '">' + state + '</span></td>' +
         '<td>' + (leased && p.lease_price_robux != null ? esc(p.lease_price_robux) + ' R$' : '–') + '</td>' +
         '<td>' + (leased ? new Date(p.lease_expires_at).toLocaleString() : '–') + '</td>' +
+        '<td>' + act + '</td>' +
         '</tr>';
     }).join('');
   }
+  var robloxPoolBodyEl = $('admRobloxPoolBody');
+  if (robloxPoolBodyEl) robloxPoolBodyEl.addEventListener('click', function (e) {
+    var btn = e.target.closest('.adm-pool-toggle');
+    if (!btn) return;
+    var action = btn.getAttribute('data-pool-action');
+    var gamepassId = btn.getAttribute('data-gamepass');
+    var msg = $('admRobloxPoolMsg');
+    btn.disabled = true;
+    if (msg) msg.textContent = action === 'retire' ? 'Retiring pass…' : 'Restoring pass…';
+    invokeAdminFn('admin-robux-pool', { action: action, gamepassId: gamepassId }, 'Could not update the pass.').then(function (data) {
+      if (msg) msg.textContent = action === 'retire' ? 'Pass retired - it is out of the pool and off sale on Roblox.' : 'Pass restored to the pool.';
+      logAudit((action === 'retire' ? 'Retired' : 'Restored') + ' Robux pool pass ' + gamepassId);
+      renderRobloxPool(data.stats, data.passes || []);
+    }).catch(function (err) {
+      if (msg) msg.textContent = err.message;
+      btn.disabled = false;
+    });
+  });
   var robloxPoolSeedForm = $('admRobloxPoolSeedForm');
   if (robloxPoolSeedForm) robloxPoolSeedForm.addEventListener('submit', function (e) {
     e.preventDefault();
-    var count = Math.max(1, Math.min(10, parseInt($('admRobloxPoolSeedCount').value, 10) || 5));
+    var count = Math.max(1, Math.min(25, parseInt($('admRobloxPoolSeedCount').value, 10) || 5));
     var btn = $('admRobloxPoolSeedBtn'), msg = $('admRobloxPoolMsg');
     btn.disabled = true;
     if (msg) msg.textContent = 'Creating gamepasses on Roblox…';

@@ -741,7 +741,8 @@
         return { '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]; }); }
       function priceStr(p) {
         var usd = parseFloat(String(p).replace(/[^0-9.]/g, '')) || 0;
-        return window.__money ? window.__money(usd) : ('$' + usd);
+        if (window.__price) return window.__price(usd);
+        return usd > 0 ? ('$' + usd) : 'Free';
       }
       function highlight(text, q) {
         const i = text.toLowerCase().indexOf(q);
@@ -1212,6 +1213,7 @@
       // no-JS/no-picks-yet fallback rather than leaving the section empty.
       function escHtml(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
       function money(n) { return window.__money ? window.__money(n) : ('$' + (n % 1 === 0 ? n : n.toFixed(2))); }
+      function priceLabel(n) { return window.__price ? window.__price(n) : ((Number(n) || 0) > 0 ? money(n) : 'Free'); }
       function homeCardHtml(p) {
         var onSale = p.was > p.priceNum;
         var offPct = onSale ? Math.round((1 - p.priceNum / p.was) * 100) : 0;
@@ -1225,7 +1227,7 @@
           '<div class="p-thumb" style="background-image:url(\'' + p.image + '\')">' + (onSale ? '<span class="p-off">-' + offPct + '%</span>' : '') + '</div>' +
           '<div class="p-body">' +
             '<h3 class="p-name">' + escHtml(p.title) + '</h3>' +
-            '<div class="p-price-row">' + (onSale ? '<span class="p-was" data-usd="' + p.was + '">' + money(p.was) + '</span>' : '') + '<span class="p-price" data-usd="' + p.priceNum + '">' + money(p.priceNum) + '</span></div>' +
+            '<div class="p-price-row">' + (onSale ? '<span class="p-was" data-usd="' + p.was + '">' + money(p.was) + '</span>' : '') + '<span class="p-price" data-usd="' + p.priceNum + '">' + priceLabel(p.priceNum) + '</span></div>' +
             '<p class="p-sum">' + escHtml(p.desc || '') + '</p>' +
             '<div class="p-actions"><button class="p-buy" type="button">Buy now</button><button class="p-add" type="button">Add to cart</button></div>' +
           '</div>' +
@@ -1891,7 +1893,9 @@
             var was = card.getAttribute('data-was');
             var baseUsd = Number(card.getAttribute('data-price'));
             var rbx = robuxMode ? cardRobuxPrice(card.getAttribute('data-id')) : null;
-            var baseText = rbx != null ? ('R$ ' + Math.round(rbx).toLocaleString('en-US')) : (window.__money ? window.__money(baseUsd) : ('$' + baseUsd));
+            var baseText = baseUsd <= 0
+              ? 'Free'
+              : (rbx != null ? ('R$ ' + Math.round(rbx).toLocaleString('en-US')) : (window.__money ? window.__money(baseUsd) : ('$' + baseUsd)));
             priceRow.innerHTML = (was ? '<span class="p-was">' + (window.__money ? window.__money(Number(was)) : ('$' + was)) + '</span>' : '') + '<span class="p-price" data-usd="' + baseUsd + '">' + baseText + '</span>';
           }
         }
@@ -2175,6 +2179,7 @@
         return p.robuxPrice > 0 ? p.robuxPrice : null;
       }
       function itemUnitMoney(item) {
+        if ((Number(item.price) || 0) <= 0) return 'Free';
         var robuxMode = window.__currencyMode && window.__currencyMode() === 'robux';
         if (robuxMode) {
           var rbx = catalogRobuxPrice(item.id, item.licence);
@@ -2615,12 +2620,15 @@
         }
         function robuxRaw(n) { return 'R$ ' + Math.round(Number(n) || 0).toLocaleString('en-US'); }
         function faqFor(p) {
-          var priceStr = fiat(p.priceNum);
+          var isFree = (Number(p.priceNum) || 0) <= 0;
+          var costAnswer = isFree
+            ? 'This product is free - there is no payment, just add it to your cart and check out.'
+            : 'This product costs ' + fiat(p.priceNum) + ', it is a one time payment with no recurring fees or subscriptions.';
           var list = [
             ['When will I receive the purchased product?', 'You receive the source files available to download instantly after purchase.'],
             ['Can I use this in multiple games?', 'Yes, you can use it in as many games and projects as you would like.'],
             ['How do I add this to my game?', 'If you received an .rbxl file open it directly in Roblox Studio via File then Open. If you received an .rbxm file, drag it directly into your Workspace.'],
-            ['How much does this cost?', 'This product costs ' + priceStr + ', it is a one time payment with no recurring fees or subscriptions.'],
+            ['How much does this cost?', costAnswer],
             ['What if I need support or installation help?', 'Contact us via our discord support tickets at discord.gg/coldd or through email at support@coldd.dev'],
             ['Do I have to pay for future updates or support?', 'No, support is always free. Any updates we publish for this product are also free for all buyers. We do not offer custom changes, edits, or commissions for this product. Bug fixes related to the product itself are always free.'],
             ['Do I need to credit you in my game?', 'Credit is not required when using our assets, although it is appreciated if you do!'],
@@ -2677,16 +2685,20 @@
           var resellUsd = cur.resellPrice != null ? cur.resellPrice : Math.round(cur.priceNum * RESELL_MULT);
           var base = isResell ? resellUsd : cur.priceNum;
           cur.price = base; cur.licence = cur.licence;
-          if (pdPrice) pdPrice.textContent = fiat(base);
+          // A free product (base $0, only ever the standard licence) shows a
+          // single "Free" with no struck-through price, no Robux equivalent
+          // and no conversion note - none of those say anything at $0.
+          var isFree = base <= 0;
+          if (pdPrice) pdPrice.textContent = isFree ? 'Free' : fiat(base);
           if (pdPriceWas) {
-            if (!isResell && cur.was > cur.priceNum) { pdPriceWas.textContent = fiat(cur.was); pdPriceWas.hidden = false; }
+            if (!isFree && !isResell && cur.was > cur.priceNum) { pdPriceWas.textContent = fiat(cur.was); pdPriceWas.hidden = false; }
             else pdPriceWas.hidden = true;
           }
           // Resell licences are sold in Robux now too - use resell_robux_price
           // when the admin set one, else flat-convert the resell USD price.
           var rbxOverride = isResell ? (cur.resellRobuxPrice > 0 ? cur.resellRobuxPrice : 0) : (cur.robuxPrice > 0 ? cur.robuxPrice : 0);
-          if (pdPriceRbx) { pdPriceRbx.textContent = rbxOverride > 0 ? robuxRaw(rbxOverride) : robux(base); pdPriceRbx.hidden = false; }
-          if (pdPriceNote) pdPriceNote.hidden = false;
+          if (pdPriceRbx) { pdPriceRbx.textContent = rbxOverride > 0 ? robuxRaw(rbxOverride) : robux(base); pdPriceRbx.hidden = isFree; }
+          if (pdPriceNote) pdPriceNote.hidden = isFree;
           if (pdSale) pdSale.hidden = !(cur.was > cur.priceNum);
           var robuxMode = window.__currencyMode ? window.__currencyMode() === 'robux' : false;
           licPriceEls.forEach(function (el) {

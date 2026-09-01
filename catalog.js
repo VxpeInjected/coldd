@@ -246,6 +246,10 @@
     window.__robux = function (usd) { return 'R$ ' + Math.round((Number(usd) || 0) * ROBUX_PER_USD).toLocaleString('en-US'); };
     window.__fiat = function (usd) { return fmtFiat(usd, byCode[fiatCode] || byCode.USD); };
     window.__money = function (usd) { return mode === 'robux' ? window.__robux(usd) : fmtFiat(usd, byCode[fiatCode] || byCode.USD); };
+    // A genuinely free product reads "Free", never "$0" / "R$ 0". Product
+    // list, detail and cart-line prices use this; order subtotals, savings
+    // amounts and settled receipts keep showing the actual number.
+    window.__price = function (usd) { return (Number(usd) || 0) <= 0 ? 'Free' : window.__money(usd); };
     window.__currencyMode = function () { return mode; };
     // Checkout needs to know WHICH fiat is selected, not just how to format
     // it - a conversion note is noise when the buyer is already on USD.
@@ -279,7 +283,11 @@
         if (el.getAttribute('data-usd') == null) {
           el.setAttribute('data-usd', parseFloat(el.textContent.replace(/[^0-9.]/g, '')) || 0);
         }
-        el.textContent = window.__money(el.getAttribute('data-usd'));
+        // .p-price shows "Free" at $0; .p-was is only ever a struck-through
+        // real price, so it keeps the number.
+        el.textContent = el.classList.contains('p-price')
+          ? window.__price(el.getAttribute('data-usd'))
+          : window.__money(el.getAttribute('data-usd'));
       });
     }
     function syncUI() {
@@ -371,6 +379,7 @@
   }
 
   function fmtPrice(n) {
+    if ((Number(n) || 0) <= 0) return 'Free';
     return '$' + (n % 1 === 0 ? n : n.toFixed(2));
   }
 

@@ -3231,12 +3231,9 @@
             box.href = '/admin';
             box.className = 'account-menu-admin';
             box.innerHTML =
-              '<span class="account-menu-admin-eyebrow">Staff</span>' +
-              '<span class="account-menu-admin-row">' +
-              '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m12 2 7 4v6c0 5-3.5 8-7 10-3.5-2-7-5-7-10V6z"/><path d="M9 12h6M12 9v6"/></svg>' +
+              '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m12 2 7 4v6c0 5-3.5 8-7 10-3.5-2-7-5-7-10V6z"/><path d="m9 12 2 2 4-4"/></svg>' +
               '<span>Admin panel</span>' +
-              (info.role ? '<span class="account-menu-admin-role">' + esc(info.role) + '</span>' : '') +
-              '</span>';
+              '<span class="account-menu-admin-tag">' + esc(info.role || 'staff') + '</span>';
             menu.insertBefore(box, menu.querySelector('#menuSignout'));
           }).catch(function () {});
         }

@@ -182,7 +182,6 @@
        text) - the tint reads as a soft rose highlight in light mode fine,
        but white text on light pink is the same illegible pairing. */
     html[data-theme="light"] .dash-nav a.active,
-    html[data-theme="light"] .dash-admin-link:hover,
     html[data-theme="light"] .ref-tab.active,
     html[data-theme="light"] .plat-opt.active,
     html[data-theme="light"] .co-sg-add {
@@ -1582,18 +1581,22 @@ body.no-scroll { overflow: hidden; }
   box-shadow: 0 1px 0 rgba(255,255,255,0.05) inset, 0 20px 46px -26px var(--ink-75);
 }
 .pd-buycard { border: 1px solid var(--hairline); border-radius: var(--r-sm); padding: 20px; }
-.pd-admin-bar { display: flex; align-items: center; gap: 6px; margin-bottom: 14px;
-  padding: 6px 6px 6px 12px; border: 1px solid var(--hairline); border-radius: 999px;
-  background: color-mix(in srgb, var(--accent) 7%, var(--surface, #16181d)); }
-.pd-admin-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); flex: none; box-shadow: 0 0 0 3px rgba(255,77,68,0.18); }
-.pd-admin-label { font-size: 11px; font-weight: 700; letter-spacing: 0.02em; color: var(--fg-2); margin-right: auto; padding-left: 2px; }
-.pd-admin-act { display: inline-flex; align-items: center; gap: 5px; padding: 6px 11px; border-radius: 999px;
-  font-size: 12px; font-weight: 600; color: var(--fg); text-decoration: none; background: rgba(255,255,255,0.06); border: 1px solid var(--hairline); }
-.pd-admin-act svg { opacity: 0.8; }
-@media (hover: hover) and (pointer: fine) { .pd-admin-act:hover { background: rgba(255,255,255,0.11); } }
-.pd-admin-x { flex: none; width: 24px; height: 24px; display: grid; place-items: center; border: none;
-  border-radius: 50%; background: none; color: var(--fg-3); cursor: pointer; }
-@media (hover: hover) and (pointer: fine) { .pd-admin-x:hover { color: var(--fg); background: rgba(255,255,255,0.08); } }
+/* Staff-only edit/update strip above the buy card. Flat, hairline-bordered,
+   one 2px accent rule down the left edge - matches the account-menu and
+   dashboard admin entries. No pulsing dot, no filled pills. */
+.pd-admin-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 14px;
+  padding: 7px 7px 7px 12px; border: 1px solid var(--hairline); border-radius: var(--r-sm);
+  background: var(--bg-2); box-shadow: inset 2px 0 0 var(--accent); }
+.pd-admin-tag { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 10px; font-weight: 700; letter-spacing: 0.16em; color: var(--fg-3); }
+.pd-admin-acts { display: flex; align-items: center; gap: 2px; margin-left: auto; }
+.pd-admin-act { display: inline-flex; align-items: center; gap: 6px; padding: 5px 9px; border-radius: 8px;
+  font-size: 12px; font-weight: 600; color: var(--fg-2); text-decoration: none; transition: color .15s, background .15s; }
+.pd-admin-act svg { opacity: 0.65; }
+@media (hover: hover) and (pointer: fine) { .pd-admin-act:hover { color: var(--fg); background: rgba(255,255,255,0.06); } }
+.pd-admin-x { flex: none; width: 22px; height: 22px; display: grid; place-items: center; border: none;
+  border-radius: 6px; background: none; color: var(--fg-3); cursor: pointer; transition: color .15s, background .15s; }
+@media (hover: hover) and (pointer: fine) { .pd-admin-x:hover { color: var(--fg); background: rgba(255,255,255,0.06); } }
 
 /* Admin product-edit floating save - stays reachable while scrolling a long form */
 .adm-sticky-save { position: fixed; top: 74px; right: 26px; z-index: 60; min-height: 40px; padding: 9px 20px;
@@ -2167,11 +2170,20 @@ body.auth-page { min-height: 100vh; min-height: 100dvh; }
 .dash-signout { display: flex; align-items: center; gap: 9px; margin-top: 10px; padding: 10px 12px; border-radius: 10px;
   background: transparent; border: 1px solid var(--hairline); color: var(--fg-2); font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer; transition: color .2s, background .2s, border-color .2s; }
 .dash-signout:hover { color: var(--fg); background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.18); }
-.dash-admin-link { display: flex; align-items: center; gap: 9px; margin-top: 14px; padding: 10px 12px; border-radius: 10px;
-  background: rgba(255,77,68,0.1); border: 1px solid rgba(255,77,68,0.3); color: var(--accent); text-decoration: none;
-  font-size: 14px; font-weight: 600; transition: color .2s, background .2s, border-color .2s; }
-.dash-admin-link:hover { color: #fff; background: rgba(255,77,68,0.18); border-color: rgba(255,77,68,0.45); }
+/* Quiet link under the dashboard nav: the customer-facing "Admin Panel"
+   shortcut, and (reused) the admin panel's own "Account Settings" back-link.
+   Styled like a nav row, not a call-to-action. */
+.dash-admin-link { display: flex; align-items: center; gap: 11px; margin-top: 12px; padding: 10px 12px; border-radius: 10px;
+  border: 1px solid var(--hairline); color: var(--fg-2); text-decoration: none;
+  font-size: 14px; font-weight: 500; transition: color .2s, background .2s, border-color .2s; }
+.dash-admin-link svg { flex: 0 0 auto; opacity: .85; }
+.dash-admin-link:hover { color: var(--fg); background: rgba(255,255,255,0.05); border-color: var(--hairline-strong); }
 .dash-admin-link[hidden] { display: none; }
+/* Staff variant: the shortcut into /admin gets the same left-edge accent
+   rule and monospace tag as the account-menu entry. */
+#dashAdminLink { box-shadow: inset 2px 0 0 var(--accent); }
+.dash-admin-tag { margin-left: auto; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 9.5px; font-weight: 700; letter-spacing: 0.14em; color: var(--fg-3); }
 
 .dash-main { min-width: 0; }
 .dash-claim-banner {
@@ -4052,15 +4064,16 @@ input[type="checkbox"]:focus-visible { outline: 2px solid var(--accent); outline
 .account-menu-item svg { flex: 0 0 20px; color: var(--fg-2); }
 .account-menu-item:hover { background: rgba(255,255,255,0.05); }
 .account-menu-item:hover svg { color: var(--fg); }
-.account-menu-admin { display: block; margin: 6px 2px 2px; padding: 8px 10px 9px; border-radius: 10px;
-  text-decoration: none; color: var(--fg);
-  background: rgba(255,77,68,0.08); border: 1px solid rgba(255,77,68,0.22); }
-.account-menu-admin:hover { background: rgba(255,77,68,0.14); }
-.account-menu-admin-eyebrow { display: block; font-size: 9.5px; font-weight: 700; letter-spacing: 0.09em;
-  text-transform: uppercase; color: var(--accent-ink); margin-bottom: 4px; }
-.account-menu-admin-row { display: flex; align-items: center; gap: 10px; font-size: 13px; }
-.account-menu-admin-row svg { flex: 0 0 20px; color: var(--accent-ink); }
-.account-menu-admin-role { margin-left: auto; font-size: 11px; color: var(--fg-3); text-transform: capitalize; }
+/* Staff-only shortcut into /admin. Deliberately quiet - a neutral row with
+   a single 2px accent rule down its left edge and a monospace role tag, so
+   it reads as "internal tooling", not a promo banner. */
+.account-menu-admin { display: flex; align-items: center; gap: 10px; margin: 6px 2px 2px; padding: 9px 10px;
+  border-radius: 10px; font-size: 13px; text-decoration: none; color: var(--fg);
+  border: 1px solid var(--hairline); box-shadow: inset 2px 0 0 var(--accent); }
+.account-menu-admin:hover { background: rgba(255,255,255,0.05); }
+.account-menu-admin svg { flex: 0 0 20px; color: var(--fg-2); }
+.account-menu-admin-tag { margin-left: auto; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 9.5px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--fg-3); }
 .account-menu-signout { margin-top: 4px; border-top: 1px solid var(--hairline); border-radius: 0 0 8px 8px; color: var(--accent-ink); }
 .account-menu-signout:hover { background: rgba(255,255,255,0.05); }
 /* Sign out's 16px SVG sat directly next to the text with no box of its own,

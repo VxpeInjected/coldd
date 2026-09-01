@@ -4028,14 +4028,24 @@ input[type="checkbox"]:checked::after {
 input[type="checkbox"]:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 /* account dropdown menu (matches account-menu classes built in app.js) */
-.account-menu { position: absolute; top: calc(100% + 10px); right: 0; min-width: 190px; z-index: 250;
-  background: var(--bg-2); border: 1px solid var(--hairline); border-radius: 10px; padding: 6px; box-shadow: var(--e-3); }
+.account-menu { position: absolute; top: calc(100% + 10px); right: 0; min-width: 244px; z-index: 250;
+  background: var(--bg-2); border: 1px solid var(--hairline); border-radius: 12px; padding: 6px; box-shadow: var(--e-3); }
 .account-menu[hidden] { display: none; }
+.account-menu-head { display: flex; align-items: center; gap: 11px; padding: 10px 10px 11px; }
+.account-menu-id { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.account-menu-id strong { font-size: 14px; font-weight: 700; color: var(--fg);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.account-menu-id em { font-size: 12px; font-style: normal; color: var(--fg-2);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.account-menu-list { padding-top: 4px; border-top: 1px solid var(--hairline); }
 .account-menu-item { display: flex; align-items: center; gap: 10px; width: 100%; padding: 9px 10px; border-radius: 10px;
   background: none; border: none; color: var(--fg); font-size: 13px; font-family: inherit; cursor: pointer;
   text-align: left; text-decoration: none; box-sizing: border-box; }
+.account-menu-item svg { flex: 0 0 20px; color: var(--fg-2); }
 .account-menu-item:hover { background: rgba(255,255,255,0.05); }
-.account-menu-signout { color: var(--accent-ink); }
+.account-menu-item:hover svg { color: var(--fg); }
+.account-menu-signout { margin-top: 4px; border-top: 1px solid var(--hairline); border-radius: 0 0 8px 8px; color: var(--accent-ink); }
+.account-menu-signout:hover { background: rgba(255,255,255,0.05); }
 /* Sign out's 16px SVG sat directly next to the text with no box of its own,
    while Your Account's 20px avatar circle does - that 4px difference in
    icon width was enough to shift where each label's text actually starts,
@@ -4045,6 +4055,7 @@ input[type="checkbox"]:focus-visible { outline: 2px solid var(--accent); outline
 .account-menu-av { width: 20px; height: 20px; border-radius: 50%; flex: 0 0 auto; background: var(--accent);
   display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: #fff;
   background-size: cover; background-position: center; }
+.account-menu-av-lg { width: 38px; height: 38px; font-size: 16px; }
 
 /* notification bell + popover (matches notif-* classes built in app.js) */
 /* .nav-notif is .nav-cta's first child, but .nav-inner's 18px gap (the

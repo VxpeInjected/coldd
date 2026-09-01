@@ -3186,10 +3186,30 @@
         var initial = (p && p.name) ? p.name.trim().charAt(0).toUpperCase() : '?';
         var avatarUrl = window.coldAuth && window.coldAuth.avatarUrlFor ? window.coldAuth.avatarUrlFor(p) : (p && p.avatar);
         var avatarHtml = avatarUrl
-          ? '<span class="account-menu-av" style="background-image:url(' + avatarUrl + ')"></span>'
-          : '<span class="account-menu-av">' + initial + '</span>';
+          ? '<span class="account-menu-av account-menu-av-lg" style="background-image:url(' + avatarUrl + ')"></span>'
+          : '<span class="account-menu-av account-menu-av-lg">' + initial + '</span>';
+        var displayName = (p && p.name) ? p.name : 'Member';
+        var subtitle = (p && p.email) ? p.email
+          : (p && p.provider ? (p.provider.charAt(0).toUpperCase() + p.provider.slice(1) + ' account') : '');
+        function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]; }); }
+        var links = [
+          ['/dashboard', 'Dashboard', '<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>'],
+          ['/dashboard?panel=purchases', 'Purchase History', '<path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/>'],
+          ['/dashboard?panel=owned', 'Licenses', '<path d="m12 2 7 4v6c0 5-3.5 8-7 10-3.5-2-7-5-7-10V6z"/><path d="m9 12 2 2 4-4"/>'],
+          ['/dashboard?panel=wishlist', 'Wishlist', '<path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z"/>'],
+          ['/dashboard?panel=referrals', 'Referrals', '<circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 13.5 6.8 4M15.4 6.5l-6.8 4"/>'],
+          ['/dashboard?panel=account', 'Settings', '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9c.14.5.6.86 1.11.86H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>']
+        ];
+        var itemsHtml = links.map(function (l) {
+          return '<a href="' + l[0] + '" class="account-menu-item">' +
+            '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' + l[2] + '</svg>' +
+            '<span>' + l[1] + '</span></a>';
+        }).join('');
         menu.innerHTML =
-          '<a href="/dashboard" class="account-menu-item">' + avatarHtml + '<span>Your Account</span></a>' +
+          '<div class="account-menu-head">' + avatarHtml +
+          '<span class="account-menu-id"><strong>' + esc(displayName) + '</strong>' +
+          (subtitle ? '<em>' + esc(subtitle) + '</em>' : '') + '</span></div>' +
+          '<div class="account-menu-list">' + itemsHtml + '</div>' +
           '<button type="button" class="account-menu-item account-menu-signout" id="menuSignout">' +
           '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/></svg>' +
           '<span>Sign out</span></button>';

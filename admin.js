@@ -1345,6 +1345,27 @@
       return { label: LABELS[k] || k, count: map[k], pct: total ? Math.round(map[k] / total * 100) : 0 };
     }).sort(function (a, b) { return b.count - a.count; });
   }
+  function abTests() {
+    var start = RANGE_DAYS ? rangeStart() : new Date(0);
+    var exp = {}; // key -> variant -> { exposure, convert }
+    CLIENT_EVENT_ROWS.forEach(function (e) {
+      if ((e.type !== 'ab_exposure' && e.type !== 'ab_convert') || !e.meta || !e.meta.id || new Date(e.d) < start) return;
+      var parts = String(e.meta.id).split(':');
+      if (parts.length < 2) return;
+      var key = parts[0], variant = parts.slice(1).join(':');
+      if (!exp[key]) exp[key] = {};
+      if (!exp[key][variant]) exp[key][variant] = { exposure: 0, convert: 0 };
+      if (e.type === 'ab_exposure') exp[key][variant].exposure++;
+      else exp[key][variant].convert++;
+    });
+    return Object.keys(exp).map(function (key) {
+      return { key: key, variants: Object.keys(exp[key]).sort().map(function (v) {
+        var d = exp[key][v];
+        return { variant: v, exposure: d.exposure, convert: d.convert,
+          rate: d.exposure ? Math.round(d.convert / d.exposure * 1000) / 10 : 0 };
+      }) };
+    });
+  }
   function conversionRate() {
     var days = RANGE_DAYS || 120;
     var rows = TRAFFIC.slice(Math.max(0, TRAFFIC.length - days));
@@ -3211,6 +3232,16 @@
       $('admHowHeardBody').innerHTML = hh.map(function (r) {
         return '<tr><td>' + esc(r.label) + '</td><td>' + r.count + '</td><td>' + r.pct + '%</td></tr>';
       }).join('') || '<tr><td colspan="3" class="adm-empty">No survey answers yet.</td></tr>';
+    }
+
+    if ($('admAbBody')) {
+      var abs = abTests();
+      $('admAbBody').innerHTML = abs.length ? abs.map(function (t) {
+        return t.variants.map(function (v, i) {
+          return '<tr>' + (i === 0 ? '<td rowspan="' + t.variants.length + '">' + esc(t.key) + '</td>' : '') +
+            '<td>' + esc(v.variant) + '</td><td>' + v.exposure + '</td><td>' + v.convert + '</td><td>' + v.rate + '%</td></tr>';
+        }).join('');
+      }).join('') : '<tr><td colspan="5" class="adm-empty">No experiments running.</td></tr>';
     }
 
     $('admAbandonedBody').innerHTML = ABANDONED.slice(0, 12).map(function (a) {

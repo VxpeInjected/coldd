@@ -14,7 +14,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const ALLOWED_ORIGIN = "https://coldd.dev";
-const ALLOWED_TYPES = new Set(["add_to_cart", "checkout_started", "search", "how_heard"]);
+const ALLOWED_TYPES = new Set(["add_to_cart", "checkout_started", "search", "how_heard", "ab_exposure", "ab_convert"]);
 
 function corsHeaders() {
   return {

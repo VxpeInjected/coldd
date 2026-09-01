@@ -17,7 +17,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
 
-  <link rel="stylesheet" href="/styles.css?v=20260901w" />
+  <link rel="stylesheet" href="/styles.css?v=20260901x" />
 </head>
 <body class="adm-body">
   <div class="backdrop"></div>
@@ -218,7 +218,13 @@
                   <tbody id="admHowHeardBody"></tbody>
                 </table>
               </div>
-              <div></div>
+              <div class="dash-card glass dash-tablewrap">
+                <div class="dash-card-head"><div><h2>A/B tests</h2><span class="adm-sub">Exposures and conversions per variant, over the selected range. Low numbers aren't significant yet.</span></div></div>
+                <table class="dash-table">
+                  <thead><tr><th>Experiment</th><th>Variant</th><th>Seen</th><th>Converted</th><th>Rate</th></tr></thead>
+                  <tbody id="admAbBody"></tbody>
+                </table>
+              </div>
             </div>
 
             <div class="adm-two-col">
@@ -1476,8 +1482,8 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.2/dist/umd/supabase.min.js" integrity="sha384-B2duOBIryCXbX4eDE4BdJwtNkQMRQde3o6IsjfPW28E6aH1CYE96hHeZRG3zY56O" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-  <script src="/supabase-init.js?v=20260901w"></script>
-  <script src="/site-gate.js?v=20260901w"></script>
-  <script src="/catalog.js?v=20260901w" data-then="/app.js?v=20260901w,/blog.js?v=20260901w,/reviews.js?v=20260729a,/admin.js?v=20260901w"></script>
+  <script src="/supabase-init.js?v=20260901x"></script>
+  <script src="/site-gate.js?v=20260901x"></script>
+  <script src="/catalog.js?v=20260901x" data-then="/app.js?v=20260901x,/blog.js?v=20260901x,/reviews.js?v=20260729a,/admin.js?v=20260901x"></script>
 </body>
 </html>

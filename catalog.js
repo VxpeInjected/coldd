@@ -167,6 +167,33 @@
     } catch (e) {}
   };
 
+  // Lightweight A/B assignment. window.__coldAB('popup_copy', ['a','b'])
+  // returns a variant, sticky per browser, and fires one 'ab_exposure'
+  // beacon ('<key>:<variant>') the first time each experiment is seen.
+  // window.__coldABConvert('popup_copy') fires 'ab_convert' for whichever
+  // variant this browser was assigned - call it on the success the
+  // experiment is trying to move. Both are no-ops without analytics
+  // consent, same as coldTrack.
+  window.__coldAB = function (key, variants) {
+    try {
+      if (!Array.isArray(variants) || !variants.length) return null;
+      var store = {};
+      try { store = JSON.parse(localStorage.getItem('coldd_ab') || '{}'); } catch (e) {}
+      if (!store[key] || variants.indexOf(store[key]) === -1) {
+        store[key] = variants[Math.floor(Math.random() * variants.length)];
+        try { localStorage.setItem('coldd_ab', JSON.stringify(store)); } catch (e) {}
+        window.coldTrack('ab_exposure', { id: key + ':' + store[key] });
+      }
+      return store[key];
+    } catch (e) { return null; }
+  };
+  window.__coldABConvert = function (key) {
+    try {
+      var store = JSON.parse(localStorage.getItem('coldd_ab') || '{}');
+      if (store[key]) window.coldTrack('ab_convert', { id: key + ':' + store[key] });
+    } catch (e) {}
+  };
+
   window.__CATEGORIES = [{"label": "Resell License", "slug": "resell", "platform": "Roblox", "page": "/shop"}, {"label": "Finished Games & Templates", "slug": "game-templates", "platform": "Roblox", "page": "/shop"}, {"label": "Maps", "slug": "maps", "platform": "Roblox", "page": "/shop"}, {"label": "Scripts & UI", "slug": "scripts-ui", "platform": "Roblox", "page": "/shop"}, {"label": "Graphics", "slug": "graphics", "platform": "Roblox", "page": "/shop"}, {"label": "Buildings", "slug": "buildings", "platform": "Roblox", "page": "/shop"}, {"label": "Assets", "slug": "assets", "platform": "Roblox", "page": "/shop"}, {"label": "Uniforms & Gear", "slug": "uniforms-gear", "platform": "Roblox", "page": "/shop"}, {"label": "Boats", "slug": "boats", "platform": "Roblox", "page": "/shop"}, {"label": "Weapons", "slug": "weapons", "platform": "Roblox", "page": "/shop"}, {"label": "Vehicles", "slug": "vehicles", "platform": "Roblox", "page": "/shop"}, {"label": "Animations & VFX", "slug": "animations-vfx", "platform": "Roblox", "page": "/shop"}];
 
   // Currency conversion (window.__money/__usd/__robux/__fiat/__currencyMode,

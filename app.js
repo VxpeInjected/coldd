@@ -180,9 +180,14 @@
       function buildPopup() {
         var overlay = document.createElement('div');
         overlay.className = 'confirm-overlay';
+        // First A/B experiment: popup headline. 'a' is the original.
+        var abVar = window.__coldAB ? window.__coldAB('popup_copy', ['a', 'b']) : 'a';
+        var abTitle = abVar === 'b'
+          ? 'Here\'s <span class="mkt-popup-pct">10% off</span> your first order.'
+          : 'First order? Take <span class="mkt-popup-pct">10% off</span>.';
         overlay.innerHTML =
           '<div class="confirm-modal mkt-popup-modal">' +
-          '<h3 class="mkt-popup-title">First order? Take <span class="mkt-popup-pct">10% off</span>.</h3>' +
+          '<h3 class="mkt-popup-title">' + abTitle + '</h3>' +
           '<p class="mkt-popup-sub">Get new products and sale events first, plus a one-time code waiting in your inbox the second you sign up.</p>' +
           '<form class="mkt-popup-form" id="mktPopupForm">' +
           '<div class="mkt-popup-field">' +
@@ -222,6 +227,7 @@
               return;
             }
             lsSet(CODE_KEY, data.code);
+            if (window.__coldABConvert) window.__coldABConvert('popup_copy');
             hideTab(true);
             form.hidden = true;
             var no = overlay.querySelector('#mktPopupNo'); if (no) no.hidden = true;

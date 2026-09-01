@@ -4439,6 +4439,12 @@ html.auth-in .nav-notif[hidden] { display: block; }
 .robux-modal-help li strong { color: var(--fg-2); }
 .robux-modal-help-contact { font-size: 12.5px; line-height: 1.5; color: var(--fg-3); margin: 0; }
 .robux-modal-help-contact a { color: var(--accent); font-weight: 600; text-decoration: none; }
+.robux-modal-ref { font-size: 12px; line-height: 1.5; color: var(--fg-3); margin: -8px 0 18px; }
+.robux-modal-ref strong { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-weight: 700; letter-spacing: 0.05em; color: var(--fg-2); }
+.robux-modal-ref[hidden] { display: none; }
+.co-msg-ref { display: block; margin-top: 6px; font-size: 11.5px; color: var(--fg-3); }
+.co-msg-ref strong { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; letter-spacing: 0.05em; }
 
 @media (max-width: 480px) { .robux-modal { padding: 26px 20px 22px; } }
 

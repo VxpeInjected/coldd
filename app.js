@@ -5337,6 +5337,25 @@
       function withSupportLine(msgText) {
         return esc(msgText) + ' <a href="https://discord.gg/coldd" target="_blank" rel="noopener">Contact us on Discord</a> if this doesn\'t sort itself out.';
       }
+      // Robux checkout failures the buyer can't self-resolve (verify timed
+      // out, lease window closed, the ledger check erred) get written to
+      // client_errors so they surface in the admin audit log next to a code
+      // the buyer can read back to support. Hard invokeFn failures already
+      // log themselves and hand the code back on err.errCode - only the
+      // "soft" ok:true-but-not-verified and client-side timeout paths need
+      // an explicit call here.
+      function logRobuxFail(reason, ctx) {
+        try {
+          if (window.coldAuth && window.coldAuth.logClientError) {
+            return window.coldAuth.logClientError('robux_checkout', reason, null, { fnName: 'verify-robux-order', context: ctx || null });
+          }
+        } catch (e) {}
+        return null;
+      }
+      function refSuffix(err) {
+        var c = err && err.errCode;
+        return c ? '<span class="co-msg-ref">Reference <strong>' + esc(c) + '</strong> - quote this if you contact us.</span>' : '';
+      }
       // The place-order button used to stay fully enabled and styled as the
       // primary action on an empty cart, while its handler bailed out on
       // `if (!cart.length) return;` - so clicking it did nothing at all and
@@ -5845,16 +5864,27 @@
         showRobuxModalPane('steps');
       });
 
-      function finishRobuxWait(success, message) {
+      function finishRobuxWait(success, message, code) {
         showRobuxModalPane('done');
         if (robuxModalDoneMsg) {
           robuxModalDoneMsg.className = 'robux-modal-msg' + (success ? '' : ' err');
           robuxModalDoneMsg.textContent = message;
         }
+        var refEl = document.getElementById('robuxModalRef');
+        if (refEl) {
+          if (!success && code) {
+            refEl.hidden = false;
+            refEl.innerHTML = 'Reference <strong>' + esc(code) + '</strong> - quote this if you contact support.';
+          } else {
+            refEl.hidden = true;
+            refEl.innerHTML = '';
+          }
+        }
       }
       function scheduleRobuxPoll() {
         if (Date.now() >= robuxPollDeadline) {
-          finishRobuxWait(false, "We haven't been able to confirm your purchase yet. If you've already bought the gamepass, Roblox can occasionally take longer to report it - try again below.");
+          var tcode = logRobuxFail('Robux verify timed out client-side after ' + Math.round(ROBUX_POLL_TIMEOUT_MS / 1000) + 's', { orderId: robuxOrderId, phase: 'poll_timeout' });
+          finishRobuxWait(false, "We haven't been able to confirm your purchase yet. If you did complete the Roblox purchase, your payment is safe - send us the reference below and we'll finish your order by hand. If you didn't get that far, you can try again.", tcode);
           return;
         }
         robuxPollTimer = setTimeout(pollRobuxOrder, ROBUX_POLL_INTERVAL_MS);
@@ -5892,8 +5922,9 @@
           }
           if (data.code === 'LEASE_EXPIRED') {
             stopRobuxPolling();
+            var lcode = logRobuxFail('Robux order lease expired before verify', { orderId: robuxOrderId, phase: 'lease_expired' });
             robuxOrderId = null; robuxOrderItems = null; robuxOrderSignature = null; robuxOrderGamePassId = null; robuxOrderPriceRobux = null;
-            finishRobuxWait(false, data.message || "This order's payment window expired. Please start the order again - you have not been charged.");
+            finishRobuxWait(false, data.message || "This order's payment window expired. Please start the order again - you have not been charged.", lcode);
             return;
           }
           // Ledger just doesn't show it yet - keep checking.
@@ -5907,7 +5938,7 @@
           // the buyer retry manually rather than looping on something that
           // will never resolve itself.
           stopRobuxPolling();
-          finishRobuxWait(false, (err && err.message) || 'Could not check your purchase. Please try again.');
+          finishRobuxWait(false, (err && err.message) || 'Could not check your purchase. Please try again.', err && err.errCode);
         });
       }
       if (robuxModalConfirmBtn) robuxModalConfirmBtn.addEventListener('click', function () {
@@ -6045,7 +6076,7 @@
           }).catch(function (err) {
             placeBtn.removeAttribute('data-busy');
             placeBtn.disabled = false; placeBtn.textContent = prevText;
-            if (msg) { msg.className = 'co-msg err show'; msg.innerHTML = withSupportLine((err && err.message) || 'Could not start Robux checkout.'); }
+            if (msg) { msg.className = 'co-msg err show'; msg.innerHTML = withSupportLine((err && err.message) || 'Could not start Robux checkout.') + refSuffix(err); }
             // create-robux-order's own live inventory check is the actual
             // authority on whether a re-link is needed (see its comments) -
             // only switch to the link block when THAT specifically failed,

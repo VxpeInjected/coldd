@@ -146,17 +146,19 @@
         var parsed = (ctx && typeof ctx.json === 'function') ? ctx.json().catch(function () { return null; }) : Promise.resolve(null);
         return parsed.then(function (data) {
           var msg = (data && data.error) || res.error.message || 'Request failed.';
-          logClientError('edge_function', msg, null, { fnName: name, context: { status: ctx && ctx.status } });
+          var ecode = logClientError('edge_function', msg, null, { fnName: name, context: { status: ctx && ctx.status } });
           var err = new Error(msg);
           if (data && data.code) err.code = data.code;
+          if (ecode) err.errCode = ecode;
           throw err;
         });
       }
       if (!res.data || !res.data.ok) {
         var failMsg = (res.data && res.data.error) || 'Request failed.';
-        logClientError('edge_function', failMsg, null, { fnName: name });
+        var fcode = logClientError('edge_function', failMsg, null, { fnName: name });
         var failErr = new Error(failMsg);
         if (res.data && res.data.code) failErr.code = res.data.code;
+        if (fcode) failErr.errCode = fcode;
         throw failErr;
       }
       return res.data;

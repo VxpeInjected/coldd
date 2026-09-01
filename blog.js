@@ -566,7 +566,7 @@
 
     root.innerHTML = all.map(function (r) {
       var affects = (r.affects || []).map(function (id) {
-        return '<a class="rel-affect" href="/product?id=' + encodeURIComponent(id) + '">' + esc(prodTitle(id)) + '</a>';
+        return '<a class="rel-affect" href="/product/' + encodeURIComponent(id) + '">' + esc(prodTitle(id)) + '</a>';
       }).join('');
       return '<article class="rel-item">' +
         '<div class="rel-item-side">' +

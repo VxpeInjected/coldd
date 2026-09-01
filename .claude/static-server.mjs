@@ -40,15 +40,24 @@ createServer((req, res) => {
     res.writeHead(403).end('forbidden');
     return;
   }
+  let serveFile = file;
+  let status = 200;
   try {
-    statSync(file);
+    statSync(serveFile);
   } catch {
-    res.writeHead(404, { 'content-type': 'text/plain' }).end('not found');
-    return;
+    // Mirror GitHub Pages: serve the custom 404.html for any unmatched
+    // path (with a 404 status) so client-side fallbacks like the pretty
+    // /product/<slug> router can be exercised locally.
+    serveFile = join(ROOT, '404.html');
+    status = 404;
+    try { statSync(serveFile); } catch {
+      res.writeHead(404, { 'content-type': 'text/plain' }).end('not found');
+      return;
+    }
   }
-  res.writeHead(200, {
-    'content-type': TYPES[extname(file).toLowerCase()] || 'application/octet-stream',
+  res.writeHead(status, {
+    'content-type': TYPES[extname(serveFile).toLowerCase()] || 'application/octet-stream',
     'cache-control': 'no-store',
   });
-  createReadStream(file).pipe(res);
+  createReadStream(serveFile).pipe(res);
 }).listen(PORT, () => console.log(`serving ${ROOT} on http://127.0.0.1:${PORT}`));

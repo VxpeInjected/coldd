@@ -72,7 +72,7 @@ def products():
     for r in rows:
         if not r.get('slug'):
             continue
-        out.append(('/product?id=' + r['slug'],
+        out.append(('/product/' + r['slug'],
                     'weekly', '0.8',
                     iso_day(r.get('updated_at') or r.get('created_at'))))
     return out

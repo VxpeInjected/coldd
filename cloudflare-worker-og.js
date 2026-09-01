@@ -58,7 +58,7 @@ async function fetchProduct(id) {
     description: clamp(p.description || (p.title + ', a ' + (p.cat || 'game') + ' asset for ' + (p.platform || 'Roblox') + ' from coldd.'), 300),
     image: absoluteImage(p.image),
     type: 'product',
-    path: '/product?id=' + encodeURIComponent(id)
+    path: '/product/' + encodeURIComponent(id)
   };
 }
 
@@ -106,16 +106,25 @@ function rewriteHead(html, meta) {
 export default {
   async fetch(request, env, ctx) {
     var url = new URL(request.url);
-    var isProduct = url.pathname === '/product' || url.pathname === '/product/';
+
+    // The canonical product URL is path-based (/product/<slug>); the old
+    // query form (/product?id=<slug>) still resolves for any link that
+    // predates the change. Posts stay on /post?slug=<slug>.
+    var prodPath = url.pathname.match(/^\/product\/([^\/]+)\/?$/);
+    var isProduct = !!prodPath || url.pathname === '/product' || url.pathname === '/product/';
     var isPost = url.pathname === '/post' || url.pathname === '/post/';
     if (!isProduct && !isPost) return fetch(request);
 
-    var id = isProduct ? url.searchParams.get('id') : url.searchParams.get('slug');
+    var id = prodPath ? decodeURIComponent(prodPath[1])
+      : isProduct ? url.searchParams.get('id')
+      : url.searchParams.get('slug');
     if (!id) return fetch(request);
 
-    var originResponse = await fetch(request);
+    // /product/<slug> has no file on the static origin, so fetch the shell;
+    // a plain /product(/) or /post(/) request fetches itself.
+    var originResponse = await fetch(prodPath ? (ORIGIN + '/product/') : request);
     var contentType = originResponse.headers.get('content-type') || '';
-    if (!contentType.includes('text/html')) return originResponse;
+    if (!contentType.includes('text/html') || !originResponse.ok) return originResponse;
 
     try {
       var meta = isProduct ? await fetchProduct(id) : await fetchPost(id);
@@ -124,7 +133,7 @@ export default {
       var html = await originResponse.text();
       html = rewriteHead(html, meta);
       var headers = new Headers(originResponse.headers);
-      return new Response(html, { status: originResponse.status, headers: headers });
+      return new Response(html, { status: 200, headers: headers });
     } catch (e) {
       // Any failure (Supabase down, bad data) falls back to the untouched
       // origin response rather than breaking the page.

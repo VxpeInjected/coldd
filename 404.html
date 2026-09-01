@@ -4,16 +4,29 @@
   <script>document.documentElement.classList.add('js');try{var t=localStorage.getItem('coldd_theme');if(t==='light'||(t==='system'&&matchMedia('(prefers-color-scheme: light)').matches))document.documentElement.setAttribute('data-theme','light');}catch(e){}try{if(localStorage.getItem('coldd_auth')==='in')document.documentElement.classList.add('auth-in');}catch(e){}</script>
   <script>try{var _gp=location.pathname.replace(/\/+$/,'')||'/';if(localStorage.getItem('coldd_site_mode')==='maintenance'&&!/^\/(signin|signup|forgot|reset|callback|roblox-callback|lock|admin)(\/|$)/.test(_gp)){var _gd=document.documentElement;_gd.style.visibility='hidden';window.__coldGateHold=setTimeout(function(){try{_gd.style.visibility=''}catch(e){}},10000);}}catch(e){}</script>
   <script>
-    // Static hosting serves this file's content for ANY unmatched path
-    // without changing the address bar - a visitor who lands here from a
-    // stale/broken link sees "Page Not Found" but the URL still reads
-    // whatever bad path got them here. Rewrites it to the canonical /404
-    // once the content has already loaded (replaceState, not a real
-    // navigation, so there's no reload/flash) - the browser's Back button
-    // still returns to wherever they actually came from.
-    if (location.pathname !== '/404') {
-      history.replaceState(null, '', '/404' + location.search);
-    }
+    // Pretty product URLs (/product/<slug>) have no file on the static host,
+    // so requests for them land here. Forward to the product shell with the
+    // slug as a query param; product/index.html reads it and rewrites the
+    // address bar back to the clean /product/<slug> form. On coldd.dev the
+    // Cloudflare worker serves the shell directly and this never runs.
+    (function () {
+      var m = location.pathname.match(/^\/product\/([^\/?#]+)\/?$/);
+      if (m) {
+        var extra = location.search ? '&' + location.search.slice(1) : '';
+        location.replace('/product/?id=' + m[1] + extra + location.hash);
+        return;
+      }
+      // Static hosting serves this file's content for ANY unmatched path
+      // without changing the address bar - a visitor who lands here from a
+      // stale/broken link sees "Page Not Found" but the URL still reads
+      // whatever bad path got them here. Rewrites it to the canonical /404
+      // once the content has already loaded (replaceState, not a real
+      // navigation, so there's no reload/flash) - the browser's Back button
+      // still returns to wherever they actually came from.
+      if (location.pathname !== '/404') {
+        history.replaceState(null, '', '/404' + location.search);
+      }
+    })();
   </script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -29,7 +42,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
 
-  <link rel="stylesheet" href="/styles.css?v=20260901l" />
+  <link rel="stylesheet" href="/styles.css?v=20260901m" />
 </head>
 <body>
   <div class="backdrop"></div>

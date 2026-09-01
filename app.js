@@ -612,7 +612,7 @@
           // it. The static placeholder slides in the markup keep their inline
           // background on .nr-slide, which still renders if the catalog fetch
           // never resolves.
-          return '<div class="nr-slide"><span class="nr-bg" style="background-image:url(\'' + p.image + '\')"></span><div class="nr-cap"><span class="nr-chip">New</span><span class="nr-title">' + escNr(p.title) + '</span><a class="btn nr-view" href="/product?id=' + encodeURIComponent(p.id) + '" target="_blank" rel="noopener">View product</a></div></div>';
+          return '<div class="nr-slide"><span class="nr-bg" style="background-image:url(\'' + p.image + '\')"></span><div class="nr-cap"><span class="nr-chip">New</span><span class="nr-title">' + escNr(p.title) + '</span><a class="btn nr-view" href="/product/' + encodeURIComponent(p.id) + '" target="_blank" rel="noopener">View product</a></div></div>';
         }).join('');
         if (dotsWrap) dotsWrap.innerHTML = newest.map(function () { return '<span class="nr-dot"></span>'; }).join('');
       }
@@ -805,7 +805,7 @@
               // retired quick-view modal, which is why that panel could still
               // appear from search long after it was removed everywhere else.
               var a = document.createElement('a');
-              a.href = '/product?id=' + encodeURIComponent(p.id);
+              a.href = '/product/' + encodeURIComponent(p.id);
               a.target = '_blank'; a.rel = 'noopener';
               a.click();
               close();
@@ -2307,7 +2307,7 @@
           var openProductPage = function () {
             closeCart();
             var a = document.createElement('a');
-            a.href = '/product?id=' + encodeURIComponent(i.id);
+            a.href = '/product/' + encodeURIComponent(i.id);
             a.target = '_blank'; a.rel = 'noopener';
             a.click();
           };
@@ -2391,7 +2391,7 @@
         else if (e.target.closest('.p-add')) { add(readCard(card)); openCart(); }
         else {
           var a = document.createElement('a');
-          a.href = '/product?id=' + encodeURIComponent(readCard(card).id);
+          a.href = '/product/' + encodeURIComponent(readCard(card).id);
           a.target = '_blank'; a.rel = 'noopener';
           a.click();
         }
@@ -2855,6 +2855,21 @@
           if (!p) p = cat[0];
           if (!p) return;
           setNotFound(false);
+
+          // Canonical address is /product/<slug>. Whether we got here via a
+          // pretty URL, an old /product?id=<slug> link, or the 404 fallback
+          // redirect, normalise the address bar to the clean form (keeping
+          // any tab=/ref= params). replaceState, so no reload.
+          try {
+            var _pretty = '/product/' + encodeURIComponent(p.id);
+            var _sp = new URLSearchParams(location.search);
+            _sp.delete('id');
+            var _rest = _sp.toString();
+            var _target = _pretty + (_rest ? '?' + _rest : '') + location.hash;
+            if (location.pathname + location.search + location.hash !== _target) {
+              history.replaceState(null, '', _target);
+            }
+          } catch (_e) {}
           var ups = updatesFor(p);
           var version = ups.length ? ups[0].version : 'v1.0';
           cur = { id: p.id, title: p.title, image: p.image, tag: p.cat, priceNum: p.priceNum, was: p.was || 0,
@@ -2981,7 +2996,7 @@
           if (!seo) { document.title = p.title + ' - coldd'; return; }
 
           var title = p.title + ' - coldd';
-          var path = '/product?id=' + encodeURIComponent(p.id);
+          var path = '/product/' + encodeURIComponent(p.id);
           var desc = p.desc || (p.longDesc || '').replace(/<[^>]+>/g, '') ||
             (p.title + ', a ' + (p.cat || 'game') + ' asset for ' + (p.platform || 'Roblox') + ' from coldd.');
 
@@ -3060,7 +3075,7 @@
             });
             ready.then(function (code) {
               if (!code) return;
-              var link = location.origin + location.pathname + '?id=' + encodeURIComponent(cur.id) + '&ref=' + encodeURIComponent(code);
+              var link = location.origin + '/product/' + encodeURIComponent(cur.id) + '?ref=' + encodeURIComponent(code);
               if (navigator.clipboard) navigator.clipboard.writeText(link).catch(function () {});
               var t = pdReferCopy.textContent; pdReferCopy.textContent = 'Copied!';
               setTimeout(function () { pdReferCopy.textContent = t; }, 1400);
@@ -3128,7 +3143,9 @@
         window.__renderProduct = render;
         if (!window.__singleFile) {
           pv.hidden = false;
-          var q = (location.search.match(/[?&]id=([^&]+)/) || [])[1];
+          // /product/<slug> (pretty) first, then the legacy ?id=<slug>.
+          var q = (location.pathname.match(/^\/product\/([^\/?#]+)/) || [])[1]
+                || (location.search.match(/[?&]id=([^&]+)/) || [])[1];
           render(q ? decodeURIComponent(q) : '');
           if (/[?&]tab=reviews\b/.test(location.search)) goToReviews(true);
         }
@@ -3528,7 +3545,7 @@
             '</div>';
         }
         el.innerHTML = banner + items.map(function (p) {
-          var href = '/product?id=' + encodeURIComponent(p.id);
+          var href = '/product/' + encodeURIComponent(p.id);
           var inDeal = bundle && bundle.slugs.indexOf(p.id) !== -1;
           var priceHtml = wishPriceText(p);
           if (inDeal) {
@@ -3557,7 +3574,7 @@
         var items = ids.map(function (id) { return cat.filter(function (p) { return p.id === id; })[0]; }).filter(Boolean);
         el.innerHTML = items.length ? items.map(function (p) {
           return '<div class="dash-row" data-id="' + esc(p.id) + '"><span class="dr-thumb" style="background-image:url(\'' + p.image + '\')"></span>' +
-            '<div class="dr-main"><a class="dr-title-link" href="/product?id=' + encodeURIComponent(p.id) + '">' + esc(p.title) + '</a><div class="dr-sub"><span class="p-price" data-usd="' + p.priceNum + '">' + wishPriceText(p) + '</span></div></div>' +
+            '<div class="dr-main"><a class="dr-title-link" href="/product/' + encodeURIComponent(p.id) + '">' + esc(p.title) + '</a><div class="dr-sub"><span class="p-price" data-usd="' + p.priceNum + '">' + wishPriceText(p) + '</span></div></div>' +
             '<div class="dr-actions"><button class="p-add wl-add" type="button">Add to cart</button><button class="p-buy wl-buy" type="button">Buy now</button></div></div>';
         }).join('') : '<p class="dash-empty-note">Nothing saved yet - tap the heart on any product to add it here.</p>';
       }
@@ -3740,10 +3757,10 @@
           // never a real charge to look up in Stripe/PayPal/etc - same
           // short id, just labeled for what it actually is.
           var idCell = (gifted || receivedAsGift) ? shortOrderId(o.id).replace('#', 'GIFT-') : shortOrderId(o.id);
-          var actions = slug ? '<a class="btn btn-ghost dr-btn" href="/product?id=' + encodeURIComponent(slug) + '">' + window.msym('visibility') + 'View</a>' : '';
+          var actions = slug ? '<a class="btn btn-ghost dr-btn" href="/product/' + encodeURIComponent(slug) + '">' + window.msym('visibility') + 'View</a>' : '';
           if (slug && o.status === 'paid') {
             actions += '<button class="btn btn-ghost dr-btn dr-download" type="button" data-slug="' + slug + '">' + window.msym('download') + 'Download</button>' +
-              '<a class="btn btn-ghost dr-btn" href="/product?id=' + encodeURIComponent(slug) + '&tab=reviews">' + window.msym('reviews') + 'Review</a>';
+              '<a class="btn btn-ghost dr-btn" href="/product/' + encodeURIComponent(slug) + '?tab=reviews">' + window.msym('reviews') + 'Review</a>';
           }
           return '<div class="dash-row"><span class="dr-thumb" style="background-image:url(\'' + img + '\')"></span>' +
             '<div class="dr-main"><div class="dr-title">' + titles + '</div>' +
@@ -3778,10 +3795,10 @@
             var slug = first ? first.product_slug : '';
             var img = (first && first.products && first.products.image) ? window.imgUrl(first.products.image) : '/banner.jpg';
             var titles = esc(items.map(function (i) { return i.title; }).join(', ') || ' - ');
-            var actions = slug ? '<a class="btn btn-ghost dr-btn" href="/product?id=' + encodeURIComponent(slug) + '">' + window.msym('visibility') + 'View</a>' : '';
+            var actions = slug ? '<a class="btn btn-ghost dr-btn" href="/product/' + encodeURIComponent(slug) + '">' + window.msym('visibility') + 'View</a>' : '';
             if (slug && o.status === 'paid') {
               actions += '<button class="btn btn-ghost dr-btn dr-download" type="button" data-slug="' + slug + '">' + window.msym('download') + 'Download</button>' +
-                '<a class="btn btn-ghost dr-btn" href="/product?id=' + encodeURIComponent(slug) + '&tab=reviews">' + window.msym('reviews') + 'Review</a>';
+                '<a class="btn btn-ghost dr-btn" href="/product/' + encodeURIComponent(slug) + '?tab=reviews">' + window.msym('reviews') + 'Review</a>';
             }
             return '<div class="dash-row"><span class="dr-thumb" style="background-image:url(\'' + img + '\')"></span>' +
               '<div class="dr-main"><div class="dr-title">' + titles + '</div><div class="dr-sub">' + fmtDate(o.created_at) + ' · ' + shortOrderId(o.id) + '</div></div>' +
@@ -3879,7 +3896,7 @@
           actions.appendChild(downloadBtn(item, 'btn btn-tinted dp-btn'));
           var reviewLink = document.createElement('a');
           reviewLink.className = 'btn btn-tinted dp-btn dp-review-btn';
-          reviewLink.href = '/product?id=' + encodeURIComponent(item.product_slug) + '&tab=reviews';
+          reviewLink.href = '/product/' + encodeURIComponent(item.product_slug) + '?tab=reviews';
           reviewLink.innerHTML = window.msym('reviews', 15) + '<span>Review</span>';
           actions.appendChild(reviewLink);
           grid.appendChild(card);
@@ -4135,7 +4152,7 @@
           var code = r && r.code; if (!code) return;
           refProdBody.innerHTML = cat.map(function (p) {
             var earn = Math.round(p.priceNum * 0.2 * 100) / 100;
-            var link = (p.page || '/product') + '?id=' + p.id + '&ref=' + encodeURIComponent(code);
+            var link = (p.page || '/product') + '/' + p.id + '?ref=' + encodeURIComponent(code);
             return '<tr><td>' + esc(p.title) + '</td><td><span class="p-price" data-usd="' + earn + '">' + fmt(earn) + '</span></td>' +
               '<td><button class="btn btn-ghost ref-prod-copy" type="button" data-link="' + link + '">Copy link</button></td></tr>';
           }).join('');
@@ -4436,7 +4453,7 @@
               '<span class="dr-thumb" style="background-image:url(\'' + img + '\')"></span>' +
               '<div class="dr-main"><div class="dr-title">' + esc(l.title) + '</div>' +
               '<div class="dr-sub">Resell licence' + (since ? ' · Since ' + since : '') + '</div></div>' +
-              '<div class="dr-actions"><a class="btn btn-ghost dr-btn" href="/product?id=' + encodeURIComponent(l.slug) + '">' + (window.msym ? window.msym('visibility') : '') + 'View</a></div></div>';
+              '<div class="dr-actions"><a class="btn btn-ghost dr-btn" href="/product/' + encodeURIComponent(l.slug) + '">' + (window.msym ? window.msym('visibility') : '') + 'View</a></div></div>';
           }).join('');
         }
 
@@ -6378,7 +6395,7 @@
           card.innerHTML =
             '<div class="dl-top"><span class="dl-thumb" style="background-image:url(\'' + thumb + '\')"></span>' +
             '<div class="dl-info"><div class="dl-name"></div><div class="dl-meta"></div></div>' +
-            '<div class="dl-actions"><a class="btn btn-ghost dl-review" href="/product?id=' + encodeURIComponent(it.product_slug) + '&tab=reviews">Leave a review</a>' +
+            '<div class="dl-actions"><a class="btn btn-ghost dl-review" href="/product/' + encodeURIComponent(it.product_slug) + '?tab=reviews">Leave a review</a>' +
             '<button class="btn btn-primary dl-get" type="button">Download</button></div></div>';
           card.querySelector('.dl-name').textContent = it.title;
           // No "Qty" - every product is a single digital licence, never a

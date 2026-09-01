@@ -1626,20 +1626,6 @@ body.no-scroll { overflow: hidden; }
 .pd-lic-label { display: block; font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--fg-3); margin: 18px 0 10px; }
 
 .pd-block { border: 1px solid var(--hairline); border-radius: var(--r-sm); padding: 18px 20px; }
-.pd-fbt[hidden] { display: none; }
-.pd-fbt-list { display: grid; gap: 8px; margin-top: 4px; }
-.pd-fbt-row { display: grid; grid-template-columns: 18px 34px 1fr auto; align-items: center; gap: 10px;
-  font-size: 13px; color: var(--fg-1); cursor: pointer; }
-.pd-fbt-row input { width: 15px; height: 15px; accent-color: var(--accent); }
-.pd-fbt-row input:disabled { opacity: 0.55; }
-.pd-fbt-thumb { width: 34px; height: 34px; border-radius: 7px; background-size: cover; background-position: center;
-  border: 1px solid var(--hairline); }
-.pd-fbt-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.pd-fbt-name em { color: var(--fg-3); font-style: normal; font-size: 11px; }
-.pd-fbt-price { font-weight: 700; font-variant-numeric: tabular-nums; }
-.pd-fbt-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px;
-  margin-top: 13px; padding-top: 12px; border-top: 1px solid var(--hairline); }
-.pd-fbt-total { font-size: 13px; font-weight: 700; }
 .pd-sec-h { font-size: 14px; font-weight: 700; margin-bottom: 12px; }
 .pd-feat-list { list-style: none; display: grid; gap: 9px; margin-top: 14px; }
 .pd-feat-list li { position: relative; padding-left: 22px; font-size: 13px; color: var(--fg-1); line-height: 1.45; }

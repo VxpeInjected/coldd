@@ -2761,48 +2761,7 @@
             var blended = alsoBought.concat(related(p).filter(function (x) { return !already[x.id]; })).slice(0, 4);
             pdRelated.innerHTML = blended.map(relatedCard).join('');
             if (pdRelatedWrap) pdRelatedWrap.hidden = blended.length === 0;
-            renderFbt(p, alsoBought);
           }).catch(function () {});
-        }
-
-        // "Frequently bought together": this product + up to 2 others real
-        // buyers actually bought alongside it, with a one-click "add all".
-        function renderFbt(p, alsoBought) {
-          var box = $('pdFbt'), list = $('pdFbtList');
-          if (!box || !list) return;
-          var partners = (alsoBought || []).filter(function (x) {
-            return !isOwned(x.id) && !(window.__cartHas && window.__cartHas(x.id));
-          }).slice(0, 2);
-          if (!partners.length || isOwned(p.id)) { box.hidden = true; return; }
-          var items = [{ p: p, self: true }].concat(partners.map(function (x) { return { p: x, self: false }; }));
-          list.innerHTML = items.map(function (it, i) {
-            var m = window.__money ? window.__money(it.p.priceNum) : ('$' + it.p.priceNum);
-            return '<label class="pd-fbt-row">' +
-              '<input type="checkbox" ' + (it.self ? 'checked disabled' : 'checked') + ' data-slug="' + esc(it.p.id) + '" data-usd="' + it.p.priceNum + '" />' +
-              '<span class="pd-fbt-thumb" style="background-image:url(\'' + it.p.image + '\')"></span>' +
-              '<span class="pd-fbt-name">' + esc(it.p.title) + (it.self ? ' <em>(this item)</em>' : '') + '</span>' +
-              '<span class="pd-fbt-price">' + m + '</span></label>';
-          }).join('');
-          function refresh() {
-            var checked = list.querySelectorAll('input:checked');
-            var total = 0; checked.forEach(function (c) { total += Number(c.getAttribute('data-usd')) || 0; });
-            var extra = list.querySelectorAll('input:checked:not(:disabled)').length;
-            $('pdFbtTotal').textContent = (window.__money ? window.__money(total) : ('$' + total.toFixed(2))) + ' total';
-            var btn = $('pdFbtAdd');
-            btn.disabled = extra === 0;
-            btn.textContent = extra === 0 ? 'Select an item' : (extra === 1 ? 'Add both to cart' : 'Add all ' + (extra + 1) + ' to cart');
-          }
-          list.addEventListener('change', refresh);
-          $('pdFbtAdd').onclick = function () {
-            list.querySelectorAll('input:checked:not(:disabled)').forEach(function (c) {
-              var x = (window.__CATALOG || []).filter(function (y) { return y.id === c.getAttribute('data-slug'); })[0];
-              if (x && window.__cartAdd) window.__cartAdd({ id: x.id, title: x.title, price: x.priceNum, image: x.image, tag: x.cat });
-            });
-            if (window.__cartAdd) window.__cartAdd({ id: p.id, title: p.title, price: p.priceNum, image: p.image, tag: p.cat });
-            if (window.__openCart) window.__openCart();
-          };
-          refresh();
-          box.hidden = false;
         }
 
         var curTab = 'overview';

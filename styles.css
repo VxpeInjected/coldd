@@ -557,6 +557,9 @@
     .sec-head { max-width: 640px; margin: 0 auto 40px; text-align: center; padding-top: 26px; }
     .sec-head h2 { font-size: var(--t-h2); margin: 0; }
     .sec-head p { color: var(--fg-2); font-size: var(--t-lead); margin: 14px 0 0; }
+    .sec-countdown { display: inline-block; margin-top: 12px; font-size: 12px; font-weight: 700;
+      letter-spacing: 0.02em; color: var(--fg-3); font-variant-numeric: tabular-nums; }
+    .sec-countdown[hidden] { display: none; }
 
     .asset-feature { display: block; overflow: hidden; padding: 0; }
     .asset-feature .asset-banner { width: 100%; height: auto; display: block; }
@@ -1967,6 +1970,8 @@ html[data-ann="on"] header.nav { top: 52px; }
   display: flex; align-items: center; justify-content: center; }
 .announce-msg { margin: 0; font-size: 13px; color: var(--fg-2); text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .announce-msg strong { color: var(--fg); font-weight: 700; }
+.announce-ends { color: var(--fg); font-weight: 700; }
+.announce-ends::before { content: "\00b7"; color: var(--fg-3); font-weight: 400; margin: 0 7px; }
 .announce-link { font-size: 13px; font-weight: 600; color: var(--accent); text-decoration: none; margin-left: 8px; white-space: nowrap; }
 .announce-link:hover { text-decoration: underline; }
 .announce-x { position: absolute; right: 14px; top: 50%; transform: translateY(-50%); width: 26px; height: 26px;

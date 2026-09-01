@@ -402,7 +402,17 @@
         const escText = String(sale.message || sale.title || '').replace(/[&<>"']/g, function (c) {
           return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
         });
-        msg.innerHTML = escText + ' ' + linkHtml;
+        // Sale events end at the close of endDate (a YYYY-MM-DD, no time),
+        // so day-granular urgency is all that's honest here - no live ticker.
+        var endsIn = '';
+        if (sale.endDate) {
+          var end = new Date(sale.endDate + 'T23:59:59');
+          var days = Math.ceil((end - Date.now()) / 86400000);
+          if (days === 1) endsIn = ' <span class="announce-ends">Ends today</span>';
+          else if (days === 2) endsIn = ' <span class="announce-ends">Ends tomorrow</span>';
+          else if (days > 2) endsIn = ' <span class="announce-ends">' + days + ' days left</span>';
+        }
+        msg.innerHTML = escText + endsIn + ' ' + linkHtml;
       }
       document.documentElement.setAttribute('data-ann', 'on');
       window.dispatchEvent(new Event('resize'));
@@ -1274,6 +1284,20 @@
         dealsGrid.hidden = !dealPicks.length;
         if (dealsSection) dealsSection.hidden = !dealPicks.length;
         applyOwnedState(dealsGrid);
+
+        // The weekly-deals cron reverts these every Monday 00:00 UTC, so
+        // that's the honest deadline to show.
+        var cd = document.getElementById('homeDealsCountdown');
+        if (cd && dealPicks.length) {
+          var now = new Date();
+          var nextMon = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+          nextMon.setUTCDate(nextMon.getUTCDate() + ((8 - nextMon.getUTCDay()) % 7 || 7));
+          var hrs = Math.round((nextMon - now) / 3600000);
+          cd.textContent = hrs <= 24
+            ? 'New picks in ' + hrs + 'h'
+            : 'New picks in ' + Math.round(hrs / 24) + ' days';
+          cd.hidden = false;
+        }
       }
     })();
 

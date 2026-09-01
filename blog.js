@@ -305,22 +305,46 @@
     var all = posts().slice().sort(byDateDesc);
     var activeCat = 'all';
 
+    function cover(url, cls) {
+      return '<span class="' + cls + '"><span class="blog-card-img" style="background-image:url(\'' + esc(url) + '\')"></span></span>';
+    }
+    function meta(p) {
+      return '<span class="blog-card-meta">' + esc(p.author) + ' <span class="blog-dot">·</span> ' +
+        fmtDate(p.date) + ' <span class="blog-dot">·</span> ' + p.readMins + ' min read</span>';
+    }
     function card(p) {
       return '<a class="blog-card" href="/post?slug=' + encodeURIComponent(p.slug) + '">' +
-        '<span class="blog-card-cover" style="background-image:url(\'' + esc(p.cover) + '\')">' +
-          (p.featured ? '<span class="blog-card-feat">Featured</span>' : '') +
-        '</span>' +
+        cover(p.cover, 'blog-card-cover') +
         '<span class="blog-card-body">' +
           '<span class="blog-card-cat">' + esc(p.category) + '</span>' +
           '<span class="blog-card-title">' + esc(p.title) + '</span>' +
           '<span class="blog-card-dek">' + esc(p.dek) + '</span>' +
-          '<span class="blog-card-meta">' + esc(p.author) + ' · ' + fmtDate(p.date) + ' · ' + p.readMins + ' min read</span>' +
+          meta(p) +
+        '</span>' +
+      '</a>';
+    }
+    function featCard(p) {
+      return '<a class="blog-feat" href="/post?slug=' + encodeURIComponent(p.slug) + '">' +
+        cover(p.cover, 'blog-feat-cover') +
+        '<span class="blog-feat-body">' +
+          '<span class="blog-feat-tags"><span class="blog-card-feat">Featured</span>' +
+            '<span class="blog-card-cat">' + esc(p.category) + '</span></span>' +
+          '<span class="blog-feat-title">' + esc(p.title) + '</span>' +
+          '<span class="blog-feat-dek">' + esc(p.dek) + '</span>' +
+          meta(p) +
+          '<span class="blog-feat-go has-arrow">Read post</span>' +
         '</span>' +
       '</a>';
     }
     function render() {
       var rows = activeCat === 'all' ? all : all.filter(function (p) { return p.category === activeCat; });
-      grid.innerHTML = rows.map(card).join('');
+      // Lead with the newest featured post as a wide hero, but only in the
+      // unfiltered view - inside a category filter every row stays equal.
+      var feat = activeCat === 'all' ? rows.filter(function (p) { return p.featured; })[0] : null;
+      var gridRows = feat ? rows.filter(function (p) { return p !== feat; }) : rows;
+      grid.innerHTML =
+        (feat ? featCard(feat) : '') +
+        (gridRows.length ? '<span class="blog-grid-inner">' + gridRows.map(card).join('') + '</span>' : '');
       if (emptyEl) emptyEl.hidden = rows.length > 0;
     }
     if (filters) filters.addEventListener('click', function (e) {
@@ -459,12 +483,13 @@
     }
     function card(t) {
       return '<a class="tut-card" href="/tutorial?slug=' + encodeURIComponent(t.slug) + '">' +
-        '<span class="tut-card-cover" style="background-image:url(\'' + esc(t.cover) + '\')"></span>' +
+        '<span class="tut-card-cover"><span class="blog-card-img" style="background-image:url(\'' + esc(t.cover) + '\')"></span>' +
+          '<span class="' + diffClass(t.difficulty) + '">' + esc(t.difficulty) + '</span></span>' +
         '<span class="tut-card-body">' +
-          '<span class="tut-card-top"><span class="' + diffClass(t.difficulty) + '">' + esc(t.difficulty) + '</span><span class="tut-card-plat">' + esc(t.platform) + '</span></span>' +
           '<span class="tut-card-title">' + esc(t.title) + '</span>' +
           '<span class="tut-card-sum">' + esc(t.summary) + '</span>' +
-          '<span class="tut-card-meta">' + t.estMins + ' min · ' + esc(t.track) + '</span>' +
+          '<span class="tut-card-meta"><span>' + t.estMins + ' min <span class="blog-dot">·</span> ' + esc(t.platform) + '</span>' +
+            '<span class="tut-card-go has-arrow">Start</span></span>' +
         '</span>' +
       '</a>';
     }
@@ -473,7 +498,9 @@
       listEl.innerHTML = shownTracks.map(function (t) {
         var rows = all.filter(function (x) { return x.track === t; });
         if (!rows.length) return '';
-        return '<section class="tut-track"><h2 class="tut-track-h">' + esc(t) + '</h2><div class="tut-grid">' + rows.map(card).join('') + '</div></section>';
+        return '<section class="tut-track"><div class="tut-track-h"><h2>' + esc(t) + '</h2>' +
+          '<span class="tut-track-n">' + rows.length + ' guide' + (rows.length === 1 ? '' : 's') + '</span></div>' +
+          '<div class="tut-grid">' + rows.map(card).join('') + '</div></section>';
       }).join('');
     }
     if (sideEl) sideEl.addEventListener('click', function (e) {

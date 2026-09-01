@@ -239,7 +239,10 @@
       // away, no 20s wait, no auto-reopen of the full popup.
       if (minimized) { showTab(); return; }
 
-      setTimeout(function () {
+      var popupTriggered = false;
+      function maybeShowPopup() {
+        if (popupTriggered) return;
+        popupTriggered = true;
         // A signed-in visitor who's already opted into promotions doesn't
         // need to be asked again just because this browser hasn't seen the
         // popup before.
@@ -256,7 +259,22 @@
         } else {
           buildPopup();
         }
-      }, SHOW_DELAY_MS);
+      }
+
+      // Primary trigger: a fixed delay after load.
+      setTimeout(maybeShowPopup, SHOW_DELAY_MS);
+
+      // Addition, not a replacement: if the pointer leaves through the top
+      // of the window (heading for the tab bar / back button) before that
+      // timer fires, show the offer now rather than losing the visitor. One
+      // shot - maybeShowPopup's own guard makes the two triggers race
+      // harmlessly, whichever lands first wins.
+      document.addEventListener('mouseout', function (e) {
+        if (popupTriggered) return;
+        if (e.relatedTarget || e.toElement) return;   // moved onto another element, still in the page
+        if ((e.clientY || 0) > 8) return;             // only a real exit through the top edge
+        maybeShowPopup();
+      });
     })();
 
     // Theme picker (dashboard > Appearance). The actual theme application

@@ -1331,6 +1331,20 @@
     return Object.keys(map).map(function (k) { return map[k]; })
       .sort(function (a, b) { return b.count - a.count; }).slice(0, limit || 15);
   }
+  function howHeard() {
+    var start = RANGE_DAYS ? rangeStart() : new Date(0);
+    var LABELS = { youtube: 'YouTube', tiktok: 'TikTok', discord: 'Discord', friend: 'A friend',
+      search: 'Google / search', roblox: 'In a Roblox game', other: 'Somewhere else' };
+    var map = {}, total = 0;
+    CLIENT_EVENT_ROWS.forEach(function (e) {
+      if (e.type !== 'how_heard' || !e.meta || !e.meta.id || new Date(e.d) < start) return;
+      var k = String(e.meta.id);
+      map[k] = (map[k] || 0) + 1; total++;
+    });
+    return Object.keys(map).map(function (k) {
+      return { label: LABELS[k] || k, count: map[k], pct: total ? Math.round(map[k] / total * 100) : 0 };
+    }).sort(function (a, b) { return b.count - a.count; });
+  }
   function conversionRate() {
     var days = RANGE_DAYS || 120;
     var rows = TRAFFIC.slice(Math.max(0, TRAFFIC.length - days));
@@ -3190,6 +3204,13 @@
       $('admSearchBody').innerHTML = ts.map(function (s) {
         return '<tr><td>' + esc(s.q) + '</td><td>' + s.count + '</td><td>' + (s.noResults ? '<span class="dt-badge warn">' + s.noResults + ' no-result</span>' : '<span class="adm-sub"> - </span>') + '</td></tr>';
       }).join('') || '<tr><td colspan="3" class="adm-empty">No searches logged yet.</td></tr>';
+    }
+
+    if ($('admHowHeardBody')) {
+      var hh = howHeard();
+      $('admHowHeardBody').innerHTML = hh.map(function (r) {
+        return '<tr><td>' + esc(r.label) + '</td><td>' + r.count + '</td><td>' + r.pct + '%</td></tr>';
+      }).join('') || '<tr><td colspan="3" class="adm-empty">No survey answers yet.</td></tr>';
     }
 
     $('admAbandonedBody').innerHTML = ABANDONED.slice(0, 12).map(function (a) {

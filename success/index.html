@@ -17,7 +17,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
 
-  <link rel="stylesheet" href="/styles.css?v=20260901v" />
+  <link rel="stylesheet" href="/styles.css?v=20260901w" />
 </head>
 <body>
   <div class="backdrop"></div>
@@ -128,6 +128,20 @@
         <p class="co-hint" id="successSub">Hang tight, this only takes a moment.</p>
 
         <div id="successItems"></div>
+
+        <section class="ty-survey glass" id="tySurvey" hidden>
+          <p class="ty-survey-q">Quick one - how did you find coldd?</p>
+          <div class="ty-survey-opts" id="tySurveyOpts">
+            <button type="button" data-src="youtube">YouTube</button>
+            <button type="button" data-src="tiktok">TikTok</button>
+            <button type="button" data-src="discord">Discord</button>
+            <button type="button" data-src="friend">A friend</button>
+            <button type="button" data-src="search">Google / search</button>
+            <button type="button" data-src="roblox">In a Roblox game</button>
+            <button type="button" data-src="other">Somewhere else</button>
+          </div>
+          <p class="ty-survey-done" id="tySurveyDone" hidden>Thanks - that helps us a lot.</p>
+        </section>
 
         <section class="ty-upsell glass" id="upsellSection" hidden>
           <h2 class="ty-upsell-title">Build more for less</h2>
@@ -399,9 +413,9 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.2/dist/umd/supabase.min.js" integrity="sha384-B2duOBIryCXbX4eDE4BdJwtNkQMRQde3o6IsjfPW28E6aH1CYE96hHeZRG3zY56O" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-  <script src="/supabase-init.js?v=20260901v"></script>
-  <script src="/site-gate.js?v=20260901v"></script>
-  <script src="/catalog.js?v=20260901v" data-then="/app.js?v=20260901v"></script>
+  <script src="/supabase-init.js?v=20260901w"></script>
+  <script src="/site-gate.js?v=20260901w"></script>
+  <script src="/catalog.js?v=20260901w" data-then="/app.js?v=20260901w"></script>
   <script>
     // Cart badge/total sync from localStorage, ahead of app.js. The fab
     // markup above ships hardcoded at "0"/"$0", and the cart module that

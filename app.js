@@ -6507,6 +6507,27 @@
       // Guest checkout (no account): the ?t= link is a short-lived,
       // single-use key, not a permanent download page. Nudge them to claim
       // a free account with their checkout email so access survives.
+      // One-question attribution survey on the thank-you page. Answer is
+      // stored once per browser (so a repeat buyer isn't asked again) and
+      // sent as a client_events 'how_heard' row via coldTrack.
+      function maybeShowHowHeard() {
+        var el = document.getElementById('tySurvey');
+        if (!el) return;
+        try { if (localStorage.getItem('coldd_how_heard')) return; } catch (e) {}
+        el.hidden = false;
+        var opts = document.getElementById('tySurveyOpts');
+        opts.querySelectorAll('button').forEach(function (b) {
+          b.addEventListener('click', function () {
+            var src = b.getAttribute('data-src');
+            try { localStorage.setItem('coldd_how_heard', src); } catch (e) {}
+            if (window.coldTrack) window.coldTrack('how_heard', { id: src });
+            opts.hidden = true;
+            var d = document.getElementById('tySurveyDone');
+            if (d) d.hidden = false;
+          });
+        });
+      }
+
       function showGuestClaimNote() {
         if (!itemsEl || document.getElementById('tyGuestNote')) return;
         var note = document.createElement('p');
@@ -6569,6 +6590,7 @@
               renderItems(data.items || []);
               if (data.guest) showGuestClaimNote();
               maybeShowResellerPopup(data.items || []);
+              maybeShowHowHeard();
               var orderAllResell = (data.items || []).length > 0 &&
                 (data.items || []).every(function (it) { return it.licence === 'resell'; });
               renderPostPurchaseUpsell(orderAllResell);

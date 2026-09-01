@@ -9,7 +9,30 @@
 // hiccup or a misconfigured row - the failure mode is "gate didn't
 // apply", never "gate applied when it shouldn't have".
 (function () {
-  if (!window.coldSupabase) return;
+  // Release the pre-paint visibility hold that the inline <head> snippet
+  // puts on <html> whenever the last known site mode was "maintenance".
+  // That snippet hides the page before first paint so a visitor can't
+  // network-freeze the tab in the gap before this script runs and read a
+  // stale, non-functional copy of the storefront underneath - the
+  // maintenance overlay used to be injected only AFTER the page had
+  // already rendered, so a well-timed pause in the Network panel showed
+  // the whole site with nothing covering it. This function is the only
+  // thing that clears the hold other than its own 10s fail-open timeout,
+  // so every code path that decides "this visitor may see the page" has
+  // to call it. It is a harmless no-op on pages that were never held.
+  function releaseGateHold() {
+    try { if (window.__coldGateHold) { clearTimeout(window.__coldGateHold); window.__coldGateHold = null; } } catch (e) {}
+    try { document.documentElement.style.visibility = ''; } catch (e) {}
+  }
+  // Cache the current mode so the inline <head> snippet on the NEXT page
+  // load knows whether to hold. Only ever written from a definitive
+  // answer - never from an errored/timed-out check, which must not be
+  // able to downgrade a real "maintenance" to "open".
+  function rememberMode(mode) {
+    try { localStorage.setItem('coldd_site_mode', mode === 'maintenance' ? 'maintenance' : 'open'); } catch (e) {}
+  }
+
+  if (!window.coldSupabase) { releaseGateHold(); return; }
 
   var path = location.pathname.replace(/\/+$/, '') || '/';
   // Never gate:
@@ -20,7 +43,12 @@
   //    signed in has no way to sign in (the overlay would cover the form),
   //    so "tester access" is unreachable during maintenance.
   var AUTH_PATHS = ['/signin', '/signup', '/forgot', '/reset', '/callback', '/roblox-callback', '/lock'];
-  if (AUTH_PATHS.indexOf(path) !== -1 || AUTH_PATHS.indexOf(path.replace(/\.html$/, '')) !== -1 || path.indexOf('/admin') === 0) return;
+  if (AUTH_PATHS.indexOf(path) !== -1 || AUTH_PATHS.indexOf(path.replace(/\.html$/, '')) !== -1 || path.indexOf('/admin') === 0) {
+    // These paths are excluded from the inline hold too (they must stay
+    // reachable during maintenance) - this is just belt-and-braces.
+    releaseGateHold();
+    return;
+  }
 
   function fmtCountdown(ms) {
     if (ms <= 0) return 'Back shortly';
@@ -160,10 +188,16 @@
   }
 
   window.coldSupabase.from('site_status').select('*').eq('id', true).maybeSingle().then(function (res) {
+    if (res && res.error) { releaseGateHold(); return; } // fail open, don't touch the cached mode
     var status = res && res.data;
-    if (!status || res.error || status.mode === 'open') return;
+    if (!status || status.mode === 'open') { rememberMode('open'); releaseGateHold(); return; }
 
     if (status.mode === 'maintenance') {
+      rememberMode('maintenance');
+      // Whatever happens from here (overlay for visitors, banner for staff)
+      // the page needs to be visible again - the overlay covers it, or the
+      // banner sits over a legitimately-bypassed page.
+      releaseGateHold();
       // Bypassed view: the real page renders, with the "still in maintenance
       // for everyone else" banner (or the preview overlay if they asked for
       // it). Granted to staff (checkIsAdmin) and to any non-admin account on
@@ -189,6 +223,7 @@
       }).catch(function () {});
     }
   }).catch(function () {
+    releaseGateHold();
     // Fail open - see file header.
   });
 

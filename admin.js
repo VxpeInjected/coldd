@@ -883,7 +883,7 @@
      server-side) - never written directly from here.
      ================================================================ */
   function defaultLegal() {
-    return { tos: '', proofFiles: [], devProofFiles: [], contacts: [], licenseCost: 0, licenseCostCurrency: 'usd', licensePurchasedAt: '', minSaleUsd: 0, minSaleRobux: 0, canBeFree: false, disallowSales: false };
+    return { tos: '', proofFiles: [], devProofFiles: [], contacts: [], licenseCost: 0, licenseCostCurrency: 'usd', licensePurchasedAt: '', minSaleUsd: 0, minSaleRobux: 0, maxDiscountPct: 0, canBeFree: false, disallowSales: false };
   }
   function toYouTubeEmbed(url) {
     url = (url || '').trim();
@@ -933,6 +933,7 @@
         tos: legalRaw.tos, proofFiles: legalRaw.proof_files, devProofFiles: legalRaw.dev_proof_files,
         contacts: legalRaw.contacts, licenseCost: legalRaw.license_cost, licenseCostCurrency: legalRaw.license_cost_currency,
         licensePurchasedAt: legalRaw.license_purchased_at, minSaleUsd: legalRaw.min_sale_usd, minSaleRobux: legalRaw.min_sale_robux,
+        maxDiscountPct: legalRaw.max_discount_pct,
         canBeFree: legalRaw.can_be_free, disallowSales: legalRaw.disallow_sales
       }),
       versions: row.versions || [],
@@ -2987,7 +2988,14 @@
     { key: 'abandoned_cart_3', label: 'Abandoned cart · step 3', hint: 'Hours after step 2 would have sent.' },
     { key: 'post_purchase_review', label: 'Post-purchase review request', hint: 'Hours after an order is marked paid.' },
     { key: 'reengagement', label: 'Re-engagement', hint: 'Hours since last purchase (or signup, if they never bought) before we call the account lapsed. Sent once.' },
-    { key: 'wishlist_reminder', label: 'Wishlist reminder', hint: 'Hours a wishlist item sits with no purchase since. Always includes a discount, so it only sends to accounts with real marketing consent.' }
+    { key: 'wishlist_reminder', label: 'Wishlist reminder', hint: 'Hours a wishlist item sits with no purchase since. Always includes a discount, so it only sends to accounts with real marketing consent.' },
+    { key: 'signup_nudge', label: 'Signup nudge (no purchase)', hint: 'Hours after signup with no order yet. Plain nudge, no offer - sends to anyone not unsubscribed.' },
+    { key: 'wishlist_price_drop', label: 'Wishlist price drop', hint: 'A wishlisted item is on sale right now. Promotional, so marketing consent required. One email per sale price.' },
+    { key: 'getting_started', label: 'Getting started', hint: 'Hours after a paid order. Setup help + links to files and Discord. No offer - sends to anyone not unsubscribed.' },
+    { key: 'resell_upgrade', label: 'Resell licence upgrade', hint: 'Hours after buying a standard licence for a resell-eligible product, if they don’t already own the resell licence. Upsell, no code - sends to anyone not unsubscribed.' },
+    { key: 'review_incentive', label: 'Review incentive', hint: 'Hours after a paid order with no review yet. Mints a discount code, so marketing consent required.' },
+    { key: 'repeat_buyer', label: 'Repeat buyer thank-you', hint: 'Hours after a 2nd (or later) paid order. Mints a discount code, so marketing consent required. Once per account.' },
+    { key: 'winback', label: 'Win-back (lapsed)', hint: 'Hours since the last paid order. Discount scales with how long they’ve been gone (15/20/25%). Marketing consent required. Once per account.' }
   ];
 
   function refreshAutomations() {
@@ -3649,6 +3657,7 @@
     $('admLegalPurchasedAt').value = legal.licensePurchasedAt || '';
     $('admLegalMinUsd').value = legal.minSaleUsd || 0;
     $('admLegalMinRobux').value = legal.minSaleRobux || 0;
+    $('admLegalMaxDiscount').value = legal.maxDiscountPct || 0;
     $('admLegalCanBeFree').checked = !!legal.canBeFree;
     $('admLegalDisallowSales').checked = !!legal.disallowSales;
 
@@ -3946,6 +3955,7 @@
     $('admLegalPurchasedAt').value = '';
     $('admLegalMinUsd').value = 0;
     $('admLegalMinRobux').value = 0;
+    $('admLegalMaxDiscount').value = 0;
     $('admLegalCanBeFree').checked = false;
     $('admLegalDisallowSales').checked = false;
 
@@ -4000,6 +4010,7 @@
         licensePurchasedAt: $('admLegalPurchasedAt').value,
         minSaleUsd: Math.max(0, parseFloat($('admLegalMinUsd').value) || 0),
         minSaleRobux: Math.max(0, parseFloat($('admLegalMinRobux').value) || 0),
+        maxDiscountPct: Math.max(0, Math.min(100, parseFloat($('admLegalMaxDiscount').value) || 0)),
         canBeFree: $('admLegalCanBeFree').checked,
         disallowSales: $('admLegalDisallowSales').checked
       }
@@ -5124,26 +5135,33 @@
       return true; // sitewide
     });
   }
-  // Checked against product_legal (min_sale_usd / disallow_sales) before a
-  // sale event or coupon can be saved, so a broad-scope discount can never
-  // silently undercut a product's contractual minimum price or discount
-  // one explicitly marked as not-for-sale.
+  // Checked against product_legal (min_sale_usd / max_discount_pct /
+  // disallow_sales) before a sale event or coupon can be saved, so a
+  // broad-scope discount can never silently undercut a product's
+  // contractual minimum price, exceed its allowed discount percentage, or
+  // discount one explicitly marked as not-for-sale.
   function legalViolations(scopeInfo, discountedPriceFor) {
-    var disallowed = [], belowMin = [], notFreeable = [];
+    var disallowed = [], belowMin = [], notFreeable = [], overMaxPct = [];
     productsInScope(scopeInfo).forEach(function (p) {
       var legal = p.legal || {};
       if (legal.disallowSales) { disallowed.push(p.title); return; }
       var discounted = discountedPriceFor(p.priceNum);
       if (discounted <= 0 && !legal.canBeFree) { notFreeable.push(p.title); return; }
       if (legal.minSaleUsd != null && discounted < Number(legal.minSaleUsd)) belowMin.push(p.title + ' (min $' + Number(legal.minSaleUsd).toFixed(2) + ')');
+      var maxPct = Number(legal.maxDiscountPct) || 0;
+      if (maxPct > 0 && p.priceNum > 0 && discounted < p.priceNum * (1 - maxPct / 100) - 0.001) {
+        overMaxPct.push(p.title + ' (max ' + maxPct + '% off)');
+      }
     });
-    return { disallowed: disallowed, belowMin: belowMin, notFreeable: notFreeable, ok: !disallowed.length && !belowMin.length && !notFreeable.length };
+    return { disallowed: disallowed, belowMin: belowMin, notFreeable: notFreeable, overMaxPct: overMaxPct,
+      ok: !disallowed.length && !belowMin.length && !notFreeable.length && !overMaxPct.length };
   }
   function legalViolationMessage(v) {
     var parts = [];
     if (v.disallowed.length) parts.push(v.disallowed.length + ' product(s) marked "do not discount": ' + v.disallowed.slice(0, 5).join(', ') + (v.disallowed.length > 5 ? '…' : ''));
     if (v.notFreeable.length) parts.push(v.notFreeable.length + ' product(s) would be discounted to $0 but aren\'t allowed to be free: ' + v.notFreeable.slice(0, 5).join(', ') + (v.notFreeable.length > 5 ? '…' : ''));
     if (v.belowMin.length) parts.push(v.belowMin.length + ' product(s) would fall below their minimum sale price: ' + v.belowMin.slice(0, 5).join(', ') + (v.belowMin.length > 5 ? '…' : ''));
+    if (v.overMaxPct && v.overMaxPct.length) parts.push(v.overMaxPct.length + ' product(s) would exceed their maximum allowed discount: ' + v.overMaxPct.slice(0, 5).join(', ') + (v.overMaxPct.length > 5 ? '…' : ''));
     return 'Can\'t save - ' + parts.join('; ') + '.';
   }
 

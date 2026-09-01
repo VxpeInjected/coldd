@@ -162,6 +162,7 @@ Deno.serve(async (req: Request) => {
             field("Resale by coldd disallowed", legal?.disallow_sales ? "Yes" : "No"),
             field("Minimum resale price (USD)", legal?.min_sale_usd != null ? String(legal.min_sale_usd) : " - "),
             field("Minimum resale price (Robux)", legal?.min_sale_robux != null ? String(legal.min_sale_robux) : " - "),
+            field("Maximum discount allowed", legal?.max_discount_pct ? `${legal.max_discount_pct}%` : "No cap"),
 
             heading("Contacts on record"),
             ...(contacts.length

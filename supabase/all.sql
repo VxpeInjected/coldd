@@ -146,6 +146,7 @@ create table if not exists public.product_legal (
   license_purchased_at date,
   min_sale_usd numeric(10,2) not null default 0,
   min_sale_robux numeric(10,2) not null default 0,
+  max_discount_pct numeric(5,2) not null default 0 check (max_discount_pct >= 0 and max_discount_pct <= 100),
   can_be_free boolean not null default false,
   disallow_sales boolean not null default false,
   updated_at timestamptz not null default now()

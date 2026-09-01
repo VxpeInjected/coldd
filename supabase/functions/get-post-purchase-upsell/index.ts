@@ -70,7 +70,7 @@ Deno.serve(async (req: Request) => {
 
     const { data: products } = await admin
       .from("products")
-      .select("slug, title, description, image, price_usd, product_legal(min_sale_usd, disallow_sales)")
+      .select("slug, title, description, image, price_usd, product_legal(min_sale_usd, disallow_sales, max_discount_pct)")
       .in("slug", candidateSlugs)
       .eq("is_active", true);
     // deno-lint-ignore no-explicit-any
@@ -94,6 +94,13 @@ Deno.serve(async (req: Request) => {
     const items = eligible.map((p: any) => {
       const legal = Array.isArray(p.product_legal) ? p.product_legal[0] : p.product_legal;
       const minSaleUsd = Number(legal?.min_sale_usd) || 0;
+      const maxPct = Math.max(0, Math.min(100, Number(legal?.max_discount_pct) || 0));
+      // Effective floor: the dollar minimum, or what a max_discount_pct%
+      // cut off list would reach - whichever is higher. Must match
+      // _shared/coupon.ts's floorUsd so this shown price is the price the
+      // checkout will actually charge.
+      const pctFloor = maxPct > 0 ? Math.round(Number(p.price_usd) * (1 - maxPct / 100) * 100) / 100 : 0;
+      const floor = Math.max(minSaleUsd, pctFloor);
       const discounted = Math.round(Number(p.price_usd) * (1 - ITEM_PCT / 100) * 100) / 100;
       const bundleDiscounted = Math.round(Number(p.price_usd) * (1 - (ITEM_PCT + BUNDLE_PCT) / 100) * 100) / 100;
       return {
@@ -102,8 +109,8 @@ Deno.serve(async (req: Request) => {
         description: p.description || "",
         image: p.image,
         priceUsd: Number(p.price_usd),
-        itemPriceUsd: minSaleUsd > 0 ? Math.max(discounted, minSaleUsd) : discounted,
-        bundlePriceUsd: minSaleUsd > 0 ? Math.max(bundleDiscounted, minSaleUsd) : bundleDiscounted,
+        itemPriceUsd: floor > 0 ? Math.max(discounted, floor) : discounted,
+        bundlePriceUsd: floor > 0 ? Math.max(bundleDiscounted, floor) : bundleDiscounted,
       };
     });
 

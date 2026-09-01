@@ -99,7 +99,7 @@ async function runAlgorithm(admin: ReturnType<typeof createClient>, actorName: s
 
   const { data: products, error: prodErr } = await admin
     .from("products")
-    .select("id, slug, title, price_usd, is_active, weekly_deal_excluded, product_legal(min_sale_usd, disallow_sales)")
+    .select("id, slug, title, price_usd, is_active, weekly_deal_excluded, product_legal(min_sale_usd, disallow_sales, max_discount_pct)")
     .eq("is_active", true);
   if (prodErr) throw new Error(prodErr.message);
 
@@ -124,7 +124,8 @@ async function runAlgorithm(admin: ReturnType<typeof createClient>, actorName: s
   type Candidate = { id: string; slug: string; title: string; price: number; bestPct: number; bestScore: number; velocity: number };
   const candidates: Candidate[] = [];
 
-  for (const p of (products ?? []) as unknown as Array<ProductRow & { product_legal: { min_sale_usd: number; disallow_sales: boolean } | { min_sale_usd: number; disallow_sales: boolean }[] | null }>) {
+  type LegalBits = { min_sale_usd: number; disallow_sales: boolean; max_discount_pct: number };
+  for (const p of (products ?? []) as unknown as Array<ProductRow & { product_legal: LegalBits | LegalBits[] | null }>) {
     if (p.weekly_deal_excluded) continue;
     const legalRaw = Array.isArray(p.product_legal) ? p.product_legal[0] : p.product_legal;
     if (legalRaw?.disallow_sales) continue;
@@ -141,6 +142,11 @@ async function runAlgorithm(admin: ReturnType<typeof createClient>, actorName: s
     } else if (minSaleUsd >= price) {
       continue; // floor is at or above current price - no room to discount at all
     }
+    // product_legal.max_discount_pct: a hard ceiling on how deep this
+    // specific product may ever be discounted, tighter than the store-wide
+    // MAX_DISCOUNT_PCT. 0 means no per-product cap.
+    const legalMaxPct = Number(legalRaw?.max_discount_pct) || 0;
+    if (legalMaxPct > 0) maxPct = Math.min(maxPct, Math.floor(legalMaxPct));
     if (maxPct < DISCOUNT_STEP_PCT) continue;
 
     let bestPct = 0, bestScore = -1;

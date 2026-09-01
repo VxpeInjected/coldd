@@ -91,6 +91,7 @@ type LegalPayload = {
   licensePurchasedAt?: string | null;
   minSaleUsd?: number;
   minSaleRobux?: number;
+  maxDiscountPct?: number;
   canBeFree?: boolean;
   disallowSales?: boolean;
 };
@@ -218,6 +219,7 @@ Deno.serve(async (req: Request) => {
       license_purchased_at: legal.licensePurchasedAt || null,
       min_sale_usd: Math.max(0, Number(legal.minSaleUsd) || 0),
       min_sale_robux: Math.max(0, Number(legal.minSaleRobux) || 0),
+      max_discount_pct: Math.max(0, Math.min(100, Number(legal.maxDiscountPct) || 0)),
       can_be_free: !!legal.canBeFree,
       disallow_sales: !!legal.disallowSales,
       updated_at: new Date().toISOString(),

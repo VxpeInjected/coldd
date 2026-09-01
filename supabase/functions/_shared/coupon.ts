@@ -22,14 +22,19 @@ export type PricedLine = {
   platform: string;
   cat: string | null;
   productId: string;
-  // Legal floor for this product (product_legal.min_sale_usd - the price
-  // the underlying license/reseller agreement forbids going below), and
-  // whether the product is barred from any discount at all
-  // (product_legal.disallow_sales). Both default open (0 / false) for a
-  // product with no product_legal row, same as every other reader of
-  // that table in this codebase (admin-weekly-deals, admin-upsert-product).
+  // Legal limits for this product, from product_legal (all default open for
+  // a product with no row - same as every other reader of that table):
+  //   minSaleUsd     - absolute price floor (product_legal.min_sale_usd)
+  //   maxDiscountPct  - cap on the discount % off baseUnitPrice (0 = none)
+  //   disallowSales   - barred from any discount at all
+  //   floorUsd        - the effective per-unit price floor every discount
+  //                     path below clamps to: the higher of minSaleUsd and
+  //                     the price maxDiscountPct implies. Precomputed here
+  //                     so callers never re-derive it (and never disagree).
   minSaleUsd: number;
+  maxDiscountPct: number;
   disallowSales: boolean;
+  floorUsd: number;
 };
 
 export async function priceItems(
@@ -43,7 +48,7 @@ export async function priceItems(
   const slugs = Array.from(new Set(items.map((i) => String(i.slug || ""))));
   const { data: products, error } = await admin
     .from("products")
-    .select("id, slug, title, price_usd, resell_available, platform, cat, product_legal(min_sale_usd, disallow_sales)")
+    .select("id, slug, title, price_usd, resell_available, platform, cat, product_legal(min_sale_usd, disallow_sales, max_discount_pct)")
     .in("slug", slugs)
     .eq("is_active", true);
   if (error) return { ok: false, error: "Could not load products." };
@@ -82,25 +87,36 @@ export async function priceItems(
     const legalRaw = Array.isArray(product.product_legal) ? product.product_legal[0] : product.product_legal;
     const minSaleUsd = Number(legalRaw?.min_sale_usd) || 0;
     const disallowSales = !!legalRaw?.disallow_sales;
+    const maxDiscountPct = Math.max(0, Math.min(100, Number(legalRaw?.max_discount_pct) || 0));
+    // The lowest this unit may ever be sold for: the contractual dollar
+    // floor, or the price a maxDiscountPct% discount off the (licence-
+    // adjusted) base would reach - whichever is higher. Every discount path
+    // clamps to this, so the % cap and the $ floor are enforced together
+    // without any one caller having to know about both.
+    const pctFloorUsd = maxDiscountPct > 0
+      ? Math.round(baseUnitPrice * (1 - maxDiscountPct / 100) * 100) / 100
+      : 0;
+    const floorUsd = Math.max(minSaleUsd, pctFloorUsd);
     // The checkout cross-sell upsell ("people also get this") bakes its
     // discount straight into the line price rather than the order-level
     // discount_usd a coupon/marketing-optin uses - it's a special price on
     // a specific item being added right now, not a reduction applied
     // across the whole order. Same floor rule as every other discount
-    // path: never below min_sale_usd, and disallow_sales means no
-    // discount at all (the item can still be added, just at full price).
+    // path: never below floorUsd (min_sale_usd or the max_discount_pct
+    // cap), and disallow_sales means no discount at all (the item can
+    // still be added, just at full price).
     let unitPrice = baseUnitPrice;
     let isCrossSellDeal = false;
     if (raw.crossSell && !disallowSales) {
       const discounted = Math.round(baseUnitPrice * (1 - CROSS_SELL_PCT / 100) * 100) / 100;
-      const floored = minSaleUsd > 0 ? Math.max(discounted, minSaleUsd) : discounted;
+      const floored = floorUsd > 0 ? Math.max(discounted, floorUsd) : discounted;
       if (floored < baseUnitPrice) { unitPrice = floored; isCrossSellDeal = true; }
     }
     let bundlePctApplied = 0;
     if (bundle && bundle.slugs.includes(slug) && !disallowSales && licence !== "resell") {
       const pct = bundle.item_pct + (bundleFullySatisfied ? bundle.bundle_pct : 0);
       const discounted = Math.round(baseUnitPrice * (1 - pct / 100) * 100) / 100;
-      const floored = minSaleUsd > 0 ? Math.max(discounted, minSaleUsd) : discounted;
+      const floored = floorUsd > 0 ? Math.max(discounted, floorUsd) : discounted;
       if (floored < unitPrice) { unitPrice = floored; bundlePctApplied = pct; }
     }
     lines.push({
@@ -115,7 +131,9 @@ export async function priceItems(
       cat: product.cat,
       productId: product.id,
       minSaleUsd,
+      maxDiscountPct,
       disallowSales,
+      floorUsd,
     });
   }
 
@@ -124,15 +142,16 @@ export async function priceItems(
 }
 
 // Total dollars every line in `lines` could legally give up before any one
-// of them drops under its own product_legal.min_sale_usd floor - shared by
-// every discount path below (coupons, the marketing opt-in discount, the
-// checkout cross-sell upsell) so they all answer "how far can this go" the
-// same way. disallow_sales lines contribute zero, same as everywhere else
-// that field is read.
+// of them hits its own floorUsd (the min_sale_usd dollar floor or the
+// max_discount_pct cap, whichever is tighter) - shared by every discount
+// path below (coupons, the marketing opt-in discount, the checkout
+// cross-sell upsell) so they all answer "how far can this go" the same
+// way. disallow_sales lines contribute zero, same as everywhere else that
+// field is read.
 export function legalHeadroom(lines: PricedLine[]): number {
   return lines
     .filter((li) => !li.disallowSales)
-    .reduce((sum, li) => sum + Math.max(0, li.unitPrice - li.minSaleUsd) * li.qty, 0);
+    .reduce((sum, li) => sum + Math.max(0, li.unitPrice - li.floorUsd) * li.qty, 0);
 }
 
 // A flat percentage off, used by the checkout "get 10% off" marketing
@@ -217,8 +236,9 @@ export type CouponResolution =
 //
 // Every discount path in this file - coupons here, the checkout cross-sell
 // upsell, the marketing-signup code - has to respect product_legal's
-// min_sale_usd (the floor the underlying license/reseller agreement sets)
-// and disallow_sales (no discount at all, ever). A coupon is never scoped
+// limits: min_sale_usd (the dollar floor the underlying license/reseller
+// agreement sets), max_discount_pct (the cap on how big a % discount may
+// be), and disallow_sales (no discount at all, ever). A coupon is never scoped
 // to just the products it can legally discount, so rather than reject the
 // whole code the moment ANY line in scope can't take the full discount,
 // this caps the total to whatever every eligible line can still legally
@@ -260,11 +280,12 @@ export async function resolveCoupon(admin: any, rawCode: string, lines: PricedLi
     return { ok: false, error: "That code doesn't apply to anything discountable in your cart." };
   }
   // How much every eligible (in-scope) line could give up in total before
-  // any single one drops under its own floor - a line with no floor set
-  // can absorb its whole price, same as before this check existed. Scoped
-  // to just this coupon's matching lines, not legalHeadroom(lines) above
-  // (that one's sitewide, for the marketing-optin discount).
-  const couponHeadroom = eligibleLines.reduce((sum, li) => sum + Math.max(0, li.unitPrice - li.minSaleUsd) * li.qty, 0);
+  // any single one hits its own floorUsd (min_sale_usd or the
+  // max_discount_pct cap) - a line with neither set can absorb its whole
+  // price, same as before this check existed. Scoped to just this coupon's
+  // matching lines, not legalHeadroom(lines) above (that one's sitewide,
+  // for the marketing-optin discount).
+  const couponHeadroom = eligibleLines.reduce((sum, li) => sum + Math.max(0, li.unitPrice - li.floorUsd) * li.qty, 0);
 
   const raw = coupon.type === "pct" ? scopedSubtotal * (Number(coupon.val) / 100) : Number(coupon.val);
   const cap = Math.min(scopedSubtotal, eligibleSubtotal, couponHeadroom);

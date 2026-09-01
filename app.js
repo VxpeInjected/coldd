@@ -730,7 +730,7 @@
 
       const PAGES = [
         { label: 'Home', href: '/' },
-        { label: 'Shop', href: '/assets' },
+        { label: 'Shop', href: '/shop' },
         { label: 'About Us', href: '/about' }
       ];
       function groupHeader(label) {
@@ -923,7 +923,7 @@
       // compatibility shim) - so tapping "Shop" inside the mobile hamburger
       // panel opened this fixed, z-index:150 flyout on top of that panel
       // instead of just following the link. The desktop hover flyout has no
-      // mobile equivalent (categories there live behind /assets' filter
+      // mobile equivalent (categories there live behind /shop' filter
       // panel instead), so it should never open without a real hover
       // device to begin with.
       function canHover() {
@@ -1303,7 +1303,7 @@
         const sortOpts = sortMenu ? Array.prototype.slice.call(sortMenu.querySelectorAll('.sort-opt')) : [];
         const clearBtn = shop.querySelector('.fc-clear');
         const countEl = shop.querySelector('.shop-count');
-        const base = shop.getAttribute('data-page') || (location.pathname.split('/').pop() || '/assets');
+        const base = shop.getAttribute('data-page') || (location.pathname.split('/').pop() || '/shop');
         // Matches product.html/checkout's fallback when a product has no
         // admin-set resell_price_usd.
         const RESELL_MULT = 3;
@@ -2830,7 +2830,7 @@
             pd.insertAdjacentHTML('beforeend', '<div class="pd-notfound">' +
               '<h1>Product not found</h1>' +
               '<p>We couldn’t find a product for this link — it may have been removed, renamed, or isn’t released yet.</p>' +
-              '<a class="btn btn-primary" href="/assets">Browse the shop</a></div>');
+              '<a class="btn btn-primary" href="/shop">Browse the shop</a></div>');
           } else if (!on && notice) {
             notice.remove();
           }
@@ -2865,10 +2865,10 @@
 
           var catSlug = catSlugFor(p);
           var crumb = '<a href="/">Home</a><span>›</span>' +
-            '<a href="' + (p.page || '/assets') + '">' + esc(p.platform) + '</a><span>›</span>' +
-            '<a href="' + (p.page || '/assets') + '?cat=' + catSlug + '">' + esc(p.cat) + '</a>';
+            '<a href="' + (p.page || '/shop') + '">' + esc(p.platform) + '</a><span>›</span>' +
+            '<a href="' + (p.page || '/shop') + '?cat=' + catSlug + '">' + esc(p.cat) + '</a>';
           if (p.subcat) crumb += '<span>›</span><span class="pd-crumb-cur">' + esc(humanize(p.subcat)) + '</span>';
-          else crumb = crumb.replace('<a href="' + (p.page || '/assets') + '?cat=' + catSlug + '">' + esc(p.cat) + '</a>', '<span class="pd-crumb-cur">' + esc(p.cat) + '</span>');
+          else crumb = crumb.replace('<a href="' + (p.page || '/shop') + '?cat=' + catSlug + '">' + esc(p.cat) + '</a>', '<span class="pd-crumb-cur">' + esc(p.cat) + '</span>');
           if (pdCrumb) pdCrumb.innerHTML = crumb;
 
           if (pdTitle) pdTitle.innerHTML = esc(p.title) + ' <span class="pd-ver">' + version + '</span>';
@@ -3022,8 +3022,8 @@
 
           var catSlug = catSlugFor(p);
           var trail = [{ name: 'Home', path: '/' },
-                       { name: p.platform || 'Shop', path: p.page || '/assets' }];
-          if (p.cat) trail.push({ name: p.cat, path: (p.page || '/assets') + '?cat=' + catSlug });
+                       { name: p.platform || 'Shop', path: p.page || '/shop' }];
+          if (p.cat) trail.push({ name: p.cat, path: (p.page || '/shop') + '?cat=' + catSlug });
           trail.push({ name: p.title, path: path });
           seo.jsonLd('ld-crumbs', seo.breadcrumbs(trail));
         }
@@ -3864,7 +3864,7 @@
         grid.innerHTML = '';
         if (!OWNED_ITEMS.length) {
           grid.innerHTML = '<div class="dash-empty-cta"><p>You don\'t own any products yet.</p>' +
-            '<a class="btn btn-primary" href="/assets">Browse products</a></div>';
+            '<a class="btn btn-primary" href="/shop">Browse products</a></div>';
         } else if (!owned.length) {
           grid.innerHTML = '<p class="dash-empty-note">No licenses match "' + esc(q) + '".</p>';
         }

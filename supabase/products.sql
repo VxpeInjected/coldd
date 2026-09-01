@@ -12,7 +12,7 @@ create table if not exists public.products (
   cat text,
   subcat text,
   platform text not null check (platform in ('Roblox', 'Minecraft')),
-  page text not null default '/assets',
+  page text not null default '/shop',
   reviews_count int not null default 0,
   rating numeric(2,1) not null default 0,
   storage_path text not null default '_shared/placeholder.zip',

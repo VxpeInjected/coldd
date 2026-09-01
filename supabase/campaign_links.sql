@@ -15,7 +15,7 @@ create table if not exists public.campaign_links (
   id uuid primary key default gen_random_uuid(),
   code text not null unique,
   label text not null,
-  -- Site-relative path the link points to (e.g. "/", "/assets",
+  -- Site-relative path the link points to (e.g. "/", "/shop",
   -- "/product?id=all-brawl-full-game") - ?cmp=CODE gets appended to this
   -- when the admin panel builds the copyable link. Purely a convenience
   -- for generating the URL; the click capture itself (supabase-init.js)

@@ -17,7 +17,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
 
-  <link rel="stylesheet" href="/styles.css?v=20260901i" />
+  <link rel="stylesheet" href="/styles.css?v=20260901j" />
 </head>
 <body class="adm-body">
   <div class="backdrop"></div>
@@ -40,7 +40,7 @@
         </a>
         <nav class="nav-links" aria-label="Primary">
           <span class="nav-set">
-            <a href="/">Home</a><a href="/assets" id="shopLink">Shop</a><a href="/blog" id="blogLink">Blog &amp; Tutorials</a><a href="/about" id="aboutLink">About Us</a>
+            <a href="/">Home</a><a href="/shop" id="shopLink">Shop</a><a href="/blog" id="blogLink">Blog &amp; Tutorials</a><a href="/about" id="aboutLink">About Us</a>
           </span>
           <span class="nav-search-wrap">
             <button class="nav-search" id="searchBtn" type="button" aria-label="Search"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg></button>
@@ -78,20 +78,20 @@
             <button class="nmt-tab active" type="button" data-platform="roblox" role="tab" aria-selected="true">Roblox</button>
           </div>
           <div class="nav-mega-cats" data-platform-panel="roblox">
-            <a href="/assets?cat=game-templates">Finished Games &amp; Templates</a>
-            <a href="/assets?cat=maps">Maps</a>
-            <a href="/assets?cat=scripts-ui">Scripts &amp; UI</a>
-            <a href="/assets?cat=graphics">Graphics</a>
-            <a href="/assets?cat=buildings">Buildings</a>
-            <a href="/assets?cat=assets">Assets</a>
-            <a href="/assets?cat=uniforms-gear">Uniforms &amp; Gear</a>
-            <a href="/assets?cat=boats">Boats</a>
-            <a href="/assets?cat=weapons">Weapons</a>
-            <a href="/assets?cat=vehicles">Vehicles</a>
-            <a href="/assets?cat=animations-vfx">Animations &amp; VFX</a>
+            <a href="/shop?cat=game-templates">Finished Games &amp; Templates</a>
+            <a href="/shop?cat=maps">Maps</a>
+            <a href="/shop?cat=scripts-ui">Scripts &amp; UI</a>
+            <a href="/shop?cat=graphics">Graphics</a>
+            <a href="/shop?cat=buildings">Buildings</a>
+            <a href="/shop?cat=assets">Assets</a>
+            <a href="/shop?cat=uniforms-gear">Uniforms &amp; Gear</a>
+            <a href="/shop?cat=boats">Boats</a>
+            <a href="/shop?cat=weapons">Weapons</a>
+            <a href="/shop?cat=vehicles">Vehicles</a>
+            <a href="/shop?cat=animations-vfx">Animations &amp; VFX</a>
           </div>
         </div>
-        <a class="nav-mega-feature" href="/assets?sort=newest" id="navMegaFeature" data-href-roblox="/assets?sort=newest" data-img-roblox="/new-release.jpg">
+        <a class="nav-mega-feature" href="/shop?sort=newest" id="navMegaFeature" data-href-roblox="/shop?sort=newest" data-img-roblox="/new-release.jpg">
           <span class="nmf-img" style="background-image:url('/new-release.jpg')"></span>
           <span class="nmf-tag">New</span>
           <span class="nmf-title">New Releases</span>
@@ -261,7 +261,7 @@
                 <input type="text" id="admCampaignDestination" class="adm-input adm-input-sm" placeholder="Page (default /)" style="min-width:140px;" />
                 <button class="btn btn-primary adm-btn-sm" type="submit">+ Add campaign</button>
               </form>
-              <p class="adm-note" style="margin-top:6px;">Page is where the link should send people, e.g. <code>/</code>, <code>/assets</code>, or <code>/product?id=all-brawl-full-game</code>. Leave blank for the homepage.</p>
+              <p class="adm-note" style="margin-top:6px;">Page is where the link should send people, e.g. <code>/</code>, <code>/shop</code>, or <code>/product?id=all-brawl-full-game</code>. Leave blank for the homepage.</p>
               <div class="adm-edit-msg" id="admCampaignCreateMsg"></div>
               <div class="dash-tablewrap" style="margin-top:14px;">
                 <table class="dash-table">
@@ -411,7 +411,7 @@
                 <p class="adm-note" id="admBroadcastKindHint" style="margin:0;">Goes to every account in the audience.</p>
                 <label class="adm-field"><span>Title</span><input type="text" id="admBroadcastTitle" class="adm-input" placeholder="Store-wide sale is live" maxlength="120" required /></label>
                 <label class="adm-field"><span>Message (optional)</span><textarea id="admBroadcastBody" class="adm-input adm-textarea" rows="3" maxlength="400" placeholder="Up to 40% off everything until Sunday."></textarea></label>
-                <label class="adm-field"><span>Link (optional)</span><input type="text" id="admBroadcastUrl" class="adm-input" placeholder="/assets?sort=deals" /></label>
+                <label class="adm-field"><span>Link (optional)</span><input type="text" id="admBroadcastUrl" class="adm-input" placeholder="/shop?sort=deals" /></label>
                 <div style="display:flex;gap:8px;align-items:center;">
                   <span style="flex:1;"></span>
                   <button class="btn btn-primary adm-btn-sm" id="admBroadcastSendBtn" type="submit"><span class="btn-label">Send broadcast</span><span class="btn-spinner" hidden></span></button>
@@ -1465,7 +1465,7 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.2/dist/umd/supabase.min.js" integrity="sha384-B2duOBIryCXbX4eDE4BdJwtNkQMRQde3o6IsjfPW28E6aH1CYE96hHeZRG3zY56O" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script src="/supabase-init.js?v=20260830b"></script>
-  <script src="/site-gate.js?v=20260901i"></script>
-  <script src="/catalog.js?v=20260901i" data-then="/app.js?v=20260901i,/blog.js?v=20260828a,/reviews.js?v=20260729a,/admin.js?v=20260901i"></script>
+  <script src="/site-gate.js?v=20260901j"></script>
+  <script src="/catalog.js?v=20260901j" data-then="/app.js?v=20260901j,/blog.js?v=20260828a,/reviews.js?v=20260729a,/admin.js?v=20260901j"></script>
 </body>
 </html>

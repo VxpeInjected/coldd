@@ -549,7 +549,7 @@
           '<article class="tut-detail-body">' + bodyHtml + '</article>' +
           '<aside class="tut-toc">' +
             (toc.length ? '<div class="tut-toc-card"><h3>On this page</h3><nav>' + toc.map(function (h) { return '<a href="#' + h.id + '">' + esc(h.text) + '</a>'; }).join('') + '</nav></div>' : '') +
-            '<div class="tut-toc-card tut-toc-cta"><h3>Need the asset?</h3><p>Skip the build — browse ready-made systems in the store.</p><a class="btn btn-primary" href="/assets">Browse assets</a></div>' +
+            '<div class="tut-toc-card tut-toc-cta"><h3>Need the asset?</h3><p>Skip the build — browse ready-made systems in the store.</p><a class="btn btn-primary" href="/shop">Browse assets</a></div>' +
           '</aside>' +
         '</div>' +
       '</div>';

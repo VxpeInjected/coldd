@@ -212,7 +212,7 @@ async function runReengagement(admin: any, config: Config | undefined, supabaseU
     if (recentBuyers.has(prof.id)) continue; // still active - not lapsed, leave sent_at null for a future check
 
     const unsubscribeUrl = `${supabaseUrl}/functions/v1/email-unsubscribe?t=${prof.email_unsub_token}`;
-    const html = renderAutomationEmail(config.body_md, [ctaButtonHtml(`${SITE_URL}/assets`, "See what's new")], unsubscribeUrl);
+    const html = renderAutomationEmail(config.body_md, [ctaButtonHtml(`${SITE_URL}/shop`, "See what's new")], unsubscribeUrl);
     const result = await sendSingle(prof.email, config.subject, html, unsubscribeHeaders(unsubscribeUrl));
     if (result.ok) sent++; else { skipped++; console.error("[cron-lifecycle-emails] reengagement send failed:", result.error); }
     await admin.from("profiles").update({ reengagement_email_sent_at: new Date().toISOString() }).eq("id", prof.id);

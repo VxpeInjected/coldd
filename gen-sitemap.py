@@ -30,7 +30,7 @@ TIMEOUT = 20
 # deliberately absent: they carry noindex and are disallowed in robots.txt.
 STATIC_PAGES = [
     ('/', 'weekly', '1.0'),
-    ('/assets', 'weekly', '0.9'),
+    ('/shop', 'weekly', '0.9'),
     ('/blog', 'weekly', '0.7'),
     ('/blog?view=tutorials', 'weekly', '0.7'),
     ('/releases', 'weekly', '0.6'),

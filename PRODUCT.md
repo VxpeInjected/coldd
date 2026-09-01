@@ -36,7 +36,7 @@ Do not present either of these, or the about-page copy, as *the* confirmed diffe
 
 ## Operating Context
 
-- Shopping is platform-scoped: every page/URL is either Roblox-side (`/assets`) or Minecraft-side (`/minecraft`), with a persistent platform toggle in the nav mega-menu and product filters.
+- Shopping is platform-scoped: every page/URL is either Roblox-side (`/shop`) or Minecraft-side (`/minecraft`), with a persistent platform toggle in the nav mega-menu and product filters.
 - Checkout supports guest purchase (no account) or signed-in purchase; payment is Stripe (USD, card/wallet-based) or Robux (via linking a Roblox account and buying a per-order gamepass).
 - Community lives on Discord (discord.gg/coldd) - referenced throughout the site as the support/community channel, and some products are Discord-gated "free" unlocks rather than direct downloads.
 - A dashboard (post-purchase) covers order history, downloads, wishlist, a referral program with USD/Robux/store-credit payouts, and account/notification settings.

@@ -133,7 +133,7 @@ Deno.serve(async (req: Request) => {
     const productFields: Record<string, unknown> = {
       title,
       platform,
-      page: platform === "Minecraft" ? "/minecraft" : "/assets",
+      page: platform === "Minecraft" ? "/minecraft" : "/shop",
       price_usd: price,
       was_price: wasPrice,
       priority: !!body.priority,

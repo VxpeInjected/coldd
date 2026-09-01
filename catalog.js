@@ -167,7 +167,7 @@
     } catch (e) {}
   };
 
-  window.__CATEGORIES = [{"label": "Resell License", "slug": "resell", "platform": "Roblox", "page": "/assets"}, {"label": "Finished Games & Templates", "slug": "game-templates", "platform": "Roblox", "page": "/assets"}, {"label": "Maps", "slug": "maps", "platform": "Roblox", "page": "/assets"}, {"label": "Scripts & UI", "slug": "scripts-ui", "platform": "Roblox", "page": "/assets"}, {"label": "Graphics", "slug": "graphics", "platform": "Roblox", "page": "/assets"}, {"label": "Buildings", "slug": "buildings", "platform": "Roblox", "page": "/assets"}, {"label": "Assets", "slug": "assets", "platform": "Roblox", "page": "/assets"}, {"label": "Uniforms & Gear", "slug": "uniforms-gear", "platform": "Roblox", "page": "/assets"}, {"label": "Boats", "slug": "boats", "platform": "Roblox", "page": "/assets"}, {"label": "Weapons", "slug": "weapons", "platform": "Roblox", "page": "/assets"}, {"label": "Vehicles", "slug": "vehicles", "platform": "Roblox", "page": "/assets"}, {"label": "Animations & VFX", "slug": "animations-vfx", "platform": "Roblox", "page": "/assets"}];
+  window.__CATEGORIES = [{"label": "Resell License", "slug": "resell", "platform": "Roblox", "page": "/shop"}, {"label": "Finished Games & Templates", "slug": "game-templates", "platform": "Roblox", "page": "/shop"}, {"label": "Maps", "slug": "maps", "platform": "Roblox", "page": "/shop"}, {"label": "Scripts & UI", "slug": "scripts-ui", "platform": "Roblox", "page": "/shop"}, {"label": "Graphics", "slug": "graphics", "platform": "Roblox", "page": "/shop"}, {"label": "Buildings", "slug": "buildings", "platform": "Roblox", "page": "/shop"}, {"label": "Assets", "slug": "assets", "platform": "Roblox", "page": "/shop"}, {"label": "Uniforms & Gear", "slug": "uniforms-gear", "platform": "Roblox", "page": "/shop"}, {"label": "Boats", "slug": "boats", "platform": "Roblox", "page": "/shop"}, {"label": "Weapons", "slug": "weapons", "platform": "Roblox", "page": "/shop"}, {"label": "Vehicles", "slug": "vehicles", "platform": "Roblox", "page": "/shop"}, {"label": "Animations & VFX", "slug": "animations-vfx", "platform": "Roblox", "page": "/shop"}];
 
   // Currency conversion (window.__money/__usd/__robux/__fiat/__currencyMode,
   // and the #curSwitch dropdown). Moved here from app.js: app.js only loads
@@ -394,7 +394,11 @@
       reviews: row.reviews_count || 0,
       rating: Number(row.rating) || 0,
       platform: row.platform,
-      page: row.page,
+      // The Roblox catalog URL moved from /assets to /shop; some stored
+      // rows (and the old 'assets.html' build path) still carry the old
+      // value. Normalise here so breadcrumbs and back-links are clean even
+      // before the products table is migrated.
+      page: (row.page === '/assets' || row.page === 'assets.html') ? '/shop' : row.page,
       createdAt: row.created_at || null,
       robuxPrice: row.robux_price != null ? Number(row.robux_price) : null,
       resellPrice: row.resell_price_usd != null ? Number(row.resell_price_usd) : null,

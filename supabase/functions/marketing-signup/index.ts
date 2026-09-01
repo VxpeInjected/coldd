@@ -48,7 +48,7 @@ async function emailWelcomeCode(to: string, code: string, resend: boolean): Prom
 </table>
 <p style="margin:0 0 24px;">Enter it at checkout to take ${DISCOUNT_PCT}% off. It works once${resend ? "" : `, and is valid for ${CODE_VALID_DAYS} days`}.</p>
 <table cellpadding="0" cellspacing="0" border="0"><tr><td style="background:linear-gradient(135deg,#cc0011 0%,#ff3344 100%);border-radius:6px;">
-<a href="https://coldd.dev/assets" style="display:inline-block;padding:13px 26px;color:#ffffff;font-weight:700;font-size:14px;text-decoration:none;font-family:Arial,Helvetica,sans-serif;">Browse the shop</a>
+<a href="https://coldd.dev/shop" style="display:inline-block;padding:13px 26px;color:#ffffff;font-weight:700;font-size:14px;text-decoration:none;font-family:Arial,Helvetica,sans-serif;">Browse the shop</a>
 </td></tr></table>
 `;
     // Code stays out of the subject - "...code: WELCOME-XYZ" reads as spam;

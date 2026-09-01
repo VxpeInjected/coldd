@@ -1307,6 +1307,49 @@
           cd.hidden = false;
         }
       }
+
+      // Curated bundles (window.__BUNDLES from catalog.js). Each card adds
+      // every product plus the bundle token, so priceItems applies the
+      // bundle discount at checkout.
+      var bundlesGrid = document.getElementById('homeBundlesGrid');
+      var bundlesSection = document.getElementById('homeBundlesSection');
+      if (bundlesGrid) {
+        var bySlug = {};
+        catalog.forEach(function (p) { bySlug[p.id] = p; });
+        var bundles = (window.__BUNDLES || []).map(function (b) {
+          var prods = (b.slugs || []).map(function (s) { return bySlug[s]; }).filter(Boolean);
+          if (prods.length < 2) return null;
+          var listUsd = prods.reduce(function (sum, p) { return sum + (p.priceNum || 0); }, 0);
+          var priceUsd = Math.round(listUsd * (1 - Number(b.bundle_pct) / 100) * 100) / 100;
+          return { b: b, prods: prods, listUsd: listUsd, priceUsd: priceUsd };
+        }).filter(Boolean);
+        if (bundles.length) {
+          bundlesGrid.innerHTML = bundles.map(function (x) {
+            var m = window.__money || function (n) { return '$' + n; };
+            var img = x.b.image || (x.prods[0] && x.prods[0].image) || '/banner.jpg';
+            return '<article class="bundle-card" data-token="' + escHtml(x.b.token) + '">' +
+              '<div class="bundle-thumb" style="background-image:url(\'' + img + '\')"><span class="bundle-off">-' + Math.round(x.b.bundle_pct) + '%</span></div>' +
+              '<div class="bundle-body">' +
+              '<h3 class="bundle-name">' + escHtml(x.b.title) + '</h3>' +
+              '<p class="bundle-meta">' + x.prods.length + ' products: ' + x.prods.map(function (p) { return escHtml(p.title); }).join(', ') + '</p>' +
+              '<div class="bundle-price-row"><span class="p-was">' + m(x.listUsd) + '</span><span class="p-price">' + m(x.priceUsd) + '</span></div>' +
+              '<button class="btn btn-primary bundle-add" type="button">Add bundle to cart</button>' +
+              '</div></article>';
+          }).join('');
+          bundlesGrid.querySelectorAll('.bundle-card').forEach(function (card) {
+            var x = bundles.filter(function (y) { return y.b.token === card.getAttribute('data-token'); })[0];
+            if (!x) return;
+            card.querySelector('.bundle-add').addEventListener('click', function () {
+              x.prods.forEach(function (p) {
+                if (window.__cartAdd) window.__cartAdd({ id: p.id, title: p.title, price: p.priceNum, image: p.image, tag: p.cat });
+              });
+              try { localStorage.setItem('coldd_bundle_token', x.b.token); } catch (e) {}
+              if (window.__openCart) window.__openCart();
+            });
+          });
+        }
+        bundlesSection.hidden = !bundles.length;
+      }
     })();
 
     (function () {

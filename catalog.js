@@ -475,6 +475,7 @@
     window.__REVIEWS = [];
     window.__POSTS = []; window.__TUTORIALS = []; window.__RELEASES = [];
     window.__ACTIVE_SALE = null;
+    window.__BUNDLES = [];
     loadDependents();
   }
 
@@ -497,10 +498,14 @@
       .eq('status', 'approved')
       .order('created_at', { ascending: false })
       .limit(20000),
-    contentQuery
+    contentQuery,
+    window.coldSupabase.from('bundle_deals')
+      .select('token, slug, title, image, slugs, bundle_pct')
+      .eq('source', 'curated').eq('active', true).order('created_at', { ascending: false }).limit(200)
   ])
     .then(function (results) {
-      var prodRes = results[0], revRes = results[1], contentRes = results[2];
+      var prodRes = results[0], revRes = results[1], contentRes = results[2], bundleRes = results[3];
+      window.__BUNDLES = (bundleRes && !bundleRes.error && bundleRes.data) ? bundleRes.data : [];
       if (prodRes.error) { fail(prodRes.error); return; }
       window.__CATALOG = (prodRes.data || []).map(toCard);
       if (revRes.error) { console.error('[coldd] Failed to load reviews:', revRes.error); window.__REVIEWS = []; }

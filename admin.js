@@ -5227,8 +5227,74 @@
     $('admBundleDealsView').hidden = type !== 'bundles';
     $('admHomepageView').hidden = type !== 'homepage';
     if (type === 'homepage') { renderHomepageTab(); loadWeeklyDealsSettings(); }
-    if (type === 'bundles') renderBundleDeals();
+    if (type === 'bundles') { renderCuratedBundles(); renderBundleDeals(); }
   });
+
+  /* Curated bundles - hand-built, permanent, public. admin-upsert-bundle. */
+  function renderCuratedBundles() {
+    var el = $('admCuratedBundlesBody'); if (!el) return;
+    el.innerHTML = '<tr><td colspan="6" class="adm-empty">Loading…</td></tr>';
+    invokeAdminFn('admin-upsert-bundle', { action: 'list' }, 'Could not load bundles.').then(function (data) {
+      var rows = data.bundles || [];
+      el.innerHTML = rows.map(function (b) {
+        return '<tr data-token="' + esc(b.token) + '">' +
+          '<td>' + esc(b.title || '') + '</td><td>' + esc(b.slug || '') + '</td>' +
+          '<td>' + esc((b.slugs || []).join(', ')) + '</td>' +
+          '<td>-' + esc(Math.round(b.bundle_pct)) + '%</td>' +
+          '<td>' + (b.active ? '<span class="dt-badge ok">Active</span>' : '<span class="dt-badge">Off</span>') + '</td>' +
+          '<td class="adm-row-actions"><button class="btn btn-ghost adm-btn-sm adm-bundle-edit" type="button">Edit</button>' +
+          '<button class="btn btn-ghost adm-btn-sm adm-bundle-del" type="button">Delete</button></td></tr>';
+      }).join('') || '<tr><td colspan="6" class="adm-empty">No curated bundles yet.</td></tr>';
+    }).catch(function (err) { el.innerHTML = '<tr><td colspan="6" class="adm-empty">' + esc(err.message) + '</td></tr>'; });
+  }
+  var bundleForm = $('admBundleForm');
+  if (bundleForm) {
+    function resetBundleForm() {
+      $('admBundleToken').value = ''; $('admBundleTitle').value = ''; $('admBundleSlug').value = '';
+      $('admBundleImage').value = ''; $('admBundleDiscount').value = ''; $('admBundleProducts').value = '';
+      $('admBundleActive').checked = true;
+      $('admBundleFormTitle').textContent = 'New curated bundle';
+      $('admBundleCancelBtn').hidden = true;
+    }
+    $('admBundleCancelBtn').addEventListener('click', resetBundleForm);
+    bundleForm.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var msg = $('admBundleMsg'); msg.textContent = 'Saving…';
+      invokeAdminFn('admin-upsert-bundle', {
+        action: 'upsert',
+        token: $('admBundleToken').value || undefined,
+        title: $('admBundleTitle').value,
+        slug: $('admBundleSlug').value,
+        image: $('admBundleImage').value,
+        discountPct: Number($('admBundleDiscount').value),
+        productSlugs: $('admBundleProducts').value.split(',').map(function (s) { return s.trim(); }).filter(Boolean),
+        active: $('admBundleActive').checked
+      }, 'Could not save.').then(function () {
+        msg.textContent = 'Saved.'; resetBundleForm(); renderCuratedBundles();
+      }).catch(function (err) { msg.textContent = err.message; });
+    });
+    $('admCuratedBundlesBody').addEventListener('click', function (e) {
+      var tr = e.target.closest('tr[data-token]'); if (!tr) return;
+      var token = tr.getAttribute('data-token');
+      if (e.target.closest('.adm-bundle-del')) {
+        if (!confirm('Delete this bundle?')) return;
+        invokeAdminFn('admin-upsert-bundle', { action: 'delete', token: token }, 'Delete failed.').then(renderCuratedBundles);
+        return;
+      }
+      if (e.target.closest('.adm-bundle-edit')) {
+        var tds = tr.querySelectorAll('td');
+        $('admBundleToken').value = token;
+        $('admBundleTitle').value = tds[0].textContent;
+        $('admBundleSlug').value = tds[1].textContent;
+        $('admBundleProducts').value = tds[2].textContent;
+        $('admBundleDiscount').value = tds[3].textContent.replace(/[^0-9]/g, '');
+        $('admBundleActive').checked = /Active/.test(tds[4].textContent);
+        $('admBundleFormTitle').textContent = 'Edit bundle';
+        $('admBundleCancelBtn').hidden = false;
+        bundleForm.scrollIntoView({ block: 'center' });
+      }
+    });
+  }
 
   /* Bundle deals are auto-minted (post-purchase upsell, wishlist
      reminder), never created by hand here - this tab is read-only

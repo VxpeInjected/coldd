@@ -1587,6 +1587,9 @@ body.no-scroll { overflow: hidden; }
 .pd-admin-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 14px;
   padding: 7px 7px 7px 12px; border: 1px solid var(--hairline); border-radius: var(--r-sm);
   background: rgba(255,255,255,0.03); }
+/* display:flex above is an author rule and beats the browser's UA
+   [hidden]{display:none}, so the attribute alone won't hide the bar. */
+.pd-admin-bar[hidden] { display: none; }
 .pd-admin-tag { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 10px; font-weight: 700; letter-spacing: 0.16em; color: var(--fg-3); }
 .pd-admin-acts { display: flex; align-items: center; gap: 2px; margin-left: auto; }

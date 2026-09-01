@@ -3738,6 +3738,36 @@
       }
       renderRecommended();
 
+      // "Complete the collection": a subcategory the buyer owns 2+ of but
+      // not all - get-set-deal mints a bundle token for what's missing.
+      function renderSetDeal() {
+        var card = document.getElementById('dashSetDealCard');
+        var grid = document.getElementById('dashSetDealGrid');
+        if (!card || !grid || !window.coldSupabase || !window.coldAuth) return;
+        window.coldAuth.invokeFn('get-set-deal', {}).then(function (data) {
+          var d = data && data.deal;
+          if (!d || !d.items || !d.items.length) return;
+          document.getElementById('dashSetDealSub').textContent =
+            'You own ' + d.ownedCount + ' of ' + d.totalCount + ' in the ' + d.label + ' collection. Get the rest at ' +
+            d.itemPct + '% off each (' + d.bundlePct + '% off if you take them all).';
+          var cat = window.__CATALOG || [];
+          grid.innerHTML = d.items.map(function (it) {
+            var p = cat.filter(function (x) { return x.id === it.slug; })[0];
+            return p ? dashRecCard(p) : '';
+          }).join('');
+          document.getElementById('dashSetDealAdd').onclick = function () {
+            d.items.forEach(function (it) {
+              var p = cat.filter(function (x) { return x.id === it.slug; })[0];
+              if (p && window.__cartAdd) window.__cartAdd({ id: p.id, title: p.title, price: p.priceNum, image: p.image, tag: p.cat || '' });
+            });
+            try { localStorage.setItem('coldd_bundle_token', d.token); } catch (e) {}
+            location.href = '/checkout';
+          };
+          card.hidden = false;
+        }).catch(function () {});
+      }
+      renderSetDeal();
+
       window.addEventListener('currencychange', function () {
         if (document.getElementById('dashWishlistRows')) renderWishlist();
         if (document.getElementById('dashWishlistPreview')) renderWishlistPreview();

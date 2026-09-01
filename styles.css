@@ -4052,6 +4052,15 @@ input[type="checkbox"]:focus-visible { outline: 2px solid var(--accent); outline
 .account-menu-item svg { flex: 0 0 20px; color: var(--fg-2); }
 .account-menu-item:hover { background: rgba(255,255,255,0.05); }
 .account-menu-item:hover svg { color: var(--fg); }
+.account-menu-admin { display: block; margin: 6px 2px 2px; padding: 8px 10px 9px; border-radius: 10px;
+  text-decoration: none; color: var(--fg);
+  background: rgba(255,77,68,0.08); border: 1px solid rgba(255,77,68,0.22); }
+.account-menu-admin:hover { background: rgba(255,77,68,0.14); }
+.account-menu-admin-eyebrow { display: block; font-size: 9.5px; font-weight: 700; letter-spacing: 0.09em;
+  text-transform: uppercase; color: var(--accent-ink); margin-bottom: 4px; }
+.account-menu-admin-row { display: flex; align-items: center; gap: 10px; font-size: 13px; }
+.account-menu-admin-row svg { flex: 0 0 20px; color: var(--accent-ink); }
+.account-menu-admin-role { margin-left: auto; font-size: 11px; color: var(--fg-3); text-transform: capitalize; }
 .account-menu-signout { margin-top: 4px; border-top: 1px solid var(--hairline); border-radius: 0 0 8px 8px; color: var(--accent-ink); }
 .account-menu-signout:hover { background: rgba(255,255,255,0.05); }
 /* Sign out's 16px SVG sat directly next to the text with no box of its own,

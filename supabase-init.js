@@ -168,22 +168,45 @@
   // not a separate client-side list). role is 'owner'/'admin'/'support',
   // set manually via SQL for now; a signed-in admin with is_admin=true but
   // no role yet defaults to 'admin' so existing staff aren't locked out.
+  // checkIsAdmin() is two network round trips (getUser, then the profiles
+  // row), so the staff-only nav affordances it gates used to pop in a
+  // second or two after the rest of the page. This caches the last result
+  // in localStorage: isAdminCached() is a synchronous read the callers use
+  // to render optimistically on the next load, and checkIsAdmin() still
+  // runs to confirm (and correct, or clear the cache) in the background.
+  var ADMIN_KEY = 'coldd_is_admin';
+  function cacheAdmin(info) {
+    try {
+      if (info && info.isAdmin) localStorage.setItem(ADMIN_KEY, JSON.stringify({ isAdmin: true, role: info.role || 'admin' }));
+      else localStorage.removeItem(ADMIN_KEY);
+    } catch (e) {}
+  }
+  function isAdminCached() {
+    try {
+      var v = JSON.parse(localStorage.getItem(ADMIN_KEY) || 'null');
+      return (v && v.isAdmin) ? { isAdmin: true, role: v.role || 'admin' } : null;
+    } catch (e) { return null; }
+  }
+
   function checkIsAdmin() {
     return client.auth.getUser().then(function (res) {
       var user = res && res.data && res.data.user;
-      if (!user) return { isAdmin: false, role: null, username: null, id: null };
+      if (!user) { cacheAdmin(null); return { isAdmin: false, role: null, username: null, id: null }; }
       return client.from('profiles').select('is_admin, role, username, email').eq('id', user.id).single().then(function (pRes) {
         if (pRes.error || !pRes.data) return { isAdmin: false, role: null, username: null, id: user.id };
         var isAdmin = !!pRes.data.is_admin;
-        return {
+        var info = {
           isAdmin: isAdmin,
           role: pRes.data.role || (isAdmin ? 'admin' : null),
           username: pRes.data.username || pRes.data.email || null,
           id: user.id
         };
+        cacheAdmin(info);
+        return info;
       });
     }).catch(function () { return { isAdmin: false, role: null, username: null, id: null }; });
   }
+  checkIsAdmin.cached = isAdminCached;
 
   var REF_KEY = 'coldd_ref_code';
   // Captures ?ref=CODE off any page URL (referral link click), stores it for
@@ -247,7 +270,7 @@
 
   function saveProfile(p) { try { localStorage.setItem(PROFILE_KEY, JSON.stringify(p)); } catch (e) {} }
   function getProfile() { try { return JSON.parse(localStorage.getItem(PROFILE_KEY) || 'null'); } catch (e) { return null; } }
-  function clearProfile() { try { localStorage.removeItem(PROFILE_KEY); } catch (e) {} }
+  function clearProfile() { try { localStorage.removeItem(PROFILE_KEY); localStorage.removeItem(ADMIN_KEY); } catch (e) {} }
   function initials(name) {
     if (!name) return '?';
     var parts = name.trim().split(/\s+/);

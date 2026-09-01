@@ -2900,14 +2900,15 @@
             if (xBtn) xBtn.addEventListener('click', function () {
               pdAdminBar.hidden = true;
             });
+            var eid = encodeURIComponent(p.id);
+            var _ae = document.getElementById('pdAdminEdit');
+            var _au = document.getElementById('pdAdminUpdate');
+            if (_ae) _ae.href = '/admin?product=' + eid + '&action=edit';
+            if (_au) _au.href = '/admin?product=' + eid + '&action=update';
+            // Show straight away for a known admin (cached), confirm live.
+            if (window.coldAuth.checkIsAdmin.cached && window.coldAuth.checkIsAdmin.cached()) pdAdminBar.hidden = false;
             window.coldAuth.checkIsAdmin().then(function (info) {
-              if (!info || !info.isAdmin) return;
-              var eid = encodeURIComponent(p.id);
-              var e = document.getElementById('pdAdminEdit');
-              var u = document.getElementById('pdAdminUpdate');
-              if (e) e.href = '/admin?product=' + eid + '&action=edit';
-              if (u) u.href = '/admin?product=' + eid + '&action=update';
-              pdAdminBar.hidden = false;
+              pdAdminBar.hidden = !(info && info.isAdmin);
             }).catch(function () {});
           }
 
@@ -3181,7 +3182,7 @@
           var flaggedIn = isLoggedIn();
           if (hasSession === flaggedIn) return;
           try { localStorage.setItem('coldd_auth', hasSession ? 'in' : 'out'); } catch (e) {}
-          if (!hasSession) { try { localStorage.removeItem('coldd_profile'); } catch (e) {} }
+          if (!hasSession) { try { localStorage.removeItem('coldd_profile'); localStorage.removeItem('coldd_is_admin'); } catch (e) {} }
         }).catch(function () {});
       }
 
@@ -3229,13 +3230,13 @@
           openConfirm();
         });
 
-        // Staff-only shortcut into the admin panel. Rendered async once
-        // checkIsAdmin confirms the account is staff - never in the markup
-        // for a normal user, so it can't be revealed by fiddling with the
-        // DOM. /admin has its own independent gate regardless.
+        // Admin-only shortcut into the admin panel. Never in the markup for
+        // a normal user, so it can't be revealed by fiddling with the DOM.
+        // /admin has its own independent gate regardless. Rendered from the
+        // cached check straight away, then confirmed (or removed) by the
+        // live one so it doesn't lag the rest of the menu.
         if (window.coldAuth && window.coldAuth.checkIsAdmin) {
-          window.coldAuth.checkIsAdmin().then(function (info) {
-            if (!info || !info.isAdmin) return;
+          var addAdminRow = function () {
             if (menu.querySelector('.account-menu-admin')) return;
             var box = document.createElement('a');
             box.href = '/admin';
@@ -3244,6 +3245,12 @@
               '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m12 2 7 4v6c0 5-3.5 8-7 10-3.5-2-7-5-7-10V6z"/><path d="m9 12 2 2 4-4"/></svg>' +
               '<span>Admin panel</span>';
             menu.insertBefore(box, menu.querySelector('#menuSignout'));
+          };
+          if (window.coldAuth.checkIsAdmin.cached && window.coldAuth.checkIsAdmin.cached()) addAdminRow();
+          window.coldAuth.checkIsAdmin().then(function (info) {
+            var row = menu.querySelector('.account-menu-admin');
+            if (info && info.isAdmin) addAdminRow();
+            else if (row) row.remove();
           }).catch(function () {});
         }
       }
@@ -3441,8 +3448,11 @@
       if (!dash) return;
 
       var adminLink = document.getElementById('dashAdminLink');
-      if (adminLink && window.coldAuth) {
-        window.coldAuth.checkIsAdmin().then(function (info) { if (info.isAdmin) adminLink.hidden = false; });
+      if (adminLink && window.coldAuth && window.coldAuth.checkIsAdmin) {
+        // Show it right away if the last check said staff; the live check
+        // then confirms or (rarely) hides it again.
+        if (window.coldAuth.checkIsAdmin.cached && window.coldAuth.checkIsAdmin.cached()) adminLink.hidden = false;
+        window.coldAuth.checkIsAdmin().then(function (info) { adminLink.hidden = !info.isAdmin; });
       }
 
       var panels = dash.querySelectorAll('.dash-panel');

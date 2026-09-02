@@ -13,7 +13,7 @@
 // They collapse into one number per line - floorUsd / floorRobux - that
 // every discount path clamps against, so no caller has to know the rules.
 
-import { ROBUX_PER_USD, type RobuxPricedLine } from "./roblox.ts";
+import { type RobuxPricedLine } from "./roblox.ts";
 
 // If can_be_free is false and nothing else sets a floor, the price may
 // still be discounted but never all the way to zero.
@@ -193,11 +193,16 @@ export function flatPctDiscount(lines: PricedLine[], pct: number): { discount: n
 // point is pulling someone from "one $15 item" toward "a cart worth
 // clearing the next tier", not rewarding a cart that was already going
 // to be big regardless.
-export const SPEND_TIERS: { minSubtotal: number; pct: number }[] = [
-  { minSubtotal: 100, pct: 25 },
-  { minSubtotal: 75, pct: 20 },
-  { minSubtotal: 50, pct: 15 },
-  { minSubtotal: 35, pct: 10 },
+// Robux thresholds are set explicitly, NOT usd * ROBUX_PER_USD - Robux
+// prices run richer than the flat 80:1 estimate (a product's admin-set
+// robux_price is deliberately higher), so each tier gets its own Robux
+// gate tuned to real cart sizes in Robux mode.
+export const SPEND_TIERS: { minSubtotal: number; minRobux: number; pct: number }[] = [
+  { minSubtotal: 200, minRobux: 50000, pct: 50 },
+  { minSubtotal: 100, minRobux: 26000, pct: 40 },
+  { minSubtotal: 75, minRobux: 20000, pct: 30 },
+  { minSubtotal: 50, minRobux: 13000, pct: 20 },
+  { minSubtotal: 30, minRobux: 8000, pct: 10 },
 ];
 
 // Robux equivalent of legalHeadroom(): total Robux every line could give
@@ -221,11 +226,10 @@ export function robuxLegalHeadroom(lines: RobuxPricedLine[]): number {
 // priced disproportionately cheap in Robux, unlocking a discount that
 // looks like it came from nowhere against the number actually on
 // screen. This evaluates AND grants the discount against the real Robux
-// total instead, scaling each tier's threshold onto Robux via the flat
-// DevEx estimate - the only conversion basis available for a threshold
-// that has no specific product behind it - so the ladder, the discount,
-// and the visible total can never disagree with each other in Robux
-// mode, regardless of how any one product's cross-currency pricing
+// total instead, gated on each tier's own explicit minRobux (see
+// SPEND_TIERS) rather than a converted USD figure - so the ladder, the
+// discount, and the visible total can never disagree with each other in
+// Robux mode, regardless of how any one product's cross-currency pricing
 // happens to sit. `headroomRobux` caps the grant so it can never push a
 // line past its product_legal floor.
 export function spendTierDiscountRobux(
@@ -233,10 +237,9 @@ export function spendTierDiscountRobux(
   headroomRobux = Infinity,
 ): { discountRobux: number; pct: number; minRobux: number } {
   for (const tier of SPEND_TIERS) {
-    const minRobux = Math.round(tier.minSubtotal * ROBUX_PER_USD);
-    if (totalRobux >= minRobux) {
+    if (totalRobux >= tier.minRobux) {
       const raw = Math.round(totalRobux * (tier.pct / 100));
-      return { discountRobux: Math.max(0, Math.min(raw, headroomRobux)), pct: tier.pct, minRobux };
+      return { discountRobux: Math.max(0, Math.min(raw, headroomRobux)), pct: tier.pct, minRobux: tier.minRobux };
     }
   }
   return { discountRobux: 0, pct: 0, minRobux: 0 };

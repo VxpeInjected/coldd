@@ -2309,10 +2309,11 @@
       // next tier instead of only discovering it after they've already
       // decided what to buy.
       var SPEND_TIERS = [
-        { minSubtotal: 100, pct: 25 },
-        { minSubtotal: 75, pct: 20 },
-        { minSubtotal: 50, pct: 15 },
-        { minSubtotal: 35, pct: 10 }
+        { minSubtotal: 200, minRobux: 50000, pct: 50 },
+        { minSubtotal: 100, minRobux: 26000, pct: 40 },
+        { minSubtotal: 75, minRobux: 20000, pct: 30 },
+        { minSubtotal: 50, minRobux: 13000, pct: 20 },
+        { minSubtotal: 30, minRobux: 8000, pct: 10 }
       ];
       // The cheapest catalog item (not already in the cart) whose price
       // alone covers the remaining gap to the next tier - turns "spend $12
@@ -2371,9 +2372,9 @@
         var sub = useRobux ? robuxSubtotalWithFallback() : subtotal();
         var res = window.__coldTierLadder.build(sub, {
           tiers: SPEND_TIERS,
-          thresholdFor: function (t) { return useRobux ? Math.round(t.minSubtotal * ROBUX_PER_USD_FALLBACK) : t.minSubtotal; },
+          thresholdFor: function (t) { return useRobux ? t.minRobux : t.minSubtotal; },
           fmt: function (n) { return useRobux ? ('R$ ' + Math.round(n).toLocaleString('en-US')) : money(n); },
-          fmtThreshold: function (n) { return useRobux ? ('R$ ' + Math.round(n).toLocaleString('en-US')) : ('$' + Math.round(n)); }
+          fmtThreshold: function (n) { return useRobux ? ('R$ ' + (n >= 1000 ? (Math.round(n / 100) / 10) + 'k' : Math.round(n))) : ('$' + Math.round(n)); }
         });
         box.className = 'cd-tier co-tier' + (res.tier ? ' co-tier-unlocked' : '');
         window.__coldTierLadder.apply(box, res);
@@ -5259,10 +5260,11 @@
       // coupon), but the numbers themselves need to agree or the banner
       // below promises a discount the order won't actually give.
       var SPEND_TIERS = [
-        { minSubtotal: 100, pct: 25 },
-        { minSubtotal: 75, pct: 20 },
-        { minSubtotal: 50, pct: 15 },
-        { minSubtotal: 35, pct: 10 }
+        { minSubtotal: 200, minRobux: 50000, pct: 50 },
+        { minSubtotal: 100, minRobux: 26000, pct: 40 },
+        { minSubtotal: 75, minRobux: 20000, pct: 30 },
+        { minSubtotal: 50, minRobux: 13000, pct: 20 },
+        { minSubtotal: 30, minRobux: 8000, pct: 10 }
       ];
       function currentSpendTier(sub) {
         for (var i = 0; i < SPEND_TIERS.length; i++) { if (sub >= SPEND_TIERS[i].minSubtotal) return SPEND_TIERS[i]; }
@@ -5319,11 +5321,10 @@
         if (usdReduction > 0 && sub > 0) {
           afterUsd = Math.round(rbxSub * (1 - usdReduction / sub));
         }
-        var descending = SPEND_TIERS.slice().sort(function (a, b) { return b.minSubtotal - a.minSubtotal; });
+        var descending = SPEND_TIERS.slice().sort(function (a, b) { return b.minRobux - a.minRobux; });
         var tierPct = 0;
         for (var i = 0; i < descending.length; i++) {
-          var minRbx = Math.round(descending[i].minSubtotal * ROBUX_PER_USD_FALLBACK);
-          if (afterUsd >= minRbx) { tierPct = descending[i].pct; break; }
+          if (afterUsd >= descending[i].minRobux) { tierPct = descending[i].pct; break; }
         }
         var finalTotal = Math.max(0, afterUsd - Math.round(afterUsd * (tierPct / 100)));
         return { finalTotal: finalTotal, discount: rbxSub - finalTotal, tierPct: tierPct };
@@ -5368,9 +5369,9 @@
         var sub = useRobux ? robuxSubtotalRaw() : subtotal();
         var res = window.__coldTierLadder.build(sub, {
           tiers: SPEND_TIERS,
-          thresholdFor: function (t) { return useRobux ? Math.round(t.minSubtotal * ROBUX_PER_USD_FALLBACK) : t.minSubtotal; },
+          thresholdFor: function (t) { return useRobux ? t.minRobux : t.minSubtotal; },
           fmt: function (n) { return useRobux ? ('R$ ' + Math.round(n).toLocaleString('en-US')) : money(n); },
-          fmtThreshold: function (n) { return useRobux ? ('R$ ' + Math.round(n).toLocaleString('en-US')) : ('$' + Math.round(n)); }
+          fmtThreshold: function (n) { return useRobux ? ('R$ ' + (n >= 1000 ? (Math.round(n / 100) / 10) + 'k' : Math.round(n))) : ('$' + Math.round(n)); }
         });
         box.classList.toggle('co-tier-unlocked', !!res.tier);
         window.__coldTierLadder.apply(box, res);
@@ -6169,9 +6170,9 @@
           sub: sub,
           res: window.__coldTierLadder.build(sub, {
             tiers: SPEND_TIERS,
-            thresholdFor: function (t) { return useRobux ? Math.round(t.minSubtotal * ROBUX_PER_USD_FALLBACK) : t.minSubtotal; },
+            thresholdFor: function (t) { return useRobux ? t.minRobux : t.minSubtotal; },
             fmt: function (n) { return useRobux ? ('R$ ' + Math.round(n).toLocaleString('en-US')) : money(n); },
-            fmtThreshold: function (n) { return useRobux ? ('R$ ' + Math.round(n).toLocaleString('en-US')) : ('$' + Math.round(n)); }
+            fmtThreshold: function (n) { return useRobux ? ('R$ ' + (n >= 1000 ? (Math.round(n / 100) / 10) + 'k' : Math.round(n))) : ('$' + Math.round(n)); }
           })
         };
       }

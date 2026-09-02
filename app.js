@@ -5099,25 +5099,36 @@
 
       var CART_KEY = 'coldd_cart_v1';
       var money = function (n) { return window.__money ? window.__money(n) : ('$' + n); };
+      // Forced fiat, ignoring the Robux display toggle - `money()` (=__money)
+      // flat-converts USD to R$ at 80:1 whenever the top-of-page currency is
+      // set to Robux, which is wrong for the checkout summary: a card/PayPal/
+      // crypto charge settles in USD, and the flat 80:1 figure isn't even the
+      // product's real robux_price. So when robuxView() is false the summary
+      // prints this instead.
+      var fiatMoney = function (n) { return window.__fiat ? window.__fiat(n) : (window.__money ? window.__money(n) : ('$' + n)); };
       // Robux figures in the order summary only make sense while the buyer is
       // actually paying in Robux. With a real-money method selected (card /
       // PayPal / crypto - the default is card), R$ prices sitting next to a
       // charge that settles in USD just read as a mismatch, so the summary,
       // subtotal, line prices, tier ladder and resell prices all fall back
-      // to money() then. `payMethod` is declared later in this IIFE but only
-      // read here after render() first runs, by which point it is set.
-      function robuxView() {
-        if (!window.__currencyMode || window.__currencyMode() !== 'robux') return false;
-        return typeof payMethod === 'undefined' || payMethod === 'robux';
+      // to fiatMoney() then. `payMethod` is declared later in this IIFE but
+      // only read here after render() first runs, by which point it is set.
+      // The checkout is one specific transaction in one currency: the
+      // selected payment method's. Robux method -> R$ (each product's real
+      // robux_price). Card / PayPal / crypto -> fiat, full stop. The
+      // top-of-page currency switcher is only a browsing preference and is
+      // used just as the pre-selection default before a method is chosen
+      // (payMethod is 'stripe' from load, so in practice the method always
+      // decides). This replaced a split where the summary lines followed
+      // one rule and the tier ladder / upsell another, which let a
+      // Robux-toggle + card checkout show "R$ 960" on the line, "R$ 1" on
+      // the Robux row, and a Robux tier ladder all at once.
+      function robuxCheckout() {
+        if (payMethod) return payMethod === 'robux';
+        return !!(window.__currencyMode && window.__currencyMode() === 'robux');
       }
-      // The tier ladder and the Build-more-for-less upsell price in Robux
-      // whenever *either* the Robux display currency or the Robux checkout
-      // method is chosen - selecting "pay with Robux" should flip those to
-      // R$ even if the visitor never touched the currency switcher.
-      function robuxPricing() {
-        return (window.__currencyMode && window.__currencyMode() === 'robux') ||
-               (typeof payMethod !== 'undefined' && payMethod === 'robux');
-      }
+      var robuxView = robuxCheckout;
+      var robuxPricing = robuxCheckout;
       // Digital licences aren't a quantity - forced to 1 here too so a cart
       // saved by an older version of this file (back when the drawer's
       // +/- stepper existed) can't still check out at qty > 1.
@@ -5210,7 +5221,7 @@
           var rbx = catalogRobuxPrice(item.id, item.licence);
           if (rbx != null) return 'R$ ' + Math.round(rbx * item.qty).toLocaleString('en-US');
         }
-        return money(item.price * item.qty);
+        return fiatMoney(item.price * item.qty);
       }
       // Raw number, not a display string - shared by subtotalMoney() below,
       // the tier ladder, and renderTotals()'s discount/total math. Falls
@@ -5233,7 +5244,7 @@
           var rbxTotal = robuxSubtotalRaw();
           if (rbxTotal != null) return 'R$ ' + Math.round(rbxTotal).toLocaleString('en-US');
         }
-        return money(subtotal());
+        return fiatMoney(subtotal());
       }
 
       function cartToItems() {
@@ -5370,7 +5381,7 @@
         var res = window.__coldTierLadder.build(sub, {
           tiers: SPEND_TIERS,
           thresholdFor: function (t) { return useRobux ? t.minRobux : t.minSubtotal; },
-          fmt: function (n) { return useRobux ? ('R$ ' + Math.round(n).toLocaleString('en-US')) : money(n); },
+          fmt: function (n) { return useRobux ? ('R$ ' + Math.round(n).toLocaleString('en-US')) : fiatMoney(n); },
           fmtThreshold: function (n) { return useRobux ? ('R$ ' + (n >= 1000 ? (Math.round(n / 100) / 10) + 'k' : Math.round(n))) : ('$' + Math.round(n)); }
         });
         box.classList.toggle('co-tier-unlocked', !!res.tier);
@@ -5471,7 +5482,7 @@
             if (tierPctNow) dParts.push(tierPctNow + '%' + (dParts.length ? '' : ' off'));
             var discLabel = dParts.length ? ('Discount (' + dParts.join(' + ') + ')') : 'Discount';
             set('coDiscLabel', discLabel);
-            set('coDiscAmt', rr ? ('-R$ ' + rr.discount.toLocaleString('en-US')) : ('-' + money(disc)));
+            set('coDiscAmt', rr ? ('-R$ ' + rr.discount.toLocaleString('en-US')) : ('-' + fiatMoney(disc)));
           }
         }
         // Tax is not currently charged on any order. The row stays hidden
@@ -5479,11 +5490,11 @@
         // value and unhide in one place.
         var taxLine = document.getElementById('coTaxLine');
         if (taxLine) taxLine.hidden = true;
-        set('coTax', money(0));
+        set('coTax', fiatMoney(0));
         if (rr) {
           set('coTotal', 'R$ ' + rr.finalTotal.toLocaleString('en-US'));
         } else {
-          set('coTotal', disc > 0 ? money(total) : subtotalMoney());
+          set('coTotal', disc > 0 ? fiatMoney(total) : subtotalMoney());
         }
         renderPayAmounts(total);
         return total;
@@ -5615,10 +5626,10 @@
           // the 10% cross-sell discount - show the plain Robux price.
           priceHtml = 'R$ ' + Math.round(x.list * ROBUX_PER_USD_FALLBACK).toLocaleString('en-US');
         } else if (discounted) {
-          priceHtml = '<span class="co-cross-was">' + money(x.list) + '</span>' + money(x.deal) +
+          priceHtml = '<span class="co-cross-was">' + fiatMoney(x.list) + '</span>' + fiatMoney(x.deal) +
             '<span class="co-cross-off">10% off</span>';
         } else {
-          priceHtml = money(x.deal) + (x.resell ? '<span class="co-cross-off">Resell licence</span>' : '');
+          priceHtml = fiatMoney(x.deal) + (x.resell ? '<span class="co-cross-off">Resell licence</span>' : '');
         }
         return '<div class="co-cross-row" data-slug="' + esc(x.id) + '">' +
           '<span class="co-cross-thumb" style="background-image:url(\'' + x.image + '\')"></span>' +
@@ -6171,7 +6182,7 @@
           res: window.__coldTierLadder.build(sub, {
             tiers: SPEND_TIERS,
             thresholdFor: function (t) { return useRobux ? t.minRobux : t.minSubtotal; },
-            fmt: function (n) { return useRobux ? ('R$ ' + Math.round(n).toLocaleString('en-US')) : money(n); },
+            fmt: function (n) { return useRobux ? ('R$ ' + Math.round(n).toLocaleString('en-US')) : fiatMoney(n); },
             fmtThreshold: function (n) { return useRobux ? ('R$ ' + (n >= 1000 ? (Math.round(n / 100) / 10) + 'k' : Math.round(n))) : ('$' + Math.round(n)); }
           })
         };
@@ -6239,7 +6250,7 @@
         function build() {
           var t = tierLadderNow();
           var useRobux = t.useRobux;
-          var fmtMoney = function (n) { return useRobux ? ('R$ ' + Math.round(n).toLocaleString('en-US')) : money(n); };
+          var fmtMoney = function (n) { return useRobux ? ('R$ ' + Math.round(n).toLocaleString('en-US')) : fiatMoney(n); };
           window.__coldTierLadder.apply(tierEl, t.res);
 
           // The resell upsell: one bar, not a row per product. Toggling it
@@ -6289,10 +6300,10 @@
               // the 10% cross-sell discount, so show the plain Robux price.
               priceHtml2 = 'R$ ' + Math.round(x.list * rate).toLocaleString('en-US');
             } else if (x.deal < x.list - 0.005) {
-              priceHtml2 = '<span class="co-offer-was">' + money(x.list) + '</span>' + money(x.deal) +
+              priceHtml2 = '<span class="co-offer-was">' + fiatMoney(x.list) + '</span>' + fiatMoney(x.deal) +
                 '<span class="co-offer-off">10% off</span>';
             } else {
-              priceHtml2 = money(x.deal);
+              priceHtml2 = fiatMoney(x.deal);
             }
             return offerRow(x.id, x.image, x.title, priceHtml2, added2);
           }).join('');

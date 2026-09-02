@@ -26,7 +26,7 @@ insert into public.email_automations (key, enabled, delay_hours, subject, body_m
    'Your files are ready in your dashboard. Here''s how to get them into your game, and where to ask if you get stuck.'),
 
   ('resell_upgrade', false, 168, 'Sell what you built with this',
-   'You own a personal-use licence for this product. If you want to resell it under your own store, you can upgrade the licence any time - you only pay the difference.'),
+   'You own a standard usage licence for this product. If you want to resell it under your own store, you can upgrade the licence any time - you only pay the difference.'),
 
   ('review_incentive', false, 240, 'Leave a review, get a code',
    'You bought from us a little while ago and haven''t left a review yet. Write one and we''ll send a discount code for your next order as a thank-you.'),

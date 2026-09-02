@@ -17,7 +17,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
 
-  <link rel="stylesheet" href="/styles.css?v=20260902r" />
+  <link rel="stylesheet" href="/styles.css?v=20260902s" />
 </head>
 <body class="adm-body">
   <div class="backdrop"></div>
@@ -763,16 +763,14 @@
           </section>
 
           <section class="dash-panel" id="adm-panel-resellers" hidden>
-            <div class="dash-head"><h1>Resellers</h1><p>Every resell licence sold, whether or not the seller has filled in their info yet. Needs-info rows are listed first.</p></div>
+            <div class="dash-head"><h1>Resellers</h1><p>Every resell licence sold, whether or not the seller has filled in their info yet. Rows still waiting on seller info are listed first.</p></div>
             <div class="adm-toolbar">
               <input type="text" id="admResellerSearch" class="adm-input" placeholder="Search by email, name, or product…" />
               <button class="btn btn-primary adm-btn-sm" type="button" id="admOpenResellerCreate">+ Add reseller</button>
+              <span class="adm-sub" id="admResellerCount"></span>
             </div>
-            <div class="dash-card glass dash-tablewrap">
-              <table class="dash-table">
-                <thead><tr><th>Reseller</th><th>Product</th><th>Selling where</th><th>Source</th><th>Status</th><th>Since</th><th></th></tr></thead>
-                <tbody id="admResellersBody"></tbody>
-              </table>
+            <div class="dash-card glass">
+              <div class="dash-rows" id="admResellersBody"><p class="dash-empty-note">Loading…</p></div>
             </div>
           </section>
 
@@ -1468,8 +1466,8 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.2/dist/umd/supabase.min.js" integrity="sha384-B2duOBIryCXbX4eDE4BdJwtNkQMRQde3o6IsjfPW28E6aH1CYE96hHeZRG3zY56O" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-  <script src="/supabase-init.js?v=20260902r"></script>
-  <script src="/site-gate.js?v=20260902r"></script>
-  <script src="/catalog.js?v=20260902r" data-then="/app.js?v=20260902r,/blog.js?v=20260902r,/reviews.js?v=20260729a,/admin.js?v=20260902r"></script>
+  <script src="/supabase-init.js?v=20260902s"></script>
+  <script src="/site-gate.js?v=20260902s"></script>
+  <script src="/catalog.js?v=20260902s" data-then="/app.js?v=20260902s,/blog.js?v=20260902s,/reviews.js?v=20260729a,/admin.js?v=20260902s"></script>
 </body>
 </html>

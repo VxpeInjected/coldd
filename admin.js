@@ -3270,6 +3270,7 @@
   var ADM_ICON_DOWNLOAD = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>';
   var ADM_ICON_KEBAB = '<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><circle cx="12" cy="5" r="1.75"/><circle cx="12" cy="12" r="1.75"/><circle cx="12" cy="19" r="1.75"/></svg>';
   var ADM_ICON_EDIT = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>';
+  var ADM_ICON_EXT = '<svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7M8 7h9v9"/></svg>';
   var ADM_ICON_INFO = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>';
   var ADM_ICON_PAUSE = '<svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>';
   var ADM_ICON_PLAY = '<svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><path d="M7 4v16l14-8Z"/></svg>';
@@ -4615,6 +4616,11 @@
       if (curPanel === 'resellers') renderResellers();
     }).catch(function (err) { console.error('[admin] failed to load resellers:', err.message); });
   }
+  function resellerInitials(r) {
+    var s = String(r.accountName || r.contactValue || '?').replace(/^https?:\/\//, '').trim();
+    var parts = s.split(/[\s@._/-]+/).filter(Boolean);
+    return (((parts[0] || '?')[0] || '?') + (parts[1] ? parts[1][0] : '')).toUpperCase();
+  }
   function renderResellers() {
     var body = $('admResellersBody'); if (!body) return;
     var q = (($('admResellerSearch') || {}).value || '').trim().toLowerCase();
@@ -4625,27 +4631,44 @@
       if (a.onboarded !== b.onboarded) return a.onboarded ? 1 : -1;   // needs-info first
       return String(b.createdAt).localeCompare(String(a.createdAt));
     });
+
+    var needInfo = RESELLERS.filter(function (r) { return !r.onboarded; }).length;
+    var countEl = $('admResellerCount');
+    if (countEl) countEl.textContent = RESELLERS.length
+      ? (RESELLERS.length + ' reseller' + (RESELLERS.length === 1 ? '' : 's') + (needInfo ? ' · ' + needInfo + ' need info' : ''))
+      : '';
+
     body.innerHTML = rows.map(function (r) {
-      var name = r.accountName || r.contactValue || '–';
-      var contactSub = r.onboarded
-        ? esc((r.contactType === 'discord' ? 'Discord: ' : '') + r.contactValue)
-        : '<span class="adm-sub-muted">Awaiting info</span>';
-      var locs = r.sellingLocations.length
-        ? r.sellingLocations.map(function (l) { return esc(l.platform) + ' - <a href="' + esc(l.url) + '" target="_blank" rel="noopener">' + esc(l.url) + '</a>'; }).join('<br>')
-        : (r.onboarded ? esc(r.sellingWhere || '–') : '<span class="adm-sub-muted"> - </span>');
-      var statusCell = r.onboarded
-        ? statusBadge(r.status === 'active' ? 'completed' : 'refunded')
-        : '<span class="dt-badge warn">Not onboarded</span>';
-      return '<tr data-key="' + esc(r.key) + '">' +
-        '<td>' + esc(name) + '<div class="adm-sub">' + contactSub + '</div></td>' +
-        '<td>' + esc(r.productTitle || '–') + '</td>' +
-        '<td>' + locs + '</td>' +
-        '<td><span class="adm-cat-tag">' + (r.source === 'manual' ? 'Manual' : 'Purchase') + '</span></td>' +
-        '<td>' + statusCell + '</td>' +
-        '<td>' + fmtDate(new Date(r.createdAt)) + '</td>' +
-        '<td class="adm-row-actions"><button class="adm-icon-btn adm-reseller-edit" type="button" title="' + (r.onboarded ? 'Edit' : 'Add seller info') + '" aria-label="Edit">' + ADM_ICON_KEBAB + '</button></td>' +
-        '</tr>';
-    }).join('') || '<tr><td colspan="7" class="adm-empty">No resell licences sold yet.</td></tr>';
+      var name = r.accountName || r.contactValue || 'Unknown seller';
+      var statusHtml = !r.onboarded
+        ? '<span class="dt-badge warn">Needs info</span>'
+        : (r.status === 'active' ? '<span class="dt-badge ok">Active</span>' : '<span class="dt-badge mute">Inactive</span>');
+
+      var meta = [r.source === 'manual' ? 'Manual add' : 'Purchase', fmtDate(new Date(r.createdAt))];
+      if (r.onboarded && r.contactValue) meta.push((r.contactType === 'discord' ? 'Discord: ' : '') + r.contactValue);
+      else if (!r.onboarded) meta.push('awaiting seller info');
+
+      var locsHtml = '';
+      if (r.sellingLocations.length) {
+        locsHtml = '<div class="adm-reseller-locs">' + r.sellingLocations.map(function (l) {
+          var label = l.platform || String(l.url || '').replace(/^https?:\/\//, '').split('/')[0] || 'Link';
+          return '<a class="adm-reseller-loc" href="' + esc(l.url) + '" target="_blank" rel="noopener">' + esc(label) + ADM_ICON_EXT + '</a>';
+        }).join('') + '</div>';
+      } else if (r.onboarded && r.sellingWhere) {
+        locsHtml = '<div class="adm-reseller-locs"><span class="adm-reseller-loc as-text">' + esc(r.sellingWhere) + '</span></div>';
+      }
+
+      return '<div class="dash-row adm-reseller-row" data-key="' + esc(r.key) + '">' +
+        '<span class="adm-reseller-av' + (r.onboarded ? '' : ' needs-info') + '">' + esc(resellerInitials(r)) + '</span>' +
+        '<div class="dr-main">' +
+          '<div class="dr-title">' + esc(name) + ' ' + statusHtml + '</div>' +
+          '<div class="dr-prod">' + esc(r.productTitle || 'No product set') + '</div>' +
+          '<div class="dr-sub">' + esc(meta.join(' · ')) + '</div>' +
+          locsHtml +
+        '</div>' +
+        '<div class="dr-actions"><button class="adm-icon-btn adm-reseller-edit" type="button" title="' + (r.onboarded ? 'Edit reseller' : 'Add seller info') + '" aria-label="' + (r.onboarded ? 'Edit reseller' : 'Add seller info') + '">' + ADM_ICON_KEBAB + '</button></div>' +
+        '</div>';
+    }).join('') || '<p class="dash-empty-note">No resell licences sold yet.</p>';
   }
   var resellerSearchEl = $('admResellerSearch');
   if (resellerSearchEl) resellerSearchEl.addEventListener('input', renderResellers);
@@ -4720,9 +4743,10 @@
 
   var resellersBody = $('admResellersBody');
   if (resellersBody) resellersBody.addEventListener('click', function (e) {
-    if (!e.target.closest('.adm-reseller-edit')) return;
-    var tr = e.target.closest('tr'); if (!tr) return;
-    var r = RESELLERS.filter(function (x) { return x.key === tr.getAttribute('data-key'); })[0];
+    // The storefront-link chips are real links - let them through.
+    if (e.target.closest('.adm-reseller-loc')) return;
+    var row = e.target.closest('.adm-reseller-row'); if (!row) return;
+    var r = RESELLERS.filter(function (x) { return x.key === row.getAttribute('data-key'); })[0];
     if (r) openResellerEditor(r);
   });
 

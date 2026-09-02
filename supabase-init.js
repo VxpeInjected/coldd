@@ -107,7 +107,6 @@
   function logClientError(kind, message, stack, extra) {
     try {
       var code = genErrorCode();
-      var session = null;
       client.auth.getSession().then(function (res) {
         var uid = (res && res.data && res.data.session && res.data.session.user && res.data.session.user.id) || null;
         var row = {
@@ -117,8 +116,12 @@
           page_url: location.href, user_agent: navigator.userAgent, user_id: uid,
           context: (extra && extra.context) || null
         };
-        client.from('client_errors').insert(row).catch(function () {});
-      }).catch(function () {});
+        // A PostgREST builder is a thenable but has no .catch(), so
+        // `.insert(row).catch(...)` threw synchronously and the insert
+        // never fired - every client error report was silently dropped.
+        // Use the two-arg .then() to swallow failures instead.
+        client.from('client_errors').insert(row).then(null, function () {});
+      }, function () {});
       return code;
     } catch (e) { return null; }
   }

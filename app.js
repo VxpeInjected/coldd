@@ -6478,7 +6478,21 @@
           .catch(function (err) {
             placeBtn.removeAttribute('data-busy');
             placeBtn.disabled = false; placeBtn.textContent = prevText;
-            if (msg) { msg.className = 'co-msg err show'; msg.innerHTML = withSupportLine((err && err.message) || 'Something went wrong. Please try again.'); }
+            // create-checkout-session / create-paypal-order / create-crypto-charge
+            // are called via the raw SDK (not invokeFn), so their failures
+            // don't self-log - do it here so a broken checkout lands in the
+            // admin audit log next to a code the buyer can quote.
+            var ecode = null;
+            try {
+              if (window.coldAuth && window.coldAuth.logClientError) {
+                ecode = window.coldAuth.logClientError('checkout', (err && err.message) || 'Checkout could not start', err && err.stack, {
+                  fnName: checkoutFn,
+                  context: { payMethod: payMethod, itemCount: (checkoutBody.items || []).length, coupon: checkoutBody.couponCode || null, gift: !!checkoutBody.giftRecipientUserId }
+                });
+              }
+            } catch (e) {}
+            if (ecode && err) err.errCode = ecode;
+            if (msg) { msg.className = 'co-msg err show'; msg.innerHTML = withSupportLine((err && err.message) || 'Something went wrong. Please try again.') + refSuffix(err); }
           });
       }
 
@@ -7099,12 +7113,23 @@
         window.coldSupabase.functions
           .invoke('capture-paypal-order', { body: { orderId: paypalOrderIdParam } })
           .then(function (res) {
-            var data = res && res.data;
-            if (data && data.ok === false && subEl) {
+            var data = res && res.data, error = res && res.error;
+            if (error || (data && data.ok === false)) {
               // A hard failure here means money did not move. Say so plainly
-              // rather than letting the poll time out into a vague message.
-              mark('fail');
-              subEl.innerHTML = withSupportLine(esc(data.error || 'PayPal could not complete this payment.'));
+              // rather than letting the poll time out into a vague message,
+              // and log it - this is not called via invokeFn so it won't
+              // self-report to the audit log otherwise.
+              var pmsg = (data && data.error) || (error && error.message) || 'PayPal could not complete this payment.';
+              var pcode = null;
+              try {
+                if (window.coldAuth && window.coldAuth.logClientError) {
+                  pcode = window.coldAuth.logClientError('checkout', pmsg, null, { fnName: 'capture-paypal-order', context: { paypalOrderId: paypalOrderIdParam } });
+                }
+              } catch (e) {}
+              if (subEl) {
+                mark('fail');
+                subEl.innerHTML = withSupportLine(esc(pmsg)) + (pcode ? ' <span class="co-msg-ref">Reference <strong>' + esc(pcode) + '</strong> - quote this if you contact us.</span>' : '');
+              }
             }
           })
           .catch(function () {})

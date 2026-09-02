@@ -6354,7 +6354,16 @@
   /* ================================================================
      AUDIT LOG PANEL
      ================================================================ */
-  var auditQuery = '', auditActor = '';
+  var auditQuery = '', auditActor = '', auditType = '';
+
+  // errKind -> label for the type filter and the row rendering.
+  var AUDIT_ERR_KINDS = {
+    js_error: 'JS error',
+    unhandled_rejection: 'Unhandled rejection',
+    edge_function: 'Edge function',
+    checkout: 'Checkout',
+    robux_checkout: 'Robux checkout'
+  };
 
   // Declared before renderAudit() runs; makeDropdown returns a no-op shim if
   // the element is missing, so this is safe even on a stripped page.
@@ -6363,6 +6372,23 @@
     placeholder: 'All staff',
     onChange: function (v) { auditActor = v || ''; renderAudit(); }
   });
+  var auditTypeDropdown = makeDropdown($('admAuditTypeDD'), {
+    valueInput: $('admAuditType'),
+    placeholder: 'All activity',
+    onChange: function (v) { auditType = v || ''; renderAudit(); }
+  });
+  if (auditTypeDropdown) {
+    auditTypeDropdown.setOptions([
+      { value: '', label: 'All activity' },
+      { value: 'staff', label: 'Staff actions' },
+      { value: 'error', label: 'All errors' },
+      { value: 'err:js_error', label: '— JS errors' },
+      { value: 'err:unhandled_rejection', label: '— Unhandled rejections' },
+      { value: 'err:edge_function', label: '— Edge function' },
+      { value: 'err:checkout', label: '— Checkout' },
+      { value: 'err:robux_checkout', label: '— Robux checkout' }
+    ]);
+  }
   if ($('admAuditSearch')) {
     $('admAuditSearch').addEventListener('input', function (e) {
       auditQuery = e.target.value.trim();
@@ -6391,11 +6417,22 @@
       })));
       auditActorDropdown.setValue(auditActor, true);
     }
+    if (auditTypeDropdown) auditTypeDropdown.setValue(auditType, true);
 
     var q = auditQuery.toLowerCase();
     var rows = AUDIT.filter(function (a) {
       if (auditActor && a.actor !== auditActor) return false;
-      if (q && (a.action || '').toLowerCase().indexOf(q) < 0 && (a.actor || '').toLowerCase().indexOf(q) < 0) return false;
+      if (auditType === 'staff' && a.kind !== 'staff') return false;
+      if (auditType === 'error' && a.kind !== 'error') return false;
+      if (auditType.indexOf('err:') === 0 && (a.kind !== 'error' || a.errKind !== auditType.slice(4))) return false;
+      if (q) {
+        // Match staff name / action text, and - for error rows - the
+        // reference code, function name, kind and page URL, so a code a
+        // customer read back ("it said ERR-4K9X2P") actually finds its row.
+        var hay = [a.action, a.actor, a.code, a.fnName, a.errKind, a.pageUrl]
+          .filter(Boolean).join(' ').toLowerCase();
+        if (hay.indexOf(q) < 0) return false;
+      }
       return true;
     });
 
@@ -6407,9 +6444,11 @@
 
     $('admAuditBody').innerHTML = rows.map(function (a, i) {
       if (a.kind === 'error') {
+        var kindLabel = AUDIT_ERR_KINDS[a.errKind] || a.errKind || 'Error';
         return '<tr class="adm-audit-err-row"><td>' + fmtDateTime(new Date(a.ts)) + '</td>' +
           '<td><span class="adm-err-code">' + esc(a.code || 'ERR-??????') + '</span></td>' +
-          '<td>' + esc(a.action) + (a.fnName ? ' <span class="adm-sub">(' + esc(a.fnName) + ')</span>' : '') +
+          '<td><span class="dt-badge">' + esc(kindLabel) + '</span> ' + esc(a.action) +
+          (a.fnName ? ' <span class="adm-sub">(' + esc(a.fnName) + ')</span>' : '') +
           ' <button type="button" class="adm-err-details-btn" data-idx="' + i + '">Details</button></td></tr>';
       }
       return '<tr><td>' + fmtDateTime(new Date(a.ts)) + '</td><td>' + esc(a.actor) + '</td><td>' + esc(a.action) + '</td></tr>';

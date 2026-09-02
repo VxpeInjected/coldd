@@ -5915,7 +5915,8 @@
         showRobuxModalPane('done');
         if (robuxModalDoneMsg) {
           robuxModalDoneMsg.className = 'robux-modal-msg' + (success ? '' : ' err');
-          robuxModalDoneMsg.textContent = message;
+          if (success) robuxModalDoneMsg.textContent = message;
+          else robuxModalDoneMsg.innerHTML = withSupportLine(message);
         }
         var refEl = document.getElementById('robuxModalRef');
         if (refEl) {
@@ -6076,7 +6077,8 @@
           }
           var robuxItems = cartToItems();
           if (!robuxItems.length) {
-            if (msg) { msg.className = 'co-msg err show'; msg.textContent = 'Your cart has nothing that can be bought with Robux.'; }
+            var nicode = logRobuxFail('Robux checkout started with no Robux-eligible items in cart', { phase: 'start_no_items' });
+            if (msg) { msg.className = 'co-msg err show'; msg.innerHTML = withSupportLine('Your cart has nothing that can be bought with Robux.') + refSuffix({ errCode: nicode }); }
             return;
           }
           // Used to reuse robuxOrderId here instead of leasing fresh on
@@ -6137,8 +6139,9 @@
               updateRobuxLinkCopy(err.code === 'INVENTORY_SCOPE_REQUIRED');
             }
           });
-        }).catch(function () {
-          if (msg) { msg.className = 'co-msg err show'; msg.innerHTML = withSupportLine('Could not check your Roblox account link.'); }
+        }).catch(function (err) {
+          var lscode = logRobuxFail('robloxLinkStatus check failed before Robux order: ' + ((err && err.message) || 'unknown'), { phase: 'start_link_check', errCode: err && err.errCode });
+          if (msg) { msg.className = 'co-msg err show'; msg.innerHTML = withSupportLine('Could not check your Roblox account link.') + refSuffix({ errCode: (err && err.errCode) || lscode }); }
         });
       }
       // The "Build more for less" interruption before payment: a single
@@ -6764,9 +6767,38 @@
       });
 
       var tyRetryBtn = document.getElementById('tyRetryBtn');
+      // Every terminal failure on this page is logged with a reference
+      // code (get-order-by-session is called via the raw SDK, so it does
+      // not self-log), and the code is shown to the buyer next to a
+      // "contact us" line so support has something to look up.
+      function logOrderFail(reason, ctx) {
+        try {
+          if (window.coldAuth && window.coldAuth.logClientError) {
+            return window.coldAuth.logClientError('checkout', reason, null, { fnName: 'get-order-by-session', context: Object.assign({
+              method: cryptoOrderIdParam ? 'crypto' : paypalOrderIdParam ? 'paypal' : robuxOrderIdParam ? 'robux' : 'stripe',
+              sessionId: sessionId || null, orderId: robuxOrderIdParam || cryptoOrderIdParam || null
+            }, ctx || {}) });
+          }
+        } catch (e) {}
+        return null;
+      }
+      function refLine(code) {
+        return code ? ' <span class="co-msg-ref">Reference <strong>' + esc(code) + '</strong> - quote this if you contact us.</span>' : '';
+      }
       function poll(triesLeft) {
-        if (!sessionId && !robuxOrderIdParam) { if (subEl) subEl.textContent = 'No order found.'; return; }
-        if (!window.coldSupabase) { if (subEl) subEl.textContent = 'Could not connect. Please refresh.'; return; }
+        if (!sessionId && !robuxOrderIdParam && !cryptoOrderIdParam && !paypalOrderIdParam) {
+          var nfcode = logOrderFail('Success page opened with no order/session identifier in the URL', { phase: 'no_identifier' });
+          if (subEl) subEl.innerHTML = withSupportLine('We couldn\'t find an order to confirm.') + refLine(nfcode);
+          if (titleEl) titleEl.textContent = 'Order not found';
+          mark('fail');
+          return;
+        }
+        if (!window.coldSupabase) {
+          var nccode = logOrderFail('Success page could not init Supabase client', { phase: 'no_client' });
+          if (subEl) subEl.innerHTML = withSupportLine('Could not connect. Please refresh the page.') + refLine(nccode);
+          mark('fail');
+          return;
+        }
         // Looked up by Stripe session id (or, for Robux orders with no
         // Stripe session at all, the order id) via a service-role function,
         // not a direct table read - a guest order has no user_id for RLS to
@@ -6786,8 +6818,9 @@
               // retry that costs nothing to offer, instead of asserting
               // failure on a payment that might be completely fine.
               mark('fail');
+              var nrcode = logOrderFail('Order row not found after ' + INITIAL_POLL_TRIES + ' tries on the success page', { phase: 'order_not_found', lastError: (data && data.error) || null });
               if (titleEl) titleEl.textContent = "Still confirming…";
-              if (subEl) subEl.innerHTML = withSupportLine("We haven't been able to find this order yet. If you completed payment, it may just be taking a moment to show up here - try checking again, or check your dashboard.");
+              if (subEl) subEl.innerHTML = withSupportLine("We haven't been able to find this order yet. If you completed payment, it may just be taking a moment to show up here - try checking again, or contact us and we'll sort it out.") + refLine(nrcode);
               if (tyRetryBtn) tyRetryBtn.hidden = false;
               return;
             }
@@ -6812,13 +6845,23 @@
               }
               setTimeout(function () { poll(triesLeft - 1); }, 1500);
             } else if (subEl) {
-              subEl.textContent = cryptoOrderIdParam
-                ? 'Still confirming on the network. Your order will complete automatically once it lands; check your dashboard shortly.'
-                : 'Still finalizing your payment; check the Download Centre in your dashboard shortly.';
+              if (cryptoOrderIdParam) {
+                // Genuinely fine to leave - the webhook finishes it. Not a failure.
+                subEl.textContent = 'Still confirming on the network. Your order will complete automatically once it lands; check your dashboard shortly.';
+              } else {
+                mark('fail');
+                var stcode = logOrderFail('Order still pending after ' + INITIAL_POLL_TRIES + ' tries on the success page', { phase: 'still_pending' });
+                subEl.innerHTML = withSupportLine('Your payment is still finalizing. Check the Download Centre in your dashboard shortly, or contact us if it doesn\'t appear.') + refLine(stcode);
+                if (tyRetryBtn) tyRetryBtn.hidden = false;
+              }
             }
           })
           .catch(function () {
-            if (triesLeft > 0) setTimeout(function () { poll(triesLeft - 1); }, 1500);
+            if (triesLeft > 0) { setTimeout(function () { poll(triesLeft - 1); }, 1500); return; }
+            mark('fail');
+            var pecode = logOrderFail('Success page order lookup kept erroring through all retries', { phase: 'poll_error' });
+            if (subEl) subEl.innerHTML = withSupportLine("We couldn't check your order status. If you completed payment it's safe - contact us with the reference below and we'll finish it by hand.") + refLine(pecode);
+            if (tyRetryBtn) tyRetryBtn.hidden = false;
           });
       }
 

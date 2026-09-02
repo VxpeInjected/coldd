@@ -6442,7 +6442,8 @@
         : (rows.length + ' of ' + AUDIT.length);
     }
 
-    $('admAuditBody').innerHTML = rows.map(function (a, i) {
+    var body = $('admAuditBody');
+    body.innerHTML = rows.map(function (a, i) {
       if (a.kind === 'error') {
         var kindLabel = AUDIT_ERR_KINDS[a.errKind] || a.errKind || 'Error';
         return '<tr class="adm-audit-err-row"><td>' + fmtDateTime(new Date(a.ts)) + '</td>' +
@@ -6455,13 +6456,17 @@
     }).join('') || ('<tr><td colspan="3" class="adm-empty">' +
       (AUDIT.length ? 'No entries match that filter.' : 'No actions logged yet.') + '</td></tr>');
 
-    var body = $('admAuditBody');
-    if (body && !body.__errDetailsWired) {
+    // The click handler is wired once, but `rows` is rebuilt on every
+    // render (filter, refresh); stash the current set on the element so
+    // the handler resolves data-idx against what's actually on screen
+    // rather than a stale closure from the first render.
+    body.__auditRows = rows;
+    if (!body.__errDetailsWired) {
       body.__errDetailsWired = true;
       body.addEventListener('click', function (e) {
         var btn = e.target.closest('.adm-err-details-btn');
         if (!btn) return;
-        var row = rows[Number(btn.getAttribute('data-idx'))];
+        var row = (body.__auditRows || [])[Number(btn.getAttribute('data-idx'))];
         if (row) openErrDetails(row);
       });
     }

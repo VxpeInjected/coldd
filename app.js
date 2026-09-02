@@ -1008,7 +1008,7 @@
       const menu = document.getElementById('platMenu');
       if (!wrap || !btn || !menu) return;
       function close() { wrap.classList.remove('open'); menu.hidden = true; btn.setAttribute('aria-expanded', 'false'); }
-      function open() { wrap.classList.add('open'); menu.hidden = false; btn.setAttribute('aria-expanded', 'true'); }
+      function open() { wrap.classList.add('open'); menu.hidden = false; btn.setAttribute('aria-expanded', 'true'); window.__coldMenuFit && window.__coldMenuFit(menu, wrap); }
       btn.addEventListener('click', function (e) { e.stopPropagation(); menu.hidden ? open() : close(); });
       document.addEventListener('click', function (e) { if (!wrap.contains(e.target)) close(); });
       document.addEventListener('keydown', function (e) { if (e.key === 'Escape') close(); });
@@ -1130,6 +1130,51 @@
       return { build: build, apply: apply };
     })();
 
+    // Keep an open dropdown menu inside the viewport. Every menu on the
+    // site is CSS-positioned directly under its trigger (top: 100% + gap)
+    // at a fixed width, with no edge handling - near the bottom or a side
+    // of a short or zoomed window the menu ran past the edge, which grew
+    // the page to fit it instead of letting it float over the content
+    // below. Called once, right after a menu is shown: it flips the menu
+    // above its trigger when there is no room below (and there is above),
+    // and re-anchors it horizontally when a side is crossed. A menu that
+    // already fits is left exactly where its stylesheet put it.
+    window.__coldMenuFit = function (menu, anchor, opts) {
+      if (!menu || menu.hidden) return;
+      opts = opts || {};
+      var pad = opts.pad == null ? 8 : opts.pad;   // min gap to the viewport edge
+      var gap = opts.gap == null ? 8 : opts.gap;   // gap between trigger and menu
+      // Clear any correction from a previous open so we measure the CSS default.
+      menu.style.top = ''; menu.style.bottom = ''; menu.style.left = ''; menu.style.right = '';
+      menu.style.maxHeight = ''; menu.style.overflowY = '';
+      menu.classList.remove('menu-flipped');
+      anchor = anchor || menu.parentElement;
+      if (!anchor) return;
+      // Only meaningful for a menu the stylesheet floats out of flow.
+      if (getComputedStyle(menu).position !== 'absolute') return;
+      var a = anchor.getBoundingClientRect();
+      var m = menu.getBoundingClientRect();
+      var vw = window.innerWidth, vh = window.innerHeight;
+      if (vw < 1 || vh < 1) return;
+      var below = vh - a.bottom - gap - pad;
+      var above = a.top - gap - pad;
+      if (m.height > below && above > below) {
+        menu.style.top = 'auto';
+        menu.style.bottom = 'calc(100% + ' + gap + 'px)';
+        menu.classList.add('menu-flipped');
+        if (m.height > above) { menu.style.maxHeight = Math.max(120, above) + 'px'; menu.style.overflowY = 'auto'; }
+      } else if (m.height > below) {
+        menu.style.maxHeight = Math.max(120, below) + 'px';
+        menu.style.overflowY = 'auto';
+      }
+      // Horizontal: only touch it if an edge is actually crossed. Anchoring
+      // to the opposite edge covers the common case (a menu wider than its
+      // trigger, sitting near the right side of the window).
+      m = menu.getBoundingClientRect();
+      if (m.right > vw - pad) { menu.style.left = 'auto'; menu.style.right = '0px'; }
+      else if (m.left < pad) { menu.style.right = 'auto'; menu.style.left = '0px'; }
+    };
+
     // Custom <select> - the native control's dropdown can't be styled to
     // match the site, so every <select data-csel> keeps its real element
     // in the DOM (form submit, no-JS fallback) but hidden, and a styled
@@ -1184,6 +1229,7 @@
         function open() {
           if (openMenu && openMenu !== close) openMenu();
           menu.hidden = false; wrap.classList.add('open'); btn.setAttribute('aria-expanded', 'true'); openMenu = close;
+          window.__coldMenuFit && window.__coldMenuFit(menu, wrap);
         }
         function close() { menu.hidden = true; wrap.classList.remove('open'); btn.setAttribute('aria-expanded', 'false'); if (openMenu === close) openMenu = null; }
         btn.addEventListener('click', function (e) { e.stopPropagation(); menu.hidden ? open() : close(); });
@@ -2052,7 +2098,7 @@
         if (freeBox) freeBox.addEventListener('change', function () { onFree = freeBox.checked; refilter(true); });
 
         function closeSort() { if (sortField) sortField.classList.remove('open'); if (sortMenu) sortMenu.hidden = true; if (sortBtn) sortBtn.setAttribute('aria-expanded', 'false'); }
-        function openSort() { if (sortField) sortField.classList.add('open'); if (sortMenu) sortMenu.hidden = false; if (sortBtn) sortBtn.setAttribute('aria-expanded', 'true'); }
+        function openSort() { if (sortField) sortField.classList.add('open'); if (sortMenu) sortMenu.hidden = false; if (sortBtn) sortBtn.setAttribute('aria-expanded', 'true'); if (sortMenu) window.__coldMenuFit && window.__coldMenuFit(sortMenu, sortField || sortBtn); }
         function setSort(mode, label) {
           sortMode = mode;
           if (sortBtnVal) sortBtnVal.textContent = label;
@@ -3382,6 +3428,7 @@
       function toggleMenu() {
         if (!menu) buildMenu();
         menu.hidden = !menu.hidden;
+        if (!menu.hidden) window.__coldMenuFit && window.__coldMenuFit(menu, btn);
       }
       function closeMenu() { if (menu) menu.hidden = true; }
 
@@ -4255,7 +4302,7 @@
         var menu = dd.querySelector('.ref-method-menu');
         var opts = Array.prototype.slice.call(dd.querySelectorAll('.ref-method-opt'));
         function close() { dd.classList.remove('open'); menu.hidden = true; btn.setAttribute('aria-expanded', 'false'); }
-        function open() { dd.classList.add('open'); menu.hidden = false; btn.setAttribute('aria-expanded', 'true'); }
+        function open() { dd.classList.add('open'); menu.hidden = false; btn.setAttribute('aria-expanded', 'true'); window.__coldMenuFit && window.__coldMenuFit(menu, dd); }
         function select(opt) {
           native.value = opt.getAttribute('data-value');
           val.textContent = opt.querySelector('span').textContent;

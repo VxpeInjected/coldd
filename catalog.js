@@ -365,6 +365,7 @@
       menu.hidden = false; if (fiatBtn) fiatBtn.setAttribute('aria-expanded', 'true');
       if (search) { search.value = ''; filterList(''); setTimeout(function () { search.focus(); }, 30); }
       syncUI();
+      if (window.__coldMenuFit) window.__coldMenuFit(menu, switchEl || fiatBtn);
     }
     function closeMenu() { if (menu) menu.hidden = true; if (fiatBtn) fiatBtn.setAttribute('aria-expanded', 'false'); }
 

@@ -2343,6 +2343,11 @@ body.auth-page { min-height: 100vh; min-height: 100dvh; }
 .auth-field .csel.open .csel-btn, .auth-field .csel-btn:focus-visible { border-color: rgba(255,77,68,0.5); }
 @media (prefers-reduced-motion: reduce) { .csel-menu { animation: none; } .csel-chev, .csel-btn:active { transition: none; transform: none; } }
 
+/* __coldMenuFit flips a menu above its trigger when there's no room below.
+   The open animations all slide down from above, so drop them once flipped
+   rather than have the menu slide the wrong way into place. */
+.menu-flipped { animation: none !important; }
+
 /* Collapsible dash-card sections (AdBlox top-servers / activity log) -
    native <details>/<summary> so open/closed state needs no JS, capped at a
    fixed height with internal scroll even when open so a long table never

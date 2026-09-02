@@ -192,7 +192,7 @@
     list.style.cssText = 'position:fixed; z-index:250; top:' + top + 'px; left:' + left + 'px; right:auto;';
     menu.classList.add('open');
   }
-  // Every panel's own click listener (orders/users/careers rows) only ever
+  // Every panel's own click listener (orders/users rows) only ever
   // reacts to clicks that land on ITS menu's trigger or items, then returns
   // without touching anything else - there was no handler anywhere that
   // closed an open menu on a genuine click elsewhere on the page, so once
@@ -1398,7 +1398,7 @@
   /* ================================================================
      NAV / PANEL SWITCHING
      ================================================================ */
-  var PANELS = ['home', 'analytics', 'marketing', 'products', 'unreleased', 'product-edit', 'product-update', 'orders', 'order-detail', 'resellers', 'reseller-edit', 'reviews', 'sales', 'sitemgmt', 'content', 'careers'];
+  var PANELS = ['home', 'analytics', 'marketing', 'products', 'unreleased', 'product-edit', 'product-update', 'orders', 'order-detail', 'resellers', 'reseller-edit', 'reviews', 'sales', 'sitemgmt', 'content'];
   var curPanel = 'home';
   function showPanel(name) {
     if (PANELS.indexOf(name) < 0) name = 'home';
@@ -1427,7 +1427,6 @@
       renderStaff(); renderUsers(); renderAudit(); refreshAuditLog();
     }
     else if (name === 'content') { renderPosts(); renderTutorials(); renderReleases(); }
-    else if (name === 'careers') refreshCareerRoles();
   }
   function renderAll() { renderPanel(curPanel); }
 
@@ -6454,171 +6453,6 @@
   if (admErrCloseBtn) admErrCloseBtn.addEventListener('click', function () { $('admErrOverlay').hidden = true; });
   var admErrOverlayEl = $('admErrOverlay');
   if (admErrOverlayEl) admErrOverlayEl.addEventListener('click', function (e) { if (e.target === admErrOverlayEl) admErrOverlayEl.hidden = true; });
-
-  /* ================================================================
-     CAREERS
-     Backs /careers' role cards (careers.js reads the same table
-     directly) - see supabase/career_roles.sql.
-     ================================================================ */
-  var CAREER_ICONS = [
-    { value: 'shield', label: 'Shield' },
-    { value: 'doc-check', label: 'Document check' },
-    { value: 'tag', label: 'Tag' },
-    { value: 'megaphone', label: 'Megaphone' },
-    { value: 'search', label: 'Search' },
-    { value: 'share', label: 'Share / network' },
-    { value: 'wrench', label: 'Toolbox' },
-    { value: 'sparkle', label: 'Sparkle / VFX' },
-    { value: 'clock', label: 'Clock' }
-  ];
-  var CAREER_ROLES = [];
-  var careerIconDropdown = makeDropdown($('admCareerIconDD'), { placeholder: 'Choose an icon' });
-  careerIconDropdown.setOptions(CAREER_ICONS, 'shield');
-
-  function refreshCareerRoles() {
-    return window.coldSupabase.from('career_roles')
-      .select('id, slug, title, icon, tags, summary, questions, sort_order, active')
-      .order('sort_order')
-      .then(function (res) {
-        if (res.error) { console.error('[refreshCareerRoles] failed:', res.error.message); return; }
-        CAREER_ROLES = res.data || [];
-        renderCareers();
-      });
-  }
-
-  function slugify(s) {
-    return String(s || '').toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
-  }
-
-  function careerRoleMenuHtml(r) {
-    var items = [
-      '<button type="button" class="adm-row-menu-item" data-action="edit">Edit</button>',
-      '<button type="button" class="adm-row-menu-item" data-action="toggle">' + (r.active ? 'Deactivate' : 'Activate') + '</button>',
-      '<button type="button" class="adm-row-menu-item danger" data-action="delete">Delete</button>'
-    ];
-    return '<div class="adm-row-menu" data-id="' + esc(r.id) + '">' +
-      '<button type="button" class="adm-row-menu-btn" aria-haspopup="true" aria-expanded="false" aria-label="Role actions">' +
-      '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="5" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="12" cy="19" r="1.2"/></svg></button>' +
-      '<div class="adm-row-menu-list" hidden>' + items.join('') + '</div></div>';
-  }
-
-  function renderCareers() {
-    var body = $('admCareersBody');
-    if (!body) return;
-    body.innerHTML = CAREER_ROLES.map(function (r) {
-      var tags = (r.tags || []).join(', ');
-      return '<tr' + (r.active ? '' : ' style="opacity:0.5;"') + '>' +
-        '<td>' + esc(r.sort_order) + '</td>' +
-        '<td>' + esc(r.title) + '</td>' +
-        '<td class="adm-sub">' + esc(tags) + '</td>' +
-        '<td>' + (r.active ? '<span class="dt-badge ok">Active</span>' : '<span class="dt-badge">Hidden</span>') + '</td>' +
-        '<td class="adm-row-actions">' + careerRoleMenuHtml(r) + '</td></tr>';
-    }).join('') || '<tr><td colspan="5" class="adm-empty">No roles yet - add one above.</td></tr>';
-  }
-
-  var careersBody = $('admCareersBody');
-  if (careersBody) document.addEventListener('click', function (e) {
-    var menuBtn = e.target.closest('.adm-row-menu-btn');
-    if (menuBtn) {
-      var menu = menuBtn.closest('.adm-row-menu');
-      if (!careersBody.contains(menu)) return;
-      var wasOpen = menu.classList.contains('open');
-      closeAllRowMenus();
-      if (!wasOpen) openRowMenu(menu);
-      return;
-    }
-    var actionBtn = e.target.closest('.adm-row-menu-item');
-    if (!actionBtn) return;
-    var listEl = actionBtn.closest('.adm-row-menu-list');
-    var menuEl = listEl && listEl.__ownerMenu;
-    if (!menuEl || !careersBody.contains(menuEl)) return;
-    var id = menuEl.getAttribute('data-id');
-    var r = CAREER_ROLES.filter(function (x) { return String(x.id) === id; })[0];
-    if (!r) return;
-    closeAllRowMenus();
-    var action = actionBtn.getAttribute('data-action');
-    if (action === 'edit') {
-      openCareerForm(r);
-    } else if (action === 'toggle') {
-      window.coldSupabase.from('career_roles').update({ active: !r.active }).eq('id', r.id).then(function (upRes) {
-        if (upRes.error) { alert(upRes.error.message || 'Could not update role.'); return; }
-        logAudit((r.active ? 'Deactivated' : 'Activated') + ' career role "' + r.title + '"');
-        refreshCareerRoles();
-      });
-    } else if (action === 'delete') {
-      if (!confirm('Delete "' + r.title + '"? This removes it from /careers immediately.')) return;
-      // .select() so we can tell an RLS/no-match no-op (0 rows, no error -
-      // which is what "can't be deleted" looked like) from a real delete.
-      window.coldSupabase.from('career_roles').delete().eq('id', r.id).select('id').then(function (delRes) {
-        if (delRes.error) { admToast(delRes.error.message || 'Could not delete role.', false); return; }
-        if (!delRes.data || !delRes.data.length) { admToast('Could not delete "' + r.title + '" - you may not have permission.', false); return; }
-        logAudit('Deleted career role "' + r.title + '"');
-        admToast('Deleted "' + r.title + '"', true);
-        refreshCareerRoles();
-      });
-    }
-  });
-
-  var careerFormOverlay = $('admCareerFormOverlay');
-  function openCareerForm(role) {
-    $('admCareerId').value = role ? role.id : '';
-    $('admCareerTitle').value = role ? role.title : '';
-    $('admCareerTags').value = role ? (role.tags || []).join(', ') : '';
-    $('admCareerSummary').value = role ? role.summary : '';
-    $('admCareerQuestions').value = role && Array.isArray(role.questions) ? role.questions.join('\n') : '';
-    $('admCareerSort').value = role ? role.sort_order : CAREER_ROLES.length;
-    $('admCareerActive').checked = role ? role.active : true;
-    careerIconDropdown.setValue(role ? role.icon : 'shield', true);
-    $('admCareerFormTitle').textContent = role ? 'Edit role' : 'Add role';
-    $('admCareerFormSubmit').querySelector('.btn-label').textContent = role ? 'Save role' : 'Add role';
-    var msgEl = $('admCareerFormMsg'); if (msgEl) { msgEl.textContent = ''; msgEl.classList.remove('show'); }
-    if (careerFormOverlay) careerFormOverlay.hidden = false;
-  }
-  function closeCareerForm() { if (careerFormOverlay) careerFormOverlay.hidden = true; }
-  var admCareerAddBtn = $('admCareerAddBtn');
-  if (admCareerAddBtn) admCareerAddBtn.addEventListener('click', function () { openCareerForm(null); });
-  var admCareerFormClose = $('admCareerFormClose');
-  if (admCareerFormClose) admCareerFormClose.addEventListener('click', closeCareerForm);
-  var admCareerFormCancel = $('admCareerFormCancel');
-  if (admCareerFormCancel) admCareerFormCancel.addEventListener('click', closeCareerForm);
-  if (careerFormOverlay) careerFormOverlay.addEventListener('click', function (e) { if (e.target === careerFormOverlay) closeCareerForm(); });
-
-  var admCareerForm = $('admCareerForm');
-  if (admCareerForm) admCareerForm.addEventListener('submit', function (e) {
-    e.preventDefault();
-    var id = $('admCareerId').value;
-    var title = $('admCareerTitle').value.trim();
-    var msgEl = $('admCareerFormMsg');
-    if (!title) { if (msgEl) { msgEl.textContent = 'Title is required.'; msgEl.classList.add('show'); } return; }
-    var tags = $('admCareerTags').value.split(',').map(function (t) { return t.trim(); }).filter(Boolean);
-    var questions = $('admCareerQuestions').value.split('\n').map(function (q) { return q.trim(); }).filter(Boolean);
-    var payload = {
-      title: title,
-      icon: careerIconDropdown.getValue() || 'shield',
-      tags: tags,
-      summary: $('admCareerSummary').value.trim(),
-      questions: JSON.stringify(questions),
-      sort_order: Number($('admCareerSort').value) || 0,
-      active: $('admCareerActive').checked,
-      updated_at: new Date().toISOString()
-    };
-    var btn = $('admCareerFormSubmit');
-    setBtnLoading(btn, true);
-    var query;
-    if (id) {
-      query = window.coldSupabase.from('career_roles').update(payload).eq('id', id);
-    } else {
-      payload.slug = slugify(title) + '-' + Date.now().toString(36).slice(-4);
-      query = window.coldSupabase.from('career_roles').insert(payload);
-    }
-    query.then(function (res) {
-      setBtnLoading(btn, false);
-      if (res.error) { if (msgEl) { msgEl.textContent = res.error.message || 'Could not save role.'; msgEl.classList.add('show'); } return; }
-      logAudit((id ? 'Updated' : 'Added') + ' career role "' + title + '"');
-      closeCareerForm();
-      refreshCareerRoles();
-    });
-  });
 
   /* ================================================================
      INIT

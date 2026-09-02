@@ -17,7 +17,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
 
-  <link rel="stylesheet" href="/styles.css?v=20260902b" />
+  <link rel="stylesheet" href="/styles.css?v=20260902c" />
 </head>
 <body class="adm-body">
   <div class="backdrop"></div>
@@ -119,7 +119,6 @@
             <a href="#" data-panel="reviews"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m12 2 3 6 6.5 1-4.7 4.6 1.1 6.4L12 17l-5.9 3 1.1-6.4L2.5 9 9 8z"/></svg><span>Reviews</span></a>
             <a href="#" data-panel="sales"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5H4a1 1 0 0 0-1 1v4a2.5 2.5 0 0 1 0 5v4a1 1 0 0 0 1 1h5"/><path d="M15 19h5a1 1 0 0 0 1-1v-4a2.5 2.5 0 0 1 0-5V5a1 1 0 0 0-1-1h-5"/><path d="M9 5v14M9 8h.01M9 12h.01M9 16h.01"/></svg><span>Sales &amp; Discounts</span></a>
             <a href="#" data-panel="content"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4Z"/></svg><span>Blog &amp; Tutorials</span></a>
-            <a href="#" data-panel="careers"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/><path d="M2 13h20"/></svg><span>Careers</span></a>
             <a href="#" data-panel="sitemgmt"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg><span>Site Management</span></a>
           </nav>
           <a class="dash-admin-link" href="/dashboard"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg> Account Settings</a>
@@ -1157,20 +1156,6 @@
             </div>
           </section>
 
-          <section class="dash-panel" id="adm-panel-careers" hidden>
-            <div class="dash-head adm-head-row">
-              <div><h1>Careers</h1><p>Roles, icons, tags, and application questions shown on /careers.</p></div>
-              <button class="btn btn-primary adm-btn-sm" type="button" id="admCareerAddBtn">Add role</button>
-            </div>
-            <div class="dash-card glass dash-tablewrap">
-              <table class="dash-table">
-                <thead><tr><th>Order</th><th>Role</th><th>Tags</th><th>Status</th><th>Actions</th></tr></thead>
-                <tbody id="admCareersBody"></tbody>
-              </table>
-            </div>
-          </section>
-
-
           <section class="dash-panel" id="adm-panel-sitemgmt" hidden>
             <div class="dash-head"><h1>Site Management</h1><p>Site access, Robux gamepass containers, staff access, users, and the audit log.</p></div>
             <div class="adm-tabs" id="admSiteMgmtToggle" style="margin-bottom:22px;">
@@ -1402,36 +1387,6 @@
     </div>
   </div>
 
-  <div class="pay-overlay" id="admCareerFormOverlay" hidden>
-    <div class="pay-modal glass" role="dialog" aria-modal="true" aria-labelledby="admCareerFormTitle" style="max-width:560px;">
-      <button class="pm-x" id="admCareerFormClose" type="button" aria-label="Close"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
-      <h3 class="pay-title" id="admCareerFormTitle">Add role</h3>
-      <form class="adm-form" id="admCareerForm" style="flex-direction:column;align-items:stretch;gap:14px;max-height:64vh;overflow-y:auto;padding-right:4px;">
-        <input type="hidden" id="admCareerId" />
-        <label class="auth-field" data-for="title"><span>Title</span><input type="text" id="admCareerTitle" class="adm-input" required /></label>
-        <label class="auth-field" data-for="icon"><span>Icon</span>
-          <div class="adm-dd" id="admCareerIconDD">
-            <button type="button" class="adm-dd-btn" aria-haspopup="listbox" aria-expanded="false">
-              <span class="adm-dd-val"></span>
-              <svg class="adm-dd-chev" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
-            </button>
-            <div class="adm-dd-menu" role="listbox" aria-label="Icon" hidden></div>
-          </div>
-        </label>
-        <label class="auth-field" data-for="tags"><span>Tags (comma-separated)</span><input type="text" id="admCareerTags" class="adm-input" placeholder="Contract, Remote" /></label>
-        <label class="auth-field" data-for="summary"><span>Summary</span><textarea id="admCareerSummary" class="adm-input" rows="3" required></textarea></label>
-        <label class="auth-field" data-for="questions"><span>Application questions (one per line)</span><textarea id="admCareerQuestions" class="adm-input" rows="4"></textarea></label>
-        <label class="auth-field" data-for="sort"><span>Sort order</span><input type="number" id="admCareerSort" class="adm-input" value="0" style="max-width:120px;" /></label>
-        <label class="adm-field-check"><input type="checkbox" id="admCareerActive" checked /> Active (shown on /careers)</label>
-        <div style="display:flex;gap:10px;">
-          <button class="btn btn-primary adm-btn-sm" type="submit" id="admCareerFormSubmit"><span class="btn-label">Add role</span><span class="btn-spinner" hidden></span></button>
-          <button class="btn btn-ghost adm-btn-sm" type="button" id="admCareerFormCancel">Cancel</button>
-        </div>
-        <div class="adm-edit-msg" id="admCareerFormMsg"></div>
-      </form>
-    </div>
-  </div>
-
   <div class="pay-overlay" id="admErrOverlay" hidden>
     <div class="pay-modal glass" role="dialog" aria-modal="true" aria-labelledby="admErrTitle" style="max-width:640px;">
       <button class="pm-x" id="admErrClose" type="button" aria-label="Close"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
@@ -1505,8 +1460,8 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.2/dist/umd/supabase.min.js" integrity="sha384-B2duOBIryCXbX4eDE4BdJwtNkQMRQde3o6IsjfPW28E6aH1CYE96hHeZRG3zY56O" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-  <script src="/supabase-init.js?v=20260902b"></script>
-  <script src="/site-gate.js?v=20260902b"></script>
-  <script src="/catalog.js?v=20260902b" data-then="/app.js?v=20260902b,/blog.js?v=20260902b,/reviews.js?v=20260729a,/admin.js?v=20260902b"></script>
+  <script src="/supabase-init.js?v=20260902c"></script>
+  <script src="/site-gate.js?v=20260902c"></script>
+  <script src="/catalog.js?v=20260902c" data-then="/app.js?v=20260902c,/blog.js?v=20260902c,/reviews.js?v=20260729a,/admin.js?v=20260902c"></script>
 </body>
 </html>

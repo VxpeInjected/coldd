@@ -6820,7 +6820,7 @@
               mark('fail');
               var nrcode = logOrderFail('Order row not found after ' + INITIAL_POLL_TRIES + ' tries on the success page', { phase: 'order_not_found', lastError: (data && data.error) || null });
               if (titleEl) titleEl.textContent = "Still confirming…";
-              if (subEl) subEl.innerHTML = withSupportLine("We haven't been able to find this order yet. If you completed payment, it may just be taking a moment to show up here - try checking again, or contact us and we'll sort it out.") + refLine(nrcode);
+              if (subEl) subEl.innerHTML = withSupportLine("We haven't been able to find this order yet. If you completed payment, it may just be taking a moment to show up - try again in a minute, or check your dashboard.") + refLine(nrcode);
               if (tyRetryBtn) tyRetryBtn.hidden = false;
               return;
             }
@@ -6851,7 +6851,7 @@
               } else {
                 mark('fail');
                 var stcode = logOrderFail('Order still pending after ' + INITIAL_POLL_TRIES + ' tries on the success page', { phase: 'still_pending' });
-                subEl.innerHTML = withSupportLine('Your payment is still finalizing. Check the Download Centre in your dashboard shortly, or contact us if it doesn\'t appear.') + refLine(stcode);
+                subEl.innerHTML = withSupportLine('Your payment is still finalizing. Check the Download Centre in your dashboard shortly.') + refLine(stcode);
                 if (tyRetryBtn) tyRetryBtn.hidden = false;
               }
             }
@@ -6860,7 +6860,7 @@
             if (triesLeft > 0) { setTimeout(function () { poll(triesLeft - 1); }, 1500); return; }
             mark('fail');
             var pecode = logOrderFail('Success page order lookup kept erroring through all retries', { phase: 'poll_error' });
-            if (subEl) subEl.innerHTML = withSupportLine("We couldn't check your order status. If you completed payment it's safe - contact us with the reference below and we'll finish it by hand.") + refLine(pecode);
+            if (subEl) subEl.innerHTML = withSupportLine("We couldn't check your order status right now. If you completed payment it's safe - quote the reference below and we'll finish it by hand.") + refLine(pecode);
             if (tyRetryBtn) tyRetryBtn.hidden = false;
           });
       }

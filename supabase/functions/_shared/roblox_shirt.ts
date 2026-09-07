@@ -38,23 +38,34 @@ export function shirtAssetId(): string {
   return Deno.env.get("ROBLOX_SHIRT_ASSET_ID") ?? "139180297115581";
 }
 
-// One cached CSRF token per warm isolate - Roblox keeps them valid for a
-// while, and every 403 refreshes it anyway.
+// One cached CSRF token per warm isolate.
 let csrfToken = "";
 
-// Grab a fresh x-csrf-token by poking an endpoint that always 403s without
-// one. Cheap, and means the first real POST usually succeeds first try
-// instead of relying on the 403->retry path (which some gateways answer
-// with a 404 instead of a 403, breaking the retry).
-async function primeCsrf(cookie: string): Promise<void> {
+// Browser-ish headers. Roblox's WAF 404s these legacy *.roblox.com hosts for
+// requests that don't look like they came from create.roblox.com.
+const BROWSER_HEADERS = {
+  "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0 Safari/537.36",
+  "Origin": "https://create.roblox.com",
+  "Referer": "https://create.roblox.com/",
+  "Accept": "application/json, text/plain, */*",
+};
+
+// Grab a fresh x-csrf-token. auth.roblox.com/v2/logout always 403s without a
+// token and echoes a valid one in the x-csrf-token response header.
+async function primeCsrf(cookie: string): Promise<string> {
   try {
-    const res = await fetch("https://auth.roblox.com/v1/authentication-ticket", {
+    const res = await fetch("https://auth.roblox.com/v2/logout", {
       method: "POST",
-      headers: { "Content-Type": "application/json", "Cookie": `.ROBLOSECURITY=${cookie}` },
+      headers: { ...BROWSER_HEADERS, "Content-Type": "application/json", "Cookie": `.ROBLOSECURITY=${cookie}` },
     });
-    const fresh = res.headers.get("x-csrf-token");
+    const fresh = res.headers.get("x-csrf-token") || "";
+    console.log(`[roblox_shirt] primeCsrf -> HTTP ${res.status}, token ${fresh ? "yes(" + fresh.length + ")" : "NO"}`);
     if (fresh) csrfToken = fresh;
-  } catch (_e) { /* non-fatal - the per-request 403 path still tries */ }
+    return fresh;
+  } catch (e) {
+    console.error("[roblox_shirt] primeCsrf threw", e instanceof Error ? e.message : e);
+    return "";
+  }
 }
 
 /**
@@ -71,6 +82,7 @@ async function csrfPost(url: string, body: unknown): Promise<Response> {
     fetch(url, {
       method: "POST",
       headers: {
+        ...BROWSER_HEADERS,
         "Content-Type": "application/json",
         "Cookie": `.ROBLOSECURITY=${cookie}`,
         "x-csrf-token": csrfToken,
@@ -79,10 +91,7 @@ async function csrfPost(url: string, body: unknown): Promise<Response> {
     });
 
   let res = await doFetch();
-  // Retry once whenever a token might be the problem. Roblox usually answers
-  // a missing/stale token with 403 + a good token in the response header,
-  // but sometimes 404s the route instead - so re-prime and retry on both.
-  if (res.status === 403 || res.status === 404) {
+  if (res.status === 403) {
     const fresh = res.headers.get("x-csrf-token");
     if (fresh && fresh !== csrfToken) csrfToken = fresh;
     else await primeCsrf(cookie);

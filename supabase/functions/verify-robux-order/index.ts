@@ -26,7 +26,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { findPoolSale, getValidRobloxToken } from "../_shared/roblox.ts";
 import { getLeasedPass, releasePass } from "../_shared/roblox_pool.ts";
-import { findShirtSale, getShirtLease, releaseShirt } from "../_shared/roblox_shirt.ts";
 import { sendOrderReceipt } from "../_shared/email.ts";
 import { resolveGiftReceipt } from "../_shared/gift.ts";
 import { recordMarketingOptIn } from "../_shared/marketing.ts";
@@ -85,64 +84,6 @@ Deno.serve(async (req: Request) => {
       return json({ ok: false, error: `Order is ${order.status}, not pending.` }, 400);
     }
 
-    const tokenSetEarly = await getValidRobloxToken(admin, userData.user.id);
-    const buyerIdEarly = order.roblox_buyer_id || (tokenSetEarly ? tokenSetEarly.robloxId : null);
-    if (!buyerIdEarly) {
-      return json({ ok: false, error: "Link your Roblox account first.", code: "NOT_LINKED" }, 400);
-    }
-
-    // ── Shirt fallback path ────────────────────────────────────────────────
-    // The order was switched off its gamepass and onto the group's one classic
-    // shirt (see switch-robux-order-to-shirt). Confirm a sale of that asset by
-    // this buyer, after the lease began. No amount check - Roblox's classic
-    // clothing fee is changing, so match on buyer + asset + timing only.
-    if (order.roblox_pay_method === "shirt") {
-      const shirt = await getShirtLease(admin, orderId);
-      if (!shirt) {
-        return json({
-          ok: true, verified: false, status: "pending", code: "LEASE_EXPIRED",
-          message: "This order's payment window expired. Please start the order again - you have not been charged.",
-        });
-      }
-
-      const shirtSale = await findShirtSale(
-        String(shirt.asset_id),
-        String(buyerIdEarly),
-        String(shirt.leased_at ?? order.created_at),
-      );
-      if (!shirtSale.found) {
-        if (shirtSale.reason === "NOT_CONFIGURED" || shirtSale.reason === "COOKIE_BROKEN" || shirtSale.reason === "LOOKUP_FAILED") {
-          console.error("[verify-robux-order] shirt sale ledger unavailable:", shirtSale.reason, orderId);
-          return json({
-            ok: false, code: "VERIFY_UNAVAILABLE",
-            error: "We can't confirm Robux payments right now. Contact support and we'll complete your order manually - your payment is safe.",
-          }, 503);
-        }
-        return json({
-          ok: true, verified: false, status: "pending",
-          message: "We haven't seen your purchase yet. Roblox can take a few minutes to report it - try again shortly.",
-        });
-      }
-
-      const { data: shirtUpdated } = await admin
-        .from("orders")
-        .update({ status: "paid", paid_at: new Date().toISOString(), roblox_verification_method: "shirt_sale" })
-        .eq("id", orderId)
-        .neq("status", "paid")
-        .select("id")
-        .maybeSingle();
-
-      await releaseShirt(admin, orderId, String(shirt.asset_id));
-
-      if (shirtUpdated) {
-        const giftEmail = await resolveGiftReceipt(admin, { id: orderId, user_id: order.user_id, purchased_by_user_id: order.purchased_by_user_id });
-        const receipt = await sendOrderReceipt(admin, orderId, giftEmail);
-        if (!receipt.ok) console.error("[verify-robux-order] receipt email failed:", receipt.error);
-        if (order.marketing_opt_in) await recordMarketingOptIn(admin, giftEmail, order.user_id);
-      }
-      return json({ ok: true, verified: true, status: "paid" });
-    }
-
     // The lease is the source of truth for which pass and which price. If it
     // has already been reclaimed, the window closed and the order must be
     // restarted - re-pricing a pass mid-flight is exactly what the lease exists
@@ -158,7 +99,11 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    const buyerId = buyerIdEarly;
+    const tokenSet = await getValidRobloxToken(admin, userData.user.id);
+    const buyerId = order.roblox_buyer_id || (tokenSet ? tokenSet.robloxId : null);
+    if (!buyerId) {
+      return json({ ok: false, error: "Link your Roblox account first.", code: "NOT_LINKED" }, 400);
+    }
 
     // Prefer the price actually set on Roblox for this lease over the order
     // total. If those ever disagree, the buyer could only have paid the former.

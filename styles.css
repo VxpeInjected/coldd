@@ -4455,13 +4455,6 @@ html.auth-in .nav-notif[hidden] { display: block; }
 .robux-modal-actions { display: flex; gap: 10px; flex-wrap: wrap; }
 .robux-modal-actions .btn { flex: 1 1 auto; min-width: 160px; justify-content: center; }
 .robux-modal-actions .btn[aria-disabled="true"] { pointer-events: none; opacity: 0.5; }
-.robux-modal-alt { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--hairline); text-align: center; }
-.robux-modal-alt-btn { background: none; border: 0; padding: 4px 2px; cursor: pointer;
-  font: inherit; font-size: 12px; font-weight: 500; color: var(--fg-3); }
-.robux-modal-alt-btn:hover:not(:disabled) { color: var(--fg-2); }
-.robux-modal-alt-btn:disabled { cursor: default; opacity: 0.6; }
-.robux-modal-alt-hint { font-size: 12.5px; line-height: 1.5; color: var(--fg-3); margin: 8px 0 0; }
-.robux-modal-alt-hint a { color: var(--accent); }
 
 #robuxModalWaiting { text-align: center; padding: 12px 4px 4px; }
 .robux-modal-spin { display: flex; justify-content: center; margin-bottom: 18px; }
@@ -4475,10 +4468,6 @@ html.auth-in .nav-notif[hidden] { display: block; }
 .robux-modal-msg.err { color: var(--warn); }
 .robux-modal-help { text-align: left; margin: 0 0 20px; padding: 14px 16px; border-radius: var(--r-sm);
   background: rgba(255,255,255,0.03); border: 1px solid var(--hairline); }
-.robux-modal-help-head { font-size: 13px; font-weight: 700; color: var(--fg-2); margin: 0 0 8px; }
-.robux-modal-help ul { margin: 0 0 12px; padding-left: 20px; display: flex; flex-direction: column; gap: 7px; }
-.robux-modal-help li { font-size: 12.5px; line-height: 1.5; color: var(--fg-3); }
-.robux-modal-help li strong { color: var(--fg-2); }
 .robux-modal-help-contact { font-size: 12.5px; line-height: 1.5; color: var(--fg-3); margin: 0; }
 .robux-modal-help-contact a { color: var(--accent); font-weight: 600; text-decoration: none; }
 .robux-modal-ref { font-size: 12px; line-height: 1.5; color: var(--fg-3); margin: -8px 0 18px; }

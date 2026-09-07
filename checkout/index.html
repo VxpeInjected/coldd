@@ -17,7 +17,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
 
-  <link rel="stylesheet" href="/styles.css?v=20260902u" />
+  <link rel="stylesheet" href="/styles.css?v=20260907a" />
 </head>
 <body>
   <div class="backdrop"></div>
@@ -293,15 +293,19 @@
       <div id="robuxModalSteps">
         <h2 id="robuxModalTitle">Buy with Robux</h2>
         <ol class="robux-steps">
-          <li>Click <strong>Buy on Roblox</strong> below - it opens the gamepass page on Roblox in a new tab.</li>
-          <li>Purchase the gamepass for the exact total shown.</li>
-          <li>Come back here and click <strong>I've purchased the gamepass</strong>. We'll check automatically from there - no need to keep clicking.</li>
+          <li>Click <strong>Buy on Roblox</strong> below - it opens the <span data-robux-item>gamepass</span> page on Roblox in a new tab.</li>
+          <li>Purchase the <span data-robux-item>gamepass</span> for the exact total shown.</li>
+          <li>Come back here and click <strong id="robuxModalConfirmRef">I've purchased the gamepass</strong>. We'll check automatically from there - no need to keep clicking.</li>
         </ol>
-        <p class="robux-modal-owned-note"><strong>Already own this exact gamepass?</strong> Delete it from your Roblox inventory first, then buy it again.</p>
+        <p class="robux-modal-owned-note" id="robuxModalOwnedNote"><strong>Already own this exact gamepass?</strong> Delete it from your Roblox inventory first, then buy it again.</p>
         <p class="robux-modal-total">Total: <strong id="robuxModalTotal"> - </strong></p>
         <div class="robux-modal-actions">
           <a class="btn btn-ghost" id="robuxModalBuyBtn" href="#" target="_blank" rel="noopener" aria-disabled="true">Buy on Roblox</a>
           <button class="btn btn-primary" id="robuxModalConfirmBtn" type="button">I've purchased the gamepass</button>
+        </div>
+        <div class="robux-modal-alt" id="robuxModalAltBlock">
+          <button class="robux-modal-alt-btn" id="robuxModalShirtBtn" type="button">Can't access the gamepass? Click here</button>
+          <p class="robux-modal-alt-hint" id="robuxModalShirtHint" hidden></p>
         </div>
       </div>
 
@@ -487,9 +491,9 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.2/dist/umd/supabase.min.js" integrity="sha384-B2duOBIryCXbX4eDE4BdJwtNkQMRQde3o6IsjfPW28E6aH1CYE96hHeZRG3zY56O" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-  <script src="/supabase-init.js?v=20260902u"></script>
-  <script src="/site-gate.js?v=20260902u"></script>
-  <script src="/catalog.js?v=20260902u" data-then="/app.js?v=20260902u"></script>
+  <script src="/supabase-init.js?v=20260907a"></script>
+  <script src="/site-gate.js?v=20260907a"></script>
+  <script src="/catalog.js?v=20260907a" data-then="/app.js?v=20260907a"></script>
   <script>
     // Cart badge/total sync from localStorage, ahead of app.js. The fab
     // markup above ships hardcoded at "0"/"$0", and the cart module that

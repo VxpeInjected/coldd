@@ -5776,6 +5776,12 @@
       var robuxOrderSignature = null;
       var robuxOrderGamePassId = null;
       var robuxOrderPriceRobux = null;
+      // 'gamepass' by default; flips to 'shirt' when the buyer uses the
+      // "Can't access the gamepass?" fallback (young accounts can't buy
+      // gamepasses). The shirt is a single shared group asset - see
+      // switch-robux-order-to-shirt / _shared/roblox_shirt.ts.
+      var robuxOrderMode = 'gamepass';
+      var robuxOrderShirtAssetId = null;
       function robuxItemsSignature(items) {
         return JSON.stringify(items.map(function (i) { return [i.slug, i.qty, i.licence]; }).sort());
       }
@@ -5812,6 +5818,8 @@
           robuxOrderSignature = null;
           robuxOrderGamePassId = null;
           robuxOrderPriceRobux = null;
+          robuxOrderShirtAssetId = null;
+          robuxOrderMode = 'gamepass';
         }
 
         window.coldAuth.robloxLinkStatus().then(function (res) {
@@ -5874,8 +5882,16 @@
       var robuxModalDone = document.getElementById('robuxModalDone');
       var robuxModalDoneMsg = document.getElementById('robuxModalDoneMsg');
       var robuxModalRetryBtn = document.getElementById('robuxModalRetryBtn');
+      var robuxModalShirtBtn = document.getElementById('robuxModalShirtBtn');
+      var robuxModalShirtHint = document.getElementById('robuxModalShirtHint');
+      var robuxModalAltBlock = document.getElementById('robuxModalAltBlock');
+      var robuxModalOwnedNote = document.getElementById('robuxModalOwnedNote');
+      var robuxModalConfirmRef = document.getElementById('robuxModalConfirmRef');
 
       var robuxPollTimer = null;
+      var robuxShirtPollTimer = null;
+      var robuxShirtPollDeadline = 0;
+      var ROBUX_SHIRT_WAIT_MS = 2 * 60 * 1000; // how long "Loading" polls the busy shirt before telling the buyer to wait/Discord
       var robuxPollDeadline = 0;
       var ROBUX_POLL_INTERVAL_MS = 5000;
       var ROBUX_POLL_TIMEOUT_MS = 6 * 60 * 1000; // 6 minutes of continuous checking before asking the buyer to retry manually
@@ -5883,14 +5899,31 @@
       function updateRobuxModalBuyLink() {
         if (robuxModalTotal) robuxModalTotal.textContent = robuxOrderPriceRobux != null ? 'R$ ' + robuxOrderPriceRobux.toLocaleString('en-US') : ' - ';
         if (robuxModalBuyBtn) {
-          if (robuxOrderGamePassId) {
-            robuxModalBuyBtn.href = 'https://www.roblox.com/game-pass/' + robuxOrderGamePassId + '/';
-            robuxModalBuyBtn.setAttribute('aria-disabled', 'false');
-          } else {
-            robuxModalBuyBtn.href = '#';
-            robuxModalBuyBtn.setAttribute('aria-disabled', 'true');
+          var href = null;
+          if (robuxOrderMode === 'shirt' && robuxOrderShirtAssetId) {
+            href = 'https://www.roblox.com/catalog/' + robuxOrderShirtAssetId + '/';
+          } else if (robuxOrderMode === 'gamepass' && robuxOrderGamePassId) {
+            href = 'https://www.roblox.com/game-pass/' + robuxOrderGamePassId + '/';
           }
+          robuxModalBuyBtn.href = href || '#';
+          robuxModalBuyBtn.setAttribute('aria-disabled', href ? 'false' : 'true');
         }
+      }
+      // Swaps the modal copy between the gamepass flow and the shirt fallback.
+      function applyRobuxModalMode() {
+        var isShirt = robuxOrderMode === 'shirt';
+        var word = isShirt ? 'shirt' : 'gamepass';
+        document.querySelectorAll('#robuxModalSteps [data-robux-item]').forEach(function (el) { el.textContent = word; });
+        if (robuxModalConfirmRef) robuxModalConfirmRef.textContent = "I've purchased the " + word;
+        if (robuxModalConfirmBtn) robuxModalConfirmBtn.textContent = "I've purchased the " + word;
+        if (robuxModalOwnedNote) robuxModalOwnedNote.hidden = isShirt; // you can re-buy clothing you own; gamepasses you can't
+        // Once switched to the shirt there's no going back to the gamepass for
+        // this order (the pass was handed back to the pool), so hide the offer.
+        if (robuxModalAltBlock) robuxModalAltBlock.hidden = isShirt;
+        updateRobuxModalBuyLink();
+      }
+      function stopRobuxShirtPolling() {
+        if (robuxShirtPollTimer) { clearTimeout(robuxShirtPollTimer); robuxShirtPollTimer = null; }
       }
       function showRobuxModalPane(pane) {
         if (robuxModalSteps) robuxModalSteps.hidden = pane !== 'steps';
@@ -5900,15 +5933,29 @@
       function stopRobuxPolling() {
         if (robuxPollTimer) { clearTimeout(robuxPollTimer); robuxPollTimer = null; }
       }
+      function resetRobuxShirtBtn() {
+        stopRobuxShirtPolling();
+        if (robuxModalShirtBtn) {
+          robuxModalShirtBtn.disabled = false;
+          robuxModalShirtBtn.textContent = "Can't access the gamepass? Click here";
+        }
+        if (robuxModalShirtHint) { robuxModalShirtHint.hidden = true; robuxModalShirtHint.textContent = ''; }
+      }
       function openRobuxModal() {
         if (!robuxModalOverlay) return;
-        updateRobuxModalBuyLink();
+        // Every Place order leases a fresh gamepass, so the modal always opens
+        // in gamepass mode - the shirt fallback is a per-open choice.
+        robuxOrderMode = 'gamepass';
+        robuxOrderShirtAssetId = null;
+        resetRobuxShirtBtn();
+        applyRobuxModalMode();
         showRobuxModalPane('steps');
         robuxModalOverlay.hidden = false;
       }
       function closeRobuxModal() {
         if (!robuxModalOverlay) return;
         stopRobuxPolling();
+        stopRobuxShirtPolling();
         robuxModalOverlay.hidden = true;
       }
       if (robuxModalClose) robuxModalClose.addEventListener('click', closeRobuxModal);
@@ -5963,7 +6010,7 @@
             // left in memory could point back at an already-owned pass if
             // this script instance somehow runs again (bfcache restore)
             // before actually navigating away.
-            robuxOrderId = null; robuxOrderItems = null; robuxOrderSignature = null; robuxOrderGamePassId = null; robuxOrderPriceRobux = null;
+            robuxOrderId = null; robuxOrderItems = null; robuxOrderSignature = null; robuxOrderGamePassId = null; robuxOrderPriceRobux = null; robuxOrderShirtAssetId = null; robuxOrderMode = 'gamepass';
             location.href = '/success?order_id=' + encodeURIComponent(paidOrderId);
             return;
           }
@@ -5983,7 +6030,7 @@
           if (data.code === 'LEASE_EXPIRED') {
             stopRobuxPolling();
             var lcode = logRobuxFail('Robux order lease expired before verify', { orderId: robuxOrderId, phase: 'lease_expired' });
-            robuxOrderId = null; robuxOrderItems = null; robuxOrderSignature = null; robuxOrderGamePassId = null; robuxOrderPriceRobux = null;
+            robuxOrderId = null; robuxOrderItems = null; robuxOrderSignature = null; robuxOrderGamePassId = null; robuxOrderPriceRobux = null; robuxOrderShirtAssetId = null; robuxOrderMode = 'gamepass';
             finishRobuxWait(false, data.message || "This order's payment window expired. Please start the order again - you have not been charged.", lcode);
             return;
           }
@@ -6007,6 +6054,68 @@
         if (robuxModalHint) robuxModalHint.textContent = "This can take a minute or two - we're checking automatically, you don't need to do anything else.";
         robuxPollDeadline = Date.now() + ROBUX_POLL_TIMEOUT_MS;
         pollRobuxOrder();
+      });
+
+      // "Can't access the gamepass? Click here" - switches this pending order
+      // off its gamepass and onto the group's single classic shirt, priced to
+      // the same total. Only one shirt exists, so if another buyer holds it
+      // the button just shows "Loading" and retries until it frees.
+      function shirtBusyRetry() {
+        if (Date.now() >= robuxShirtPollDeadline) {
+          stopRobuxShirtPolling();
+          if (robuxModalShirtBtn) { robuxModalShirtBtn.disabled = false; robuxModalShirtBtn.textContent = 'Try the shirt again'; }
+          if (robuxModalShirtHint) {
+            robuxModalShirtHint.hidden = false;
+            robuxModalShirtHint.innerHTML = "The shirt's still in use by another buyer. Wait a moment and try again, or message us in our <a href=\"https://discord.gg/coldd\" target=\"_blank\" rel=\"noopener\">Discord</a> and we'll sort it.";
+          }
+          return;
+        }
+        robuxShirtPollTimer = setTimeout(requestShirtSwitch, ROBUX_POLL_INTERVAL_MS);
+      }
+      function requestShirtSwitch() {
+        if (!robuxOrderId || !window.coldAuth) return;
+        if (robuxModalShirtBtn) { robuxModalShirtBtn.disabled = true; robuxModalShirtBtn.textContent = 'Loading…'; }
+        window.coldAuth.invokeFn('switch-robux-order-to-shirt', { orderId: robuxOrderId }).then(function (data) {
+          if (data && data.ready) {
+            stopRobuxShirtPolling();
+            robuxOrderMode = 'shirt';
+            robuxOrderShirtAssetId = data.assetId || robuxOrderShirtAssetId;
+            if (data.priceRobux != null) robuxOrderPriceRobux = data.priceRobux;
+            robuxOrderGamePassId = null;
+            if (robuxModalShirtHint) { robuxModalShirtHint.hidden = true; robuxModalShirtHint.textContent = ''; }
+            applyRobuxModalMode();
+            if (data.alreadyPaid) { pollRobuxOrder(); }
+            return;
+          }
+          if (data && data.code === 'SHIRT_BUSY') {
+            if (robuxModalShirtBtn) robuxModalShirtBtn.textContent = 'Loading… shirt in use';
+            if (robuxModalShirtHint) {
+              robuxModalShirtHint.hidden = false;
+              robuxModalShirtHint.textContent = "Someone else is buying through the shirt right now - hang on, this clears automatically.";
+            }
+            shirtBusyRetry();
+            return;
+          }
+          // PRICE_FAILED or any other soft "not ready"
+          stopRobuxShirtPolling();
+          if (robuxModalShirtBtn) { robuxModalShirtBtn.disabled = false; robuxModalShirtBtn.textContent = 'Try the shirt again'; }
+          if (robuxModalShirtHint) {
+            robuxModalShirtHint.hidden = false;
+            robuxModalShirtHint.innerHTML = withSupportLine((data && data.error) || "Couldn't switch to the shirt. Please try again.");
+          }
+        }).catch(function (err) {
+          stopRobuxShirtPolling();
+          if (robuxModalShirtBtn) { robuxModalShirtBtn.disabled = false; robuxModalShirtBtn.textContent = 'Try the shirt again'; }
+          if (robuxModalShirtHint) {
+            robuxModalShirtHint.hidden = false;
+            robuxModalShirtHint.innerHTML = withSupportLine((err && err.message) || "Couldn't switch to the shirt. Please try again.") + refSuffix(err);
+          }
+        });
+      }
+      if (robuxModalShirtBtn) robuxModalShirtBtn.addEventListener('click', function () {
+        if (!robuxOrderId) return;
+        robuxShirtPollDeadline = Date.now() + ROBUX_SHIRT_WAIT_MS;
+        requestShirtSwitch();
       });
 
       var payMethod = 'stripe';

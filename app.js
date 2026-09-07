@@ -6096,19 +6096,20 @@
             shirtBusyRetry();
             return;
           }
-          // PRICE_FAILED or any other soft "not ready"
+          // PRICE_FAILED or any other soft "not ready" - the gamepass above
+          // still works, so say so rather than looking like a dead end.
           stopRobuxShirtPolling();
           if (robuxModalShirtBtn) { robuxModalShirtBtn.disabled = false; robuxModalShirtBtn.textContent = 'Try the shirt again'; }
           if (robuxModalShirtHint) {
             robuxModalShirtHint.hidden = false;
-            robuxModalShirtHint.innerHTML = withSupportLine((data && data.error) || "Couldn't switch to the shirt. Please try again.");
+            robuxModalShirtHint.innerHTML = "We couldn't set the shirt up just now. Use the gamepass above if you can, or message us in our <a href=\"https://discord.gg/coldd\" target=\"_blank\" rel=\"noopener\">Discord</a> and we'll sort your order manually.";
           }
         }).catch(function (err) {
           stopRobuxShirtPolling();
           if (robuxModalShirtBtn) { robuxModalShirtBtn.disabled = false; robuxModalShirtBtn.textContent = 'Try the shirt again'; }
           if (robuxModalShirtHint) {
             robuxModalShirtHint.hidden = false;
-            robuxModalShirtHint.innerHTML = withSupportLine((err && err.message) || "Couldn't switch to the shirt. Please try again.") + refSuffix(err);
+            robuxModalShirtHint.innerHTML = "We couldn't set the shirt up just now. Use the gamepass above if you can, or message us in our <a href=\"https://discord.gg/coldd\" target=\"_blank\" rel=\"noopener\">Discord</a>." + refSuffix(err);
           }
         });
       }

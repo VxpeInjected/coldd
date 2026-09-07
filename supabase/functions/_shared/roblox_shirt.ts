@@ -15,7 +15,19 @@ import { notifyRobloxCookieBroken } from "./roblox.ts";
 
 const ITEM_CONFIG_BASE = "https://itemconfiguration.roblox.com/v1";
 
+// Pricing an asset is a WRITE - the account behind this cookie must have
+// permission to manage the group's clothing (owner, or a role with asset
+// management). The ledger cookie (ROBLOX_FALLBACK_COOKIE) is deliberately a
+// non-owner alt so it can only READ the group transaction feed, so it can't
+// price the shirt. Set ROBLOX_SHIRT_COOKIE to an owner/manager's
+// .ROBLOSECURITY; falls back to the ledger cookie only so a mis-set env
+// fails loudly in logs rather than silently.
 function shirtCookie(): string | null {
+  return Deno.env.get("ROBLOX_SHIRT_COOKIE") ?? Deno.env.get("ROBLOX_FALLBACK_COOKIE") ?? null;
+}
+
+// The sale-ledger read still uses the read-only alt cookie.
+function ledgerCookie(): string | null {
   return Deno.env.get("ROBLOX_FALLBACK_COOKIE") ?? null;
 }
 
@@ -30,6 +42,21 @@ export function shirtAssetId(): string {
 // while, and every 403 refreshes it anyway.
 let csrfToken = "";
 
+// Grab a fresh x-csrf-token by poking an endpoint that always 403s without
+// one. Cheap, and means the first real POST usually succeeds first try
+// instead of relying on the 403->retry path (which some gateways answer
+// with a 404 instead of a 403, breaking the retry).
+async function primeCsrf(cookie: string): Promise<void> {
+  try {
+    const res = await fetch("https://auth.roblox.com/v1/authentication-ticket", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Cookie": `.ROBLOSECURITY=${cookie}` },
+    });
+    const fresh = res.headers.get("x-csrf-token");
+    if (fresh) csrfToken = fresh;
+  } catch (_e) { /* non-fatal - the per-request 403 path still tries */ }
+}
+
 /**
  * POSTs to a cookie-authenticated Roblox endpoint, doing the x-csrf-token
  * dance. Returns the Response (caller checks .ok); throws only on a missing
@@ -37,7 +64,8 @@ let csrfToken = "";
  */
 async function csrfPost(url: string, body: unknown): Promise<Response> {
   const cookie = shirtCookie();
-  if (!cookie) throw new Error("ROBLOX_FALLBACK_COOKIE is not set - can't price the shirt.");
+  if (!cookie) throw new Error("No shirt cookie set (ROBLOX_SHIRT_COOKIE / ROBLOX_FALLBACK_COOKIE) - can't price the shirt.");
+  if (!csrfToken) await primeCsrf(cookie);
 
   const doFetch = () =>
     fetch(url, {
@@ -51,12 +79,14 @@ async function csrfPost(url: string, body: unknown): Promise<Response> {
     });
 
   let res = await doFetch();
-  if (res.status === 403) {
+  // Retry once whenever a token might be the problem. Roblox usually answers
+  // a missing/stale token with 403 + a good token in the response header,
+  // but sometimes 404s the route instead - so re-prime and retry on both.
+  if (res.status === 403 || res.status === 404) {
     const fresh = res.headers.get("x-csrf-token");
-    if (fresh && fresh !== csrfToken) {
-      csrfToken = fresh;
-      res = await doFetch();
-    }
+    if (fresh && fresh !== csrfToken) csrfToken = fresh;
+    else await primeCsrf(cookie);
+    res = await doFetch();
   }
   if (res.status === 401) {
     await notifyRobloxCookieBroken(`Shirt pricing got HTTP 401 - the cookie is likely expired.`);
@@ -64,33 +94,42 @@ async function csrfPost(url: string, body: unknown): Promise<Response> {
   return res;
 }
 
+async function tryEndpoint(url: string, body: unknown, attempts: string[]): Promise<boolean> {
+  try {
+    const res = await csrfPost(url, body);
+    if (res.ok) return true;
+    const detail = await res.text().catch(() => "");
+    attempts.push(`${url} -> HTTP ${res.status} ${detail.slice(0, 180)}`);
+    return false;
+  } catch (e) {
+    attempts.push(`${url} -> threw ${e instanceof Error ? e.message : e}`);
+    return false;
+  }
+}
+
 /**
  * Sets the shirt's price to an exact whole-Robux amount and makes sure it's
  * on sale. Throws on failure - the caller must not hand a buyer a shirt it
  * couldn't price.
  *
- * `release` sets price + sale status in one call and is idempotent for an
- * already-released asset in practice; if Roblox ever rejects it for that
- * reason we fall back to `update-price` (price only - the shirt is already
- * on sale, since the group sells it by hand).
+ * Roblox's legacy per-asset price endpoints aren't documented and vary by
+ * asset type, so this tries the known shapes in order and throws with every
+ * attempt's response if none work.
  */
 export async function setShirtPrice(assetId: string, priceRobux: number): Promise<void> {
   const price = Math.max(1, Math.round(priceRobux));
+  const attempts: string[] = [];
 
-  const releaseRes = await csrfPost(`${ITEM_CONFIG_BASE}/assets/${assetId}/release`, {
+  if (await tryEndpoint(`${ITEM_CONFIG_BASE}/assets/${assetId}/update-price`, { priceInRobux: price }, attempts)) return;
+  if (await tryEndpoint(`${ITEM_CONFIG_BASE}/assets/${assetId}/update-price`, { priceConfiguration: { priceInRobux: price } }, attempts)) return;
+  if (await tryEndpoint(`${ITEM_CONFIG_BASE}/assets/${assetId}/update-configuration`, { priceInRobux: price, isForSale: true }, attempts)) return;
+  if (await tryEndpoint(`${ITEM_CONFIG_BASE}/assets/${assetId}/release`, {
     saleStatus: "OnSale",
     priceConfiguration: { priceInRobux: price },
-    releaseConfiguration: { saleAvailabilityLocations: ["ExperiencesDevApiOnly", "Catalog"] },
-  });
-  if (releaseRes.ok) return;
+    releaseConfiguration: { saleAvailabilityLocations: ["Catalog"] },
+  }, attempts)) return;
 
-  const updateRes = await csrfPost(`${ITEM_CONFIG_BASE}/assets/${assetId}/update-price`, {
-    priceConfiguration: { priceInRobux: price },
-  });
-  if (updateRes.ok) return;
-
-  const detail = await updateRes.text().catch(() => "");
-  throw new Error(`Roblox rejected the shirt price update (HTTP ${updateRes.status}): ${detail.slice(0, 200)}`);
+  throw new Error(`Could not price shirt ${assetId} at ${price}R$. Attempts: ${attempts.join(" | ")}`);
 }
 
 /**
@@ -196,7 +235,7 @@ export async function findShirtSale(
   buyerRobloxId: string,
   leasedAtIso: string,
 ): Promise<{ found: boolean; reason?: string }> {
-  const cookie = shirtCookie();
+  const cookie = ledgerCookie();
   const groupId = Deno.env.get("ROBLOX_GROUP_ID");
   if (!cookie || !groupId) return { found: false, reason: "NOT_CONFIGURED" };
 

@@ -116,8 +116,14 @@ async function tryEndpoint(url: string, body: unknown, attempts: string[]): Prom
  * asset type, so this tries the known shapes in order and throws with every
  * attempt's response if none work.
  */
+// Roblox's floor for classic shirts/pants (raised to 5 on 2026-09-01). A
+// price below this is rejected, so clamp up - a sub-5-Robux order paid via
+// the shirt just costs the buyer a few extra Robux, which is rare and
+// preferable to the switch failing.
+export const SHIRT_MIN_ROBUX = 5;
+
 export async function setShirtPrice(assetId: string, priceRobux: number): Promise<void> {
-  const price = Math.max(1, Math.round(priceRobux));
+  const price = Math.max(SHIRT_MIN_ROBUX, Math.round(priceRobux));
   const attempts: string[] = [];
 
   if (await tryEndpoint(`${ITEM_CONFIG_BASE}/assets/${assetId}/update-price`, { priceInRobux: price }, attempts)) return;

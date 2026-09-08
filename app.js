@@ -1797,7 +1797,12 @@
         // they're currently looking at (that's related()'s job, on the
         // product page).
         var userCategories = null; // Set of "platform|cat", null until the async fetch below resolves (or resolves to signed-out)
-        var catalogRevenue = null; // Map slug -> total real revenue, from get_catalog_revenue
+        // Map slug -> 0..1 revenue rank (this product's paid revenue over the
+        // catalogue's highest), from catalog_revenue_rank(). Deliberately NOT
+        // raw dollars: get_catalog_revenue() used to be fetched here on the
+        // public shop, so every visitor's Network tab exposed coldd's real
+        // per-product sales. The server now normalises it before it leaves.
+        var catalogRevenue = null;
 
         // Replaces a fixed genre-keyword list (which needed a human to
         // notice a new recurring theme in the catalog - "brainrot",
@@ -1863,17 +1868,15 @@
             if (terms && terms.some(function (t) { return userTerms.has(t); })) genreBoost = 25;
           }
 
-          // Real revenue this exact product has generated from actual paid
-          // orders - not a price guess, what has actually sold. The
-          // strongest "will this make money" signal available, so it's
-          // weighted heavier than the raw price term above, but still
-          // log-dampened for the same reason: one product's entire
-          // lifetime revenue shouldn't be able to permanently bury
-          // everything else on the page.
+          // How well this exact product has actually sold, as a 0..1 rank
+          // against the best-selling product (server-normalised - see
+          // catalogRevenue above). Still the strongest "will this make
+          // money" signal, so the top seller gets a meaningful nudge, but
+          // it's a bounded addend that can't bury the rest of the page.
           var revenueBoost = 0;
           if (catalogRevenue) {
-            var rev = catalogRevenue[el.getAttribute('data-id')] || 0;
-            if (rev > 0) revenueBoost = Math.log(1 + rev) * 6;
+            var rank = catalogRevenue[el.getAttribute('data-id')] || 0;
+            if (rank > 0) revenueBoost = rank * 40;
           }
 
           // A resell licence is a materially bigger sale than the personal
@@ -1944,11 +1947,11 @@
         loadUserTerms();
         function loadCatalogRevenue() {
           if (!window.coldSupabase) { signalSettled('revenue'); return; }
-          window.coldSupabase.rpc('get_catalog_revenue', {}).then(function (r) {
+          window.coldSupabase.rpc('catalog_revenue_rank', {}).then(function (r) {
             var rows = r.data || [];
             if (!rows.length) return;
             var map = {};
-            rows.forEach(function (row) { map[row.product_slug] = Number(row.revenue) || 0; });
+            rows.forEach(function (row) { map[row.product_slug] = Number(row.rank) || 0; });
             catalogRevenue = map;
           }).catch(function () {}).then(function () { signalSettled('revenue'); });
         }

@@ -65,7 +65,51 @@ revoke execute on function public.lease_roblox_pass(uuid, integer, text[]) from 
 
 
 -- ============================================================================
--- 3. LOW - mutable search_path on a SECURITY DEFINER function
+-- 3. HIGH - store revenue exposed to every visitor
+-- ============================================================================
+-- app.js loadCatalogRevenue() called get_catalog_revenue() UNAUTHENTICATED on
+-- the public shop (feeds the "recommended" sort), so every visitor's Network
+-- tab showed coldd's real per-product paid revenue in USD.
+--
+-- (a) get_catalog_revenue() keeps returning raw dollars but now only to
+--     admins - the admin panel (admin.js) still uses it, nobody else can.
+create or replace function public.get_catalog_revenue()
+returns table(product_slug text, revenue numeric)
+language sql stable security definer set search_path = public
+as $$
+  select p.slug as product_slug, sum(oi.unit_price_usd * oi.qty) as revenue
+  from order_items oi
+  join orders o on o.id = oi.order_id and o.status = 'paid'
+  join products p on p.id = oi.product_id
+  where oi.licence <> 'resell' and public.is_admin()
+  group by p.slug;
+$$;
+
+-- (b) new normalised function for the public shop sort: each product's paid
+--     revenue as a 0..1 ratio against the best seller. Never leaves $$.
+--     app.js now calls this instead (rpc 'catalog_revenue_rank'); the call
+--     fails closed if this migration hasn't run yet, and the sort still works.
+create or replace function public.catalog_revenue_rank()
+returns table(product_slug text, rank numeric)
+language sql stable security definer set search_path = public
+as $$
+  with rev as (
+    select p.slug, sum(oi.unit_price_usd * oi.qty) as revenue
+    from order_items oi
+    join orders o on o.id = oi.order_id and o.status = 'paid'
+    join products p on p.id = oi.product_id
+    where oi.licence <> 'resell'
+    group by p.slug
+  )
+  select slug as product_slug,
+         round((revenue / nullif(max(revenue) over (), 0))::numeric, 4) as rank
+  from rev;
+$$;
+grant execute on function public.catalog_revenue_rank() to anon, authenticated;
+
+
+-- ============================================================================
+-- 4. LOW - mutable search_path on a SECURITY DEFINER function
 -- ============================================================================
 -- Supabase advisor 0011. Pin it so the function can't be redirected by a
 -- caller-set search_path.
@@ -73,13 +117,9 @@ alter function public.product_genres(text, text, text, text) set search_path = p
 
 
 -- ============================================================================
--- NOT fixed here - needs a product decision, see the security report:
+-- NOT SQL - do these in the dashboard:
 -- ============================================================================
--- * get_catalog_revenue() is called UNAUTHENTICATED from the public shop
---   page (app.js loadCatalogRevenue, feeds the "recommended" sort), so every
---   visitor's browser downloads coldd's real per-product paid revenue. The
---   fix is to return a normalised 0-1 ranking score from the server instead
---   of raw dollars, or bucket the figure - both change the ranking feature,
---   so they're left for you to sign off on.
--- * Enable "Leaked password protection" (HaveIBeenPwned) in
---   Dashboard -> Authentication -> Policies. Not SQL.
+-- * Enable "Leaked password protection" (HaveIBeenPwned):
+--   Dashboard -> Authentication -> Policies.
+-- * Set a size limit on the `product-media` Storage bucket.
+-- * Set an org spend cap: Dashboard -> Organization -> Billing.

@@ -329,7 +329,7 @@ export async function getValidRobloxToken(admin: any, userId: string): Promise<R
   });
   const tokenData = await tokenRes.json().catch(() => ({}));
   if (!tokenRes.ok || !tokenData.access_token) {
-    console.error("[roblox] token refresh failed:", tokenRes.status, tokenData);
+    console.error("[roblox] token refresh failed:", tokenRes.status, tokenData?.error || tokenData?.error_description || "unknown");
     return null;
   }
 

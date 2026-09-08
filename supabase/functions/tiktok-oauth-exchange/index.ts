@@ -86,7 +86,7 @@ Deno.serve(async (req: Request) => {
     });
     const data = await res.json();
     if (!res.ok || data.error) {
-      console.error("[tiktok-oauth-exchange] TikTok token error:", res.status, JSON.stringify(data));
+      console.error("[tiktok-oauth-exchange] TikTok token error:", res.status, data?.error || data?.error_description || "unknown");
       return json({ ok: false, error: data.error_description || data.error || "TikTok rejected the exchange." }, 502);
     }
 

@@ -85,7 +85,7 @@ Deno.serve(async (req: Request) => {
     });
     const tokenData = await tokenRes.json().catch(() => ({}));
     if (!tokenRes.ok || !tokenData.access_token) {
-      console.error("[roblox-signin] token exchange failed:", tokenRes.status, tokenData);
+      console.error("[roblox-signin] token exchange failed:", tokenRes.status, tokenData?.error || tokenData?.error_description || "unknown");
       return json({ ok: false, error: "Roblox sign-in failed. Please try again." }, 400);
     }
 

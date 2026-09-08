@@ -23,7 +23,6 @@ Usage:  python3 gen-product-pages.py
 Run it (and gen-sitemap.py) after adding, renaming, retiring or re-describing a
 product, and commit the result.
 """
-import html
 import json
 import re
 import shutil
@@ -84,11 +83,14 @@ def clamp(text, limit=300):
 
 
 def esc_attr(s):
-    return html.escape(str(s or ''), quote=True)
+    return (str(s if s is not None else '')
+            .replace('&', '&amp;').replace('<', '&lt;')
+            .replace('>', '&gt;').replace('"', '&quot;'))
 
 
 def esc_text(s):
-    return html.escape(str(s or ''), quote=False)
+    return (str(s if s is not None else '')
+            .replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;'))
 
 
 def describe(p):

@@ -1,0 +1,58 @@
+name: Regenerate product pages + sitemap
+
+# The catalogue lives in Supabase, not in git, so adding/retiring/renaming a
+# product in the admin panel does NOT change the repo - the pre-rendered
+# /product/<slug>/ shells and sitemap.xml would silently go stale (a new
+# product 404s to crawlers, a retired one lingers). This job rebuilds them
+# from the live catalogue and commits only if something actually changed.
+#
+# Triggers:
+#   - schedule: every 6h, the zero-setup safety net
+#   - workflow_dispatch: the "Run workflow" button for an immediate refresh
+#   - repository_dispatch (catalog-changed): optional instant trigger - have
+#     admin-upsert-product / admin-delete-product POST to
+#     https://api.github.com/repos/VxpeInjected/coldd/dispatches
+#     { "event_type": "catalog-changed" } with a fine-grained PAT (contents:
+#     write) stored as a Supabase secret. Not required; the schedule covers it.
+
+on:
+  schedule:
+    - cron: "17 */6 * * *"
+  workflow_dispatch:
+  repository_dispatch:
+    types: [catalog-changed]
+
+# Don't stack runs; the latest catalogue state is all that matters.
+concurrency:
+  group: regen-catalog-pages
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  regen:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Regenerate
+        run: |
+          python gen-product-pages.py
+          python gen-sitemap.py
+
+      - name: Commit if changed
+        run: |
+          git config user.name  "coldd-bot"
+          git config user.email "bot@coldd.dev"
+          git add -A -- product sitemap.xml
+          if git diff --cached --quiet; then
+            echo "No catalogue changes."
+            exit 0
+          fi
+          git commit -m "chore: regenerate product pages + sitemap [skip ci]"
+          git push

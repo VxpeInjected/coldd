@@ -26,13 +26,17 @@ SUPABASE_URL = 'https://ekinmytmudjwfaqaqswp.supabase.co'
 SUPABASE_KEY = 'sb_publishable_q5JwjFnMT_0Uhu5rAlAkQA_DEGnhwV7'
 TIMEOUT = 20
 
+# Kept in sync with gen-product-pages.py: is_active products that must stay
+# out of search (test rows, staging dupes). Deactivate them in the admin
+# panel when possible; this is the stopgap.
+SKIP_SLUGS = {'guess-the-number-test'}
+
 # path, changefreq, priority. Auth, checkout, dashboard and success are
 # deliberately absent: they carry noindex and are disallowed in robots.txt.
 STATIC_PAGES = [
     ('/', 'weekly', '1.0'),
     ('/shop', 'weekly', '0.9'),
     ('/blog', 'weekly', '0.7'),
-    ('/blog?view=tutorials', 'weekly', '0.7'),
     ('/releases', 'weekly', '0.6'),
     ('/faq', 'monthly', '0.6'),
     ('/about', 'monthly', '0.5'),
@@ -70,7 +74,7 @@ def products():
         return []
     out = []
     for r in rows:
-        if not r.get('slug'):
+        if not r.get('slug') or r['slug'] in SKIP_SLUGS:
             continue
         out.append(('/product/' + r['slug'],
                     'weekly', '0.8',

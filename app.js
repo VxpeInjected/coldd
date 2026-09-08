@@ -646,7 +646,7 @@
           // it. The static placeholder slides in the markup keep their inline
           // background on .nr-slide, which still renders if the catalog fetch
           // never resolves.
-          return '<div class="nr-slide"><span class="nr-bg" style="background-image:url(\'' + p.image + '\')"></span><div class="nr-cap"><span class="nr-chip">New</span><span class="nr-title">' + escNr(p.title) + '</span><a class="btn nr-view" href="/product/' + encodeURIComponent(p.id) + '" target="_blank" rel="noopener">View product</a></div></div>';
+          return '<div class="nr-slide"><span class="nr-bg" style="background-image:url(\'' + p.image + '\')"></span><div class="nr-cap"><span class="nr-chip">New</span><span class="nr-title">' + escNr(p.title) + '</span><a class="btn nr-view" href="/product/' + encodeURIComponent(p.id) + '">View product</a></div></div>';
         }).join('');
         if (dotsWrap) dotsWrap.innerHTML = newest.map(function () { return '<span class="nr-dot"></span>'; }).join('');
       }
@@ -1449,6 +1449,55 @@
         // admin-set resell_price_usd.
         const RESELL_MULT = 3;
 
+        // ---- Per-category SEO -------------------------------------------------
+        // /shop?cat=<slug> is one shell that filters client-side, so without
+        // this every category shares the /shop title, description and canonical
+        // and competes with it. Restate them for the active category (and the
+        // visually-hidden <h1>), and reset to the /shop defaults for "all".
+        // Copy is intentionally short and specific - these are commercial
+        // landing pages for "roblox <thing>" queries.
+        var CAT_SEO = {
+          'game-templates': ['Roblox Game Templates & Finished Games', 'Launch-ready Roblox games and starter templates - fully scripted, monetised and documented. Instant download after checkout.'],
+          'maps': ['Roblox Maps', 'Standalone, optimised Roblox map builds for lobbies, PvP, survival and adventure games. Instant download, resell licences available.'],
+          'scripts-ui': ['Roblox Scripts & UI Kits', 'Drop-in Roblox gameplay systems, HUDs, inventory and menu UI. Clean, commented code you can integrate the same day.'],
+          'graphics': ['Roblox Graphics - Thumbnails, Logos & Icons', 'Thumbnail bundles, logo systems and icon kits for Roblox games and studios. Editable source files included.'],
+          'buildings': ['Roblox Buildings & Set Pieces', 'Individual structures and set pieces for Roblox maps - part-optimised and ready to drop into your place.'],
+          'assets': ['Roblox Asset Packs', 'Reusable Roblox asset packs and building blocks for faster game development. Instant download after checkout.'],
+          'uniforms-gear': ['Roblox Uniforms & Gear', 'Character clothing, uniforms and equipment sets for Roblox games. Instant download, resell licences available.'],
+          'boats': ['Roblox Boat Packs', 'Boat and watercraft model packs for Roblox naval, survival and roleplay games.'],
+          'weapons': ['Roblox Weapon Packs', 'Weapon model and mechanic packs for Roblox combat games - rigged, animated and ready to script.'],
+          'vehicles': ['Roblox Vehicle Packs', 'Car and vehicle packs for Roblox racing, city and roleplay games, with drift-ready handling.'],
+          'animations-vfx': ['Roblox Animations & VFX', 'Emote animation sets and particle VFX for Roblox games. Instant download after checkout.']
+        };
+        var srH1 = document.querySelector('main h1.sr-only');
+        var seoBase = {
+          title: document.title,
+          desc: (document.querySelector('meta[name="description"]') || {}).content || '',
+          canonical: 'https://coldd.dev' + (base && base.charAt(0) === '/' ? base : '/shop'),
+          h1: srH1 ? srH1.textContent : ''
+        };
+        function applyCatSeo(cat) {
+          if (!window.coldSeo) return;
+          var entry = cat && cat !== 'all' && CAT_SEO[cat];
+          if (entry) {
+            window.coldSeo.apply({
+              title: entry[0] + ' - coldd',
+              description: entry[1],
+              path: (base && base.charAt(0) === '/' ? base : '/shop') + '?cat=' + cat,
+              image: 'https://coldd.dev/banner.jpg',
+              type: 'website'
+            });
+            if (srH1) srH1.textContent = entry[0];
+          } else {
+            document.title = seoBase.title;
+            var m = document.querySelector('meta[name="description"]');
+            if (m) m.content = seoBase.desc;
+            var c = document.querySelector('link[rel="canonical"]');
+            if (c) c.href = seoBase.canonical;
+            if (srH1) srH1.textContent = seoBase.h1;
+          }
+        }
+
         // The grid below ships as static markup (built once from the source
         // HTML), so it doesn't know about products created after the last
         // build. Reconcile it against the live, Supabase-backed catalog:
@@ -2024,8 +2073,8 @@
           if (clearBtn) clearBtn.hidden = !isFiltered();
           syncFilterSheet(matched.length);
         }
-        function setCat(cat) { curCat = cat; curSub = null; syncCats(); refilter(true); }
-        function setSub(cat, sub) { curCat = cat; curSub = sub; syncCats(); refilter(true); }
+        function setCat(cat) { curCat = cat; curSub = null; syncCats(); refilter(true); applyCatSeo(cat); }
+        function setSub(cat, sub) { curCat = cat; curSub = sub; syncCats(); refilter(true); applyCatSeo(cat); }
         shop.__applyCat = setCat;
 
         if (chips) chips.addEventListener('click', function (e) {

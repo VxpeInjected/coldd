@@ -1,0 +1,39 @@
+# coldd Development
+
+> coldd Development is a studio that builds and sells game-ready assets for
+> Roblox: finished games, game templates, maps, scripts and UI systems,
+> graphics, buildings, vehicles, weapons, uniforms, boats, and animations and
+> VFX. Every purchase is an instant download after checkout. Resell licences
+> are available on most products. Payments: card, PayPal, crypto, and Robux.
+
+## Store
+
+- [Shop - all products](https://coldd.dev/shop): the full Roblox catalogue, filterable by category, price and newest.
+- [Finished Games & Templates](https://coldd.dev/shop?cat=game-templates): complete, launch-ready Roblox games and starter templates.
+- [Maps](https://coldd.dev/shop?cat=maps): standalone Roblox map builds.
+- [Scripts & UI](https://coldd.dev/shop?cat=scripts-ui): gameplay systems, HUDs, inventory and menu UI kits.
+- [Graphics](https://coldd.dev/shop?cat=graphics): thumbnails, logos and icon kits.
+- [Buildings](https://coldd.dev/shop?cat=buildings): individual structures and set pieces.
+- [Vehicles](https://coldd.dev/shop?cat=vehicles), [Boats](https://coldd.dev/shop?cat=boats), [Weapons](https://coldd.dev/shop?cat=weapons): prop and mechanic packs.
+- [Uniforms & Gear](https://coldd.dev/shop?cat=uniforms-gear): character clothing and equipment sets.
+- [Animations & VFX](https://coldd.dev/shop?cat=animations-vfx): emote sets and particle effects.
+
+Individual products live at `https://coldd.dev/product/<slug>` and carry
+Product structured data (name, description, price in USD, availability,
+breadcrumb, and an aggregate rating when the product has approved reviews).
+
+## Company
+
+- [About coldd](https://coldd.dev/about): who the team is and how the studio works.
+- [Blog & Tutorials](https://coldd.dev/blog): development devlogs and Roblox/Luau how-to articles written by the team.
+- [Releases](https://coldd.dev/releases): version history and changelogs for products.
+- [Reviews](https://coldd.dev/reviews): verified buyer reviews.
+- [FAQ](https://coldd.dev/faq): buying, licensing, downloads and support.
+- [Contact](https://coldd.dev/contact): support form. Support email: support@coldd.dev. Community: https://discord.gg/coldd
+
+## Policies
+
+- [Standard Usage Licence & Terms of Service](https://coldd.dev/terms-of-service)
+- [Resell Licence terms](https://coldd.dev/resell-license)
+- [Refund Policy](https://coldd.dev/refund-policy)
+- [Privacy Policy](https://coldd.dev/privacy-policy)

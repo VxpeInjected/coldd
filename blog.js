@@ -473,8 +473,7 @@
     }
     function card(t) {
       return '<a class="tut-card" href="/tutorial?slug=' + encodeURIComponent(t.slug) + '">' +
-        '<span class="tut-card-cover"><span class="blog-card-img" style="background-image:url(\'' + esc(t.cover) + '\')"></span>' +
-          '<span class="' + diffClass(t.difficulty) + '">' + esc(t.difficulty) + '</span></span>' +
+        '<span class="tut-card-cover"><span class="blog-card-img" style="background-image:url(\'' + esc(t.cover) + '\')"></span></span>' +
         '<span class="tut-card-body">' +
           '<span class="tut-card-title">' + esc(t.title) + '</span>' +
           '<span class="tut-card-sum">' + esc(t.summary) + '</span>' +

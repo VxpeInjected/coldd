@@ -33,7 +33,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
 
-  <link rel="stylesheet" href="/styles.css?v=20260915i" />
+  <link rel="stylesheet" href="/styles.css?v=20260915j" />
   <!-- ld:start -->
   <script type="application/ld+json">{"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Home", "item": "https://coldd.dev/"}, {"@type": "ListItem", "position": 2, "name": "Blog & Tutorials", "item": "https://coldd.dev/blog"}]}</script>
   <!-- ld:end -->
@@ -147,10 +147,10 @@
             <aside class="blog-side">
               <div class="blog-filter-head">Browse posts</div>
               <div class="filters blog-filters" id="blogFilters">
-                <button class="chip active" data-cat="all" type="button">All posts</button>
-                <button class="chip" data-cat="Devlog" type="button">Devlog</button>
-                <button class="chip" data-cat="Studio News" type="button">Studio News</button>
-                <button class="chip" data-cat="Craft" type="button">Craft</button>
+                <button class="chip active" data-cat="all" type="button"><span>All posts</span><small>Every dispatch</small></button>
+                <button class="chip" data-cat="Devlog" type="button"><span>Devlog</span><small>What we’re making</small></button>
+                <button class="chip" data-cat="Studio News" type="button"><span>Studio News</span><small>What’s happening</small></button>
+                <button class="chip" data-cat="Craft" type="button"><span>Craft</span><small>How we work</small></button>
               </div>
             </aside>
             <div class="blog-content">
@@ -163,7 +163,7 @@
         <div class="tut-hub" id="tutHub" hidden>
           <aside class="tut-side">
             <div class="filter-card">
-              <div class="fc-head"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg> <span>Tracks</span></div>
+              <div class="fc-head"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg> <span>Choose a track</span></div>
               <div class="fc-cats" id="tutSide"></div>
             </div>
           </aside>
@@ -348,7 +348,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.2/dist/umd/supabase.min.js" integrity="sha384-B2duOBIryCXbX4eDE4BdJwtNkQMRQde3o6IsjfPW28E6aH1CYE96hHeZRG3zY56O" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script src="/supabase-init.js?v=20260909a"></script>
   <script src="/site-gate.js?v=20260909a"></script>
-  <script src="/catalog.js?v=20260915i" data-then="/blog.js?v=20260915i,/app.js?v=20260915i"></script>
+  <script src="/catalog.js?v=20260915j" data-then="/blog.js?v=20260915j,/app.js?v=20260915j"></script>
   <script>
     // Cart badge/total sync from localStorage, ahead of app.js. The fab
     // markup above ships hardcoded at "0"/"$0", and the cart module that

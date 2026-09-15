@@ -1,0 +1,152 @@
+<title>Escape The Pumpkin Features</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Sora:wght@600;700&family=Inter:wght@400;500;600&display=swap');
+
+  :root{
+    --bg: #10131c;
+    --card: #151a26;
+    --border: rgba(255,255,255,0.07);
+    --accent: #5b8cff;
+    --accent-soft: rgba(91,140,255,0.35);
+    --heading: #f3f5fb;
+    --body: #a8b3cc;
+    --ember: #ff8a3d;
+  }
+
+  *{ box-sizing: border-box; }
+
+  body{
+    margin: 0;
+    background: var(--bg);
+    color: var(--body);
+    font-family: 'Inter', -apple-system, Segoe UI, sans-serif;
+    display: flex;
+    justify-content: center;
+    padding: 48px 20px;
+  }
+
+  .card{
+    width: 100%;
+    max-width: 760px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    border-radius: 10px;
+    padding: 28px 32px 30px;
+    box-shadow: 0 1px 0 rgba(255,255,255,0.03) inset, 0 20px 60px -30px rgba(0,0,0,0.6);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .card::before{
+    content: "";
+    position: absolute;
+    top: -60px;
+    right: -60px;
+    width: 220px;
+    height: 220px;
+    background: radial-gradient(circle, var(--ember) 0%, transparent 70%);
+    opacity: 0.06;
+    pointer-events: none;
+  }
+
+  .eyebrow{
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'Inter', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0 0 6px;
+  }
+
+  .eyebrow svg{ width: 13px; height: 13px; flex: none; }
+
+  h1{
+    font-family: 'Sora', 'Inter', sans-serif;
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--heading);
+    margin: 0 0 16px;
+    text-wrap: balance;
+    letter-spacing: -0.01em;
+  }
+
+  hr{
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 0 0 18px;
+  }
+
+  ul{
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 11px;
+  }
+
+  li{
+    position: relative;
+    padding-left: 20px;
+    font-size: 14.5px;
+    line-height: 1.55;
+    color: var(--body);
+  }
+
+  li::before{
+    content: "";
+    position: absolute;
+    left: 2px;
+    top: 8px;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+  }
+
+  li strong{
+    color: var(--heading);
+    font-weight: 600;
+  }
+
+  @media (max-width: 520px){
+    .card{ padding: 22px 20px 24px; }
+    h1{ font-size: 19px; }
+  }
+</style>
+
+<div class="card">
+  <p class="eyebrow">
+    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M12 2C9 5 8 8 8 8s2-1 4-1 4 1 4 1-1-3-4-6z" fill="var(--ember)"/>
+      <circle cx="12" cy="14" r="8" fill="var(--ember)" opacity="0.9"/>
+      <path d="M8.5 12.5 10 15h-3l1.5-2.5zM15.5 12.5 17 15h-3l1.5-2.5zM9 17.5c1 1 2 1.3 3 1.3s2-.3 3-1.3" stroke="#10131c" stroke-width="1.1" stroke-linecap="round" fill="none"/>
+    </svg>
+    Product Features
+  </p>
+  <h1>Escape The Pumpkin — Roblox Obstacle Course Kit</h1>
+  <hr>
+  <ul>
+    <li>Pumpkin-dodging obstacle course with a <strong>trench checkpoint system</strong> and physics knockback + ragdoll on every hit</li>
+    <li>Three melee slap tools — <strong>Normal, Rainbow &amp; Void Slap</strong> — each with independently tuned knockback, ragdoll time &amp; swing speed</li>
+    <li><strong>7-day daily login rewards</strong> with escalating cash payouts, plus a day-7 tool reward that pays cash instead if already owned</li>
+    <li>Full gamepass monetization: <strong>Double Cash, 2X Speed, Admin, Troll, Speed Coil, Rainbow Slap, Void Slap &amp; a Starter Pack bundle</strong></li>
+    <li>Developer-product monetization: pumpkin spawner, speed boost, a repeatable Speed Potion &amp; five-tier Cash packs</li>
+    <li><strong>Dynamic shop &amp; HUD pricing</strong> — every price is pulled live from Roblox, so it always matches the Creator Dashboard</li>
+    <li>Two in-world vendor pads that stay perfectly in sync with the shop's gamepass ownership</li>
+    <li>Coin-based tool shop for players who'd rather grind than spend Robux</li>
+    <li><strong>Friend Boost</strong> — bonus cash percentage per friend in the server</li>
+    <li>Active-buff HUD icon with a live countdown timer for every timed boost</li>
+    <li><strong>Troll admin panel</strong> — fling, kill, jail &amp; jumpscare other players</li>
+    <li>Persistent player data — coins, wins, owned tools &amp; daily streaks all saved via DataStores</li>
+    <li>Single-panel HUD manager: shop, rewards &amp; troll panels close each other automatically, click-to-toggle</li>
+    <li>One fully customisable <strong>Config ModuleScript</strong> — every price, ID, cooldown &amp; tuning value lives in one file</li>
+    <li>Complete setup, installation &amp; customisation guide included</li>
+  </ul>
+</div>

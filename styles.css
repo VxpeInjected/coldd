@@ -3968,6 +3968,21 @@ html[data-theme="light"] .adm-reseller-row:hover { background: rgba(0,0,0,0.03);
 /* ================================================================
    RELEASES TIMELINE
    ================================================================ */
+.rel-page .page-head { padding-bottom: 34px; }
+.rel-products-section { padding-bottom: 0; }
+.rel-updates-section { padding-top: 54px; }
+.rel-section-head { display: flex; align-items: baseline; justify-content: space-between; gap: 18px; max-width: 1120px; margin: 0 auto 18px; }
+.rel-section-head h2 { font-size: 20px; font-weight: 800; letter-spacing: -0.02em; }
+.rel-section-head a { color: var(--fg-2); font-size: 13px; font-weight: 700; text-decoration: none; }
+.rel-section-head a:hover { color: var(--fg); }
+.rel-products { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.rel-product { min-width: 0; overflow: hidden; border-radius: 16px; border: 1px solid var(--hairline); background: var(--bg-2); color: var(--fg); text-decoration: none; transition: border-color .2s var(--ease), transform .2s var(--ease), box-shadow .2s var(--ease); }
+.rel-product:hover { border-color: var(--hairline-strong); transform: translateY(-2px); box-shadow: var(--e-2); }
+.rel-product-img { display: block; height: 174px; background: var(--bg-3) center / cover no-repeat; }
+.rel-product-body { display: grid; gap: 5px; padding: 14px 16px 16px; }
+.rel-product-cat { color: var(--fg-3); font-size: 11px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; }
+.rel-product-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 15px; font-weight: 700; letter-spacing: -0.01em; }
+.rel-product-price { color: var(--price); font-size: 13px; font-weight: 700; }
 /* A compact product changelog: dates and release type live on a fixed rail,
    while the updates keep the same practical density as the rest of the site. */
 .rel-timeline { position: relative; display: flex; flex-direction: column; max-width: 820px; margin: 0 auto; padding-left: 156px; }
@@ -3995,6 +4010,12 @@ html[data-theme="light"] .adm-reseller-row:hover { background: rgba(0,0,0,0.03);
   background: rgba(255,255,255,0.04); border: 1px solid var(--hairline); transition: color .2s, border-color .2s, background .2s; }
 .rel-affect:hover { color: var(--fg); border-color: rgba(255,255,255,0.2); background: rgba(255,255,255,0.07); }
 @media (max-width: 640px) {
+  .rel-updates-section { padding-top: 42px; }
+  .rel-section-head { margin-bottom: 14px; }
+  .rel-products { grid-template-columns: 1fr; }
+  .rel-product { display: grid; grid-template-columns: 126px minmax(0, 1fr); }
+  .rel-product-img { height: 104px; }
+  .rel-product-body { align-content: center; }
   .rel-timeline { padding-left: 26px; }
   .rel-timeline::before { left: 8px; }
   .rel-item { min-height: 0; padding: 0 0 26px 20px; }

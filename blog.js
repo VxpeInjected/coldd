@@ -365,6 +365,10 @@
     var relView = document.getElementById('relTimeline');
 
     function setView(v) {
+      // Releases now has its own product-first surface. Keep this switch as a
+      // familiar entry point, but do not render a second, diluted version of
+      // the page inside the blog hub.
+      if (v === 'releases') { location.replace('/releases'); return; }
       if (v !== 'tutorials' && v !== 'releases') v = 'blog';
       if (blogView) blogView.hidden = v !== 'blog';
       if (tutView) tutView.hidden = v !== 'tutorials';
@@ -590,6 +594,21 @@
     var catalog = window.__CATALOG || [];
     function prodTitle(id) { var p = catalog.filter(function (x) { return x.id === id; })[0]; return p ? p.title : id; }
     function kindClass(k) { return 'rel-kind ' + (k === 'Feature' ? 'k-feature' : k === 'Fix' ? 'k-fix' : 'k-ann'); }
+
+    var productsRoot = document.getElementById('relProducts');
+    if (productsRoot) {
+      var newest = catalog.slice().filter(function (p) { return p.createdAt; }).sort(function (a, b) {
+        return new Date(b.createdAt) - new Date(a.createdAt);
+      }).slice(0, 3);
+      productsRoot.innerHTML = newest.map(function (p) {
+        return '<a class="rel-product" href="/product/' + encodeURIComponent(p.id) + '">' +
+          '<span class="rel-product-img" style="background-image:url(\'' + esc(p.image) + '\')"></span>' +
+          '<span class="rel-product-body"><span class="rel-product-cat">' + esc(p.cat || 'Asset') + '</span>' +
+            '<span class="rel-product-title">' + esc(p.title) + '</span>' +
+            '<span class="rel-product-price">' + esc(p.price) + '</span></span>' +
+        '</a>';
+      }).join('') || '<p class="pd-empty">No new products are published yet.</p>';
+    }
 
     root.innerHTML = all.map(function (r) {
       var affects = (r.affects || []).map(function (id) {

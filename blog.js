@@ -362,17 +362,19 @@
     if (!sw) return;
     var blogView = document.getElementById('blogView');
     var tutView = document.getElementById('tutHub');
-    var relView = document.getElementById('relTimeline');
+    var relView = document.getElementById('relHub');
+    var pageTitle = document.getElementById('blogPageTitle');
+    var pageIntro = document.getElementById('blogPageIntro');
+    var pageCta = document.getElementById('blogCta');
 
     function setView(v) {
-      // Releases now has its own product-first surface. Keep this switch as a
-      // familiar entry point, but do not render a second, diluted version of
-      // the page inside the blog hub.
-      if (v === 'releases') { location.replace('/releases'); return; }
       if (v !== 'tutorials' && v !== 'releases') v = 'blog';
       if (blogView) blogView.hidden = v !== 'blog';
       if (tutView) tutView.hidden = v !== 'tutorials';
       if (relView) relView.hidden = v !== 'releases';
+      if (pageTitle) pageTitle.textContent = v === 'releases' ? 'New products & updates' : 'Blog & Tutorials';
+      if (pageIntro) pageIntro.textContent = v === 'releases' ? 'Fresh assets first, then every meaningful update to the catalog.' : "Devlogs, craft notes, and step-by-step guides from the people building coldd's Roblox catalog.";
+      if (pageCta) pageCta.hidden = v === 'releases';
       sw.querySelectorAll('.bt-opt').forEach(function (b) { b.classList.toggle('active', b.getAttribute('data-view') === v); });
       var url = location.pathname + (v !== 'blog' ? ('?view=' + v) : '');
       history.replaceState(null, '', url);

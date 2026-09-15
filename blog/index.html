@@ -33,7 +33,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
 
-  <link rel="stylesheet" href="/styles.css?v=20260915f" />
+  <link rel="stylesheet" href="/styles.css?v=20260915g" />
   <!-- ld:start -->
   <script type="application/ld+json">{"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Home", "item": "https://coldd.dev/"}, {"@type": "ListItem", "position": 2, "name": "Blog & Tutorials", "item": "https://coldd.dev/blog"}]}</script>
   <!-- ld:end -->
@@ -129,8 +129,8 @@
           </ol>
         </nav>
         <!-- crumbs:end -->
-        <h1>Blog &amp; Tutorials</h1>
-        <p>Devlogs, craft notes, and step-by-step guides from the people building coldd's Roblox catalog.</p>
+        <h1 id="blogPageTitle">Blog &amp; Tutorials</h1>
+        <p id="blogPageIntro">Devlogs, craft notes, and step-by-step guides from the people building coldd's Roblox catalog.</p>
       </div>
     </section>
 
@@ -163,11 +163,16 @@
           <div class="tut-content" id="tutList"></div>
         </div>
 
-        <div class="rel-timeline" id="relTimeline" hidden></div>
+        <div class="rel-hub" id="relHub" hidden>
+          <div class="rel-section-head"><h2>New products</h2><a class="has-arrow" href="/shop?sort=newest">Browse all</a></div>
+          <div class="rel-products" id="relProducts"></div>
+          <div class="rel-section-head rel-updates-head"><h2>Product updates</h2></div>
+          <div class="rel-timeline" id="relTimeline"></div>
+        </div>
       </div>
     </section>
 
-    <section class="section-pad" style="padding-top:0;">
+    <section class="section-pad" id="blogCta" style="padding-top:0;">
       <div class="wrap">
         <div class="glass cta reveal">
           <h2>Curious what shipped recently?</h2>
@@ -336,7 +341,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.2/dist/umd/supabase.min.js" integrity="sha384-B2duOBIryCXbX4eDE4BdJwtNkQMRQde3o6IsjfPW28E6aH1CYE96hHeZRG3zY56O" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script src="/supabase-init.js?v=20260909a"></script>
   <script src="/site-gate.js?v=20260909a"></script>
-  <script src="/catalog.js?v=20260915e" data-then="/blog.js?v=20260915e,/app.js?v=20260915e"></script>
+  <script src="/catalog.js?v=20260915g" data-then="/blog.js?v=20260915g,/app.js?v=20260915g"></script>
   <script>
     // Cart badge/total sync from localStorage, ahead of app.js. The fab
     // markup above ships hardcoded at "0"/"$0", and the cart module that

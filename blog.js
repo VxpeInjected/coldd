@@ -266,22 +266,6 @@
     }
   ];
 
-  var SEED_RELEASES = [
-    { id: 'rel-1', version: 'v2.6.0', date: '2026-07-18', kind: 'Feature', title: 'Robux pricing shown site-wide', summary: 'Every price on the site now shows a live Robux equivalent next to the USD price, not just at checkout.', details: '', affects: [], visible: true },
-    { id: 'rel-2', version: 'v2.5.4', date: '2026-07-02', kind: 'Fix', title: 'Combat HUD Kit - hitmarker desync fixed', summary: 'Hitmarkers were reading local hit events instead of server-confirmed hits, causing false positives and missed markers under real latency.', details: '', affects: ['combat-hud-kit'], visible: true },
-    { id: 'rel-3', version: '', date: '2026-06-24', kind: 'Announcement', title: 'Resell licences now cover Frostline Survival Kit', summary: 'Frostline Survival Kit joins the resell-eligible catalog - grab a licence and sell it under your own store.', details: '', affects: ['frostline-survival-kit'], visible: true },
-    { id: 'rel-4', version: 'v2.5.0', date: '2026-06-10', kind: 'Feature', title: 'Currency switcher: pay in Robux or USD at checkout', summary: 'Checkout now supports paying directly in Robux at a fixed conversion rate, alongside standard USD checkout.', details: '', affects: [], visible: true },
-    { id: 'rel-5', version: 'v2.4.3', date: '2026-05-28', kind: 'Fix', title: 'Skyblock Network Hub - portal teleport offset fixed on 1.21', summary: 'Portals were spawning players slightly inside terrain on 1.21 servers due to a changed block-height default.', details: '', affects: ['skyblock-network-hub'], visible: true },
-    { id: 'rel-6', version: '', date: '2026-05-14', kind: 'Announcement', title: 'Spring Sale: 30% off every Roblox template', summary: 'Every Roblox template is 30% off through the end of the sale window - no code needed, discount applies at checkout.', details: '', affects: [], visible: true },
-    { id: 'rel-7', version: 'v2.4.0', date: '2026-05-01', kind: 'Feature', title: 'New admin dashboard: analytics, refunds, staff roles', summary: 'A full internal dashboard rebuild - live analytics, a proper refunds workflow, role-gated staff access, and an audit log.', details: '', affects: [], visible: true },
-    { id: 'rel-8', version: 'v2.3.2', date: '2026-04-19', kind: 'Fix', title: 'Inventory UI Pack - drag and drop no longer drops items off-screen', summary: 'Dragging a slot past the inventory bounds could delete the item instead of returning it. Drops now always snap back to the last valid slot.', details: '', affects: ['inventory-ui-pack'], visible: true },
-    { id: 'rel-9', version: 'v2.3.0', date: '2026-04-03', kind: 'Feature', title: 'ALL BRAWL Full Game launches', summary: 'Our first complete fighting game template, fully scripted with client-predicted, server-authoritative combat.', details: '', affects: ['all-brawl-full-game'], visible: true },
-    { id: 'rel-10', version: 'v2.2.1', date: '2026-03-22', kind: 'Fix', title: 'VFX Starter Pack - explosion particles no longer persist after round end', summary: 'Particle emitters weren’t being cleaned up on round reset, causing effects to stack up over a long play session.', details: '', affects: ['vfx-starter-pack'], visible: true },
-    { id: 'rel-11', version: '', date: '2026-03-10', kind: 'Announcement', title: 'coldd is now a team of six', summary: 'Two new hires and a dedicated build discipline - read the full studio update on the blog.', details: '', affects: [], visible: true },
-    { id: 'rel-12', version: 'v2.2.0', date: '2026-03-01', kind: 'Feature', title: 'Frostline Survival Kit launches', summary: 'A full survival game template with five distinct biomes, crafting, and long-term progression.', details: '', affects: ['frostline-survival-kit'], visible: true },
-    { id: 'rel-13', version: 'v2.1.0', date: '2026-02-12', kind: 'Feature', title: 'Wishlist and referral rewards added to product pages', summary: 'Save products to a wishlist, and earn a percentage back when a referral link leads to a sale.', details: '', affects: [], visible: true }
-  ];
-
   /* ----------------------------------------------------------------
      Content source: catalog.js fetches real rows from the `content`
      table into window.__POSTS/__TUTORIALS/__RELEASES before this script
@@ -289,7 +273,7 @@
      ---------------------------------------------------------------- */
   function posts() { return ((window.__POSTS && window.__POSTS.length) ? window.__POSTS : SEED_POSTS).filter(function (p) { return p.visible !== false; }); }
   function tutorials() { return ((window.__TUTORIALS && window.__TUTORIALS.length) ? window.__TUTORIALS : SEED_TUTORIALS).filter(function (t) { return t.visible !== false; }); }
-  function releases() { return ((window.__RELEASES && window.__RELEASES.length) ? window.__RELEASES : SEED_RELEASES).filter(function (r) { return r.visible !== false; }); }
+  function releases() { return (window.__RELEASES || []).filter(function (r) { return r.visible !== false; }); }
   function byDateDesc(a, b) { return new Date(b.date) - new Date(a.date); }
 
   window.__blog.posts = posts;
@@ -628,6 +612,6 @@
           (affects ? '<div class="rel-affects">' + affects + '</div>' : '') +
         '</div>' +
       '</article>';
-    }).join('') || '<p class="pd-empty">No updates published yet.</p>';
+    }).join('') || '<p class="pd-empty">No product updates have been published yet.</p>';
   })();
 })();

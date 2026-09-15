@@ -33,7 +33,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
 
-  <link rel="stylesheet" href="/styles.css?v=20260915h" />
+  <link rel="stylesheet" href="/styles.css?v=20260915i" />
   <!-- ld:start -->
   <script type="application/ld+json">{"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Home", "item": "https://coldd.dev/"}, {"@type": "ListItem", "position": 2, "name": "Blog & Tutorials", "item": "https://coldd.dev/blog"}]}</script>
   <!-- ld:end -->
@@ -143,14 +143,21 @@
         </div>
 
         <div id="blogView">
-          <div class="filters blog-filters" id="blogFilters">
-            <button class="chip active" data-cat="all" type="button">All</button>
-            <button class="chip" data-cat="Devlog" type="button">Devlog</button>
-            <button class="chip" data-cat="Studio News" type="button">Studio News</button>
-            <button class="chip" data-cat="Craft" type="button">Craft</button>
+          <div class="blog-layout">
+            <aside class="blog-side">
+              <div class="blog-filter-head">Browse posts</div>
+              <div class="filters blog-filters" id="blogFilters">
+                <button class="chip active" data-cat="all" type="button">All posts</button>
+                <button class="chip" data-cat="Devlog" type="button">Devlog</button>
+                <button class="chip" data-cat="Studio News" type="button">Studio News</button>
+                <button class="chip" data-cat="Craft" type="button">Craft</button>
+              </div>
+            </aside>
+            <div class="blog-content">
+              <div class="blog-grid" id="blogGrid"></div>
+              <p class="shop-empty" id="blogEmpty" hidden>No posts match this filter yet.</p>
+            </div>
           </div>
-          <div class="blog-grid" id="blogGrid"></div>
-          <p class="shop-empty" id="blogEmpty" hidden>No posts match this filter yet.</p>
         </div>
 
         <div class="tut-hub" id="tutHub" hidden>
@@ -341,7 +348,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.2/dist/umd/supabase.min.js" integrity="sha384-B2duOBIryCXbX4eDE4BdJwtNkQMRQde3o6IsjfPW28E6aH1CYE96hHeZRG3zY56O" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script src="/supabase-init.js?v=20260909a"></script>
   <script src="/site-gate.js?v=20260909a"></script>
-  <script src="/catalog.js?v=20260915g" data-then="/blog.js?v=20260915g,/app.js?v=20260915g"></script>
+  <script src="/catalog.js?v=20260915i" data-then="/blog.js?v=20260915i,/app.js?v=20260915i"></script>
   <script>
     // Cart badge/total sync from localStorage, ahead of app.js. The fab
     // markup above ships hardcoded at "0"/"$0", and the cart module that

@@ -49,6 +49,18 @@
       return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
     });
   }
+  function dialogAlert(message) {
+    return window.coldDialog.alert(message, { title: 'Something went wrong' });
+  }
+  // Keep existing error paths concise while routing every former native alert
+  // through the shared, styled dialog.
+  function alert(message) { return dialogAlert(message); }
+  function dialogConfirm(message, options) {
+    return window.coldDialog.confirm(message, options || {});
+  }
+  function dialogPrompt(message, value, options) {
+    return window.coldDialog.prompt(message, value, options || {});
+  }
   function hsh(s) {
     var h = 5381; s = String(s);
     for (var i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) >>> 0;
@@ -456,18 +468,18 @@
     return invokeAdminFn('admin-manage-referral-payout', { id: id, action: action }, 'Could not update payout.');
   }
   var payoutsBody = $('admPayoutsBody');
-  if (payoutsBody) payoutsBody.addEventListener('click', function (e) {
+  if (payoutsBody) payoutsBody.addEventListener('click', async function (e) {
     var tr = e.target.closest('tr'); if (!tr) return;
     var id = tr.getAttribute('data-id');
     var p = PAYOUTS.filter(function (x) { return x.id === id; })[0]; if (!p) return;
     if (!can('admin')) return;
     if (e.target.classList.contains('adm-payout-paid')) {
-      if (!confirm('Mark this payout as sent to ' + p.owner + '?')) return;
+      if (!(await dialogConfirm('Mark this payout as sent to ' + p.owner + '?', { title: 'Mark payout as paid', acceptLabel: 'Mark paid' }))) return;
       callManageReferralPayout(id, 'mark_paid')
         .then(function () { logAudit('Marked referral payout to ' + p.owner + ' as paid'); return Promise.all([refreshPayouts(), refreshAdminReferrals()]); })
         .catch(function (err) { alert(err.message || 'Could not update payout.'); });
     } else if (e.target.classList.contains('adm-payout-deny')) {
-      if (!confirm('Deny this payout request from ' + p.owner + '?')) return;
+      if (!(await dialogConfirm('Deny this payout request from ' + p.owner + '?', { title: 'Deny payout', acceptLabel: 'Deny payout' }))) return;
       callManageReferralPayout(id, 'deny')
         .then(function () { logAudit('Denied referral payout request from ' + p.owner); return refreshPayouts(); })
         .catch(function (err) { alert(err.message || 'Could not update payout.'); });
@@ -2155,7 +2167,7 @@
   });
 
   var campaignsBody = $('admCampaignsBody');
-  if (campaignsBody) campaignsBody.addEventListener('click', function (e) {
+  if (campaignsBody) campaignsBody.addEventListener('click', async function (e) {
     var tr = e.target.closest('tr'); if (!tr) return;
     var id = tr.getAttribute('data-id'), code = tr.getAttribute('data-code');
     var c = CAMPAIGNS.filter(function (x) { return x.id === id; })[0]; if (!c) return;
@@ -2170,14 +2182,14 @@
         return refreshCampaigns();
       }).catch(function (err) { alert(err.message || 'Could not update campaign.'); });
     } else if (e.target.closest('.adm-campaign-rename')) {
-      var newLabel = prompt('Rename campaign link:', c.label);
+      var newLabel = await dialogPrompt('Choose a clear internal label for this campaign link.', c.label, { title: 'Rename campaign link', inputLabel: 'Link label', acceptLabel: 'Rename' });
       if (newLabel == null || !newLabel.trim() || newLabel === c.label) return;
       invokeAdminFn('admin-campaign-links', { action: 'update', id: id, patch: { label: newLabel.trim() } }, 'Could not rename campaign.').then(function () {
         logAudit('Renamed campaign link "' + c.label + '" to "' + newLabel.trim() + '"');
         return refreshCampaigns();
       }).catch(function (err) { alert(err.message || 'Could not rename campaign.'); });
     } else if (e.target.closest('.adm-campaign-delete')) {
-      if (!confirm('Delete the campaign link "' + c.label + '" (?cmp=' + code + ')? This does not affect past orders, only future click tracking.')) return;
+      if (!(await dialogConfirm('Delete “' + c.label + '” (?cmp=' + code + ')? This will not affect past orders, only future click tracking.', { title: 'Delete campaign link', acceptLabel: 'Delete link' }))) return;
       invokeAdminFn('admin-campaign-links', { action: 'delete', id: id }, 'Could not delete campaign.').then(function () {
         logAudit('Deleted campaign link "' + c.label + '"');
         return refreshCampaigns();
@@ -2193,9 +2205,9 @@
       setTimeout(function () { btn.innerHTML = prev; }, 1200);
     };
     if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(url).then(done).catch(function () { prompt('Copy this link:', url); });
+      navigator.clipboard.writeText(url).then(done).catch(function () { dialogPrompt('Copy this link from the field below.', url, { title: 'Copy campaign link', inputLabel: 'Campaign URL', acceptLabel: 'Close' }); });
     } else {
-      prompt('Copy this link:', url);
+      dialogPrompt('Copy this link from the field below.', url, { title: 'Copy campaign link', inputLabel: 'Campaign URL', acceptLabel: 'Close' });
     }
   }
 
@@ -2727,14 +2739,14 @@
     templateMsg('Loaded "' + t.name + '".', true);
   });
   var tplSaveBtn = $('admTemplateSaveBtn');
-  if (tplSaveBtn) tplSaveBtn.addEventListener('click', function () {
+  if (tplSaveBtn) tplSaveBtn.addEventListener('click', async function () {
     if (!can('admin')) return;
     var subject = $('admCampaignSubject').value.trim();
     var body = $('admCampaignBody').value;
     if (!subject && !body.trim()) { templateMsg('Nothing to save - write a subject or body first.'); return; }
     var existing = TEMPLATES.filter(function (x) { return x.id === templateDropdown.getValue(); })[0];
     var suggested = existing ? existing.name : '';
-    var name = (prompt('Template name:', suggested) || '').trim();
+    var name = (await dialogPrompt('Name this email template so the team can find it later.', suggested, { title: 'Save email template', inputLabel: 'Template name', acceptLabel: 'Save template' }) || '').trim();
     if (!name) return;
     var match = TEMPLATES.filter(function (x) { return x.name.toLowerCase() === name.toLowerCase(); })[0];
     var row = { name: name, subject: subject, body_text: body, mode: campaignMode, updated_at: new Date().toISOString() };
@@ -2752,11 +2764,11 @@
     });
   });
   var tplDelBtn = $('admTemplateDelBtn');
-  if (tplDelBtn) tplDelBtn.addEventListener('click', function () {
+  if (tplDelBtn) tplDelBtn.addEventListener('click', async function () {
     if (!can('admin')) return;
     var t = TEMPLATES.filter(function (x) { return x.id === templateDropdown.getValue(); })[0];
     if (!t) { templateMsg('Pick a template first.'); return; }
-    if (!confirm('Delete template "' + t.name + '"?')) return;
+    if (!(await dialogConfirm('Delete “' + t.name + '”?', { title: 'Delete email template', acceptLabel: 'Delete template' }))) return;
     window.coldSupabase.from('email_templates').delete().eq('id', t.id).select('id').then(function (res) {
       if (res.error) { templateMsg(res.error.message || 'Could not delete.'); return; }
       if (!res.data || !res.data.length) { templateMsg('Could not delete - you may not have permission.'); return; }
@@ -4183,11 +4195,11 @@
     });
   });
   var editDeleteBtn = $('admEditDeleteBtn');
-  if (editDeleteBtn) editDeleteBtn.addEventListener('click', function () {
+  if (editDeleteBtn) editDeleteBtn.addEventListener('click', async function () {
     if (!can('admin')) return;
     var id = $('admEditId').value;
     var p = findProduct(id); if (!p) return;
-    if (!confirm('Remove "' + p.title + '" from the storefront? You can bring it back later by editing it and turning Released back on.')) return;
+    if (!(await dialogConfirm('Remove “' + p.title + '” from the storefront? You can restore it later by editing the product and setting Released back on.', { title: 'Remove product', acceptLabel: 'Remove product' }))) return;
     editDeleteBtn.disabled = true;
     callDeleteProduct(p.dbId).then(function () {
       logAudit('Removed product "' + p.title + '"');
@@ -4423,7 +4435,7 @@
   // for the scoping ordersBody used to provide for free - menuEl (the
   // .adm-row-menu wrapper holding the trigger button) never itself moves,
   // only its .adm-row-menu-list child does.
-  if (ordersBody) document.addEventListener('click', function (e) {
+  if (ordersBody) document.addEventListener('click', async function (e) {
     var menuBtn = e.target.closest('.adm-row-menu-btn');
     if (menuBtn) {
       var menu = menuBtn.closest('.adm-row-menu');
@@ -4456,15 +4468,15 @@
       }).catch(function (err) { alert(err.message || 'Could not update the order.'); });
     } else if (action === 'refund') {
       if (!can('support')) return;
-      var reason = prompt('Refund reason for ' + id + ':', 'Requested by customer'); if (reason === null) return;
+      var reason = await dialogPrompt('This refund is recorded against order ' + id + '.', 'Requested by customer', { title: 'Issue refund', inputLabel: 'Internal reason', acceptLabel: 'Issue refund' }); if (reason === null) return;
       callManageOrder(o.dbId, 'refund', reason || 'Requested by customer').then(function () {
         logAudit('Refunded order ' + id + ' (' + orderAmount(o) + ')');
         return refreshOrders();
       }).catch(function (err) { alert(err.message || 'Could not process the refund.'); });
     } else if (action === 'revoke') {
       if (!can('support')) return;
-      if (!confirm('Revoke the license for order ' + id + '? The buyer will immediately lose download access. This does not refund their payment.')) return;
-      var revReason = prompt('Reason for revoking (visible in admin only):', 'Policy violation'); if (revReason === null) return;
+      if (!(await dialogConfirm('The buyer will immediately lose download access. This does not refund their payment.', { title: 'Revoke licence for order ' + id, acceptLabel: 'Continue' }))) return;
+      var revReason = await dialogPrompt('Add the internal reason for this revocation.', 'Policy violation', { title: 'Revoke licence', inputLabel: 'Internal reason', acceptLabel: 'Revoke licence' }); if (revReason === null) return;
       callManageOrder(o.dbId, 'revoke', revReason || 'Policy violation').then(function () {
         logAudit('Revoked license for order ' + id + ' - ' + (revReason || 'Policy violation'));
         return refreshOrders();
@@ -4560,8 +4572,8 @@
       });
     });
     var refundBtn = $('admOdRefund');
-    if (refundBtn) refundBtn.addEventListener('click', function () {
-      var reason = prompt('Refund reason for ' + o.id + ':', 'Requested by customer'); if (reason === null) return;
+    if (refundBtn) refundBtn.addEventListener('click', async function () {
+      var reason = await dialogPrompt('This refund is recorded against order ' + o.id + '.', 'Requested by customer', { title: 'Issue refund', inputLabel: 'Internal reason', acceptLabel: 'Issue refund' }); if (reason === null) return;
       refundBtn.disabled = true;
       callManageOrder(o.dbId, 'refund', reason || 'Requested by customer').then(function () {
         logAudit('Refunded order ' + o.id + ' (' + orderAmount(o) + ')');
@@ -4572,9 +4584,9 @@
       });
     });
     var revokeBtn = $('admOdRevoke');
-    if (revokeBtn) revokeBtn.addEventListener('click', function () {
-      if (!confirm('Revoke the license for order ' + o.id + '? The buyer will immediately lose download access. This does not refund their payment.')) return;
-      var revReason = prompt('Reason for revoking (visible in admin only):', 'Policy violation'); if (revReason === null) return;
+    if (revokeBtn) revokeBtn.addEventListener('click', async function () {
+      if (!(await dialogConfirm('The buyer will immediately lose download access. This does not refund their payment.', { title: 'Revoke licence for order ' + o.id, acceptLabel: 'Continue' }))) return;
+      var revReason = await dialogPrompt('Add the internal reason for this revocation.', 'Policy violation', { title: 'Revoke licence', inputLabel: 'Internal reason', acceptLabel: 'Revoke licence' }); if (revReason === null) return;
       revokeBtn.disabled = true;
       callManageOrder(o.dbId, 'revoke', revReason || 'Policy violation').then(function () {
         logAudit('Revoked license for order ' + o.id + ' - ' + (revReason || 'Policy violation'));
@@ -4995,7 +5007,7 @@
   var usersBody = $('admUsersBody');
   // See the matching comment on the orders row-menu listener above - same
   // portal-to-<body> reason for listening on document instead of usersBody.
-  if (usersBody) document.addEventListener('click', function (e) {
+  if (usersBody) document.addEventListener('click', async function (e) {
     var menuBtn = e.target.closest('.adm-row-menu-btn');
     if (menuBtn) {
       var menu = menuBtn.closest('.adm-row-menu');
@@ -5022,9 +5034,9 @@
       var willBan = action === 'ban';
       var reason = null;
       if (willBan) {
-        reason = prompt('Reason for banning ' + u.name + ':', 'Violated terms of service');
+        reason = await dialogPrompt('Add the internal reason for banning ' + u.name + '.', 'Violated terms of service', { title: 'Ban user', inputLabel: 'Internal reason', acceptLabel: 'Ban user' });
         if (reason === null) return;
-      } else if (!confirm('Unban ' + u.name + '?')) return;
+      } else if (!(await dialogConfirm('Restore access for ' + u.name + '?', { title: 'Unban user', acceptLabel: 'Unban user' }))) return;
       invokeAdminFn('admin-set-user-banned', { userId: u.id, banned: willBan, reason: reason }, 'Could not update user.').then(function () {
         logAudit((willBan ? 'Banned' : 'Unbanned') + ' user ' + u.name);
         return refreshUsers();
@@ -5321,11 +5333,11 @@
         msg.textContent = 'Saved.'; resetBundleForm(); renderCuratedBundles();
       }).catch(function (err) { msg.textContent = err.message; });
     });
-    $('admCuratedBundlesBody').addEventListener('click', function (e) {
+    $('admCuratedBundlesBody').addEventListener('click', async function (e) {
       var tr = e.target.closest('tr[data-token]'); if (!tr) return;
       var token = tr.getAttribute('data-token');
       if (e.target.closest('.adm-bundle-del')) {
-        if (!confirm('Delete this bundle?')) return;
+        if (!(await dialogConfirm('Delete this bundle? This cannot be undone.', { title: 'Delete bundle', acceptLabel: 'Delete bundle' }))) return;
         invokeAdminFn('admin-upsert-bundle', { action: 'delete', token: token }, 'Delete failed.').then(renderCuratedBundles);
         return;
       }
@@ -5464,8 +5476,8 @@
   var runNowBtn = $('admWeeklyDealsRunNow');
   if (runNowBtn) runNowBtn.addEventListener('click', function () { weeklyDealsAction('run', null, runNowBtn); });
   var revertAllBtn = $('admWeeklyDealsRevertAll');
-  if (revertAllBtn) revertAllBtn.addEventListener('click', function () {
-    if (!confirm('Revert every algorithm-picked weekly deal back to normal price?')) return;
+  if (revertAllBtn) revertAllBtn.addEventListener('click', async function () {
+    if (!(await dialogConfirm('Revert every algorithm-picked weekly deal back to its normal price?', { title: 'Revert weekly deals', acceptLabel: 'Revert deals' }))) return;
     weeklyDealsAction('revertAll', null, revertAllBtn);
   });
 
@@ -5529,7 +5541,7 @@
     $('admEventCancelBtn').hidden = false;
   }
   var eventsBody = $('admEventsBody');
-  if (eventsBody) eventsBody.addEventListener('click', function (e) {
+  if (eventsBody) eventsBody.addEventListener('click', async function (e) {
     var tr = e.target.closest('tr'); if (!tr) return;
     var id = tr.getAttribute('data-id');
     var ev = SALE_EVENTS.filter(function (x) { return x.id === id; })[0]; if (!ev) return;
@@ -5542,7 +5554,7 @@
         .then(function () { logAudit((newActive ? 'Activated' : 'Deactivated') + ' sale event "' + ev.title + '"'); return refreshSaleEvents(); })
         .catch(function (err) { alert(err.message || 'Could not update sale event.'); });
     } else if (e.target.classList.contains('adm-event-del')) {
-      if (!confirm('Delete sale event "' + ev.title + '"? This can\'t be undone.')) return;
+      if (!(await dialogConfirm('Delete “' + ev.title + '”? This cannot be undone.', { title: 'Delete sale event', acceptLabel: 'Delete event' }))) return;
       callDeleteContent(ev.id)
         .then(function () {
           logAudit('Deleted sale event "' + ev.title + '"');
@@ -5623,7 +5635,7 @@
     return invokeAdminFn('admin-delete-coupon', { code: code }, 'Could not delete the code.');
   }
   var couponsBody = $('admCouponsBody');
-  if (couponsBody) couponsBody.addEventListener('click', function (e) {
+  if (couponsBody) couponsBody.addEventListener('click', async function (e) {
     var tr = e.target.closest('tr'); if (!tr) return;
     var code = tr.getAttribute('data-code');
     var c = COUPONS.filter(function (x) { return x.code === code; })[0]; if (!c) return;
@@ -5643,7 +5655,7 @@
         alert(err.message || 'Could not update the code.');
       });
     } else if (e.target.classList.contains('adm-coupon-del')) {
-      if (!confirm('Delete coupon ' + code + '? This can\'t be undone.')) return;
+      if (!(await dialogConfirm('Delete coupon ' + code + '? This cannot be undone.', { title: 'Delete coupon', acceptLabel: 'Delete coupon' }))) return;
       callDeleteCoupon(code).then(function () {
         logAudit('Deleted coupon ' + code);
         if ($('admCouponEditId').value === code) resetCouponForm();
@@ -6004,7 +6016,7 @@
     $('admPostFormCancel').hidden = true;
   }
   var postBody = $('admPostBody');
-  if (postBody) postBody.addEventListener('click', function (e) {
+  if (postBody) postBody.addEventListener('click', async function (e) {
     var tr = e.target.closest('tr'); if (!tr) return;
     var id = tr.getAttribute('data-id');
     var p = POSTS.filter(function (x) { return x.id === id; })[0]; if (!p) return;
@@ -6020,7 +6032,7 @@
         .catch(function (err) { alert(err.message || 'Could not update post.'); });
     } else if (e.target.classList.contains('adm-post-del')) {
       if (!can('admin')) return;
-      if (!confirm('Delete "' + p.title + '"? This can\'t be undone.')) return;
+      if (!(await dialogConfirm('Delete “' + p.title + '”? This cannot be undone.', { title: 'Delete post', acceptLabel: 'Delete post' }))) return;
       callDeleteContent(p.id)
         .then(function () { logAudit('Deleted post "' + p.title + '"'); return refreshPosts(); })
         .catch(function (err) { alert(err.message || 'Could not delete post.'); });
@@ -6124,7 +6136,7 @@
     $('admTutFormCancel').hidden = true;
   }
   var tutBody = $('admTutBody');
-  if (tutBody) tutBody.addEventListener('click', function (e) {
+  if (tutBody) tutBody.addEventListener('click', async function (e) {
     var tr = e.target.closest('tr'); if (!tr) return;
     var id = tr.getAttribute('data-id');
     var t = TUTORIALS.filter(function (x) { return x.id === id; })[0]; if (!t) return;
@@ -6140,7 +6152,7 @@
         .catch(function (err) { alert(err.message || 'Could not update tutorial.'); });
     } else if (e.target.classList.contains('adm-tut-del')) {
       if (!can('admin')) return;
-      if (!confirm('Delete "' + t.title + '"? This can\'t be undone.')) return;
+      if (!(await dialogConfirm('Delete “' + t.title + '”? This cannot be undone.', { title: 'Delete tutorial', acceptLabel: 'Delete tutorial' }))) return;
       callDeleteContent(t.id)
         .then(function () { logAudit('Deleted tutorial "' + t.title + '"'); return refreshTutorials(); })
         .catch(function (err) { alert(err.message || 'Could not delete tutorial.'); });
@@ -6235,7 +6247,7 @@
     $('admRelFormCancel').hidden = true;
   }
   var relBody = $('admRelBody');
-  if (relBody) relBody.addEventListener('click', function (e) {
+  if (relBody) relBody.addEventListener('click', async function (e) {
     var tr = e.target.closest('tr'); if (!tr) return;
     var id = tr.getAttribute('data-id');
     var r = RELEASES.filter(function (x) { return x.id === id; })[0]; if (!r) return;
@@ -6251,7 +6263,7 @@
         .catch(function (err) { alert(err.message || 'Could not update release.'); });
     } else if (e.target.classList.contains('adm-rel-del')) {
       if (!can('admin')) return;
-      if (!confirm('Delete "' + r.title + '"? This can\'t be undone.')) return;
+      if (!(await dialogConfirm('Delete “' + r.title + '”? This cannot be undone.', { title: 'Delete release', acceptLabel: 'Delete release' }))) return;
       callDeleteContent(r.id)
         .then(function () { logAudit('Deleted release "' + r.title + '"'); return refreshReleases(); })
         .catch(function (err) { alert(err.message || 'Could not delete release.'); });
@@ -6314,7 +6326,7 @@
     }).join('') || '<tr><td colspan="4" class="adm-empty">No staff yet.</td></tr>';
   }
   var staffBody = $('admStaffBody');
-  if (staffBody) staffBody.addEventListener('click', function (e) {
+  if (staffBody) staffBody.addEventListener('click', async function (e) {
     var ddBtn = e.target.closest('.adm-staff-role-dd .adm-dd-btn');
     if (ddBtn) {
       if (ddBtn.disabled) return;
@@ -6341,12 +6353,12 @@
     if (e.target.closest('.adm-staff-role-dd')) return;
     document.querySelectorAll('.adm-staff-role-dd.open').forEach(function (d) { d.classList.remove('open'); d.querySelector('.adm-dd-menu').hidden = true; });
   });
-  if (staffBody) staffBody.addEventListener('click', function (e) {
+  if (staffBody) staffBody.addEventListener('click', async function (e) {
     if (!e.target.classList.contains('adm-staff-remove')) return;
     if (!can('owner')) return;
     var tr = e.target.closest('tr'); var id = tr.getAttribute('data-id'), email = tr.getAttribute('data-email');
     var s = STAFF.filter(function (x) { return x.id === id; })[0]; if (!s || !email) return;
-    if (!confirm('Revoke ' + s.name + '\'s staff access?')) return;
+    if (!(await dialogConfirm('Revoke ' + s.name + '\'s staff access?', { title: 'Revoke staff access', acceptLabel: 'Revoke access' }))) return;
     callSetStaffRole(email, null)
       .then(function () { logAudit('Revoked staff access for ' + s.name); return refreshStaff(); })
       .catch(function (err) { alert(err.message || 'Could not revoke access.'); });

@@ -19,6 +19,81 @@
         '" fill="currentColor" aria-hidden="true"><path d="' + d + '"/></svg>';
     };
 
+    // Browser alert()/confirm()/prompt() windows break the visual system and
+    // cannot be reviewed, styled, or operated consistently. This single
+    // asynchronous dialog is used by the storefront and the admin panel.
+    (function () {
+      var overlay, titleEl, messageEl, inputWrap, inputEl, acceptBtn, cancelBtn;
+      var resolveCurrent, previousFocus;
+      function close(value) {
+        if (!overlay || overlay.hidden) return;
+        overlay.hidden = true;
+        var done = resolveCurrent;
+        resolveCurrent = null;
+        if (previousFocus && previousFocus.focus) previousFocus.focus();
+        previousFocus = null;
+        if (done) done(value);
+      }
+      function mount() {
+        if (overlay) return;
+        overlay = document.createElement('div');
+        overlay.className = 'confirm-overlay cold-dialog-overlay';
+        overlay.hidden = true;
+        overlay.innerHTML =
+          '<section class="confirm-modal cold-dialog" role="dialog" aria-modal="true" aria-labelledby="coldDialogTitle">' +
+            '<h3 id="coldDialogTitle" class="pay-title"></h3>' +
+            '<p id="coldDialogMessage" class="pay-sub"></p>' +
+            '<label id="coldDialogInputWrap" class="adm-field" hidden><span id="coldDialogInputLabel"></span><input id="coldDialogInput" class="adm-input" type="text" autocomplete="off" /></label>' +
+            '<div class="confirm-actions"><button class="btn btn-primary" type="button" id="coldDialogAccept"></button><button class="btn btn-ghost" type="button" id="coldDialogCancel">Cancel</button></div>' +
+          '</section>';
+        document.body.appendChild(overlay);
+        titleEl = overlay.querySelector('#coldDialogTitle');
+        messageEl = overlay.querySelector('#coldDialogMessage');
+        inputWrap = overlay.querySelector('#coldDialogInputWrap');
+        inputEl = overlay.querySelector('#coldDialogInput');
+        acceptBtn = overlay.querySelector('#coldDialogAccept');
+        cancelBtn = overlay.querySelector('#coldDialogCancel');
+        overlay.addEventListener('click', function (e) { if (e.target === overlay) close(null); });
+        cancelBtn.addEventListener('click', function () { close(null); });
+        acceptBtn.addEventListener('click', function () { close(inputWrap.hidden ? true : inputEl.value); });
+        inputEl.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter') { e.preventDefault(); close(inputEl.value); }
+        });
+        document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && overlay && !overlay.hidden) close(null); });
+      }
+      function open(options) {
+        mount();
+        if (!overlay.hidden) close(null);
+        previousFocus = document.activeElement;
+        titleEl.textContent = options.title || 'Confirm action';
+        messageEl.textContent = options.message || '';
+        acceptBtn.textContent = options.acceptLabel || 'Continue';
+        cancelBtn.hidden = options.type === 'alert';
+        inputWrap.hidden = options.type !== 'prompt';
+        inputEl.value = options.value == null ? '' : options.value;
+        inputEl.placeholder = options.placeholder || '';
+        var label = overlay.querySelector('#coldDialogInputLabel');
+        if (label) label.textContent = options.inputLabel || '';
+        overlay.hidden = false;
+        setTimeout(function () { (options.type === 'prompt' ? inputEl : acceptBtn).focus(); }, 0);
+        return new Promise(function (resolve) { resolveCurrent = resolve; });
+      }
+      window.coldDialog = {
+        alert: function (message, options) {
+          options = options || {}; options.type = 'alert'; options.message = message; options.acceptLabel = options.acceptLabel || 'Close';
+          return open(options);
+        },
+        confirm: function (message, options) {
+          options = options || {}; options.type = 'confirm'; options.message = message; options.acceptLabel = options.acceptLabel || 'Confirm';
+          return open(options).then(function (value) { return value === true; });
+        },
+        prompt: function (message, value, options) {
+          options = options || {}; options.type = 'prompt'; options.message = message; options.value = value; options.acceptLabel = options.acceptLabel || 'Save';
+          return open(options);
+        }
+      };
+    })();
+
     (function () {
       // Shared "which products does the signed-in user own" cache - both
       // the product page and the shop/catalog grid need this, so it's
@@ -3704,6 +3779,29 @@
       function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
       function wishIds() { try { return JSON.parse(localStorage.getItem(WISH_KEY) || '[]') || []; } catch (e) { return []; } }
       function saveWishIds(ids) { try { localStorage.setItem(WISH_KEY, JSON.stringify(ids)); } catch (e) {} }
+      function wishIsOwned(id) {
+        return !!(window.__coldOwned && (window.__coldOwned.has(id) || window.__coldOwned.has(id, 'resell')));
+      }
+      // A wishlist is a buy-later list. Once a purchase succeeds elsewhere on
+      // the site, remove that entry locally and from the account mirror so it
+      // cannot surface a second Buy now/Add to cart path.
+      function pruneOwnedWishes() {
+        if (!window.__coldOwned || !window.__coldOwned.ready()) return wishIds();
+        var before = wishIds();
+        var kept = before.filter(function (id) { return !wishIsOwned(id); });
+        if (kept.length !== before.length) {
+          saveWishIds(kept);
+          if (window.__wishSync) before.filter(function (id) { return wishIsOwned(id); }).forEach(function (id) { window.__wishSync(id, false); });
+        }
+        return kept;
+      }
+      function withWishOwnership(cb) {
+        if (!window.__coldOwned) { cb(); return; }
+        // An ownership lookup failing must not leave the entire wishlist
+        // blank. In that rare case we render the saved entries, but never
+        // prune until ownership has actually resolved.
+        window.__coldOwned.load().then(cb, cb);
+      }
       // One-time backfill: anything wishlisted before wishlist_items existed
       // (or added on a device that was never signed in yet) was never
       // synced - dashboard load is the one place guaranteed to run for a
@@ -3759,10 +3857,10 @@
       function renderWishlist() {
         var el = document.getElementById('dashWishlistRows');
         if (!el) return;
-        loadWishBundle(function () { paintWishlist(el); });
+        withWishOwnership(function () { pruneOwnedWishes(); loadWishBundle(function () { paintWishlist(el); }); });
       }
       function paintWishlist(el) {
-        var ids = wishIds();
+        var ids = pruneOwnedWishes();
         var cat = window.__CATALOG || [];
         var items = ids.map(function (id) { return cat.filter(function (p) { return p.id === id; })[0]; }).filter(Boolean);
         if (!items.length) { el.innerHTML = '<p class="dash-empty-note">Nothing saved yet - tap the heart on any product to add it here.</p>'; return; }
@@ -3800,10 +3898,11 @@
       // compact row look, but gets the same Add to cart/Buy now pair as the
       // full Wishlist panel so a saved item can be bought straight from the
       // dashboard home without a trip to the full Wishlist tab first.
-      function renderWishlistPreview() {
+      function renderWishlistPreview(skipOwnershipLoad) {
         var el = document.getElementById('dashWishlistPreview');
         if (!el) return;
-        var ids = wishIds().slice(0, 3);
+        if (!skipOwnershipLoad && window.__coldOwned && !window.__coldOwned.ready()) { withWishOwnership(function () { renderWishlistPreview(true); }); return; }
+        var ids = pruneOwnedWishes().slice(0, 3);
         var cat = window.__CATALOG || [];
         var items = ids.map(function (id) { return cat.filter(function (p) { return p.id === id; })[0]; }).filter(Boolean);
         el.innerHTML = items.length ? items.map(function (p) {
@@ -3897,6 +3996,8 @@
           renderWishlist();
           renderWishlistPreview();
           if (window.__wishSync) window.__wishSync(id, false);
+        } else if ((e.target.closest('.wl-buy') || e.target.closest('.wl-add')) && wishIsOwned(id)) {
+          pruneOwnedWishes(); renderWishlist(); renderWishlistPreview();
         } else if (e.target.closest('.wl-buy') && p) {
           if (window.__cartAdd) window.__cartAdd({ id: p.id, title: p.title, price: p.priceNum, image: p.image, tag: p.cat || '' });
           location.href = '/checkout';
@@ -4945,11 +5046,11 @@
             dBtn.textContent = discordIdentity ? 'Unlink' : 'Link';
             dBtn.disabled = !!(discordIdentity && totalMethods <= 1);
             dBtn.title = (discordIdentity && totalMethods <= 1) ? 'This is your only sign-in method' : '';
-            dBtn.onclick = function () {
+            dBtn.onclick = async function () {
               if (errEl) errEl.textContent = '';
               if (discordIdentity) {
                 if (totalMethods <= 1) return;
-                if (!confirm('Unlink your Discord account?')) return;
+                if (!(await window.coldDialog.confirm('Remove your Discord sign-in method from this account?', { title: 'Unlink Discord', acceptLabel: 'Unlink Discord' }))) return;
                 dBtn.disabled = true;
                 window.coldSupabase.auth.unlinkIdentity(discordIdentity).then(function (ures) {
                   if (errEl) errEl.textContent = ures.error ? (ures.error.message || 'Could not unlink.') : '';
@@ -4977,11 +5078,11 @@
               gBtn.textContent = googleIdentity ? 'Unlink' : 'Link';
               gBtn.disabled = !!(googleIdentity && totalMethods <= 1);
               gBtn.title = (googleIdentity && totalMethods <= 1) ? 'This is your only sign-in method' : '';
-              gBtn.onclick = function () {
+              gBtn.onclick = async function () {
                 if (errEl) errEl.textContent = '';
                 if (googleIdentity) {
                   if (totalMethods <= 1) return;
-                  if (!confirm('Unlink your Google account?')) return;
+                  if (!(await window.coldDialog.confirm('Remove your Google sign-in method from this account?', { title: 'Unlink Google', acceptLabel: 'Unlink Google' }))) return;
                   gBtn.disabled = true;
                   window.coldSupabase.auth.unlinkIdentity(googleIdentity).then(function (ures) {
                     if (errEl) errEl.textContent = ures.error ? (ures.error.message || 'Could not unlink.') : '';
@@ -5008,11 +5109,11 @@
             rBtn.textContent = robloxLinked ? 'Unlink' : 'Link';
             rBtn.disabled = !!(robloxLinked && totalMethods <= 1);
             rBtn.title = (robloxLinked && totalMethods <= 1) ? 'This is your only sign-in method' : '';
-            rBtn.onclick = function () {
+            rBtn.onclick = async function () {
               if (errEl) errEl.textContent = '';
               if (robloxLinked) {
                 if (totalMethods <= 1) return;
-                if (!confirm('Unlink your Roblox account?')) return;
+                if (!(await window.coldDialog.confirm('Remove your Roblox sign-in method from this account?', { title: 'Unlink Roblox', acceptLabel: 'Unlink Roblox' }))) return;
                 rBtn.disabled = true;
                 window.coldAuth.unlinkRoblox().then(function (ures) {
                   rBtn.disabled = false;

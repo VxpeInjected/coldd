@@ -399,7 +399,15 @@
     function loadNext(i) {
       if (i >= scripts.length) return;
       var s = document.createElement('script');
-      s.src = scripts[i];
+      var src = scripts[i];
+      // app.js/admin.js are injected after the catalog query. Give the shared
+      // runtime an explicit revision here so every page gets behavioural fixes
+      // immediately, even where an older HTML shell is still cached.
+      if (/\/(?:app|admin)\.js(?:\?|$)/.test(src)) {
+        src = src.replace(/([?&])v=[^&]*/, '$1v=20260915k');
+        if (src === scripts[i]) src += (src.indexOf('?') >= 0 ? '&' : '?') + 'v=20260915k';
+      }
+      s.src = src;
       s.onload = function () { loadNext(i + 1); };
       target.appendChild(s);
     }

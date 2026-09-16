@@ -3577,12 +3577,17 @@
   }
   function setEditPlatform(platform, catToKeep, subcatToKeep) {
     $('admEditPlatform').value = platform;
-    document.querySelectorAll('#admEditPlatformToggle .adm-platform-btn').forEach(function (b) {
-      b.classList.toggle('active', b.getAttribute('data-platform') === platform);
-    });
     populateCategorySelect(platform, catToKeep, subcatToKeep);
     updateDevexHint();
   }
+  // The Robux price rounds up to a clean hundred rather than quoting the
+  // raw DevEx figure (e.g. $5 -> 1316 -> 1400) since nobody prices a Robux
+  // listing at a number like 1316.
+  function devexRobuxPrice(usdPrice) { return Math.ceil((usdPrice / DEVEX_USD_PER_ROBUX) / 100) * 100; }
+  // Set once the admin types into the Robux field directly, or once an
+  // existing product with its own non-formula Robux price loads - either
+  // way, autofill backs off and leaves their number alone from then on.
+  var robuxPriceManuallySet = false;
   function updateDevexHint() {
     var hint = $('admEditDevexHint'); if (!hint) return;
     var platform = ($('admEditPlatform') || {}).value;
@@ -3590,6 +3595,9 @@
     hint.textContent = (platform === 'Roblox' && usdPrice > 0)
       ? ('DevEx equivalent of ' + usd(usdPrice) + ' ≈ R$ ' + Math.round(usdPrice / DEVEX_USD_PER_ROBUX).toLocaleString('en-US'))
       : '';
+    if (platform === 'Roblox' && !robuxPriceManuallySet) {
+      $('admEditRobuxPrice').value = usdPrice > 0 ? devexRobuxPrice(usdPrice) : '';
+    }
   }
   // f.path (real upload, private product-files bucket) opens via a
   // freshly-minted signed URL on click - no permanent URL is ever stored,
@@ -3669,13 +3677,13 @@
     $('admEditTitleInput').value = p.title;
     $('admEditPrice').value = p.price;
     $('admEditRobuxPrice').value = p.robuxPrice != null ? p.robuxPrice : '';
+    robuxPriceManuallySet = p.robuxPrice != null;
     $('admEditWasPrice').value = p.wasPrice != null ? p.wasPrice : '';
     $('admEditPriority').checked = !!p.priority;
     $('admEditFeatured').checked = !!p.featured;
     $('admEditFeaturedOrder').value = p.featuredOrder || 0;
     $('admEditFeaturedOrderWrap').hidden = !p.featured;
     setEditPlatform(p.platform, p.cat, p.subcat);
-    document.querySelectorAll('#admEditPlatformToggle .adm-platform-btn').forEach(function (b) { b.disabled = false; });
     $('admEditSubtext').value = p.desc || '';
     $('admEditLongDesc').value = p.longDesc || '';
     $('admEditResell').checked = !!p.resell;
@@ -3898,14 +3906,10 @@
     b.addEventListener('click', function () { setCostCurrency(b.getAttribute('data-currency')); });
   });
 
-  document.querySelectorAll('#admEditPlatformToggle .adm-platform-btn').forEach(function (b) {
-    b.addEventListener('click', function () {
-      if (b.disabled) return;
-      setEditPlatform(b.getAttribute('data-platform'), null);
-    });
-  });
   var editPriceInput = $('admEditPrice');
   if (editPriceInput) editPriceInput.addEventListener('input', updateDevexHint);
+  var editRobuxPriceInput = $('admEditRobuxPrice');
+  if (editRobuxPriceInput) editRobuxPriceInput.addEventListener('input', function () { robuxPriceManuallySet = true; });
   var editResellBox = $('admEditResell');
   if (editResellBox) editResellBox.addEventListener('change', function () { var h = !editResellBox.checked; $('admEditResellPriceWrap').hidden = h; $('admEditResellRobuxPriceWrap').hidden = h; });
   var editFeaturedBox = $('admEditFeatured');
@@ -3978,13 +3982,13 @@
     $('admEditTitleInput').value = '';
     $('admEditPrice').value = 0;
     $('admEditRobuxPrice').value = '';
+    robuxPriceManuallySet = false;
     $('admEditWasPrice').value = '';
     $('admEditPriority').checked = false;
     $('admEditFeatured').checked = false;
     $('admEditFeaturedOrder').value = 0;
     $('admEditFeaturedOrderWrap').hidden = true;
     setEditPlatform('Roblox', null);
-    document.querySelectorAll('#admEditPlatformToggle .adm-platform-btn').forEach(function (b) { b.disabled = false; });
     $('admEditSubtext').value = '';
     $('admEditLongDesc').value = '';
     $('admEditResell').checked = false;
@@ -4113,6 +4117,23 @@
     return errs.length ? ("Can't save - " + errs.join('; ') + '. Adjust the price or the Legal settings.') : null;
   }
 
+  // A new listing needs the fields a customer actually sees (plus the file
+  // to deliver) before it can be created at all - catches the "half-filled
+  // draft that got released anyway" mistake at creation time instead of
+  // after a customer already bought it.
+  function productCreateMissingFieldsError() {
+    var missing = [];
+    if (!(parseFloat($('admEditPrice').value) > 0)) missing.push('USD price');
+    if (!$('admEditTitleInput').value.trim()) missing.push('Title');
+    if (!$('admEditCat').value) missing.push('Category');
+    if (!$('admEditSubcat').value) missing.push('Subcategory');
+    if (!$('admEditLongDesc').value.trim()) missing.push('Description');
+    if (!$('admEditSubtext').value.trim()) missing.push('Subtext');
+    if (!pendingStoragePath) missing.push('Product file');
+    if (!$('admEditThumbUrl').value.trim()) missing.push('Thumbnail image');
+    return missing.length ? ('Missing before you can create this product: ' + missing.join(', ') + '.') : null;
+  }
+
   var editForm = $('admEditForm');
   if (editForm) editForm.addEventListener('submit', function (e) {
     e.preventDefault();
@@ -4137,7 +4158,8 @@
 
     if (isCreate) {
       var title = $('admEditTitleInput').value.trim();
-      if (!title) { if (msg) msg.textContent = 'Enter a title.'; return; }
+      var createMissingErr = productCreateMissingFieldsError();
+      if (createMissingErr) { if (msg) msg.textContent = createMissingErr; admToast(createMissingErr, false); return; }
       var fields = Object.assign({ title: title, platform: platform }, collectEditFields());
       if (!fields.image) fields.image = '/banner.jpg';
       // Create used to omit this, so a file uploaded while filling in a new

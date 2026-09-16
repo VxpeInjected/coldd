@@ -538,14 +538,11 @@
                   <label class="adm-field">
                     <span>Price (Robux)</span>
                     <input type="number" min="0" step="1" id="admEditRobuxPrice" class="adm-input" />
-                    <span class="adm-hint" id="admEditDevexHint"></span>
-                  </label>
-                  <label class="adm-field">
-                    <span>Sale price (was)</span>
-                    <input type="number" min="0" step="0.01" id="admEditWasPrice" class="adm-input" placeholder="Leave blank for no sale" />
-                    <span class="adm-hint">Shown crossed out next to the real price. Must be higher than Price (USD) to count as a sale - anyone with this product wishlisted gets notified the first time it goes on sale.</span>
                   </label>
                 </div>
+
+                <label class="adm-field adm-field-wide" style="margin-top:20px;"><span>Subtext (shown on catalog cards)</span><input type="text" id="admEditSubtext" class="adm-input" maxlength="140" /></label>
+                <label class="adm-field adm-field-wide" style="margin-top:16px;"><span>Description (shown on the product page)</span><textarea id="admEditLongDesc" class="adm-input adm-textarea" rows="4"></textarea></label>
 
                 <label class="adm-field-check" style="margin-top:20px;"><input type="checkbox" id="admEditResell" /> <span>Resell licence available</span></label>
                 <label class="adm-field" id="admEditResellPriceWrap" hidden style="margin-top:12px;max-width:260px;">
@@ -553,17 +550,14 @@
                 </label>
                 <label class="adm-field" id="admEditResellRobuxPriceWrap" hidden style="margin-top:12px;max-width:260px;">
                   <span>Resell licence price (Robux)</span><input type="number" min="0" step="1" id="admEditResellRobuxPrice" class="adm-input" />
-                  <span class="adm-note" style="margin-top:4px;">Leave blank to convert the resell USD price automatically.</span>
                 </label>
                 <label class="adm-field-check"><input type="checkbox" id="admEditReleased" /> <span>Released (visible on storefront)</span></label>
                 <label class="adm-field-check"><input type="checkbox" id="admEditPriority" /> <span>Priority (boost in the catalog's Recommended sort)</span></label>
-                <label class="adm-field-check"><input type="checkbox" id="admEditFeatured" /> <span>Featured (shown in the homepage "Featured products" section)</span></label>
-                <label class="adm-field" id="admEditFeaturedOrderWrap" hidden style="margin-top:12px;max-width:180px;">
-                  <span>Featured order</span><input type="number" min="0" step="1" id="admEditFeaturedOrder" class="adm-input" />
+                <label class="adm-field" id="admEditWasPriceWrap" style="margin-top:20px;max-width:260px;">
+                  <span>Sale price (was)</span>
+                  <input type="number" min="0" step="0.01" id="admEditWasPrice" class="adm-input" placeholder="Leave blank for no sale" />
+                  <span class="adm-hint">Shown crossed out next to the real price. Set by the Sales &amp; Discounts weekly deals automation, or by hand here for a one-off manual sale.</span>
                 </label>
-
-                <label class="adm-field adm-field-wide" style="margin-top:20px;"><span>Subtext (shown on catalog cards)</span><input type="text" id="admEditSubtext" class="adm-input" maxlength="140" /></label>
-                <label class="adm-field adm-field-wide" style="margin-top:16px;"><span>Description (shown on the product page)</span><textarea id="admEditLongDesc" class="adm-input adm-textarea" rows="4"></textarea></label>
               </div>
 
               <div class="dash-card glass">
@@ -578,7 +572,7 @@
                     <p class="adm-dropzone-hint">Any file type - this becomes the downloadable product file</p>
                   </div>
                   <a class="adm-sub" id="admEditFileNote" target="_blank" rel="noopener" style="margin-top:8px;display:inline-block;">No file uploaded yet</a>
-                  <p class="adm-note">File Format and File Size below are read automatically from whatever file you choose here. Delivery is per-product via Supabase Storage - customers can't download until a file is uploaded here.</p>
+                  <p class="adm-note">Delivery is per-product via Supabase Storage - customers can't download until a file is uploaded here.</p>
                   <input type="hidden" id="admEditTechFileName" />
                 </div>
 
@@ -614,13 +608,11 @@
                 <label class="adm-field" style="margin-top:20px;max-width:420px;"><span>YouTube demo link</span><input type="url" id="admEditVideoUrl" class="adm-input" placeholder="https://youtube.com/watch?v=…" /></label>
               </div>
 
-              <div class="dash-card glass">
-                <div class="dash-card-head"><h2>Technical details</h2></div>
-                <div class="adm-edit-grid">
-                  <label class="adm-field"><span>File Format</span><input type="text" id="admEditTechFormat" class="adm-input" placeholder="Upload a file above" readonly /></label>
-                  <label class="adm-field"><span>File Size</span><input type="text" id="admEditTechSize" class="adm-input" placeholder="Upload a file above" readonly /></label>
-                </div>
-              </div>
+              <!-- Format/size are read automatically off the uploaded file (see
+                   admEditTechFormat/admEditTechSize below) - no separate card to
+                   look at or fill in, just the hidden fields the save payload reads. -->
+              <input type="text" id="admEditTechFormat" hidden />
+              <input type="text" id="admEditTechSize" hidden />
 
               <div class="dash-card glass">
                 <div class="dash-card-head"><h2>Legal</h2><button type="button" class="btn btn-ghost adm-btn-sm" id="admLegalDownloadBtn" hidden><span class="btn-label">Download legal info (.docx)</span><span class="btn-spinner" hidden></span></button></div>
@@ -981,11 +973,23 @@
 
             <div id="admHomepageView" hidden>
               <div class="dash-card glass dash-tablewrap">
-                <div class="dash-card-head"><h2>Featured products</h2><span class="adm-sub">Shown on the homepage's "Featured products" section. Pick which products appear and their order from each product's edit page (Featured checkbox).</span></div>
+                <div class="dash-card-head"><h2>Featured products</h2><span class="adm-sub">Shown on the homepage's "Featured products" section, in this order.</span></div>
                 <table class="dash-table">
                   <thead><tr><th>Order</th><th>Title</th><th>Price</th><th></th></tr></thead>
                   <tbody id="admFeaturedBody"></tbody>
                 </table>
+                <form class="adm-form" id="admFeaturedAddForm" style="flex-wrap:wrap;margin-top:14px;">
+                  <div class="adm-dd adm-dd-inline" id="admFeaturedAddDD" style="min-width:260px;">
+                    <button type="button" class="adm-dd-btn" aria-haspopup="listbox" aria-expanded="false">
+                      <span class="adm-dd-val"></span>
+                      <svg class="adm-dd-chev" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                    </button>
+                    <div class="adm-dd-menu" role="listbox" aria-label="Product to feature" hidden></div>
+                  </div>
+                  <input type="hidden" id="admFeaturedAddId" required />
+                  <button class="btn btn-primary adm-btn-sm" type="submit" id="admFeaturedAddBtn">Add to featured</button>
+                </form>
+                <div class="adm-edit-msg" id="admFeaturedMsg"></div>
               </div>
               <div class="dash-card glass dash-tablewrap">
                 <div class="dash-card-head">
@@ -1465,6 +1469,6 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.2/dist/umd/supabase.min.js" integrity="sha384-B2duOBIryCXbX4eDE4BdJwtNkQMRQde3o6IsjfPW28E6aH1CYE96hHeZRG3zY56O" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script src="/supabase-init.js?v=20260909a"></script>
   <script src="/site-gate.js?v=20260909a"></script>
-  <script src="/catalog.js?v=20260909a" data-then="/app.js?v=20260909a,/blog.js?v=20260909a,/reviews.js?v=20260729a,/admin.js?v=20260917a"></script>
+  <script src="/catalog.js?v=20260909a" data-then="/app.js?v=20260909a,/blog.js?v=20260909a,/reviews.js?v=20260729a,/admin.js?v=20260917b"></script>
 </body>
 </html>

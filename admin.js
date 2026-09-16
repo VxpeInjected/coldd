@@ -3435,8 +3435,8 @@
       return;
     }
     if (!storagePath || storagePath === PLACEHOLDER_PATH) {
-      el.textContent = 'No file attached - buyers would download the placeholder.';
-      el.classList.add('adm-note-warn');
+      el.textContent = '';
+      el.classList.remove('adm-note-warn');
       return;
     }
     // Strip the 8-char storage prefix so this matches the filename the buyer
@@ -3571,33 +3571,35 @@
   function populateCategorySelect(platform, selected, subcatToKeep) {
     var cats = CATEGORIES_BY_PLATFORM[platform] || [];
     if (selected && cats.indexOf(selected) < 0) cats = cats.concat([selected]);
-    var finalCat = selected || cats[0] || '';
+    // No default category on a new product - defaulting to the first one in
+    // the list silently let "Finished Games & Templates" through on
+    // anything the admin forgot to categorize, since the required-field
+    // check saw a non-empty value either way.
+    var finalCat = selected || '';
     catDropdown.setOptions(cats, finalCat);
     populateSubcatSelect(finalCat, subcatToKeep);
   }
   function setEditPlatform(platform, catToKeep, subcatToKeep) {
     $('admEditPlatform').value = platform;
     populateCategorySelect(platform, catToKeep, subcatToKeep);
-    updateDevexHint();
+    updateDevexAutofill();
   }
   // The Robux price rounds up to a clean hundred rather than quoting the
   // raw DevEx figure (e.g. $5 -> 1316 -> 1400) since nobody prices a Robux
   // listing at a number like 1316.
   function devexRobuxPrice(usdPrice) { return Math.ceil((usdPrice / DEVEX_USD_PER_ROBUX) / 100) * 100; }
-  // Set once the admin types into the Robux field directly, or once an
+  // Set once the admin types into a Robux field directly, or once an
   // existing product with its own non-formula Robux price loads - either
   // way, autofill backs off and leaves their number alone from then on.
   var robuxPriceManuallySet = false;
-  function updateDevexHint() {
-    var hint = $('admEditDevexHint'); if (!hint) return;
+  var resellRobuxPriceManuallySet = false;
+  function updateDevexAutofill() {
     var platform = ($('admEditPlatform') || {}).value;
+    if (platform !== 'Roblox') return;
     var usdPrice = parseFloat($('admEditPrice').value) || 0;
-    hint.textContent = (platform === 'Roblox' && usdPrice > 0)
-      ? ('DevEx equivalent of ' + usd(usdPrice) + ' ≈ R$ ' + Math.round(usdPrice / DEVEX_USD_PER_ROBUX).toLocaleString('en-US'))
-      : '';
-    if (platform === 'Roblox' && !robuxPriceManuallySet) {
-      $('admEditRobuxPrice').value = usdPrice > 0 ? devexRobuxPrice(usdPrice) : '';
-    }
+    if (!robuxPriceManuallySet) $('admEditRobuxPrice').value = usdPrice > 0 ? devexRobuxPrice(usdPrice) : '';
+    var resellUsdPrice = parseFloat($('admEditResellPrice').value) || 0;
+    if (!resellRobuxPriceManuallySet) $('admEditResellRobuxPrice').value = resellUsdPrice > 0 ? devexRobuxPrice(resellUsdPrice) : '';
   }
   // f.path (real upload, private product-files bucket) opens via a
   // freshly-minted signed URL on click - no permanent URL is ever stored,
@@ -3679,16 +3681,15 @@
     $('admEditRobuxPrice').value = p.robuxPrice != null ? p.robuxPrice : '';
     robuxPriceManuallySet = p.robuxPrice != null;
     $('admEditWasPrice').value = p.wasPrice != null ? p.wasPrice : '';
+    $('admEditWasPriceWrap').hidden = false;
     $('admEditPriority').checked = !!p.priority;
-    $('admEditFeatured').checked = !!p.featured;
-    $('admEditFeaturedOrder').value = p.featuredOrder || 0;
-    $('admEditFeaturedOrderWrap').hidden = !p.featured;
     setEditPlatform(p.platform, p.cat, p.subcat);
     $('admEditSubtext').value = p.desc || '';
     $('admEditLongDesc').value = p.longDesc || '';
     $('admEditResell').checked = !!p.resell;
     $('admEditResellPrice').value = p.resellPrice != null ? p.resellPrice : '';
     $('admEditResellRobuxPrice').value = p.resellRobuxPrice != null ? p.resellRobuxPrice : '';
+    resellRobuxPriceManuallySet = p.resellRobuxPrice != null;
     $('admEditResellPriceWrap').hidden = !p.resell;
     $('admEditResellRobuxPriceWrap').hidden = !p.resell;
     $('admEditReleased').checked = !!p.visible;
@@ -3698,7 +3699,7 @@
     $('admEditSaveBtn').textContent = 'Save changes';
     if ($('admEditStickySave')) $('admEditStickySave').querySelector('.btn-label').textContent = 'Save changes';
     $('admEditMsg').textContent = '';
-    updateDevexHint();
+    updateDevexAutofill();
 
     var tech = p.tech || {};
     $('admEditTechFormat').value = tech.format || '';
@@ -3907,13 +3908,15 @@
   });
 
   var editPriceInput = $('admEditPrice');
-  if (editPriceInput) editPriceInput.addEventListener('input', updateDevexHint);
+  if (editPriceInput) editPriceInput.addEventListener('input', updateDevexAutofill);
   var editRobuxPriceInput = $('admEditRobuxPrice');
   if (editRobuxPriceInput) editRobuxPriceInput.addEventListener('input', function () { robuxPriceManuallySet = true; });
+  var editResellPriceInput = $('admEditResellPrice');
+  if (editResellPriceInput) editResellPriceInput.addEventListener('input', updateDevexAutofill);
+  var editResellRobuxPriceInput = $('admEditResellRobuxPrice');
+  if (editResellRobuxPriceInput) editResellRobuxPriceInput.addEventListener('input', function () { resellRobuxPriceManuallySet = true; });
   var editResellBox = $('admEditResell');
   if (editResellBox) editResellBox.addEventListener('change', function () { var h = !editResellBox.checked; $('admEditResellPriceWrap').hidden = h; $('admEditResellRobuxPriceWrap').hidden = h; });
-  var editFeaturedBox = $('admEditFeatured');
-  if (editFeaturedBox) editFeaturedBox.addEventListener('change', function () { $('admEditFeaturedOrderWrap').hidden = !editFeaturedBox.checked; });
 
   var contactAddBtn = $('admLegalContactAdd');
   if (contactAddBtn) contactAddBtn.addEventListener('click', function () { editContacts.push({ label: '', value: '' }); renderContactList(); });
@@ -3984,16 +3987,17 @@
     $('admEditRobuxPrice').value = '';
     robuxPriceManuallySet = false;
     $('admEditWasPrice').value = '';
+    // A brand-new product can't be on sale yet - the field only makes sense
+    // once it exists, so it's hidden until the first save.
+    $('admEditWasPriceWrap').hidden = true;
     $('admEditPriority').checked = false;
-    $('admEditFeatured').checked = false;
-    $('admEditFeaturedOrder').value = 0;
-    $('admEditFeaturedOrderWrap').hidden = true;
     setEditPlatform('Roblox', null);
     $('admEditSubtext').value = '';
     $('admEditLongDesc').value = '';
     $('admEditResell').checked = false;
     $('admEditResellPrice').value = '';
     $('admEditResellRobuxPrice').value = '';
+    resellRobuxPriceManuallySet = false;
     $('admEditResellPriceWrap').hidden = true;
     $('admEditResellRobuxPriceWrap').hidden = true;
     $('admEditReleased').checked = false;
@@ -4003,7 +4007,7 @@
     $('admEditSaveBtn').textContent = 'Create product';
     if ($('admEditStickySave')) $('admEditStickySave').querySelector('.btn-label').textContent = 'Create product';
     $('admEditMsg').textContent = '';
-    updateDevexHint();
+    updateDevexAutofill();
 
     ['admEditTechFormat', 'admEditTechSize', 'admEditTechFileName'].forEach(function (id) { $(id).value = ''; });
     $('admEditFileInput').value = '';
@@ -4050,8 +4054,6 @@
         return Number.isFinite(v) && v > 0 ? v : null;
       })(),
       priority: $('admEditPriority').checked,
-      featured: $('admEditFeatured').checked,
-      featuredOrder: Math.max(0, parseInt($('admEditFeaturedOrder').value, 10) || 0),
       cat: $('admEditCat').value,
       subcat: $('admEditSubcat').value || null,
       desc: $('admEditSubtext').value.trim(),
@@ -5414,9 +5416,11 @@
 
     var featured = products.filter(function (p) { return p.featured; }).sort(function (a, b) { return a.featuredOrder - b.featuredOrder; });
     $('admFeaturedBody').innerHTML = featured.length ? featured.map(function (p) {
-      return '<tr><td>' + p.featuredOrder + '</td><td>' + esc(p.title) + '</td><td>' + usd(p.price) + '</td>' +
-        '<td class="adm-row-actions"><button class="btn btn-ghost adm-btn-sm adm-featured-edit" type="button" data-id="' + esc(p.id) + '">Edit product</button></td></tr>';
-    }).join('') : '<tr><td colspan="4" class="adm-empty">No featured products yet - open a product and check "Featured".</td></tr>';
+      return '<tr data-id="' + esc(p.id) + '"><td><input type="number" class="adm-input adm-input-sm adm-featured-order" min="0" step="1" value="' + p.featuredOrder + '" style="max-width:70px;" /></td><td>' + esc(p.title) + '</td><td>' + usd(p.price) + '</td>' +
+        '<td class="adm-row-actions"><button class="btn btn-ghost adm-btn-sm adm-featured-remove" type="button" data-id="' + esc(p.id) + '">Remove</button></td></tr>';
+    }).join('') : '<tr><td colspan="4" class="adm-empty">No featured products yet - add one below.</td></tr>';
+    var notFeatured = products.filter(function (p) { return !p.featured; }).sort(function (a, b) { return a.title.localeCompare(b.title); });
+    featuredAddDropdown.setOptions(notFeatured.map(function (p) { return { value: p.id, label: p.title }; }), '');
 
     var deals = products.filter(function (p) { return p.weeklyDeal; });
     $('admWeeklyDealsBody').innerHTML = deals.length ? deals.map(function (p) {
@@ -5437,10 +5441,58 @@
     }).join('');
   }
 
+  var featuredAddDropdown = makeDropdown($('admFeaturedAddDD'), {
+    valueInput: $('admFeaturedAddId'), placeholder: 'Select a product', searchable: true
+  });
   var featuredBody = $('admFeaturedBody');
-  if (featuredBody) featuredBody.addEventListener('click', function (e) {
-    var btn = e.target.closest('.adm-featured-edit'); if (!btn) return;
-    if (can('admin')) openProductEdit(btn.getAttribute('data-id'));
+  if (featuredBody) {
+    featuredBody.addEventListener('click', function (e) {
+      var btn = e.target.closest('.adm-featured-remove'); if (!btn) return;
+      if (!can('admin')) return;
+      var p = findProduct(btn.getAttribute('data-id')); if (!p) return;
+      btn.disabled = true;
+      callUpsertProduct(upsertPayloadFor(p, { featured: false, featuredOrder: 0 })).then(function () {
+        return refreshProducts();
+      }).then(function () {
+        renderHomepageTab();
+      }).catch(function (err) {
+        btn.disabled = false;
+        admToast(err.message || 'Could not remove from featured', false);
+      });
+    });
+    featuredBody.addEventListener('change', function (e) {
+      var input = e.target.closest('.adm-featured-order'); if (!input) return;
+      if (!can('admin')) return;
+      var row = input.closest('tr');
+      var p = findProduct(row.getAttribute('data-id')); if (!p) return;
+      var order = Math.max(0, parseInt(input.value, 10) || 0);
+      callUpsertProduct(upsertPayloadFor(p, { featured: true, featuredOrder: order })).then(function () {
+        return refreshProducts();
+      }).then(function () {
+        renderHomepageTab();
+      }).catch(function (err) {
+        admToast(err.message || 'Could not update order', false);
+      });
+    });
+  }
+  var featuredAddForm = $('admFeaturedAddForm');
+  if (featuredAddForm) featuredAddForm.addEventListener('submit', function (e) {
+    e.preventDefault();
+    if (!can('admin')) return;
+    var msg = $('admFeaturedMsg');
+    var p = findProduct($('admFeaturedAddId').value);
+    if (!p) { if (msg) msg.textContent = 'Pick a product first.'; return; }
+    var maxOrder = allProducts().filter(function (x) { return x.featured; }).reduce(function (m, x) { return Math.max(m, x.featuredOrder || 0); }, -1);
+    if (msg) msg.textContent = 'Adding…';
+    callUpsertProduct(upsertPayloadFor(p, { featured: true, featuredOrder: maxOrder + 1 })).then(function () {
+      return refreshProducts();
+    }).then(function () {
+      featuredAddDropdown.setValue('');
+      if (msg) msg.textContent = '';
+      renderHomepageTab();
+    }).catch(function (err) {
+      if (msg) msg.textContent = err.message || 'Could not add to featured.';
+    });
   });
 
   function weeklyDealsAction(action, productId, btn) {

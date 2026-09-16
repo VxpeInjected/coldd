@@ -1412,17 +1412,72 @@
      ================================================================ */
   var PANELS = ['home', 'analytics', 'marketing', 'products', 'unreleased', 'product-edit', 'product-update', 'orders', 'order-detail', 'resellers', 'reseller-edit', 'reviews', 'sales', 'sitemgmt', 'content'];
   var curPanel = 'home';
-  function showPanel(name) {
+
+  /* ---- URL routing ----
+     Real per-section URLs so browser back/forward moves between admin
+     sections instead of leaving /admin entirely. Top-level sections each
+     get their own address; product-edit additionally nests the product's
+     slug (/admin/products/<slug>/, pre-generated as a real file by
+     gen-admin-pages.py, mirroring gen-product-pages.py for the storefront).
+     Everything else that isn't a top-level section (a specific order, a
+     reseller, the unreleased-files drawer) still gets a working pushState
+     URL for back/forward during normal use, but has no static file of its
+     own - those IDs are unbounded and not worth pre-rendering, so a hard
+     refresh on one of those exact deep URLs falls back to its parent list. */
+  var PANEL_PATH = {
+    home: '/admin/', products: '/admin/products/', sales: '/admin/sales/',
+    marketing: '/admin/marketing/', analytics: '/admin/analytics/', orders: '/admin/orders/',
+    resellers: '/admin/resellers/', reviews: '/admin/reviews/', content: '/admin/content/',
+    sitemgmt: '/admin/sitemgmt/'
+  };
+  var PANEL_PARENT = { 'product-edit': 'products', 'product-update': 'products', unreleased: 'products', 'order-detail': 'orders', 'reseller-edit': 'resellers' };
+  function urlForPanel(name, extra) {
+    if (PANEL_PATH[name]) return PANEL_PATH[name];
+    var parent = PANEL_PARENT[name];
+    if (parent && PANEL_PATH[parent]) return PANEL_PATH[parent] + (extra ? extra + '/' : '');
+    return PANEL_PATH.home;
+  }
+  function showPanel(name, opts) {
+    opts = opts || {};
     if (PANELS.indexOf(name) < 0) name = 'home';
     curPanel = name;
     PANELS.forEach(function (p) {
       var sec = $('adm-panel-' + p);
       if (sec) sec.hidden = (p !== name);
     });
-    document.querySelectorAll('.dash-nav a').forEach(function (a) { a.classList.toggle('active', a.getAttribute('data-panel') === name); });
+    var navTarget = PANEL_PARENT[name] || name;
+    document.querySelectorAll('.dash-nav a').forEach(function (a) { a.classList.toggle('active', a.getAttribute('data-panel') === navTarget); });
     renderPanel(name);
     window.scrollTo(0, 0);
+    if (!opts.skipUrl) {
+      var url = urlForPanel(name, opts.extra);
+      if (location.pathname !== url) history.pushState({ panel: name, extra: opts.extra || null }, '', url);
+    }
   }
+  function findProductBySlug(slug) { return allProducts().filter(function (p) { return p.slug === slug; })[0]; }
+  // Re-derives the panel from the current URL - used on boot and whenever
+  // the user navigates with the browser's own back/forward buttons.
+  function routeFromLocation() {
+    var parts = location.pathname.replace(/^\/admin\/?/, '').replace(/\/$/, '').split('/').filter(Boolean);
+    var section = parts[0], sub = parts[1];
+    if (!section || !PANEL_PATH[section]) { showPanel('home', { skipUrl: true }); return; }
+    if (section === 'products' && sub) {
+      if (sub === 'new') { openProductCreate({ skipUrl: true }); return; }
+      if (sub === 'unreleased') { showPanel('unreleased', { skipUrl: true, extra: 'unreleased' }); return; }
+      // Products load asynchronously - poll the same way the older
+      // ?product= query-param deep link already does further below.
+      var tries = 0;
+      (function wait() {
+        var prod = findProductBySlug(sub);
+        if (prod) openProductEdit(prod.id, { skipUrl: true });
+        else if (tries++ < 40) setTimeout(wait, 150);
+        else showPanel('products', { skipUrl: true });
+      })();
+      return;
+    }
+    showPanel(section, { skipUrl: true });
+  }
+  window.addEventListener('popstate', function () { routeFromLocation(); });
   function renderPanel(name) {
     if (name === 'home') renderHome();
     else if (name === 'analytics') renderAnalytics();
@@ -3672,7 +3727,7 @@
     }).join('');
   }
 
-  function openProductEdit(id) {
+  function openProductEdit(id, opts) {
     var p = findProduct(id); if (!p) return;
     pendingStoragePath = null;
     $('admEditId').value = p.id;
@@ -3734,7 +3789,7 @@
     $('admLegalCanBeFree').checked = !!legal.canBeFree;
     $('admLegalDisallowSales').checked = !!legal.disallowSales;
 
-    showPanel('product-edit');
+    showPanel('product-edit', Object.assign({ extra: p.slug }, opts));
   }
 
   function wireDropzone(dropEl, inputEl, onFiles) {
@@ -3873,7 +3928,7 @@
     });
   }
   var openUnreleasedBtn = $('admOpenUnreleasedPanel');
-  if (openUnreleasedBtn) openUnreleasedBtn.addEventListener('click', function () { showPanel('unreleased'); });
+  if (openUnreleasedBtn) openUnreleasedBtn.addEventListener('click', function () { showPanel('unreleased', { extra: 'unreleased' }); });
 
   wireDropzone($('admEditThumbDrop'), $('admEditThumbInput'), function (files) { addThumbFile(files[0]); });
   var thumbRemoveBtn = $('admEditThumbRemove');
@@ -3978,7 +4033,7 @@
     renderDevProofList();
   });
 
-  function openProductCreate() {
+  function openProductCreate(opts) {
     pendingStoragePath = null;
     pendingUnreleasedFileId = null;
     $('admEditId').value = '';
@@ -4031,7 +4086,7 @@
     $('admLegalCanBeFree').checked = false;
     $('admLegalDisallowSales').checked = false;
 
-    showPanel('product-edit');
+    showPanel('product-edit', Object.assign({ extra: 'new' }, opts));
   }
   var createBtn = $('admOpenCreatePanel');
   if (createBtn) createBtn.addEventListener('click', function () { if (can('admin')) openProductCreate(); });
@@ -4296,7 +4351,7 @@
     var search = $('admUpdSearch'); if (search) search.value = '';
     $('admUpdResults').innerHTML = '';
     $('admUpdSelected').hidden = true;
-    showPanel('product-update');
+    showPanel('product-update', { extra: 'update' });
   }
   var openUpdateBtn = $('admOpenUpdatePanel');
   if (openUpdateBtn) openUpdateBtn.addEventListener('click', openUpdatePanel);
@@ -4481,7 +4536,7 @@
 
     if (action === 'view') {
       viewOrderId = id;
-      showPanel('order-detail');
+      showPanel('order-detail', { extra: id });
       return;
     }
     if (action === 'complete') {
@@ -4772,7 +4827,7 @@
     var heading = !r ? 'Add reseller' : (r.onboarded ? 'Edit reseller' : 'Add seller info');
     $('admResellerEditHeading').textContent = heading + (r && r.accountName ? ' - ' + r.accountName : '');
     $('admResellerMsg').textContent = '';
-    showPanel('reseller-edit');
+    showPanel('reseller-edit', { extra: admResellerCtx.id || admResellerCtx.orderItemId || 'new' });
   }
   var openResellerCreateBtn = $('admOpenResellerCreate');
   if (openResellerCreateBtn) openResellerCreateBtn.addEventListener('click', function () { openResellerEditor(null); });
@@ -6611,7 +6666,7 @@
   /* ================================================================
      INIT
      ================================================================ */
-  showPanel('home');
+  routeFromLocation();
 
   // Deep-link from the public product page's admin bar:
   //   /admin?product=<id>&action=edit   -> open that product's edit form

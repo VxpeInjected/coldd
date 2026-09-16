@@ -1,5 +1,22 @@
 -- supabase/security_hardening_2026-09-09.sql
 --
+-- APPLIED 2026-09-16, kept here as a historical record - do not re-run item 1
+-- as written below, it doesn't work (see note). Every other statement here
+-- is idempotent and already live.
+--
+-- Item 1's column-grant approach turned out to be a no-op on Supabase:
+-- profiles' privileges come from a table-wide `GRANT ALL ... TO authenticated`
+-- done once at project setup, and a narrower REVOKE on just two columns
+-- doesn't undo that. Fixed instead with a BEFORE INSERT OR UPDATE trigger,
+-- `protect_profile_privilege_columns`, applied directly via migration -
+-- see [[coldd_security_audit_2026-09-09]] memory for the verified fix.
+--
+-- Items 2-3 (REVOKE EXECUTE on the Robux pool RPCs and get_catalog_revenue)
+-- also needed one more step not written below: Postgres grants EXECUTE to
+-- the implicit PUBLIC pseudo-role by default, so `revoke ... from anon,
+-- authenticated` alone was also a no-op until `revoke ... from public` ran
+-- too. That correction is applied and verified live; not reflected below.
+--
 -- Run once in Supabase Dashboard -> SQL Editor, or `supabase db push`.
 -- Every statement is idempotent. Findings from the 2026-09-09 security pass.
 -- Ordered most-severe first.

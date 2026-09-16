@@ -229,10 +229,12 @@
       color: var(--fg); background: var(--bg); line-height: 1.55; letter-spacing: -0.006em;
       -webkit-font-smoothing: antialiased; overflow-x: hidden;
     }
-    /* Never fall back to the browser's dark-blue visited/default link. A
-       forgotten link class should still read as part of coldd's ember system. */
-    a, a:visited { color: var(--accent-ink); text-decoration-color: rgba(255,128,121,0.52); text-underline-offset: 0.16em; }
-    a:hover { color: var(--fg); text-decoration-color: currentColor; }
+    /* Never fall back to the browser's dark-blue default link. Scoped to
+       unclassed anchors only - a:visited's higher specificity was clobbering
+       every classed button/menu item (.btn-ghost, .account-menu-item, etc.)
+       the moment it had been clicked once. */
+    a:not([class]) { color: var(--accent-ink); text-decoration-color: rgba(255,128,121,0.52); text-underline-offset: 0.16em; }
+    a:not([class]):hover { color: var(--fg); text-decoration-color: currentColor; }
 
     /* Figures that are actually measurements (prices, counts, specs) align in columns. */
     .num, .price, .hn, [data-num] { font-variant-numeric: tabular-nums; font-feature-settings: 'tnum' 1; }

@@ -6221,15 +6221,17 @@
       }
       if (payMethodsWrap) payMethodsWrap.addEventListener('click', function (e) {
         var btn = e.target.closest('.co-pay-btn'); if (!btn) return;
+        if (btn.classList.contains('co-pay-disabled')) return;
         setPayMethod(btn.getAttribute('data-key'));
       });
       // ?method= lets a round trip land back on the method it left from -
       // notably returning from Roblox OAuth after linking to pay in Robux.
       // Validated against the rendered buttons so an arbitrary value cannot
-      // select a method that does not exist.
+      // select a method that does not exist, and a disabled one (crypto,
+      // while awaiting RelayPay verification) can't be forced on either.
       var requestedMethod = new URLSearchParams(location.search).get('method');
       var methodExists = requestedMethod && payMethodsWrap &&
-        payMethodsWrap.querySelector('.co-pay-btn[data-key="' + CSS.escape(requestedMethod) + '"]');
+        payMethodsWrap.querySelector('.co-pay-btn[data-key="' + CSS.escape(requestedMethod) + '"]:not(.co-pay-disabled)');
       setPayMethod(methodExists ? requestedMethod : 'stripe');
 
       var placeBtn = document.getElementById('coPlace'), msg = document.getElementById('coMsg'), agreeErr = document.getElementById('coAgreeErr');

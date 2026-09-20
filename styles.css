@@ -2854,6 +2854,16 @@ html.js .ref-method-btn:focus-visible { outline: 2px solid var(--accent); outlin
 .co-pay-btn--paypal svg { color: var(--brand-paypal); }
 .co-pay-btn--crypto svg { color: var(--brand-crypto); }
 .co-pay-btn--robux .co-pay-robux-ic { color: var(--price); }
+/* Same "always-visible chip" treatment as .oauth-disabled - a dimmed row
+   with no explanation is a dead end on touch, where there's no hover to
+   reveal why. */
+.co-pay-btn.co-pay-disabled { opacity: 0.55; cursor: not-allowed; }
+@media (hover: hover) and (pointer: fine) {
+  .co-pay-btn.co-pay-disabled:hover { border-color: var(--hairline); color: var(--fg-2); }
+}
+.co-pay-inactive-badge { padding: 3px 8px; border-radius: 999px; background: rgba(255,255,255,0.08);
+  border: 1px solid var(--hairline); font-size: 11px; font-weight: 700; letter-spacing: 0.04em;
+  text-transform: uppercase; color: var(--fg-2); white-space: nowrap; }
 .co-pay-panel[hidden] { display: none; }
 .co-pay-soon { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--warn);
   background: var(--warn-tint); border: 1px solid var(--warn-line); border-radius: 10px; padding: 12px 14px; }

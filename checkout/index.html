@@ -17,7 +17,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
 
-  <link rel="stylesheet" href="/styles.css?v=20260920a" />
+  <link rel="stylesheet" href="/styles.css?v=20260920b" />
 </head>
 <body>
   <div class="backdrop"></div>
@@ -313,21 +313,21 @@
       <h3 class="co-offer-title" id="coMethodsTitle">More payment methods</h3>
       <input type="text" class="co-methods-search" id="coMethodsSearch" placeholder="Search by payment method or country" aria-label="Search payment methods" autocomplete="off" />
       <div class="co-methods-grid" id="coMethodsGrid">
-        <button type="button" class="co-method-tile" data-method-type="apple_pay" data-method-country="all regions">Apple Pay</button>
-        <button type="button" class="co-method-tile" data-method-type="google_pay" data-method-country="all regions">Google Pay</button>
-        <button type="button" class="co-method-tile" data-method-type="link" data-method-country="all regions">Link</button>
-        <button type="button" class="co-method-tile" data-method-type="klarna" data-method-country="all regions">Klarna</button>
-        <button type="button" class="co-method-tile" data-method-type="afterpay_clearpay" data-method-country="australia canada new zealand united kingdom united states">Afterpay / Clearpay</button>
-        <button type="button" class="co-method-tile" data-method-type="zip" data-method-country="australia united states">Zip</button>
-        <button type="button" class="co-method-tile" data-method-type="mb_way" data-method-country="portugal">MB WAY</button>
-        <button type="button" class="co-method-tile" data-method-type="satispay" data-method-country="italy">Satispay</button>
-        <button type="button" class="co-method-tile" data-method-type="bancontact" data-method-country="belgium">Bancontact</button>
-        <button type="button" class="co-method-tile" data-method-type="blik" data-method-country="poland">BLIK</button>
-        <button type="button" class="co-method-tile" data-method-type="eps" data-method-country="austria">EPS</button>
-        <button type="button" class="co-method-tile" data-method-type="p24" data-method-country="poland">Przelewy24</button>
-        <button type="button" class="co-method-tile" data-method-type="bizum" data-method-country="spain">Bizum</button>
+        <button type="button" class="co-method-tile" data-method-type="apple_pay" data-method-country="all regions" aria-label="Apple Pay"><img src="/pay-apple_pay.png" alt="" loading="lazy" /></button>
+        <button type="button" class="co-method-tile" data-method-type="google_pay" data-method-country="all regions" aria-label="Google Pay"><img src="/pay-google_pay.png" alt="" loading="lazy" /></button>
+        <button type="button" class="co-method-tile" data-method-type="link" data-method-country="all regions" aria-label="Link"><img src="/pay-link.png" alt="" loading="lazy" /></button>
+        <button type="button" class="co-method-tile" data-method-type="klarna" data-method-country="all regions" aria-label="Klarna"><img src="/pay-klarna.webp" alt="" loading="lazy" /></button>
+        <button type="button" class="co-method-tile" data-method-type="afterpay_clearpay" data-method-country="australia canada new zealand united kingdom united states" aria-label="Afterpay / Clearpay"><img src="/pay-afterpay_clearpay.png" alt="" loading="lazy" /></button>
+        <button type="button" class="co-method-tile" data-method-type="zip" data-method-country="australia united states" aria-label="Zip"><img src="/pay-zip.png" alt="" loading="lazy" /></button>
+        <button type="button" class="co-method-tile" data-method-type="mb_way" data-method-country="portugal" aria-label="MB WAY"><img src="/pay-mb_way.png" alt="" loading="lazy" /></button>
+        <button type="button" class="co-method-tile" data-method-type="satispay" data-method-country="italy" aria-label="Satispay"><img src="/pay-satispay.png" alt="" loading="lazy" /></button>
+        <button type="button" class="co-method-tile" data-method-type="bancontact" data-method-country="belgium" aria-label="Bancontact"><img src="/pay-bancontact.png" alt="" loading="lazy" /></button>
+        <button type="button" class="co-method-tile" data-method-type="blik" data-method-country="poland" aria-label="BLIK"><img src="/pay-blik.webp" alt="" loading="lazy" /></button>
+        <button type="button" class="co-method-tile" data-method-type="eps" data-method-country="austria" aria-label="EPS"><img src="/pay-eps.png" alt="" loading="lazy" /></button>
+        <button type="button" class="co-method-tile" data-method-type="p24" data-method-country="poland" aria-label="Przelewy24"><img src="/pay-p24.png" alt="" loading="lazy" /></button>
+        <button type="button" class="co-method-tile" data-method-type="bizum" data-method-country="spain" aria-label="Bizum"><img src="/pay-bizum.png" alt="" loading="lazy" /></button>
         <button type="button" class="co-method-tile" data-method-type="pay_by_bank" data-method-country="finland united kingdom">Pay by Bank</button>
-        <button type="button" class="co-method-tile" data-method-type="pix" data-method-country="brazil">Pix</button>
+        <button type="button" class="co-method-tile" data-method-type="pix" data-method-country="brazil" aria-label="Pix"><img src="/pay-pix.png" alt="" loading="lazy" /></button>
       </div>
       <p class="co-methods-empty" id="coMethodsEmpty" hidden>No payment methods match your search.</p>
     </div>
@@ -528,7 +528,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.2/dist/umd/supabase.min.js" integrity="sha384-B2duOBIryCXbX4eDE4BdJwtNkQMRQde3o6IsjfPW28E6aH1CYE96hHeZRG3zY56O" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script src="/supabase-init.js?v=20260909a"></script>
   <script src="/site-gate.js?v=20260909a"></script>
-  <script src="/catalog.js?v=20260920c" data-then="/app.js?v=20260920c"></script>
+  <script src="/catalog.js?v=20260920d" data-then="/app.js?v=20260920d"></script>
   <script>
     // Cart badge/total sync from localStorage, ahead of app.js. The fab
     // markup above ships hardcoded at "0"/"$0", and the cart module that

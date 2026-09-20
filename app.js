@@ -6254,7 +6254,10 @@
           q = q.trim().toLowerCase();
           var shown = 0;
           tiles.forEach(function (t) {
-            var hay = (t.textContent + ' ' + (t.getAttribute('data-method-country') || '')).toLowerCase();
+            // Most tiles are logo-only now (aria-label carries the name);
+            // textContent still covers the one text tile (Pay by Bank).
+            var name = t.getAttribute('aria-label') || t.textContent;
+            var hay = (name + ' ' + (t.getAttribute('data-method-country') || '')).toLowerCase();
             var match = !q || hay.indexOf(q) !== -1;
             t.hidden = !match;
             if (match) shown++;

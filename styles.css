@@ -3043,9 +3043,18 @@ html.js .ref-method-btn:focus-visible { outline: 2px solid var(--accent); outlin
   display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
 .co-method-tile { padding: 16px 12px; border-radius: var(--r-sm); background: var(--bg-3); border: 1px solid var(--hairline);
   color: var(--fg); font-family: inherit; font-size: 13px; font-weight: 700; text-align: center; cursor: pointer;
-  transition: border-color .18s var(--ease), background .18s var(--ease); }
+  transition: border-color .18s var(--ease), background .18s var(--ease);
+  display: flex; align-items: center; justify-content: center; min-height: 64px; }
+/* Logo tiles get a white card regardless of theme - most of these brand
+   marks (Apple Pay's black wordmark, Klarna's pink lockup, etc.) are only
+   legible on a light background, same as how Stripe's own checkout shows
+   payment-method icons. The one text-only tile (Pay by Bank, no logo
+   supplied) keeps the ordinary dark tile styling. */
+.co-method-tile:has(img) { background: #fff; padding: 10px 14px; }
+.co-method-tile img { max-width: 100%; max-height: 32px; object-fit: contain; display: block; }
 @media (hover: hover) and (pointer: fine) {
   .co-method-tile:hover { border-color: var(--accent); background: rgba(255,255,255,0.06); }
+  .co-method-tile:has(img):hover { background: #fff; border-color: var(--accent); }
 }
 .co-method-tile[hidden] { display: none; }
 .co-methods-empty { font-size: 13px; color: var(--fg-3); text-align: center; padding: 0 26px 26px; margin: 0; }

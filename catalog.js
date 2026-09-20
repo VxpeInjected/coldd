@@ -378,7 +378,7 @@
       // immediately, even where an older HTML shell is still cached.
       if (/\/(?:app|admin)\.js(?:\?|$)/.test(src)) {
         var hadV = /[?&]v=[^&]*/.test(src);
-        src = hadV ? src.replace(/([?&])v=[^&]*/, '$1v=20260920c') : src + (src.indexOf('?') >= 0 ? '&' : '?') + 'v=20260920c';
+        src = hadV ? src.replace(/([?&])v=[^&]*/, '$1v=20260920d') : src + (src.indexOf('?') >= 0 ? '&' : '?') + 'v=20260920d';
       }
       s.src = src;
       s.onload = function () { loadNext(i + 1); };

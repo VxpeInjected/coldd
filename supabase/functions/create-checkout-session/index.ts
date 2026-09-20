@@ -36,8 +36,54 @@ import { priceItems, resolveCoupon, spendTierDiscount, clampCombinedDiscount, ac
 import { resolveCampaignCode } from "../_shared/campaign.ts";
 import { isSiteInMaintenance } from "../_shared/maintenance.ts";
 import { genClaimToken, sha256Hex } from "../_shared/order_access.ts";
+import { usdTo } from "../_shared/fx.ts";
 
 const ALLOWED_ORIGIN = "https://coldd.dev";
+
+// The "More payment methods" tiles on checkout, beyond the default automatic
+// card flow. Most of these are region-locked to a currency that isn't USD
+// (Stripe simply won't offer them on a USD session), so a click has to
+// reprice the whole order into that currency before Stripe ever sees it.
+// Apple Pay/Google Pay aren't distinct Stripe payment_method_types - they're
+// express wallet buttons that appear automatically on a 'card' session when
+// the browser/device supports them, so both map straight to 'card'/USD, same
+// as the plain Card option.
+const LOCAL_METHOD_CURRENCY: Record<string, string> = {
+  card: "usd",
+  apple_pay: "usd",
+  google_pay: "usd",
+  link: "usd",
+  klarna: "usd",
+  afterpay_clearpay: "usd",
+  zip: "usd",
+  mb_way: "eur",
+  satispay: "eur",
+  bancontact: "eur",
+  blik: "pln",
+  eps: "eur",
+  p24: "eur",
+  bizum: "eur",
+  pay_by_bank: "gbp",
+  pix: "brl",
+};
+// Real Stripe payment_method_types values to restrict the session to -
+// omitted (falls through to Stripe's automatic detection) for card/wallet
+// clicks, since those already work fine on the default unrestricted session.
+const STRIPE_PAYMENT_METHOD_TYPE: Record<string, string> = {
+  link: "link",
+  klarna: "klarna",
+  afterpay_clearpay: "afterpay_clearpay",
+  zip: "zip",
+  mb_way: "mb_way",
+  satispay: "satispay",
+  bancontact: "bancontact",
+  blik: "blik",
+  eps: "eps",
+  p24: "p24",
+  bizum: "bizum",
+  pay_by_bank: "pay_by_bank",
+  pix: "pix",
+};
 
 function corsHeaders() {
   return {
@@ -195,12 +241,29 @@ Deno.serve(async (req: Request) => {
       apiVersion: "2024-06-20",
     });
 
+    // "More payment methods" on checkout - a specific local method the buyer
+    // picked, or unset for the default automatic card flow. Falls back to
+    // the default on anything unrecognised rather than erroring, since this
+    // only ever changes which methods Stripe offers, never whether checkout
+    // works at all.
+    const requestedMethod = String(body.paymentMethodType || "").trim().toLowerCase();
+    const currency = LOCAL_METHOD_CURRENCY[requestedMethod] || "usd";
+    const stripeMethodType = STRIPE_PAYMENT_METHOD_TYPE[requestedMethod];
+
     try {
+      // Reprice into the method's own currency, one line at a time (Stripe
+      // computes its own total from these, so there's no separate "total" to
+      // keep in sync - just each line and the discount).
+      const convert = (amountUsd: number) => usdTo(amountUsd, currency);
+      const lineUnitAmounts = await Promise.all(lines.map((li) => convert(li.unitPrice)));
+      const chargedTotal = await convert(total);
+
       let discounts: { coupon: string }[] | undefined;
       if (discount > 0) {
+        const convertedDiscount = await convert(discount);
         const stripeCoupon = await stripe.coupons.create({
-          amount_off: Math.round(discount * 100),
-          currency: "usd",
+          amount_off: Math.round(convertedDiscount * 100),
+          currency,
           duration: "once",
           name: appliedCouponCode ?? undefined,
         });
@@ -211,10 +274,11 @@ Deno.serve(async (req: Request) => {
         mode: "payment",
         ...(user?.email ? { customer_email: user.email } : {}),
         ...(user ? { client_reference_id: user.id } : {}),
-        line_items: lines.map((li) => ({
+        ...(stripeMethodType ? { payment_method_types: [stripeMethodType] } : {}),
+        line_items: lines.map((li, i) => ({
           price_data: {
-            currency: "usd",
-            unit_amount: Math.round(li.unitPrice * 100),
+            currency,
+            unit_amount: Math.round(lineUnitAmounts[i] * 100),
             product_data: { name: li.title },
           },
           quantity: li.qty,
@@ -225,7 +289,13 @@ Deno.serve(async (req: Request) => {
         metadata: { order_id: order.id },
       });
 
-      await admin.from("orders").update({ stripe_checkout_session_id: session.id }).eq("id", order.id);
+      await admin.from("orders")
+        .update({
+          stripe_checkout_session_id: session.id,
+          stripe_charge_amount: chargedTotal,
+          stripe_charge_currency: currency,
+        })
+        .eq("id", order.id);
 
       // usage_count is incremented by stripe-webhook once the order actually
       // pays, not here - incrementing at session-creation time would count

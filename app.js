@@ -255,14 +255,9 @@
       function buildPopup() {
         var overlay = document.createElement('div');
         overlay.className = 'confirm-overlay';
-        // First A/B experiment: popup headline. 'a' is the original.
-        var abVar = window.__coldAB ? window.__coldAB('popup_copy', ['a', 'b']) : 'a';
-        var abTitle = abVar === 'b'
-          ? 'Here\'s <span class="mkt-popup-pct">10% off</span> your first order.'
-          : 'First order? Take <span class="mkt-popup-pct">10% off</span>.';
         overlay.innerHTML =
           '<div class="confirm-modal mkt-popup-modal">' +
-          '<h3 class="mkt-popup-title">' + abTitle + '</h3>' +
+          '<h3 class="mkt-popup-title">First order? Take <span class="mkt-popup-pct">10% off</span>.</h3>' +
           '<p class="mkt-popup-sub">Get new products and sale events first, plus a one-time code waiting in your inbox the second you sign up.</p>' +
           '<form class="mkt-popup-form" id="mktPopupForm">' +
           '<div class="mkt-popup-field">' +
@@ -302,7 +297,6 @@
               return;
             }
             lsSet(CODE_KEY, data.code);
-            if (window.__coldABConvert) window.__coldABConvert('popup_copy');
             hideTab(true);
             form.hidden = true;
             var no = overlay.querySelector('#mktPopupNo'); if (no) no.hidden = true;
@@ -6165,8 +6159,13 @@
       });
 
       var payMethod = 'stripe';
+      // Set by a "More payment methods" tile click; cleared whenever the
+      // method selection changes so a stale local method never survives a
+      // switch away from and back to Card.
+      var selectedPaymentMethodType = '';
       var payMethodsWrap = document.getElementById('coPayMethods');
       function setPayMethod(key) {
+        selectedPaymentMethodType = '';
         var btns = payMethodsWrap ? payMethodsWrap.querySelectorAll('.co-pay-btn') : [];
         var picked = null;
         btns.forEach(function (b) {
@@ -6233,6 +6232,47 @@
       var methodExists = requestedMethod && payMethodsWrap &&
         payMethodsWrap.querySelector('.co-pay-btn[data-key="' + CSS.escape(requestedMethod) + '"]:not(.co-pay-disabled)');
       setPayMethod(methodExists ? requestedMethod : 'stripe');
+
+      // "More payment methods" - a searchable tile grid of Stripe's local
+      // payment methods (see LOCAL_METHOD_CURRENCY in create-checkout-session
+      // for why most of these need their own currency, not USD). Picking one
+      // sets selectedPaymentMethodType and places the order exactly like the
+      // plain Card flow does.
+      (function () {
+        var openBtn = document.getElementById('coMoreMethodsBtn');
+        var modal = document.getElementById('coMoreMethodsModal');
+        var closeBtn = document.getElementById('coMethodsClose');
+        var searchInput = document.getElementById('coMethodsSearch');
+        var grid = document.getElementById('coMethodsGrid');
+        var emptyEl = document.getElementById('coMethodsEmpty');
+        if (!openBtn || !modal || !grid) return;
+        var tiles = Array.prototype.slice.call(grid.querySelectorAll('.co-method-tile'));
+
+        function openModal() { modal.hidden = false; if (searchInput) { searchInput.value = ''; filterTiles(''); searchInput.focus(); } }
+        function closeModal() { modal.hidden = true; }
+        function filterTiles(q) {
+          q = q.trim().toLowerCase();
+          var shown = 0;
+          tiles.forEach(function (t) {
+            var hay = (t.textContent + ' ' + (t.getAttribute('data-method-country') || '')).toLowerCase();
+            var match = !q || hay.indexOf(q) !== -1;
+            t.hidden = !match;
+            if (match) shown++;
+          });
+          if (emptyEl) emptyEl.hidden = shown > 0;
+        }
+
+        openBtn.addEventListener('click', openModal);
+        if (closeBtn) closeBtn.addEventListener('click', closeModal);
+        modal.addEventListener('click', function (e) { if (e.target === modal) closeModal(); });
+        if (searchInput) searchInput.addEventListener('input', function () { filterTiles(searchInput.value); });
+        grid.addEventListener('click', function (e) {
+          var tile = e.target.closest('.co-method-tile'); if (!tile) return;
+          selectedPaymentMethodType = tile.getAttribute('data-method-type') || '';
+          closeModal();
+          tryPlaceOrder();
+        });
+      })();
 
       var placeBtn = document.getElementById('coPlace'), msg = document.getElementById('coMsg'), agreeErr = document.getElementById('coAgreeErr');
       // Robux never goes through create-checkout-session - it leases a pool
@@ -6636,6 +6676,7 @@
           checkoutBody.guestName = ((document.getElementById('coCryptoGuestName') || {}).value || '').trim();
           checkoutBody.guestEmail = ((document.getElementById('coCryptoGuestEmail') || {}).value || '').trim();
         }
+        if (payMethod === 'stripe' && selectedPaymentMethodType) checkoutBody.paymentMethodType = selectedPaymentMethodType;
         // A "Build more for less" or wishlist-reminder token, if this cart
         // came from either - priceItems() silently ignores it if it's
         // expired, unknown, or none of its slugs are actually in this

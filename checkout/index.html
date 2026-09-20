@@ -133,7 +133,7 @@
               <span class="co-pay-ic"><svg viewBox="0 -960 960 960" width="20" height="20" fill="currentColor"><path d="M880-720v480q0 33-23.5 56.5T800-160H160q-33 0-56.5-23.5T80-240v-480q0-33 23.5-56.5T160-800h640q33 0 56.5 23.5T880-720Zm-720 80h640v-80H160v80Zm0 160v240h640v-240H160Zm0 240v-480 480Z"/></svg></span>
               <span class="co-pay-tx">
                 <span class="co-pay-name">Card</span>
-                <span class="co-pay-sub">Debit &amp; Credit Card, Apple&nbsp;Pay, Buy&nbsp;Now&nbsp;Pay&nbsp;Later &amp; more via Stripe</span>
+                <span class="co-pay-sub">Checkout through Stripe</span>
               </span>
               <span class="co-pay-amt" data-pay-amt="stripe"></span>
             </button>
@@ -186,7 +186,13 @@
           <p class="co-pay-settle" id="coPaySettle"></p>
 
           <div id="payCard" class="co-pay-panel" data-method-panel="stripe">
-            <p class="co-hint">You'll choose exactly how to pay on Stripe's secure checkout page after placing your order.</p>
+            <p class="co-hint">You'll complete your purchase in a secure checkout via Stripe</p>
+            <!-- Local payment methods, beyond the automatic card flow. Each
+                 tile restricts the Stripe session to that one method,
+                 repriced into whatever currency it actually accepts (see
+                 LOCAL_METHOD_CURRENCY in create-checkout-session) - most of
+                 these are region-locked and can't take USD at all. -->
+            <button type="button" class="co-more-methods-bar" id="coMoreMethodsBtn">More payment methods</button>
           </div>
           <div id="coPayCryptoPanel" class="co-pay-panel" data-method-panel="crypto" hidden>
             <p class="co-hint">You'll pick a coin and get a payment address on the next page. Crypto confirms on the network, so your order completes once the payment is confirmed, usually within a few minutes. You can safely close the tab; we'll finish it either way.</p>
@@ -291,6 +297,37 @@
           <button class="btn btn-primary" type="button" id="coOfferPlace">Place order</button>
         </div>
       </div>
+    </div>
+  </div>
+
+  <!-- Local Stripe payment methods, beyond the default automatic card flow.
+       Each tile's data-method-type is looked up server-side in
+       LOCAL_METHOD_CURRENCY/STRIPE_PAYMENT_METHOD_TYPE (create-checkout-session)
+       to reprice the order into whatever currency that method actually
+       accepts before Stripe ever sees the session. -->
+  <div class="confirm-overlay" id="coMoreMethodsModal" hidden>
+    <div class="confirm-modal co-methods" role="dialog" aria-modal="true" aria-labelledby="coMethodsTitle">
+      <button class="mkt-popup-x" type="button" id="coMethodsClose" aria-label="Close"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M5 5l14 14M19 5 5 19"/></svg></button>
+      <h3 class="co-offer-title" id="coMethodsTitle">More payment methods</h3>
+      <input type="text" class="co-methods-search" id="coMethodsSearch" placeholder="Search by payment method or country" aria-label="Search payment methods" autocomplete="off" />
+      <div class="co-methods-grid" id="coMethodsGrid">
+        <button type="button" class="co-method-tile" data-method-type="apple_pay" data-method-country="all regions">Apple Pay</button>
+        <button type="button" class="co-method-tile" data-method-type="google_pay" data-method-country="all regions">Google Pay</button>
+        <button type="button" class="co-method-tile" data-method-type="link" data-method-country="all regions">Link</button>
+        <button type="button" class="co-method-tile" data-method-type="klarna" data-method-country="all regions">Klarna</button>
+        <button type="button" class="co-method-tile" data-method-type="afterpay_clearpay" data-method-country="australia canada new zealand united kingdom united states">Afterpay / Clearpay</button>
+        <button type="button" class="co-method-tile" data-method-type="zip" data-method-country="australia united states">Zip</button>
+        <button type="button" class="co-method-tile" data-method-type="mb_way" data-method-country="portugal">MB WAY</button>
+        <button type="button" class="co-method-tile" data-method-type="satispay" data-method-country="italy">Satispay</button>
+        <button type="button" class="co-method-tile" data-method-type="bancontact" data-method-country="belgium">Bancontact</button>
+        <button type="button" class="co-method-tile" data-method-type="blik" data-method-country="poland">BLIK</button>
+        <button type="button" class="co-method-tile" data-method-type="eps" data-method-country="austria">EPS</button>
+        <button type="button" class="co-method-tile" data-method-type="p24" data-method-country="poland">Przelewy24</button>
+        <button type="button" class="co-method-tile" data-method-type="bizum" data-method-country="spain">Bizum</button>
+        <button type="button" class="co-method-tile" data-method-type="pay_by_bank" data-method-country="finland united kingdom">Pay by Bank</button>
+        <button type="button" class="co-method-tile" data-method-type="pix" data-method-country="brazil">Pix</button>
+      </div>
+      <p class="co-methods-empty" id="coMethodsEmpty" hidden>No payment methods match your search.</p>
     </div>
   </div>
 

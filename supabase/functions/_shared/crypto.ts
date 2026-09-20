@@ -18,6 +18,8 @@
 // in a crypto wallet. NOWPayments is kept below, dormant, as a fallback -
 // see activeProvider().
 
+import { usdTo } from "./fx.ts";
+
 export type ChargeResult =
   | { ok: true; url: string; providerId: string; settleAmount: number; settleCurrency: string }
   | { ok: false; error: string };
@@ -207,27 +209,16 @@ async function sha256Hex(message: string): Promise<string> {
   return Array.from(new Uint8Array(digest)).map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
-/** RelayPay settles in the fiat currency the charge was created in (there is
- *  no separate invoice-vs-settlement currency), so a USD order total has to
- *  become an AUD figure before it reaches them. Frankfurter is ECB-sourced,
- *  free, and needs no API key - fine for a same-day rate, not for anything
- *  that needs tick-level accuracy. */
-async function usdToAud(amountUsd: number): Promise<number> {
-  const res = await fetch("https://api.frankfurter.app/latest?from=USD&to=AUD");
-  if (!res.ok) throw new Error("Could not fetch a USD/AUD exchange rate.");
-  const data = await res.json();
-  const rate = Number(data?.rates?.AUD ?? NaN);
-  if (!Number.isFinite(rate) || rate <= 0) throw new Error("Got an invalid USD/AUD exchange rate.");
-  return Math.round(amountUsd * rate * 100) / 100;
-}
-
 export const relayPay: CryptoProvider = {
   name: "relaypay",
 
   async createCharge(input) {
+    // RelayPay settles in the fiat currency the charge was created in (there
+    // is no separate invoice-vs-settlement currency), so a USD order total
+    // has to become an AUD figure before it reaches them.
     let amountAud: number;
     try {
-      amountAud = await usdToAud(input.amountUsd);
+      amountAud = await usdTo(input.amountUsd, "AUD");
     } catch (e) {
       return { ok: false, error: e instanceof Error ? e.message : "Currency conversion failed." };
     }

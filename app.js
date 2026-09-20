@@ -6268,6 +6268,11 @@
         if (searchInput) searchInput.addEventListener('input', function () { filterTiles(searchInput.value); });
         grid.addEventListener('click', function (e) {
           var tile = e.target.closest('.co-method-tile'); if (!tile) return;
+          // These are all Stripe-only methods, so picking one has to force
+          // the method over to Stripe even if PayPal/Crypto/Robux was
+          // selected - setPayMethod() runs first because it clears
+          // selectedPaymentMethodType as a side effect.
+          setPayMethod('stripe');
           selectedPaymentMethodType = tile.getAttribute('data-method-type') || '';
           closeModal();
           tryPlaceOrder();

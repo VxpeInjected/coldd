@@ -180,6 +180,14 @@
               <span class="co-pay-amt" data-pay-amt="robux"></span>
             </button>
           </div>
+          <!-- Local Stripe payment methods, beyond the four tiles above.
+               Visible regardless of which method is currently selected -
+               picking a tile switches to Stripe and restricts that session
+               to that one method, repriced into whatever currency it
+               actually accepts (see LOCAL_METHOD_CURRENCY in
+               create-checkout-session) since most of these are region-locked
+               and can't take USD at all. -->
+          <button type="button" class="co-more-methods-bar" id="coMoreMethodsBtn">More payment methods</button>
           <!-- The one honest line about what actually leaves the account.
                Every method settles the same flat USD amount; the figures above
                are that amount expressed in each method's own unit. -->
@@ -187,12 +195,6 @@
 
           <div id="payCard" class="co-pay-panel" data-method-panel="stripe">
             <p class="co-hint">You'll complete your purchase in a secure checkout via Stripe</p>
-            <!-- Local payment methods, beyond the automatic card flow. Each
-                 tile restricts the Stripe session to that one method,
-                 repriced into whatever currency it actually accepts (see
-                 LOCAL_METHOD_CURRENCY in create-checkout-session) - most of
-                 these are region-locked and can't take USD at all. -->
-            <button type="button" class="co-more-methods-bar" id="coMoreMethodsBtn">More payment methods</button>
           </div>
           <div id="coPayCryptoPanel" class="co-pay-panel" data-method-panel="crypto" hidden>
             <p class="co-hint">You'll pick a coin and get a payment address on the next page. Crypto confirms on the network, so your order completes once the payment is confirmed, usually within a few minutes. You can safely close the tab; we'll finish it either way.</p>
@@ -526,7 +528,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.2/dist/umd/supabase.min.js" integrity="sha384-B2duOBIryCXbX4eDE4BdJwtNkQMRQde3o6IsjfPW28E6aH1CYE96hHeZRG3zY56O" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script src="/supabase-init.js?v=20260909a"></script>
   <script src="/site-gate.js?v=20260909a"></script>
-  <script src="/catalog.js?v=20260920a" data-then="/app.js?v=20260920a"></script>
+  <script src="/catalog.js?v=20260920a" data-then="/app.js?v=20260920b"></script>
   <script>
     // Cart badge/total sync from localStorage, ahead of app.js. The fab
     // markup above ships hardcoded at "0"/"$0", and the cart module that

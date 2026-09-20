@@ -377,8 +377,8 @@
       // runtime an explicit revision here so every page gets behavioural fixes
       // immediately, even where an older HTML shell is still cached.
       if (/\/(?:app|admin)\.js(?:\?|$)/.test(src)) {
-        src = src.replace(/([?&])v=[^&]*/, '$1v=20260915k');
-        if (src === scripts[i]) src += (src.indexOf('?') >= 0 ? '&' : '?') + 'v=20260915k';
+        var hadV = /[?&]v=[^&]*/.test(src);
+        src = hadV ? src.replace(/([?&])v=[^&]*/, '$1v=20260920c') : src + (src.indexOf('?') >= 0 ? '&' : '?') + 'v=20260920c';
       }
       s.src = src;
       s.onload = function () { loadNext(i + 1); };

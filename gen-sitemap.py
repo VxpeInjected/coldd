@@ -6,14 +6,9 @@ derived from the checked-in files. This pulls the active products over the
 public REST endpoint with the same publishable key the site itself ships, and
 falls back to the static pages alone if the network is unavailable.
 
-Blog posts and tutorials come from the `content` table when it has rows, and
-otherwise from the SEED arrays in blog.js, which is the same precedence the
-front end applies.
-
 Usage:  python3 gen-sitemap.py
 """
 import json
-import re
 import sys
 import urllib.error
 import urllib.request
@@ -36,8 +31,6 @@ SKIP_SLUGS = {'guess-the-number-test'}
 STATIC_PAGES = [
     ('/', 'weekly', '1.0'),
     ('/shop', 'weekly', '0.9'),
-    ('/blog', 'weekly', '0.7'),
-    ('/releases', 'weekly', '0.6'),
     ('/faq', 'monthly', '0.6'),
     ('/about', 'monthly', '0.5'),
     ('/resell-license', 'yearly', '0.3'),
@@ -82,33 +75,6 @@ def products():
     return out
 
 
-def seed_slugs(kind):
-    """Pull slugs out of the SEED_POSTS / SEED_TUTORIALS arrays in blog.js."""
-    js = (ROOT / 'blog.js').read_text()
-    m = re.search(r'SEED_%s\s*=\s*\[(.*?)\n\s*\];' % kind, js, re.S)
-    if not m:
-        return []
-    body = m.group(1)
-    slugs = re.findall(r"slug:\s*'([^']+)'", body)
-    dates = re.findall(r"date:\s*'(\d{4}-\d{2}-\d{2})'", body)
-    return list(zip(slugs, dates + [None] * (len(slugs) - len(dates))))
-
-
-def content(kind, path_fmt, priority):
-    """Live `content` rows if present, else the blog.js seeds."""
-    rows = []
-    try:
-        rows = fetch("content?select=slug,data,visible&type=eq.%s" % kind)
-    except (urllib.error.URLError, TimeoutError, json.JSONDecodeError):
-        rows = []
-    if rows:
-        return [(path_fmt % r['slug'], 'monthly', priority,
-                 iso_day((r.get('data') or {}).get('date')))
-                for r in rows if r.get('slug') and r.get('visible') is not False]
-    seeds = seed_slugs('POSTS' if kind == 'post' else 'TUTORIALS')
-    return [(path_fmt % slug, 'monthly', priority, d) for slug, d in seeds]
-
-
 def esc(u):
     return u.replace('&', '&amp;')
 
@@ -117,8 +83,6 @@ def main():
     today = date.today().isoformat()
     entries = [(p, f, pr, today) for p, f, pr in STATIC_PAGES]
     entries += products()
-    entries += content('post', '/post?slug=%s', '0.6')
-    entries += content('tutorial', '/tutorial?slug=%s', '0.6')
 
     lines = ['<?xml version="1.0" encoding="UTF-8"?>',
              '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">']

@@ -964,7 +964,7 @@
       // .menu-btn is the hamburger shown <=900px (see styles.css) once
       // .nav-links itself is hidden - it previously had no click handler
       // anywhere in the codebase, so there was no way to reach Home/Shop/
-      // Blog/About from the header on mobile at all. Reuses .nav-links
+      // About from the header on mobile at all. Reuses .nav-links
       // (search bar included) as a full-screen overlay instead of building
       // separate markup.
       const menuBtn = document.querySelector('.menu-btn');
@@ -2297,7 +2297,7 @@
       document.addEventListener('click', function (e) {
         const a = e.target.closest('a'); if (!a || a.target === '_blank') return;
         const href = a.getAttribute('href') || '';
-        if (!/^\/(assets|about|blog|post|tutorial|releases)?(\?|#|$)/.test(href)) return;
+        if (!/^\/(assets|about)?(\?|#|$)/.test(href)) return;
 
         const here = location.pathname.split('/').pop() || '/';
         const target = href.split(/[?#]/)[0] || '/';

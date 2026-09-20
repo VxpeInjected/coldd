@@ -1,19 +1,18 @@
 // coldd.dev - social preview (Open Graph / Twitter Card) injector.
 //
-// Why this exists: /product and /post are single static shells that render
-// whichever record the query string names entirely client-side (see
-// window.coldSeo in catalog.js). That's enough for Google, which renders
-// JS - but Discord, X, Slack, iMessage and WhatsApp link-preview bots fetch
-// the raw HTML only and never run a script, so every shared product or post
-// link showed the same generic banner.jpg and "Product - coldd Development"
-// title. This Worker rewrites the <head> tags at the edge, before the
+// Why this exists: /product is a single static shell that renders whichever
+// record the query string names entirely client-side (see window.coldSeo in
+// catalog.js). That's enough for Google, which renders JS - but Discord, X,
+// Slack, iMessage and WhatsApp link-preview bots fetch the raw HTML only and
+// never run a script, so every shared product link showed the same generic
+// banner.jpg and "Product - coldd Development" title. This Worker rewrites
+// the <head> tags at the edge, before the
 // response reaches the client, so those crawlers see the real one.
 //
 // Deploy: Cloudflare dashboard -> Workers & Pages -> Create -> paste this
 // file -> Deploy. Then add a route so it sits in front of the site:
 // Workers & Pages -> your worker -> Settings -> Triggers -> Add route
 //   coldd.dev/product*   (zone: coldd.dev)
-//   coldd.dev/post*      (zone: coldd.dev)
 // No route is needed for any other path - everything else passes through
 // untouched via fetch(request), so this can't break the rest of the site.
 //
@@ -62,23 +61,6 @@ async function fetchProduct(id) {
   };
 }
 
-async function fetchPost(slug) {
-  var url = SUPABASE_URL + '/rest/v1/content?slug=eq.' + encodeURIComponent(slug) +
-    '&type=eq.post&visible=eq.true&select=data&limit=1';
-  var res = await fetch(url, { headers: { apikey: SUPABASE_ANON_KEY, Authorization: 'Bearer ' + SUPABASE_ANON_KEY } });
-  if (!res.ok) return null;
-  var rows = await res.json();
-  var d = rows[0] && rows[0].data;
-  if (!d) return null;
-  return {
-    title: 'coldd Blog - ' + d.title,
-    description: clamp(d.dek || d.title, 300),
-    image: absoluteImage(d.cover),
-    type: 'article',
-    path: '/post?slug=' + encodeURIComponent(slug)
-  };
-}
-
 function rewriteHead(html, meta) {
   var url = ORIGIN + meta.path;
   var replacements = [
@@ -109,25 +91,22 @@ export default {
 
     // The canonical product URL is path-based (/product/<slug>); the old
     // query form (/product?id=<slug>) still resolves for any link that
-    // predates the change. Posts stay on /post?slug=<slug>.
+    // predates the change.
     var prodPath = url.pathname.match(/^\/product\/([^\/]+)\/?$/);
     var isProduct = !!prodPath || url.pathname === '/product' || url.pathname === '/product/';
-    var isPost = url.pathname === '/post' || url.pathname === '/post/';
-    if (!isProduct && !isPost) return fetch(request);
+    if (!isProduct) return fetch(request);
 
-    var id = prodPath ? decodeURIComponent(prodPath[1])
-      : isProduct ? url.searchParams.get('id')
-      : url.searchParams.get('slug');
+    var id = prodPath ? decodeURIComponent(prodPath[1]) : url.searchParams.get('id');
     if (!id) return fetch(request);
 
     // /product/<slug> has no file on the static origin, so fetch the shell;
-    // a plain /product(/) or /post(/) request fetches itself.
+    // a plain /product(/) request fetches itself.
     var originResponse = await fetch(prodPath ? (ORIGIN + '/product/') : request);
     var contentType = originResponse.headers.get('content-type') || '';
     if (!contentType.includes('text/html') || !originResponse.ok) return originResponse;
 
     try {
-      var meta = isProduct ? await fetchProduct(id) : await fetchPost(id);
+      var meta = await fetchProduct(id);
       if (!meta) return originResponse;
 
       var html = await originResponse.text();

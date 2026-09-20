@@ -25,8 +25,6 @@ breadcrumb, and an aggregate rating when the product has approved reviews).
 ## Company
 
 - [About coldd](https://coldd.dev/about): who the team is and how the studio works.
-- [Blog & Tutorials](https://coldd.dev/blog): development devlogs and Roblox/Luau how-to articles written by the team.
-- [Releases](https://coldd.dev/releases): version history and changelogs for products.
 - [Reviews](https://coldd.dev/reviews): verified buyer reviews.
 - [FAQ](https://coldd.dev/faq): buying, licensing, downloads and support.
 - [Contact](https://coldd.dev/contact): support form. Support email: support@coldd.dev. Community: https://discord.gg/coldd

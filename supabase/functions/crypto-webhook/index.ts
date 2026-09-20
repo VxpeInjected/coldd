@@ -56,7 +56,7 @@ Deno.serve(async (req: Request) => {
 
     const { data: order } = await admin
       .from("orders")
-      .select("id, status, total_usd, coupon_code, crypto_charge_id")
+      .select("id, status, coupon_code, crypto_charge_id, crypto_settle_amount, crypto_settle_currency")
       .eq("id", verified.orderId)
       .maybeSingle();
     if (!order) {
@@ -67,12 +67,18 @@ Deno.serve(async (req: Request) => {
     if (order.status === "paid") return json({ ok: true, alreadyPaid: true });
 
     // 4. The invoice amount we set must still match what this order is worth.
-    const expected = Number(order.total_usd);
-    if (!Number.isFinite(verified.amountUsd) || Math.abs(verified.amountUsd - expected) > 0.005) {
+    // Compared against crypto_settle_amount/currency (what was actually
+    // invoiced to the provider), NEVER total_usd - RelayPay settles in AUD,
+    // so total_usd is the wrong currency to compare against and would either
+    // reject every real payment or silently accept a short one.
+    const expected = Number(order.crypto_settle_amount);
+    const currencyMatches = String(order.crypto_settle_currency ?? "").toLowerCase() === verified.settleCurrency.toLowerCase();
+    if (!currencyMatches || !Number.isFinite(verified.settleAmount) || Math.abs(verified.settleAmount - expected) > 0.005) {
       // Deliberately loud: a signed payload whose amount disagrees with our own
-      // order total means either a pricing bug or a compromised secret.
+      // stored charge means either a pricing bug or a compromised secret.
       console.error("crypto-webhook: amount mismatch", {
-        orderId: order.id, got: verified.amountUsd, expected,
+        orderId: order.id, got: verified.settleAmount, gotCurrency: verified.settleCurrency,
+        expected, expectedCurrency: order.crypto_settle_currency,
       });
       return json({ ok: true, ignored: true });
     }

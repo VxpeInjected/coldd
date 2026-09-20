@@ -104,6 +104,24 @@ Deno.serve(async (req: Request) => {
       giftRecipientId = recipientId;
     }
 
+    // RelayPay requires a name and email on the create-transaction call;
+    // NOWPayments ignores both. Signed-in buyers use their account email and
+    // (when set) their username; guests must supply both at checkout - see
+    // the coCryptoGuestName/Email fields in checkout/index.html.
+    let customerName = "";
+    let customerEmail = "";
+    if (user) {
+      customerEmail = user.email ?? "";
+      const { data: profile } = await admin.from("profiles").select("username").eq("id", user.id).maybeSingle();
+      customerName = profile?.username || customerEmail;
+    } else {
+      customerName = String(body.guestName || "").trim();
+      customerEmail = String(body.guestEmail || "").trim();
+    }
+    if (!customerName || !customerEmail) {
+      return json({ ok: false, error: "A name and email are required to pay with crypto." }, 400);
+    }
+
     const { data: order, error: orderErr } = await admin
       .from("orders")
       .insert({
@@ -156,6 +174,8 @@ Deno.serve(async (req: Request) => {
       returnUrl: `${siteUrl}/success/?provider=crypto&orderId=${order.id}${isGuest ? `&t=${claimToken}` : ""}`,
       cancelUrl: `${siteUrl}/checkout/?canceled=1`,
       callbackUrl: `${supabaseUrl}/functions/v1/crypto-webhook`,
+      customerName,
+      customerEmail,
     });
 
     if (!charge.ok) {
@@ -164,7 +184,11 @@ Deno.serve(async (req: Request) => {
     }
 
     await admin.from("orders")
-      .update({ crypto_charge_id: charge.providerId })
+      .update({
+        crypto_charge_id: charge.providerId,
+        crypto_settle_amount: charge.settleAmount,
+        crypto_settle_currency: charge.settleCurrency,
+      })
       .eq("id", order.id);
 
     return json({ ok: true, url: charge.url, orderId: order.id });

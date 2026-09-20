@@ -5824,6 +5824,8 @@
         if (g) g.hidden = loggedIn;
         if (u) u.hidden = !loggedIn;
         updateGiftSignInGate();
+        var cryptoGuestBlockEl = document.getElementById('coCryptoGuestBlock');
+        if (cryptoGuestBlockEl) cryptoGuestBlockEl.hidden = payMethod !== 'crypto' || loggedIn;
       }
       function refreshSession() {
         if (!window.coldSupabase) { loggedIn = false; applySessionUI(); return; }
@@ -6177,6 +6179,11 @@
         document.querySelectorAll('.co-pay-panel').forEach(function (p) {
           p.hidden = p.getAttribute('data-method-panel') !== method;
         });
+        // RelayPay (our crypto provider) requires a name and email on the
+        // create-transaction call; signed-in buyers already have both on
+        // their account, so this only needs to show for guests.
+        var cryptoGuestBlockEl = document.getElementById('coCryptoGuestBlock');
+        if (cryptoGuestBlockEl) cryptoGuestBlockEl.hidden = method !== 'crypto' || loggedIn;
         var placeBtnEl = document.getElementById('coPlace');
         if (placeBtnEl) {
           // Explicit per method. This used to be an if/else-if/else where the
@@ -6560,6 +6567,19 @@
           if (giftBlock && giftBlock.scrollIntoView) giftBlock.scrollIntoView({ behavior: 'smooth', block: 'center' });
           return false;
         }
+        // Crypto (RelayPay) requires a name and email on the create-transaction
+        // call; signed-in buyers already have both on their account.
+        if (payMethod === 'crypto' && !loggedIn) {
+          var cgName = (document.getElementById('coCryptoGuestName') || {}).value || '';
+          var cgEmail = (document.getElementById('coCryptoGuestEmail') || {}).value || '';
+          var cgMsg = document.getElementById('coCryptoGuestMsg');
+          if (!cgName.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cgEmail.trim())) {
+            if (cgMsg) { cgMsg.className = 'co-coupon-msg no'; cgMsg.textContent = 'Enter your name and a valid email to pay with crypto as a guest.'; }
+            var cgBlock = document.getElementById('coCryptoGuestBlock');
+            if (cgBlock && cgBlock.scrollIntoView) cgBlock.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            return false;
+          }
+        }
         return true;
       }
 
@@ -6610,6 +6630,10 @@
         if (window.coldAuth && window.coldAuth.getCampaignCode()) checkoutBody.campaignCode = window.coldAuth.getCampaignCode();
         if (giftToggle && giftToggle.checked && giftRecipientUserId) checkoutBody.giftRecipientUserId = giftRecipientUserId;
         if (coMktToggle && coMktToggle.checked) checkoutBody.marketingOptIn = true;
+        if (payMethod === 'crypto' && !loggedIn) {
+          checkoutBody.guestName = ((document.getElementById('coCryptoGuestName') || {}).value || '').trim();
+          checkoutBody.guestEmail = ((document.getElementById('coCryptoGuestEmail') || {}).value || '').trim();
+        }
         // A "Build more for less" or wishlist-reminder token, if this cart
         // came from either - priceItems() silently ignores it if it's
         // expired, unknown, or none of its slugs are actually in this

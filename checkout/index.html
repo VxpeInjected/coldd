@@ -186,6 +186,12 @@
           </div>
           <div id="coPayCryptoPanel" class="co-pay-panel" data-method-panel="crypto" hidden>
             <p class="co-hint">You'll pick a coin and get a payment address on the next page. Crypto confirms on the network, so your order completes once the payment is confirmed, usually within a few minutes. You can safely close the tab; we'll finish it either way.</p>
+            <div id="coCryptoGuestBlock" hidden>
+              <p class="co-hint">Our crypto processor requires a name and email for the payment receipt.</p>
+              <div class="co-coupon"><input type="text" id="coCryptoGuestName" placeholder="Full name" aria-label="Full name" autocomplete="name" /></div>
+              <div class="co-coupon"><input type="email" id="coCryptoGuestEmail" placeholder="Email address" aria-label="Email address" autocomplete="email" /></div>
+              <div class="co-coupon-msg" id="coCryptoGuestMsg"></div>
+            </div>
           </div>
           <div id="coPayRobuxPanel" class="co-pay-panel" data-method-panel="robux" hidden>
             <div id="coRobuxResellBlock" class="co-pay-soon" hidden>Resell-licence items in your cart aren't priced in Robux and won't be included in this order - only standard-licence items below will be charged. Pay for resell items with Stripe/PayPal instead.</div>

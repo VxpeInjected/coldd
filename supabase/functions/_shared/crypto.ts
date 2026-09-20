@@ -3,20 +3,23 @@
 // Everything above this file talks to CryptoProvider, never to a vendor
 // directly. That boundary exists for a specific reason: Coinbase Commerce was
 // the original choice and turned out to be unavailable to Australian
-// merchants, and the same could happen again. Swapping provider should be one
-// implementation here plus new secrets - not a rewrite of the order flow.
+// merchants, NOWPayments (the second) settles to a wallet with no automated
+// bank payout, and the same kind of surprise could happen again. Swapping
+// provider should be one implementation here plus new secrets - not a
+// rewrite of the order flow.
 //
 // The interface is deliberately the narrowest thing that supports a hosted
 // redirect checkout:
 //   createCharge  - mint a payment page for an order we have already priced
 //   verifyWebhook - prove an inbound status callback really came from them
 //
-// NOWPayments is the first implementation. It is non-custodial (funds settle
-// to your own wallet), has no infrastructure to run, and unlike a self-hosted
-// gateway costs nothing when idle - which matters at zero volume.
+// RelayPay is the active implementation: AUSTRAC-registered, and settles
+// same-day to an Australian bank account rather than leaving funds sitting
+// in a crypto wallet. NOWPayments is kept below, dormant, as a fallback -
+// see activeProvider().
 
 export type ChargeResult =
-  | { ok: true; url: string; providerId: string }
+  | { ok: true; url: string; providerId: string; settleAmount: number; settleCurrency: string }
   | { ok: false; error: string };
 
 export interface CryptoProvider {
@@ -28,14 +31,26 @@ export interface CryptoProvider {
     returnUrl: string;
     cancelUrl: string;
     callbackUrl: string;
+    /** Required by RelayPay; ignored by providers that don't need it. */
+    customerName: string;
+    customerEmail: string;
   }): Promise<ChargeResult>;
   /**
    * Returns the coldd order id when the payload is authentic AND represents a
    * settled payment. Anything else returns null - the caller must never
    * fulfil on an unverified or non-final callback.
+   *
+   * settleAmount/settleCurrency are whatever currency the charge was actually
+   * created in (see createCharge's return) - NOT always USD. NOWPayments
+   * invoices in USD, so the two happen to be the same there; RelayPay invoices
+   * (and settles) in AUD, converted from the order's USD total at charge time.
+   * The caller must compare this against the order's own stored
+   * crypto_settle_amount/crypto_settle_currency, never against total_usd
+   * directly - comparing an AUD figure to a USD total would either reject
+   * every real payment or (worse) accept a short one.
    */
   verifyWebhook(rawBody: string, headers: Headers): Promise<
-    { orderId: string; providerId: string; amountUsd: number } | null
+    { orderId: string; providerId: string; settleAmount: number; settleCurrency: string } | null
   >;
 }
 
@@ -110,7 +125,13 @@ export const nowPayments: CryptoProvider = {
       // this lands in function logs.
       return { ok: false, error: `Crypto provider rejected the charge (${res.status}).` };
     }
-    return { ok: true, url: String(data.invoice_url), providerId: String(data.id ?? "") };
+    return {
+      ok: true,
+      url: String(data.invoice_url),
+      providerId: String(data.id ?? ""),
+      settleAmount: Math.round(input.amountUsd * 100) / 100,
+      settleCurrency: "usd",
+    };
   },
 
   async verifyWebhook(rawBody, headers) {
@@ -150,17 +171,165 @@ export const nowPayments: CryptoProvider = {
       orderId,
       providerId: String(parsed.payment_id ?? parsed.invoice_id ?? ""),
       // price_amount is the USD figure WE set on the invoice. The caller still
-      // re-checks it against the order total, so a tampered-but-signed payload
-      // cannot under-pay.
-      amountUsd: Number(parsed.price_amount ?? NaN),
+      // re-checks it against the order's stored charge amount, so a
+      // tampered-but-signed payload cannot under-pay.
+      settleAmount: Number(parsed.price_amount ?? NaN),
+      settleCurrency: "usd",
+    };
+  },
+};
+
+const RELAYPAY_HOSTS: Record<string, string> = {
+  sandbox: "https://api.sandbox.relaypay.io",
+  production: "https://api.relaypay.io",
+};
+
+function relaypayBase(): string {
+  const env = (Deno.env.get("RELAYPAY_ENV") ?? "sandbox").trim().toLowerCase();
+  return RELAYPAY_HOSTS[env] ?? RELAYPAY_HOSTS.sandbox;
+}
+
+function relaypayCreds(): { publicKey: string; privateKey: string; merchantId: string; storeName: string } {
+  const publicKey = (Deno.env.get("RELAYPAY_PUBLIC_KEY") ?? "").trim();
+  const privateKey = (Deno.env.get("RELAYPAY_PRIVATE_KEY") ?? "").trim();
+  const merchantId = (Deno.env.get("RELAYPAY_MERCHANT_ID") ?? "").trim();
+  const storeName = (Deno.env.get("RELAYPAY_STORE_NAME") ?? "coldd").trim();
+  if (!publicKey || !privateKey || !merchantId) throw new Error("Crypto payments are not configured.");
+  return { publicKey, privateKey, merchantId, storeName };
+}
+
+/** RelayPay's signing scheme: hex SHA-256 of the exact request-body string
+ *  concatenated with the private key (not HMAC - see their merchant docs).
+ *  The same string used to sign must be the exact string sent, so callers
+ *  build the JSON once and reuse it for both. */
+async function sha256Hex(message: string): Promise<string> {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(message));
+  return Array.from(new Uint8Array(digest)).map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+/** RelayPay settles in the fiat currency the charge was created in (there is
+ *  no separate invoice-vs-settlement currency), so a USD order total has to
+ *  become an AUD figure before it reaches them. Frankfurter is ECB-sourced,
+ *  free, and needs no API key - fine for a same-day rate, not for anything
+ *  that needs tick-level accuracy. */
+async function usdToAud(amountUsd: number): Promise<number> {
+  const res = await fetch("https://api.frankfurter.app/latest?from=USD&to=AUD");
+  if (!res.ok) throw new Error("Could not fetch a USD/AUD exchange rate.");
+  const data = await res.json();
+  const rate = Number(data?.rates?.AUD ?? NaN);
+  if (!Number.isFinite(rate) || rate <= 0) throw new Error("Got an invalid USD/AUD exchange rate.");
+  return Math.round(amountUsd * rate * 100) / 100;
+}
+
+export const relayPay: CryptoProvider = {
+  name: "relaypay",
+
+  async createCharge(input) {
+    let amountAud: number;
+    try {
+      amountAud = await usdToAud(input.amountUsd);
+    } catch (e) {
+      return { ok: false, error: e instanceof Error ? e.message : "Currency conversion failed." };
+    }
+
+    const { publicKey, privateKey, merchantId, storeName } = relaypayCreds();
+    const payload = {
+      amount: amountAud,
+      customerName: input.customerName,
+      customerEmail: input.customerEmail,
+      storeName,
+      merchantId,
+      currency: "AUD",
+      orderId: input.orderId,
+      callbackUrlRedirect: input.returnUrl,
+      callbackCancelUrlRedirect: input.cancelUrl,
+      webHookUrl: input.callbackUrl,
+    };
+    // Sign the exact string we send - re-stringifying after signing (even
+    // with identical data) can reorder keys and produce a different string,
+    // which would make RelayPay's own signature check fail on their end.
+    const body = JSON.stringify(payload);
+    const signature = await sha256Hex(body + privateKey);
+
+    const res = await fetch(`${relaypayBase()}/api/e-commerce/request`, {
+      method: "POST",
+      headers: {
+        "x-api-key": publicKey,
+        "x-merchant-id": merchantId,
+        "x-api-signature": signature,
+        "Content-Type": "application/json",
+      },
+      body,
+    });
+
+    if (!res.ok) {
+      // Never echo the provider body - it can quote request fields back and
+      // this lands in function logs.
+      return { ok: false, error: `Crypto provider rejected the charge (${res.status}).` };
+    }
+
+    // Docs specify "Status 200: redirect url" without pinning down whether
+    // that's a bare string or a JSON envelope - handle both rather than
+    // guessing one and breaking silently the day it's the other.
+    const text = await res.text();
+    let redirectUrl = text.trim();
+    try {
+      const data = JSON.parse(text);
+      redirectUrl = String(data?.redirectUrl ?? data?.url ?? data?.checkoutUrl ?? data?.paymentUrl ?? text).trim();
+    } catch { /* plain-text body, keep as-is */ }
+    if (!/^https?:\/\//.test(redirectUrl)) {
+      return { ok: false, error: "Crypto provider did not return a checkout URL." };
+    }
+
+    return {
+      ok: true,
+      url: redirectUrl,
+      // Not returned by this endpoint (only the webhook and the transaction
+      // lookup endpoints carry RelayPay's own transactionId) - the webhook
+      // fills this in on the order once the first status update arrives.
+      providerId: "",
+      settleAmount: amountAud,
+      settleCurrency: "aud",
+    };
+  },
+
+  async verifyWebhook(rawBody, headers) {
+    const { privateKey } = relaypayCreds();
+    const sent = headers.get("x-api-signature") ?? "";
+    if (!sent) return null;
+
+    const expected = await sha256Hex(rawBody + privateKey);
+    if (!timingSafeEqual(sent.toLowerCase(), expected.toLowerCase())) return null;
+
+    let parsed: any;
+    try { parsed = JSON.parse(rawBody); } catch { return null; }
+
+    // Authentic, but only a completed transaction may fulfil. "Pending" is
+    // the normal in-flight state; "Cancelled"/"Failed"/"Expired" never settle.
+    if (String(parsed.orderStatus ?? "") !== "Success") return null;
+
+    const orderId = String(parsed.orderId ?? "");
+    if (!orderId) return null;
+
+    return {
+      orderId,
+      providerId: String(parsed.transactionId ?? ""),
+      settleAmount: Number(parsed.amount ?? NaN),
+      settleCurrency: "aud",
     };
   },
 };
 
 export function activeProvider(): CryptoProvider {
   // One switch point. A second provider is a new object above plus a case here.
+  // Stays on nowpayments (the one already live and configured) until
+  // RELAYPAY_* secrets are set and CRYPTO_PROVIDER=relaypay is flipped on -
+  // that way this deploys with zero risk to live crypto checkout, and the
+  // switch itself is a config change, not a code change.
   const name = (Deno.env.get("CRYPTO_PROVIDER") ?? "nowpayments").trim().toLowerCase();
   switch (name) {
+    case "relaypay":
+      return relayPay;
     case "nowpayments":
     default:
       return nowPayments;

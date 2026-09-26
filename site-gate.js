@@ -210,10 +210,14 @@
 
     if (status.mode === 'maintenance') {
       rememberMode('maintenance');
-      // Whatever happens from here (overlay for visitors, banner for staff)
-      // the page needs to be visible again - the overlay covers it, or the
-      // banner sits over a legitimately-bypassed page.
-      releaseGateHold();
+      // Do NOT release the hold here. Which of the two paths below applies
+      // (overlay for visitors, banner for bypassed staff) is only known
+      // after the async session/admin check below resolves - releasing the
+      // hold before that point used to let the real, fully-functional page
+      // paint and sit visible for the length of that round trip, every
+      // single load, before the overlay finally covered it. The hold is
+      // only lifted at the point content actually gets covered (by the
+      // overlay) or is deliberately shown (the bypass banner path).
       // Bypassed view: the real page renders, with the "still in maintenance
       // for everyone else" banner (or the preview overlay if they asked for
       // it). Granted to staff (checkIsAdmin) and to any non-admin account on
@@ -226,20 +230,27 @@
         try { dismissed = sessionStorage.getItem(WHITELIST_DISMISS_KEY) === '1'; } catch (e) {}
         if (previewing) showMaintenanceOverlay(status, true);
         else if (!dismissed) showWhitelistBanner(status, isTester);
+        releaseGateHold();
       };
       window.coldSupabase.auth.getSession().then(function (sres) {
         var session = sres && sres.data ? sres.data.session : null;
         // If a tester's bypass is pulled while they sit on the page (removed
         // from the allowlist, or maintenance just came on), the stale
         // "tester access" banner has to go before the real overlay drops.
-        if (!session) { dropBanner(); showMaintenanceOverlay(status); return; }
+        if (!session) { dropBanner(); showMaintenanceOverlay(status); releaseGateHold(); return; }
         var allow = Array.isArray(status.maintenance_allow_user_ids) ? status.maintenance_allow_user_ids : [];
         if (allow.indexOf(session.user.id) !== -1) { grantBypassView(true); return; }
         window.coldAuth.checkIsAdmin().then(function (info) {
-          if (!info.isAdmin) { dropBanner(); showMaintenanceOverlay(status); return; }
+          if (!info.isAdmin) { dropBanner(); showMaintenanceOverlay(status); releaseGateHold(); return; }
           grantBypassView(false);
         });
-      }).catch(function () {});
+      }).catch(function () {
+        // Session check itself failed - fail open per file header, but
+        // still cover with the overlay first so a network hiccup here
+        // doesn't hand out the real page during a known maintenance window.
+        showMaintenanceOverlay(status);
+        releaseGateHold();
+      });
     }
    }).catch(function () {
     releaseGateHold();
